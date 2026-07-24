@@ -1,0 +1,92 @@
+quarkus:
+  application:
+    name: propuestas-api
+
+  http:
+    port: 8080
+    cors:
+      ~: true
+      origins: http://localhost:5173,http://localhost:3000
+      methods: GET,POST,PUT,DELETE,OPTIONS
+      headers: accept,authorization,content-type
+
+  datasource:
+    db-kind: postgresql
+    username: ${DB_USER:propuestas}
+    password: ${DB_PASSWORD:propuestas}
+    # jdbc.url is NOT set here so Dev Services activates in %test.
+    # %dev and %prod override it below.
+
+  hibernate-orm:
+    database:
+      generation: validate
+    log:
+      sql: false
+
+  flyway:
+    migrate-at-start: true
+    baseline-on-migrate: true
+    locations: db/migration
+
+  smallrye-jwt:
+    enabled: true
+
+  swagger-ui:
+    always-include: true
+
+  smallrye-openapi:
+    path: /q/openapi
+
+  health:
+    extensions:
+      enabled: true
+
+# SmallRye JWT Build — key signing config (MP config keys, not quarkus-prefixed)
+smallrye:
+  jwt:
+    sign:
+      key:
+        location: META-INF/resources/privateKey.pem
+    new-token:
+      issuer: https://propuestas-api.local
+      lifespan: 3600           # 60 min access token — D-02
+
+# MicroProfile JWT verification config
+mp:
+  jwt:
+    verify:
+      publickey:
+        location: META-INF/resources/publicKey.pem
+      issuer: https://propuestas-api.local
+
+# App-level auth knobs (business rules from D-01, D-02, D-11)
+app:
+  auth:
+    verificacion-ttl: PT24H
+    reset-ttl: PT24H
+    invitacion-ttl: PT72H
+    refresh-ttl-recordado: P30D
+    refresh-ttl-sesion: PT12H     # generous session upper bound; client discards on close
+    reenvio-cooldown: PT60S
+
+"%dev":
+  quarkus:
+    datasource:
+      jdbc:
+        url: ${DB_URL:jdbc:postgresql://localhost:5432/propuestas}
+    hibernate-orm:
+      log:
+        sql: true
+    log:
+      category:
+        "ec.uce.propuestas":
+          level: DEBUG
+
+"%prod":
+  quarkus:
+    datasource:
+      jdbc:
+        url: ${DB_URL:jdbc:postgresql://localhost:5432/propuestas}
+    hibernate-orm:
+      log:
+        sql: false

@@ -1,0 +1,1961 @@
+[
+  {
+    "sheet": "501BM6",
+    "codigo": "501BM6",
+    "descripcion": "Retiro de pisos de porcelanato/cerámica",
+    "unidad": "m2",
+    "secciones": [
+      {
+        "tipo": "EQUIPO",
+        "subtotal": 0.22337500000000002,
+        "lineas": [
+          {
+            "descripcion": "Herramienta Menor 5%MO",
+            "cantidad": 5,
+            "tarifa": null,
+            "costoHora": 0,
+            "rendimiento": "",
+            "costo": 0.22337500000000002,
+            "esHerramientaMenor": true
+          }
+        ]
+      },
+      {
+        "tipo": "MANO_OBRA",
+        "subtotal": 4.4675,
+        "lineas": [
+          {
+            "descripcion": "Maestro mayor en ejecución de  obras civiles  (EO C1)",
+            "cantidad": 0.1,
+            "jornal": 4.75,
+            "costoHora": 0.47500000000000003,
+            "rendimiento": 0.5,
+            "costo": 0.23750000000000002,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Peón (EO E2)",
+            "cantidad": 2,
+            "jornal": 4.23,
+            "costoHora": 8.46,
+            "rendimiento": 0.5,
+            "costo": 4.23,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "MATERIAL",
+        "subtotal": 0.0,
+        "lineas": []
+      },
+      {
+        "tipo": "TRANSPORTE",
+        "subtotal": 0.0,
+        "lineas": []
+      }
+    ],
+    "costoDirecto": 4.690875,
+    "porcentajeIndirecto": 0.18,
+    "costoTotal": 5.5352325
+  },
+  {
+    "sheet": "501B64",
+    "codigo": "501B64",
+    "descripcion": "Desalojo de escombros",
+    "unidad": "m3",
+    "secciones": [
+      {
+        "tipo": "EQUIPO",
+        "subtotal": 3.04885625,
+        "lineas": [
+          {
+            "descripcion": "Volqueta",
+            "cantidad": 1,
+            "tarifa": 25,
+            "costoHora": 25,
+            "rendimiento": 0.055,
+            "costo": 1.375,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Cargadora frontal",
+            "cantidad": 1,
+            "tarifa": 29.65,
+            "costoHora": 29.65,
+            "rendimiento": 0.055,
+            "costo": 1.63075,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Herramienta Menor 5%MO",
+            "cantidad": 5,
+            "tarifa": null,
+            "costoHora": 0,
+            "rendimiento": "",
+            "costo": 0.043106250000000006,
+            "esHerramientaMenor": true
+          }
+        ]
+      },
+      {
+        "tipo": "MANO_OBRA",
+        "subtotal": 0.862125,
+        "lineas": [
+          {
+            "descripcion": "Chofer: Volquetas ( EO C1) (CHOFERES PROFESIONALES)",
+            "cantidad": 1,
+            "jornal": 6.22,
+            "costoHora": 6.22,
+            "rendimiento": 0.055,
+            "costo": 0.3421,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Peón (EO E2)",
+            "cantidad": 1,
+            "jornal": 4.23,
+            "costoHora": 4.23,
+            "rendimiento": 0.055,
+            "costo": 0.23265000000000002,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Operador cargadora frontal (Payloader sobre ruedas u orugas) (OPER-EO C1 GRUPO I)",
+            "cantidad": 1,
+            "jornal": 4.75,
+            "costoHora": 4.75,
+            "rendimiento": 0.055,
+            "costo": 0.26125,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Maestro mayor en ejecución de  obras civiles  (EO C1)",
+            "cantidad": 0.1,
+            "jornal": 4.75,
+            "costoHora": 0.47500000000000003,
+            "rendimiento": 0.055,
+            "costo": 0.026125000000000002,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "MATERIAL",
+        "subtotal": 0.0,
+        "lineas": []
+      },
+      {
+        "tipo": "TRANSPORTE",
+        "subtotal": 0.0,
+        "lineas": []
+      }
+    ],
+    "costoDirecto": 3.91098125,
+    "porcentajeIndirecto": 0.18,
+    "costoTotal": 4.614957875
+  },
+  {
+    "sheet": "501D1V",
+    "codigo": "501D1V",
+    "descripcion": "Provisión e instalación de porcelanato rectificado en paredes (0.60x 0.30 m)",
+    "unidad": "m2",
+    "secciones": [
+      {
+        "tipo": "EQUIPO",
+        "subtotal": 0.5559375000000001,
+        "lineas": [
+          {
+            "descripcion": "Herramienta Menor 5%MO",
+            "cantidad": 5,
+            "tarifa": null,
+            "costoHora": 0,
+            "rendimiento": "",
+            "costo": 0.33693750000000006,
+            "esHerramientaMenor": true
+          },
+          {
+            "descripcion": "Andamio",
+            "cantidad": 1,
+            "tarifa": 0.1,
+            "costoHora": 0.1,
+            "rendimiento": 0.75,
+            "costo": 0.07500000000000001,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Cortadora eléctrica de porcelanato/cerámica",
+            "cantidad": 0.1,
+            "tarifa": 0.75,
+            "costoHora": 0.07500000000000001,
+            "rendimiento": 0.75,
+            "costo": 0.05625000000000001,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Amoladora",
+            "cantidad": 0.1,
+            "tarifa": 1.17,
+            "costoHora": 0.11699999999999999,
+            "rendimiento": 0.75,
+            "costo": 0.08775,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "MANO_OBRA",
+        "subtotal": 6.7387500000000005,
+        "lineas": [
+          {
+            "descripcion": "Peón (EO E2)",
+            "cantidad": 1,
+            "jornal": 4.23,
+            "costoHora": 4.23,
+            "rendimiento": 0.75,
+            "costo": 3.1725000000000003,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Maestro mayor en ejecución de  obras civiles  (EO C1)",
+            "cantidad": 0.1,
+            "jornal": 4.75,
+            "costoHora": 0.47500000000000003,
+            "rendimiento": 0.75,
+            "costo": 0.35625,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Instalador de revestimiento en general  (EO D2)",
+            "cantidad": 1,
+            "jornal": 4.28,
+            "costoHora": 4.28,
+            "rendimiento": 0.75,
+            "costo": 3.21,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "MATERIAL",
+        "subtotal": 20.0172,
+        "lineas": [
+          {
+            "descripcion": "Mortero adhesivo bicomponente",
+            "unidad": "Kg",
+            "cantidad": 6,
+            "precioUnitario": 0.59,
+            "costo": 3.54,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Emporador",
+            "unidad": "Kg",
+            "cantidad": 0.06,
+            "precioUnitario": 1.12,
+            "costo": 0.06720000000000001,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Agua",
+            "unidad": "m3",
+            "cantidad": 0.1,
+            "precioUnitario": 0.9,
+            "costo": 0.09000000000000001,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Porcelanato rectificado en pared (0.60x 0.30 m)",
+            "unidad": "m2",
+            "cantidad": 1,
+            "precioUnitario": 16.32,
+            "costo": 16.32,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "TRANSPORTE",
+        "subtotal": 0.0,
+        "lineas": []
+      }
+    ],
+    "costoDirecto": 27.311887499999997,
+    "porcentajeIndirecto": 0.18,
+    "costoTotal": 32.22802725
+  },
+  {
+    "sheet": "501DQR",
+    "codigo": "501DQR",
+    "descripcion": "Hoja de puerta corrediza en tablero de fibra de densidad media RH tamborada,incluye sistema de riel,rodillo y cajón",
+    "unidad": "m2",
+    "secciones": [
+      {
+        "tipo": "EQUIPO",
+        "subtotal": 1.1185,
+        "lineas": [
+          {
+            "descripcion": "Herramienta Menor 5%MO",
+            "cantidad": 5,
+            "tarifa": null,
+            "costoHora": 0,
+            "rendimiento": "",
+            "costo": 0.8985,
+            "esHerramientaMenor": true
+          },
+          {
+            "descripcion": "Taladro eléctrico",
+            "cantidad": 0.1,
+            "tarifa": 1.1,
+            "costoHora": 0.11000000000000001,
+            "rendimiento": 2,
+            "costo": 0.22000000000000003,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "MANO_OBRA",
+        "subtotal": 17.97,
+        "lineas": [
+          {
+            "descripcion": "Carpintero  (EO D2)",
+            "cantidad": 1,
+            "jornal": 4.28,
+            "costoHora": 4.28,
+            "rendimiento": 2,
+            "costo": 8.56,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Maestro mayor en ejecución de  obras civiles  (EO C1)",
+            "cantidad": 0.1,
+            "jornal": 4.75,
+            "costoHora": 0.47500000000000003,
+            "rendimiento": 2,
+            "costo": 0.9500000000000001,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Peón (EO E2)",
+            "cantidad": 1,
+            "jornal": 4.23,
+            "costoHora": 4.23,
+            "rendimiento": 2,
+            "costo": 8.46,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "MATERIAL",
+        "subtotal": 131.47696000000002,
+        "lineas": [
+          {
+            "descripcion": "Jaladera de acero inoxidable para puerta corrediza de tablero de densidad media",
+            "unidad": "u",
+            "cantidad": 0.396,
+            "precioUnitario": 7.61,
+            "costo": 3.0135600000000005,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Tacos y tornillos",
+            "unidad": "u",
+            "cantidad": 3.96,
+            "precioUnitario": 0.05,
+            "costo": 0.198,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Kit de accesorios para puerta corrediza tipo granero incluye rieles y rodillo,conectores de riel y pared,tapas",
+            "unidad": "u",
+            "cantidad": 0.396,
+            "precioUnitario": 97,
+            "costo": 38.412,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Tablero de fibra de densidad media 10mm",
+            "unidad": "m2",
+            "cantidad": 0.06,
+            "precioUnitario": 21.89,
+            "costo": 1.3134,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Hoja de puertas en tablero de fibra de densidad media RH tamborada",
+            "unidad": "m2",
+            "cantidad": 1,
+            "precioUnitario": 88.54,
+            "costo": 88.54,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "TRANSPORTE",
+        "subtotal": 0.0,
+        "lineas": []
+      }
+    ],
+    "costoDirecto": 150.56546000000003,
+    "porcentajeIndirecto": 0.18,
+    "costoTotal": 177.66724280000003
+  },
+  {
+    "sheet": "501D00",
+    "codigo": "501D00",
+    "descripcion": "Mueble en tablero de fibra de densidad media RH para estación de trabajo en laboratorios incluye: módulo de cajoneras, módulo de repisa, área de trabajo y premesón  de madera para mesón  de material sintético",
+    "unidad": "m",
+    "secciones": [
+      {
+        "tipo": "EQUIPO",
+        "subtotal": 9.14775,
+        "lineas": [
+          {
+            "descripcion": "Herramienta Menor 5%MO",
+            "cantidad": 5,
+            "tarifa": null,
+            "costoHora": 0,
+            "rendimiento": "",
+            "costo": 1.3477500000000002,
+            "esHerramientaMenor": true
+          },
+          {
+            "descripcion": "Sierra circular",
+            "cantidad": 1,
+            "tarifa": 1.5,
+            "costoHora": 1.5,
+            "rendimiento": 3,
+            "costo": 4.5,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Taladro eléctrico",
+            "cantidad": 1,
+            "tarifa": 1.1,
+            "costoHora": 1.1,
+            "rendimiento": 3,
+            "costo": 3.3000000000000003,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "MANO_OBRA",
+        "subtotal": 26.955000000000002,
+        "lineas": [
+          {
+            "descripcion": "Carpintero  (EO D2)",
+            "cantidad": 1,
+            "jornal": 4.28,
+            "costoHora": 4.28,
+            "rendimiento": 3,
+            "costo": 12.84,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Ayudante de carpintero (EO E2)",
+            "cantidad": 1,
+            "jornal": 4.23,
+            "costoHora": 4.23,
+            "rendimiento": 3,
+            "costo": 12.690000000000001,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Maestro mayor en ejecución de  obras civiles  (EO C1)",
+            "cantidad": 0.1,
+            "jornal": 4.75,
+            "costoHora": 0.47500000000000003,
+            "rendimiento": 3,
+            "costo": 1.425,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "MATERIAL",
+        "subtotal": 131.5378,
+        "lineas": [
+          {
+            "descripcion": "Pegamento blanco para madera",
+            "unidad": "gal",
+            "cantidad": 0.1,
+            "precioUnitario": 10.55,
+            "costo": 1.0550000000000002,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Tacos y tornillos",
+            "unidad": "u",
+            "cantidad": 40,
+            "precioUnitario": 0.05,
+            "costo": 2,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Tablero de fibra de densidad media- RH 15mm melamínico",
+            "unidad": "m2",
+            "cantidad": 3.95,
+            "precioUnitario": 22.02,
+            "costo": 86.979,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Riel de deslizamiento en cajones",
+            "unidad": "m",
+            "cantidad": 3,
+            "precioUnitario": 3.71,
+            "costo": 11.129999999999999,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Tablero contrachapado 15mm industrial",
+            "unidad": "m2",
+            "cantidad": 0.82,
+            "precioUnitario": 14.09,
+            "costo": 11.553799999999999,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Sellador para superficie",
+            "unidad": "gal",
+            "cantidad": 0.04,
+            "precioUnitario": 32.5,
+            "costo": 1.3,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Tornillos de madera y cubre huecos",
+            "unidad": "u",
+            "cantidad": 20,
+            "precioUnitario": 0.1,
+            "costo": 2,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Niveladores de altura para mueble",
+            "unidad": "u",
+            "cantidad": 8,
+            "precioUnitario": 1.27,
+            "costo": 10.16,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Bisagra de cazoleta",
+            "unidad": "u",
+            "cantidad": 4,
+            "precioUnitario": 1.34,
+            "costo": 5.36,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "TRANSPORTE",
+        "subtotal": 0.0,
+        "lineas": []
+      }
+    ],
+    "costoDirecto": 167.64055000000002,
+    "porcentajeIndirecto": 0.18,
+    "costoTotal": 197.81584900000001
+  },
+  {
+    "sheet": "501AKN",
+    "codigo": "501AKN",
+    "descripcion": "Mangón de acero inoxidable 2\"x1.5mm",
+    "unidad": "m",
+    "secciones": [
+      {
+        "tipo": "EQUIPO",
+        "subtotal": 4.368499999999999,
+        "lineas": [
+          {
+            "descripcion": "Taladro eléctrico",
+            "cantidad": 0.5,
+            "tarifa": 1.1,
+            "costoHora": 0.55,
+            "rendimiento": 2,
+            "costo": 1.1,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Soldadora oxiacetilénica",
+            "cantidad": 0.3,
+            "tarifa": 2,
+            "costoHora": 0.6,
+            "rendimiento": 2,
+            "costo": 1.2,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Herramienta Menor 5%MO",
+            "cantidad": 5,
+            "tarifa": null,
+            "costoHora": 0,
+            "rendimiento": "",
+            "costo": 0.8985,
+            "esHerramientaMenor": true
+          },
+          {
+            "descripcion": "Amoladora",
+            "cantidad": 0.5,
+            "tarifa": 1.17,
+            "costoHora": 0.585,
+            "rendimiento": 2,
+            "costo": 1.17,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "MANO_OBRA",
+        "subtotal": 17.97,
+        "lineas": [
+          {
+            "descripcion": "Instalador de revestimiento en general  (EO D2)",
+            "cantidad": 1,
+            "jornal": 4.28,
+            "costoHora": 4.28,
+            "rendimiento": 2,
+            "costo": 8.56,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Peón (EO E2)",
+            "cantidad": 1,
+            "jornal": 4.23,
+            "costoHora": 4.23,
+            "rendimiento": 2,
+            "costo": 8.46,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Maestro mayor en ejecución de  obras civiles  (EO C1)",
+            "cantidad": 0.1,
+            "jornal": 4.75,
+            "costoHora": 0.47500000000000003,
+            "rendimiento": 2,
+            "costo": 0.9500000000000001,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "MATERIAL",
+        "subtotal": 30.980999999999998,
+        "lineas": [
+          {
+            "descripcion": "Electrodos TIG (10 unidades 1.6x175mm)",
+            "unidad": "Kg",
+            "cantidad": 0.1,
+            "precioUnitario": 16.5,
+            "costo": 1.6500000000000001,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Tubo de acero inoxidable 2\"x1.5mm",
+            "unidad": "m",
+            "cantidad": 1.05,
+            "precioUnitario": 8.22,
+            "costo": 8.631,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Tacos y tornillos",
+            "unidad": "u",
+            "cantidad": 6,
+            "precioUnitario": 0.05,
+            "costo": 0.30000000000000004,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Sujecciones de acero inoxidable pasamanos muro",
+            "unidad": "u",
+            "cantidad": 2,
+            "precioUnitario": 10.2,
+            "costo": 20.4,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "TRANSPORTE",
+        "subtotal": 0.0,
+        "lineas": []
+      }
+    ],
+    "costoDirecto": 53.31949999999999,
+    "porcentajeIndirecto": 0.18,
+    "costoTotal": 62.91700999999999
+  },
+  {
+    "sheet": "502897",
+    "codigo": "502897",
+    "descripcion": "Centro de Tomas para Quirófano (4 tomas dúplex y 4 tomas a tierra)",
+    "unidad": "u",
+    "secciones": [
+      {
+        "tipo": "EQUIPO",
+        "subtotal": 1.797,
+        "lineas": [
+          {
+            "descripcion": "Herramienta Menor 5%MO",
+            "cantidad": 5,
+            "tarifa": null,
+            "costoHora": 0,
+            "rendimiento": "",
+            "costo": 1.797,
+            "esHerramientaMenor": true
+          }
+        ]
+      },
+      {
+        "tipo": "MANO_OBRA",
+        "subtotal": 35.94,
+        "lineas": [
+          {
+            "descripcion": "Electricista (EO D2)",
+            "cantidad": 1,
+            "jornal": 4.28,
+            "costoHora": 4.28,
+            "rendimiento": 4,
+            "costo": 17.12,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Ayudante de electricista (EO E2)",
+            "cantidad": 1,
+            "jornal": 4.23,
+            "costoHora": 4.23,
+            "rendimiento": 4,
+            "costo": 16.92,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Maestro Eléctrico/liniero/subestaciónes ( EO C1)",
+            "cantidad": 0.1,
+            "jornal": 4.75,
+            "costoHora": 0.47500000000000003,
+            "rendimiento": 4,
+            "costo": 1.9000000000000001,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "MATERIAL",
+        "subtotal": 406.097,
+        "lineas": [
+          {
+            "descripcion": "Centro de Tomas para Quirófano (4 tomas dúplex  y 4 tomas tierra)",
+            "unidad": "u",
+            "cantidad": 1,
+            "precioUnitario": 406,
+            "costo": 406,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Cinta aislante",
+            "unidad": "u",
+            "cantidad": 0.1,
+            "precioUnitario": 0.97,
+            "costo": 0.097,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "TRANSPORTE",
+        "subtotal": 0.0,
+        "lineas": []
+      }
+    ],
+    "costoDirecto": 443.834,
+    "porcentajeIndirecto": 0.18,
+    "costoTotal": 523.72412
+  },
+  {
+    "sheet": "500AT8",
+    "codigo": "500AT8",
+    "descripcion": "Centro de carga trifásico de 12 Espacios",
+    "unidad": "u",
+    "secciones": [
+      {
+        "tipo": "EQUIPO",
+        "subtotal": 0.8985,
+        "lineas": [
+          {
+            "descripcion": "Herramienta Menor 5%MO",
+            "cantidad": 5,
+            "tarifa": null,
+            "costoHora": 0,
+            "rendimiento": "",
+            "costo": 0.8985,
+            "esHerramientaMenor": true
+          }
+        ]
+      },
+      {
+        "tipo": "MANO_OBRA",
+        "subtotal": 17.97,
+        "lineas": [
+          {
+            "descripcion": "Electricista (EO D2)",
+            "cantidad": 1,
+            "jornal": 4.28,
+            "costoHora": 4.28,
+            "rendimiento": 2,
+            "costo": 8.56,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Maestro Eléctrico/liniero/subestaciónes ( EO C1)",
+            "cantidad": 1,
+            "jornal": 4.75,
+            "costoHora": 4.75,
+            "rendimiento": 0.2,
+            "costo": 0.9500000000000001,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Ayudante de electricista (EO E2)",
+            "cantidad": 1,
+            "jornal": 4.23,
+            "costoHora": 4.23,
+            "rendimiento": 2,
+            "costo": 8.46,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "MATERIAL",
+        "subtotal": 109.73,
+        "lineas": [
+          {
+            "descripcion": "Centro de carga trifásico de 12 espacios",
+            "unidad": "u",
+            "cantidad": 1,
+            "precioUnitario": 109.73,
+            "costo": 109.73,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "TRANSPORTE",
+        "subtotal": 0.0,
+        "lineas": []
+      }
+    ],
+    "costoDirecto": 128.5985,
+    "porcentajeIndirecto": 0.18,
+    "costoTotal": 151.74623
+  },
+  {
+    "sheet": "502ARV",
+    "codigo": "502ARV",
+    "descripcion": "Alimentador THHN FLEX (5x12) AWG",
+    "unidad": "m",
+    "secciones": [
+      {
+        "tipo": "EQUIPO",
+        "subtotal": 0.036785000000000005,
+        "lineas": [
+          {
+            "descripcion": "Herramienta Menor 5%MO",
+            "cantidad": 5,
+            "tarifa": null,
+            "costoHora": 0,
+            "rendimiento": "",
+            "costo": 0.029785000000000006,
+            "esHerramientaMenor": true
+          },
+          {
+            "descripcion": "Escalera tipo tijera",
+            "cantidad": 1,
+            "tarifa": 0.1,
+            "costoHora": 0.1,
+            "rendimiento": 0.07,
+            "costo": 0.007000000000000001,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "MANO_OBRA",
+        "subtotal": 0.5957000000000001,
+        "lineas": [
+          {
+            "descripcion": "Electricista (EO D2)",
+            "cantidad": 1,
+            "jornal": 4.28,
+            "costoHora": 4.28,
+            "rendimiento": 0.07,
+            "costo": 0.29960000000000003,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Ayudante de electricista (EO E2)",
+            "cantidad": 1,
+            "jornal": 4.23,
+            "costoHora": 4.23,
+            "rendimiento": 0.07,
+            "costo": 0.2961000000000001,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "MATERIAL",
+        "subtotal": 2.8699999999999997,
+        "lineas": [
+          {
+            "descripcion": "Cable flexible THHN Flex # 12 AWG",
+            "unidad": "m",
+            "cantidad": 5,
+            "precioUnitario": 0.57,
+            "costo": 2.8499999999999996,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Amarras de 10 cm plásticas",
+            "unidad": "u",
+            "cantidad": 1,
+            "precioUnitario": 0.02,
+            "costo": 0.02,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "TRANSPORTE",
+        "subtotal": 0.0,
+        "lineas": []
+      }
+    ],
+    "costoDirecto": 3.502485,
+    "porcentajeIndirecto": 0.18,
+    "costoTotal": 4.1329323
+  },
+  {
+    "sheet": "503B30",
+    "codigo": "503B30",
+    "descripcion": "Patch cord categoría 6A F/UTP 3pies",
+    "unidad": "u",
+    "secciones": [
+      {
+        "tipo": "EQUIPO",
+        "subtotal": 0.054180000000000006,
+        "lineas": [
+          {
+            "descripcion": "Herramienta Menor 5%MO",
+            "cantidad": 5,
+            "tarifa": null,
+            "costoHora": 0,
+            "rendimiento": "",
+            "costo": 0.054180000000000006,
+            "esHerramientaMenor": true
+          }
+        ]
+      },
+      {
+        "tipo": "MANO_OBRA",
+        "subtotal": 1.0836000000000001,
+        "lineas": [
+          {
+            "descripcion": "Maestro Eléctrico/liniero/subestaciónes ( EO C1)",
+            "cantidad": 1,
+            "jornal": 4.75,
+            "costoHora": 4.75,
+            "rendimiento": 0.12,
+            "costo": 0.57,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Electricista (EO D2)",
+            "cantidad": 1,
+            "jornal": 4.28,
+            "costoHora": 4.28,
+            "rendimiento": 0.12,
+            "costo": 0.5136000000000001,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "MATERIAL",
+        "subtotal": 14.99,
+        "lineas": [
+          {
+            "descripcion": "Patch cord cat 6A F/UTP 3ft",
+            "unidad": "u",
+            "cantidad": 1,
+            "precioUnitario": 14.15,
+            "costo": 14.15,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Etiqueta de identificación",
+            "unidad": "u",
+            "cantidad": 2,
+            "precioUnitario": 0.42,
+            "costo": 0.84,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "TRANSPORTE",
+        "subtotal": 0.0,
+        "lineas": []
+      }
+    ],
+    "costoDirecto": 16.127779999999998,
+    "porcentajeIndirecto": 0.18,
+    "costoTotal": 19.030780399999998
+  },
+  {
+    "sheet": "500ASU(1)",
+    "codigo": "500ASU",
+    "descripcion": "Soporte galvanizado para bandeja tipo escalerilla",
+    "unidad": "u",
+    "secciones": [
+      {
+        "tipo": "EQUIPO",
+        "subtotal": 0.15887500000000004,
+        "lineas": [
+          {
+            "descripcion": "Herramienta Menor 5%MO",
+            "cantidad": 5,
+            "tarifa": null,
+            "costoHora": 0,
+            "rendimiento": "",
+            "costo": 0.10637500000000003,
+            "esHerramientaMenor": true
+          },
+          {
+            "descripcion": "Escalera tipo tijera",
+            "cantidad": 1,
+            "tarifa": 0.1,
+            "costoHora": 0.1,
+            "rendimiento": 0.25,
+            "costo": 0.025,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Taladro eléctrico",
+            "cantidad": 0.1,
+            "tarifa": 1.1,
+            "costoHora": 0.11000000000000001,
+            "rendimiento": 0.25,
+            "costo": 0.027500000000000004,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "MANO_OBRA",
+        "subtotal": 2.1275000000000004,
+        "lineas": [
+          {
+            "descripcion": "Electricista (EO D2)",
+            "cantidad": 1,
+            "jornal": 4.28,
+            "costoHora": 4.28,
+            "rendimiento": 0.25,
+            "costo": 1.07,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Ayudante de electricista (EO E2)",
+            "cantidad": 1,
+            "jornal": 4.23,
+            "costoHora": 4.23,
+            "rendimiento": 0.25,
+            "costo": 1.0575,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "MATERIAL",
+        "subtotal": 6.8999999999999995,
+        "lineas": [
+          {
+            "descripcion": "Expansores de 3/8\"",
+            "unidad": "u",
+            "cantidad": 2,
+            "precioUnitario": 0.6,
+            "costo": 1.2,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Tuercas 3/8\"",
+            "unidad": "u",
+            "cantidad": 4,
+            "precioUnitario": 0.05,
+            "costo": 0.2,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Arandelas 3/8\"",
+            "unidad": "u",
+            "cantidad": 4,
+            "precioUnitario": 0.05,
+            "costo": 0.2,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Varilla roscada galvanizada 3/8\"",
+            "unidad": "m",
+            "cantidad": 1.5,
+            "precioUnitario": 1.69,
+            "costo": 2.535,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Sujetador de bandeja 1/4 lamina galvanizada",
+            "unidad": "u",
+            "cantidad": 2,
+            "precioUnitario": 0.15,
+            "costo": 0.3,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Canal estructural troquelado 1 5/8\"de ancho x 1 5/8\" de alto",
+            "unidad": "m",
+            "cantidad": 0.5,
+            "precioUnitario": 4.93,
+            "costo": 2.465,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "TRANSPORTE",
+        "subtotal": 0.0,
+        "lineas": []
+      }
+    ],
+    "costoDirecto": 9.186375,
+    "porcentajeIndirecto": 0.18,
+    "costoTotal": 10.8399225
+  },
+  {
+    "sheet": "501DH5",
+    "codigo": "501DH5",
+    "descripcion": "Picado de contrapiso e=10cmx30cm de ancho ( para nuevas instalaciones sanitarias) incluye desalojo y resane",
+    "unidad": "m",
+    "secciones": [
+      {
+        "tipo": "EQUIPO",
+        "subtotal": 5.5440125,
+        "lineas": [
+          {
+            "descripcion": "Herramienta Menor 5%MO",
+            "cantidad": 5,
+            "tarifa": null,
+            "costoHora": 0,
+            "rendimiento": "",
+            "costo": 0.29201250000000006,
+            "esHerramientaMenor": true
+          },
+          {
+            "descripcion": "Martillo neumático rompedor",
+            "cantidad": 1,
+            "tarifa": 6.8,
+            "costoHora": 6.8,
+            "rendimiento": 0.65,
+            "costo": 4.42,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Cortadora de hormigón",
+            "cantidad": 1,
+            "tarifa": 1.28,
+            "costoHora": 1.28,
+            "rendimiento": 0.65,
+            "costo": 0.8320000000000001,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "MANO_OBRA",
+        "subtotal": 5.840250000000001,
+        "lineas": [
+          {
+            "descripcion": "Peón (EO E2)",
+            "cantidad": 1,
+            "jornal": 4.23,
+            "costoHora": 4.23,
+            "rendimiento": 0.65,
+            "costo": 2.7495000000000003,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Maestro mayor en ejecución de  obras civiles  (EO C1)",
+            "cantidad": 0.1,
+            "jornal": 4.75,
+            "costoHora": 0.47500000000000003,
+            "rendimiento": 0.65,
+            "costo": 0.30875,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Operador de equipo liviano (EO D2)",
+            "cantidad": 1,
+            "jornal": 4.28,
+            "costoHora": 4.28,
+            "rendimiento": 0.65,
+            "costo": 2.7820000000000005,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "MATERIAL",
+        "subtotal": 1.4916000000000003,
+        "lineas": [
+          {
+            "descripcion": "Aditivo ligante con base a látex",
+            "unidad": "Kg",
+            "cantidad": 0.02,
+            "precioUnitario": 6.75,
+            "costo": 0.135,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Cemento portland",
+            "unidad": "Kg",
+            "cantidad": 6.86,
+            "precioUnitario": 0.16,
+            "costo": 1.0976000000000001,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Agua",
+            "unidad": "m3",
+            "cantidad": 0.01,
+            "precioUnitario": 0.9,
+            "costo": 0.009000000000000001,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Arena puesta en obra",
+            "unidad": "m3",
+            "cantidad": 0.02,
+            "precioUnitario": 12.5,
+            "costo": 0.25,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "TRANSPORTE",
+        "subtotal": 0.0,
+        "lineas": []
+      }
+    ],
+    "costoDirecto": 12.8758625,
+    "porcentajeIndirecto": 0.18,
+    "costoTotal": 15.19351775
+  },
+  {
+    "sheet": "505APQ",
+    "codigo": "505APQ",
+    "descripcion": "Válvula de compuerta de bronce diam 20mm",
+    "unidad": "u",
+    "secciones": [
+      {
+        "tipo": "EQUIPO",
+        "subtotal": 0.14892500000000003,
+        "lineas": [
+          {
+            "descripcion": "Herramienta Menor 5%MO",
+            "cantidad": 5,
+            "tarifa": null,
+            "costoHora": 0,
+            "rendimiento": "",
+            "costo": 0.14892500000000003,
+            "esHerramientaMenor": true
+          }
+        ]
+      },
+      {
+        "tipo": "MANO_OBRA",
+        "subtotal": 2.9785000000000004,
+        "lineas": [
+          {
+            "descripcion": "Plomero  (EO D2)",
+            "cantidad": 1,
+            "jornal": 4.28,
+            "costoHora": 4.28,
+            "rendimiento": 0.35,
+            "costo": 1.498,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Ayudante de plomero (EO E2)",
+            "cantidad": 1,
+            "jornal": 4.23,
+            "costoHora": 4.23,
+            "rendimiento": 0.35,
+            "costo": 1.4805000000000001,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "MATERIAL",
+        "subtotal": 20.343400000000003,
+        "lineas": [
+          {
+            "descripcion": "Válvula de compuerta de bronce 3/4\" o 19mm",
+            "unidad": "u",
+            "cantidad": 1,
+            "precioUnitario": 20.21,
+            "costo": 20.21,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Cinta para uniones roscadas",
+            "unidad": "rollo",
+            "cantidad": 0.1,
+            "precioUnitario": 0.97,
+            "costo": 0.097,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Sellante",
+            "unidad": "u",
+            "cantidad": 0.01,
+            "precioUnitario": 3.64,
+            "costo": 0.0364,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "TRANSPORTE",
+        "subtotal": 0.0,
+        "lineas": []
+      }
+    ],
+    "costoDirecto": 23.470825,
+    "porcentajeIndirecto": 0.18,
+    "costoTotal": 27.695573500000002
+  },
+  {
+    "sheet": "504BA0",
+    "codigo": "504BA0",
+    "descripcion": "VE-02-Z1-SUB; Ventilador Centrifugo de Extracción In Line de Acople Directo 660cfm@1,32swp; incluye, filtro, soportes y tablero de control. Cert. AMCA.",
+    "unidad": "u",
+    "secciones": [
+      {
+        "tipo": "EQUIPO",
+        "subtotal": 6.868000000000001,
+        "lineas": [
+          {
+            "descripcion": "Herramienta Menor 5%MO",
+            "cantidad": 5,
+            "tarifa": null,
+            "costoHora": 0,
+            "rendimiento": "",
+            "costo": 6.068000000000001,
+            "esHerramientaMenor": true
+          },
+          {
+            "descripcion": "Andamio",
+            "cantidad": 1,
+            "tarifa": 0.1,
+            "costoHora": 0.1,
+            "rendimiento": 8,
+            "costo": 0.8,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "MANO_OBRA",
+        "subtotal": 121.36000000000001,
+        "lineas": [
+          {
+            "descripcion": "Inspector de obra (EO B3)",
+            "cantidad": 1,
+            "jornal": 4.76,
+            "costoHora": 4.76,
+            "rendimiento": 4,
+            "costo": 19.04,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Técnico Electromecánico  de construcción (EO D2)",
+            "cantidad": 1,
+            "jornal": 4.28,
+            "costoHora": 4.28,
+            "rendimiento": 8,
+            "costo": 34.24,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Electricista (EO D2)",
+            "cantidad": 1,
+            "jornal": 4.28,
+            "costoHora": 4.28,
+            "rendimiento": 8,
+            "costo": 34.24,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Peón (EO E2)",
+            "cantidad": 1,
+            "jornal": 4.23,
+            "costoHora": 4.23,
+            "rendimiento": 8,
+            "costo": 33.84,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "MATERIAL",
+        "subtotal": 1231.38,
+        "lineas": [
+          {
+            "descripcion": "Base metálica para ventilador,incluye soporte y varilla roscada",
+            "unidad": "u",
+            "cantidad": 1,
+            "precioUnitario": 35,
+            "costo": 35,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Tablero de control ventilador ON/OFF, manual y automático, programación diaria y semanal",
+            "unidad": "u",
+            "cantidad": 1,
+            "precioUnitario": 214.94,
+            "costo": 214.94,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Perno galvanizado camisa larga 5/16 x 1 1/2\"",
+            "unidad": "u",
+            "cantidad": 4,
+            "precioUnitario": 0.26,
+            "costo": 1.04,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Manguera metálica anillada con recubrimiento de PVC Ø= ¾”.",
+            "unidad": "m",
+            "cantidad": 2,
+            "precioUnitario": 1.95,
+            "costo": 3.9,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Filtro MERV 4",
+            "unidad": "u",
+            "cantidad": 1,
+            "precioUnitario": 58.64,
+            "costo": 58.64,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Ventilador centrífugo de Extracción In Line de Acople Directo 660cfm@1,32swp; incluye motor",
+            "unidad": "u",
+            "cantidad": 1,
+            "precioUnitario": 917.86,
+            "costo": 917.86,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "TRANSPORTE",
+        "subtotal": 0.0,
+        "lineas": []
+      }
+    ],
+    "costoDirecto": 1359.6080000000002,
+    "porcentajeIndirecto": 0.18,
+    "costoTotal": 1604.3374400000002
+  },
+  {
+    "sheet": "504B3I",
+    "codigo": "504B3I",
+    "descripcion": "Rejilla de puerta 16\"x8\"; blanca/aluminio; aletas fijas. Inc. accesorios",
+    "unidad": "u",
+    "secciones": [
+      {
+        "tipo": "EQUIPO",
+        "subtotal": 0.3567,
+        "lineas": [
+          {
+            "descripcion": "Herramienta Menor 5%MO",
+            "cantidad": 5,
+            "tarifa": null,
+            "costoHora": 0,
+            "rendimiento": "",
+            "costo": 0.3567,
+            "esHerramientaMenor": true
+          }
+        ]
+      },
+      {
+        "tipo": "MANO_OBRA",
+        "subtotal": 7.134,
+        "lineas": [
+          {
+            "descripcion": "Hojalatero (EO D2)",
+            "cantidad": 1,
+            "jornal": 4.28,
+            "costoHora": 4.28,
+            "rendimiento": 1.5,
+            "costo": 6.42,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Inspector de obra (EO B3)",
+            "cantidad": 0.1,
+            "jornal": 4.76,
+            "costoHora": 0.476,
+            "rendimiento": 1.5,
+            "costo": 0.714,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "MATERIAL",
+        "subtotal": 40.660000000000004,
+        "lineas": [
+          {
+            "descripcion": "Rejilla de puerta 16\"x8\"; blanca/aluminio; aletas fijas",
+            "unidad": "u",
+            "cantidad": 1,
+            "precioUnitario": 40.6,
+            "costo": 40.6,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Tornillo autoroscante 1 1/4\"x6mm",
+            "unidad": "u",
+            "cantidad": 2,
+            "precioUnitario": 0.03,
+            "costo": 0.06,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "TRANSPORTE",
+        "subtotal": 0.0,
+        "lineas": []
+      }
+    ],
+    "costoDirecto": 48.1507,
+    "porcentajeIndirecto": 0.18,
+    "costoTotal": 56.817826
+  },
+  {
+    "sheet": "500C2S",
+    "codigo": "500C2S",
+    "descripcion": "Consola vertical de gases medicinales 3 Gases.",
+    "unidad": "u",
+    "secciones": [
+      {
+        "tipo": "EQUIPO",
+        "subtotal": 23.6618,
+        "lineas": [
+          {
+            "descripcion": "Herramienta Menor 5%MO",
+            "cantidad": 5,
+            "tarifa": null,
+            "costoHora": 0,
+            "rendimiento": "",
+            "costo": 6.8618,
+            "esHerramientaMenor": true
+          },
+          {
+            "descripcion": "Soldadora oxiacetilénica",
+            "cantidad": 1,
+            "tarifa": 2,
+            "costoHora": 2,
+            "rendimiento": 8,
+            "costo": 16,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Andamio",
+            "cantidad": 1,
+            "tarifa": 0.1,
+            "costoHora": 0.1,
+            "rendimiento": 8,
+            "costo": 0.8,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "MANO_OBRA",
+        "subtotal": 137.236,
+        "lineas": [
+          {
+            "descripcion": "Inspector de obra (EO B3)",
+            "cantidad": 1,
+            "jornal": 4.76,
+            "costoHora": 4.76,
+            "rendimiento": 0.1,
+            "costo": 0.476,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Técnico Electromecánico  de construcción (EO D2)",
+            "cantidad": 1,
+            "jornal": 4.28,
+            "costoHora": 4.28,
+            "rendimiento": 16,
+            "costo": 68.48,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Electricista (EO D2)",
+            "cantidad": 1,
+            "jornal": 4.28,
+            "costoHora": 4.28,
+            "rendimiento": 8,
+            "costo": 34.24,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Plomero  (EO D2)",
+            "cantidad": 1,
+            "jornal": 4.28,
+            "costoHora": 4.28,
+            "rendimiento": 4,
+            "costo": 17.12,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Peón (EO E2)",
+            "cantidad": 1,
+            "jornal": 4.23,
+            "costoHora": 4.23,
+            "rendimiento": 4,
+            "costo": 16.92,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "MATERIAL",
+        "subtotal": 2172.6744999999996,
+        "lineas": [
+          {
+            "descripcion": "Consola vertical de aleación de aluminio 6063; incluye 3 gases + 4 TE N +4TE R y accesorios",
+            "unidad": "u",
+            "cantidad": 1,
+            "precioUnitario": 2154.24,
+            "costo": 2154.24,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Perno galvanizado camisa larga 5/16 x 1 1/2\"",
+            "unidad": "u",
+            "cantidad": 4,
+            "precioUnitario": 0.26,
+            "costo": 1.04,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Suelda de plata al 15%",
+            "unidad": "varilla",
+            "cantidad": 2,
+            "precioUnitario": 8.5,
+            "costo": 17,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Nitrógeno seco.",
+            "unidad": "m3",
+            "cantidad": 0.05,
+            "precioUnitario": 7.89,
+            "costo": 0.3945,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "TRANSPORTE",
+        "subtotal": 0.0,
+        "lineas": []
+      }
+    ],
+    "costoDirecto": 2333.5722999999994,
+    "porcentajeIndirecto": 0.18,
+    "costoTotal": 2753.615313999999
+  },
+  {
+    "sheet": "500AT1(1)",
+    "codigo": "500AT1",
+    "descripcion": "Tubería EMT 3/4\" de diámetro incluido accesorios",
+    "unidad": "m",
+    "secciones": [
+      {
+        "tipo": "EQUIPO",
+        "subtotal": 0.04413,
+        "lineas": [
+          {
+            "descripcion": "Herramienta Menor 5%MO",
+            "cantidad": 5,
+            "tarifa": null,
+            "costoHora": 0,
+            "rendimiento": "",
+            "costo": 0.025530000000000004,
+            "esHerramientaMenor": true
+          },
+          {
+            "descripcion": "Andamio",
+            "cantidad": 1,
+            "tarifa": 0.1,
+            "costoHora": 0.1,
+            "rendimiento": 0.06,
+            "costo": 0.006,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Taladro eléctrico",
+            "cantidad": 0.1,
+            "tarifa": 1.1,
+            "costoHora": 0.11000000000000001,
+            "rendimiento": 0.06,
+            "costo": 0.006600000000000001,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Escalera tipo tijera",
+            "cantidad": 1,
+            "tarifa": 0.1,
+            "costoHora": 0.1,
+            "rendimiento": 0.06,
+            "costo": 0.006,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "MANO_OBRA",
+        "subtotal": 0.5106,
+        "lineas": [
+          {
+            "descripcion": "Electricista (EO D2)",
+            "cantidad": 1,
+            "jornal": 4.28,
+            "costoHora": 4.28,
+            "rendimiento": 0.06,
+            "costo": 0.25680000000000003,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Ayudante de electricista (EO E2)",
+            "cantidad": 1,
+            "jornal": 4.23,
+            "costoHora": 4.23,
+            "rendimiento": 0.06,
+            "costo": 0.2538,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "MATERIAL",
+        "subtotal": 3.0951134,
+        "lineas": [
+          {
+            "descripcion": "Unión EMT 3/4\"",
+            "unidad": "u",
+            "cantidad": 0.33,
+            "precioUnitario": 0.65,
+            "costo": 0.21450000000000002,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Conector EMT 3/4\"",
+            "unidad": "u",
+            "cantidad": 0.1,
+            "precioUnitario": 0.53,
+            "costo": 0.053000000000000005,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Tubo EMT 3/4\"",
+            "unidad": "u",
+            "cantidad": 0.33333,
+            "precioUnitario": 5.98,
+            "costo": 1.9933134000000001,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Abrazadera EMT 3/4\"",
+            "unidad": "u",
+            "cantidad": 1,
+            "precioUnitario": 0.1,
+            "costo": 0.1,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Pintura poliuretano",
+            "unidad": "gal",
+            "cantidad": 0.01,
+            "precioUnitario": 54.29,
+            "costo": 0.5429,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Caja cuadrada de paso 10x10cm",
+            "unidad": "u",
+            "cantidad": 0.07,
+            "precioUnitario": 1.33,
+            "costo": 0.09310000000000002,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Tapa metálica cuadrada 10 x 10",
+            "unidad": "u",
+            "cantidad": 0.07,
+            "precioUnitario": 0.39,
+            "costo": 0.027300000000000005,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Tacos y tornillos",
+            "unidad": "u",
+            "cantidad": 1,
+            "precioUnitario": 0.05,
+            "costo": 0.05,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Alambre galvanizado #18",
+            "unidad": "Kg",
+            "cantidad": 0.01,
+            "precioUnitario": 2.1,
+            "costo": 0.021,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "TRANSPORTE",
+        "subtotal": 0.0,
+        "lineas": []
+      }
+    ],
+    "costoDirecto": 3.6498434,
+    "porcentajeIndirecto": 0.18,
+    "costoTotal": 4.306815212
+  },
+  {
+    "sheet": "501772",
+    "codigo": "501772",
+    "descripcion": "Kit de contingencia para derrames",
+    "unidad": "u",
+    "secciones": [
+      {
+        "tipo": "EQUIPO",
+        "subtotal": 0.0,
+        "lineas": []
+      },
+      {
+        "tipo": "MANO_OBRA",
+        "subtotal": 0.0,
+        "lineas": []
+      },
+      {
+        "tipo": "MATERIAL",
+        "subtotal": 64.8,
+        "lineas": [
+          {
+            "descripcion": "Fundas resistentes de color rojo",
+            "unidad": "u",
+            "cantidad": 2,
+            "precioUnitario": 0.3,
+            "costo": 0.6,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Guantes de cuero",
+            "unidad": "u",
+            "cantidad": 1,
+            "precioUnitario": 3.84,
+            "costo": 3.84,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Gafas de protección",
+            "unidad": "u",
+            "cantidad": 1,
+            "precioUnitario": 3.77,
+            "costo": 3.77,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Mascarilla de protección",
+            "unidad": "u",
+            "cantidad": 1,
+            "precioUnitario": 2.6,
+            "costo": 2.6,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Aserrín",
+            "unidad": "Kg",
+            "cantidad": 3,
+            "precioUnitario": 1,
+            "costo": 3,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Pala",
+            "unidad": "u",
+            "cantidad": 1,
+            "precioUnitario": 12.99,
+            "costo": 12.99,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Escobilla",
+            "unidad": "u",
+            "cantidad": 1,
+            "precioUnitario": 4.01,
+            "costo": 4.01,
+            "esHerramientaMenor": false
+          },
+          {
+            "descripcion": "Overol",
+            "unidad": "u",
+            "cantidad": 1,
+            "precioUnitario": 33.99,
+            "costo": 33.99,
+            "esHerramientaMenor": false
+          }
+        ]
+      },
+      {
+        "tipo": "TRANSPORTE",
+        "subtotal": 0.0,
+        "lineas": []
+      }
+    ],
+    "costoDirecto": 64.8,
+    "porcentajeIndirecto": 0.18,
+    "costoTotal": 76.464
+  }
+]

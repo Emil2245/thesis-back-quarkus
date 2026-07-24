@@ -1,0 +1,64 @@
+{
+  "file": "EXPANSIÓN DE ALUMBRADO PUBLICO.xlsx",
+  "counts": {
+    "apu": 7,
+    "presupuesto": 4
+  },
+  "sheets": [
+    {
+      "sheet": "Hoja2",
+      "kind": "apu",
+      "rows": 2
+    },
+    {
+      "sheet": "APUS 1 (P. Chico)",
+      "kind": "apu",
+      "rows": 400
+    },
+    {
+      "sheet": "APUS 2 (Camal)",
+      "kind": "apu",
+      "rows": 400
+    },
+    {
+      "sheet": "APUS 3(Camal)",
+      "kind": "apu",
+      "rows": 400
+    },
+    {
+      "sheet": "APUS 4 (Ipueran)",
+      "kind": "apu",
+      "rows": 400
+    },
+    {
+      "sheet": "APUS TOTAL",
+      "kind": "apu",
+      "rows": 400
+    },
+    {
+      "sheet": "PRESUP. 1 (P.Chico)",
+      "kind": "presupuesto",
+      "rows": 400
+    },
+    {
+      "sheet": "PRESUP. 2(Ipueran)",
+      "kind": "presupuesto",
+      "rows": 400
+    },
+    {
+      "sheet": "PRESUP. 3(Camal)",
+      "kind": "presupuesto",
+      "rows": 400
+    },
+    {
+      "sheet": "APU(San Ger.) ",
+      "kind": "apu",
+      "rows": 400
+    },
+    {
+      "sheet": "PRESUP. 4(San Ger.)",
+      "kind": "presupuesto",
+      "rows": 400
+    }
+  ]
+}

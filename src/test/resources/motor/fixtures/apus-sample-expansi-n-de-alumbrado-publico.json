@@ -1,0 +1,72 @@
+[
+  {
+    "sheet": "Hoja2",
+    "codigo": null,
+    "descripcion": null,
+    "unidad": null,
+    "secciones": [],
+    "costoDirecto": null,
+    "porcentajeIndirecto": null,
+    "costoTotal": null
+  },
+  {
+    "sheet": "APUS 1 (P. Chico)",
+    "codigo": null,
+    "descripcion": null,
+    "unidad": null,
+    "secciones": [],
+    "costoDirecto": 4.97,
+    "porcentajeIndirecto": null,
+    "costoTotal": 5.5664
+  },
+  {
+    "sheet": "APUS 2 (Camal)",
+    "codigo": null,
+    "descripcion": null,
+    "unidad": null,
+    "secciones": [],
+    "costoDirecto": 4.97,
+    "porcentajeIndirecto": null,
+    "costoTotal": 5.5664
+  },
+  {
+    "sheet": "APUS 3(Camal)",
+    "codigo": null,
+    "descripcion": null,
+    "unidad": null,
+    "secciones": [],
+    "costoDirecto": 4.97,
+    "porcentajeIndirecto": null,
+    "costoTotal": 5.5664
+  },
+  {
+    "sheet": "APUS 4 (Ipueran)",
+    "codigo": null,
+    "descripcion": null,
+    "unidad": null,
+    "secciones": [],
+    "costoDirecto": 4.97,
+    "porcentajeIndirecto": null,
+    "costoTotal": 5.5664
+  },
+  {
+    "sheet": "APUS TOTAL",
+    "codigo": null,
+    "descripcion": null,
+    "unidad": null,
+    "secciones": [],
+    "costoDirecto": 4.97,
+    "porcentajeIndirecto": null,
+    "costoTotal": 5.5664
+  },
+  {
+    "sheet": "APU(San Ger.) ",
+    "codigo": null,
+    "descripcion": null,
+    "unidad": null,
+    "secciones": [],
+    "costoDirecto": 4.97,
+    "porcentajeIndirecto": null,
+    "costoTotal": 5.5664
+  }
+]
