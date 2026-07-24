@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 /**
@@ -212,8 +213,16 @@ final class Fixtures {
                 if (apuNode != null) {
                     apu = apuFromJson(apuNode);
                 } else {
-                    // Stub APU: CT = precioUnitario (2dp from presupuesto)
-                    apu = stubApuFromPrecioUnitario(codigo, precioUnitario);
+                    // Prefer the fixture's precioTotal (full precision) over the 2dp precioUnitario
+                    // so the stub APU's CT reproduces the workbook's row total exactly.
+                    BigDecimal precioTotal = bigDecimalOrNull(row, "precioTotal");
+                    BigDecimal stubCT;
+                    if (precioTotal != null && cantidad.compareTo(BigDecimal.ZERO) != 0) {
+                        stubCT = precioTotal.divide(cantidad, 6, RoundingMode.HALF_UP);
+                    } else {
+                        stubCT = precioUnitario;
+                    }
+                    apu = stubApuFromPrecioUnitario(codigo, stubCT);
                 }
 
                 RubroSnapshot rubro = new RubroSnapshot(codigo, cantidad, apu);

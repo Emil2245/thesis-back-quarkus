@@ -28,6 +28,7 @@ iteration I-01 in full plus the I-02 hito (motor de cálculo puro).
 | 003 | [Postgres schema baseline (V001–V003 migrations)](./003-schema-baseline.md) | I-01 | **DONE** (2026-07-24, reviewer-verified; see V003 data-quality note below) |
 | 004 | [Auth module (registration, login, JWT, reset, invitation)](./004-auth-module.md) | I-01 | **DONE** (2026-07-24, 25/25 tests green, 0 token leaks; 4 plan bugs fixed inline — see below) |
 | 005 | [Motor de cálculo APU (pure Java + GM tests)](./005-motor-calculo.md) | I-02 | **BLOCKED** (2026-07-24, scaffold present in `2fe6c83` but 2/25 GM tests fail — see below) |
+| 006 | [Motor consolidación fix (GM-19/GM-20, GM-21 audit, GM-24 real)](./006-motor-consolidacion-fix.md) | I-02 | **PARTIAL / ESCALATED** (2026-07-24, §1 stub fix + §3 allowlist audit + §4 GM-24 @Disabled all done; GM-19/20 still red — root cause is workbook-rounding semantics, needs domain decision from Emil + director before Motor can be modified) |
 
 Plans for I-03 through I-12 (proyectos, insumos, APU editor, presupuesto,
 cronograma, export, admin, validación final) are not yet written — they
@@ -175,16 +176,11 @@ caused by any executor this session — pre-existing on main):
    Once GM-19/GM-20 are fixed, GM-24 must be reimplemented against
    the EMELNORTE fixture per plan step 9.
 
-**Next step for the maintainer:** a follow-up plan (`006-motor-consolidacion-fix.md`)
-that (a) reproduces both failures with `./mvnw -q test -Dtest='ec.uce.propuestas.motor.MotorConsolidacionTest#GM_19_total_general_tulcan'`,
-(b) instruments `Consolidador` to dump each chapter/rubro subtotal against
-the fixture's expected values to localize which node diverges, (c) traces
-the delta back to a specific formula (candidates: `pesoPonderado` scale-4
-rounding, root-chapter aggregation order, workbook `descuento`/`%CI`
-inheritance for the Tulcán project), (d) audits the 11 GM-21 allowlist
-entries against the source workbook, (e) implements GM-24 properly. Not
-authored yet — needs domain input on which of those hypotheses to chase
-first.
+**Next step for the maintainer:** ~~a follow-up plan (`006-motor-consolidacion-fix.md`)~~
+Plan 006 written and partially executed — see the 006 section below for
+the actual root cause (spoiler: none of the hypotheses in this paragraph
+were right; the delta is intermediate-workbook-rounding in the source
+data, not a bug in the Motor).
 
 **Environment quirks logged during verification** (not blockers, but
 worth writing down): the machine's default `java` on PATH
@@ -193,6 +189,60 @@ so `./mvnw` fails until `JAVA_HOME=/home/etverkade/.jdks/temurin-25.0.3`
 is exported. And `mvnw` was committed without the executable bit, so
 `./mvnw` fails without `chmod +x` first. Neither is worth a plan on its
 own; note them in the repo's dev-setup doc when one exists.
+
+### 006 — executed partially, STOPPED per plan protocol (raised 2026-07-24)
+
+**What landed cleanly** (safe to keep, not merged yet — uncommitted in the
+working tree):
+- `Fixtures.java` §1 stub-precision fix: 279 stubbed rubros now reproduce
+  the workbook's `precioTotal` exactly. This is a strict improvement in
+  test-data fidelity even though it didn't fix GM-19/20.
+- `MotorConsolidacionTest.java` §3 GM-21 audit: all 11 allowlist entries
+  survived the fix (zero removable). Each now has a source comment showing
+  motor vs fixture 2dp values. Plan 005's estimate of "6 entries" was
+  approximate; the workbook has 11 rounding artifacts.
+- `MotorConsolidacionTest.java` §4 GM-24: replaced `assertTrue(true)`
+  no-op with a real `@Disabled` annotation citing the upstream
+  fixture bug (empty `secciones`, null `codigo`). Confirmed independently
+  by reading the first 30 lines of the EMELNORTE fixture.
+
+**What did NOT land** — plan 006's §2 STOP condition triggered:
+- GM-19 and GM-20 still fail with the same deltas after §1 (verified with
+  fresh `./mvnw -q test`). Executor added a temporary `@Disabled`
+  `DIAG_rubro_expected_vs_actual` diagnostic method that dumps per-rubro
+  expected-vs-actual; running it (with `@Disabled` removed) produced:
+  ```
+  DIAG SUMMARY: fixtureSum=395115.32 motorSum=395112.82 totalDelta=-2.499876
+  divergentCount=16 stubCount=279
+  first divergent: item=1.1.1 codigo=501BM6 fixturePT=1568.308000 motorPT=1569.791937 delta=+1.483937
+  ```
+  All 16 divergent rubros are real-APU rubros (not stubs). Motor is
+  arithmetically correct; the workbook is computing
+  `precioTotal = cantidad × precioUnitario_2dp` rather than
+  `cantidad × CT_full_precision`.
+
+**Verified reviewer arithmetic** (independent of executor):
+  `501BM6: 283.6 × 5.5352325 = 1569.79` (Motor) vs
+  `283.6 × 5.53 = 1568.308` (workbook). Delta +$1.48 for one rubro.
+  Sum of 16 similar rows nets to −$2.50.
+
+**Escalation decision** (2026-07-24, per Emil): pause the fix. Do not
+edit `Motor.java` or `Consolidador.java` yet. Raise with the director
+before deciding whether:
+  (a) Motor rounds `apu.costoTotal` to 2dp when constructing
+      `RubroConPrecio.precioUnitario` (matches workbook exactly; motor
+      internals stay 6dp),
+  (b) Motor stays arithmetically pure and GM-19/GM-20 expected values
+      are updated to $395,112.82 (thesis defense point becomes "motor
+      is more accurate than the reference workbook"),
+  (c) Upstream fixture is regenerated so `precioTotal =
+      cantidad × CT_full_precision` — Motor matches automatically,
+      but the audit trail against the real published SERCOP workbook
+      is lost.
+
+**Diagnostic left in place** for the follow-up session:
+`MotorConsolidacionTest.DIAG_rubro_expected_vs_actual` is
+`@Disabled`; remove `@Disabled` and re-run to reproduce the dump.
 
 ## Considered and rejected
 

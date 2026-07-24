@@ -1,11 +1,13 @@
 package ec.uce.propuestas.motor;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -123,18 +125,25 @@ class MotorConsolidacionTest {
 
         // Allowlist: (codigo) → expected delta in cents (|motor_2dp - fixture_pu|).
         // All deltas are <= 0.03. These are workbook artifact mismatches only.
+        // Allowlist: (codigo) → expected delta in cents (|motor_2dp - fixture_pu|).
+        // All deltas are <= 0.03. These are workbook artifact mismatches only.
+        // Audit (plan 006 §3b): all 11 entries verified post-stub-fix; none removable.
+        // Motor CT at 2dp differs from presupuesto precioUnitario by exactly the listed amount.
+        // Stub fix (plan 006 §1) did not affect real APUs — these remain genuine workbook artifacts.
+        // Note: plan 005 estimated 6 mismatches; actual fixture data yields 11.
+        // See plan 006 NOTES for the thesis-docs domain doc update recommendation.
         Map<String, BigDecimal> allowlistDelta = new HashMap<>();
-        allowlistDelta.put("501BM6",  new BigDecimal("0.01"));
-        allowlistDelta.put("501D1V",  new BigDecimal("0.02"));
-        allowlistDelta.put("501DQR",  new BigDecimal("0.01"));
-        allowlistDelta.put("501D00",  new BigDecimal("0.01"));
-        allowlistDelta.put("502897",  new BigDecimal("0.01"));
-        allowlistDelta.put("500ASU",  new BigDecimal("0.03"));
-        allowlistDelta.put("502ARV",  new BigDecimal("0.01"));
-        allowlistDelta.put("503B30",  new BigDecimal("0.01"));
-        allowlistDelta.put("501DH5",  new BigDecimal("0.01"));
-        allowlistDelta.put("505APQ",  new BigDecimal("0.01"));
-        allowlistDelta.put("500C2S",  new BigDecimal("0.01"));
+        allowlistDelta.put("501BM6",  new BigDecimal("0.01")); // motor=5.54 fixture=5.53
+        allowlistDelta.put("501D1V",  new BigDecimal("0.02")); // motor=32.23 fixture=32.25
+        allowlistDelta.put("501DQR",  new BigDecimal("0.01")); // motor=177.67 fixture=177.66
+        allowlistDelta.put("501D00",  new BigDecimal("0.01")); // motor=197.82 fixture=197.83
+        allowlistDelta.put("502897",  new BigDecimal("0.01")); // motor=523.72 fixture=523.73
+        allowlistDelta.put("500ASU",  new BigDecimal("0.03")); // motor=10.84 fixture=10.87 (appears 2x in presupuesto)
+        allowlistDelta.put("502ARV",  new BigDecimal("0.01")); // motor=4.13 fixture=4.14
+        allowlistDelta.put("503B30",  new BigDecimal("0.01")); // motor=19.03 fixture=19.02
+        allowlistDelta.put("501DH5",  new BigDecimal("0.01")); // motor=15.19 fixture=15.20
+        allowlistDelta.put("505APQ",  new BigDecimal("0.01")); // motor=27.70 fixture=27.71
+        allowlistDelta.put("500C2S",  new BigDecimal("0.01")); // motor=2753.62 fixture=2753.61
 
         // Check each rubro in the presupuesto that we have motor data for
         for (JsonNode row : presRoot) {
@@ -172,24 +181,111 @@ class MotorConsolidacionTest {
     // ── GM-24 ──────────────────────────────────────────────────────────────
 
     /**
-     * GM-24: SKIPPED — EMELNORTE (alumbrado público) fixture unusable.
+     * GM-24: EMELNORTE (alumbrado público) fixture has no APU line data.
      *
-     * The apus-sample-expansi-n-de-alumbrado-publico.json has no APU line data
-     * (all secciones arrays are empty, all codigo fields are null). The
-     * presupuesto-expansi-n-de-alumbrado-publico.json has malformed data
-     * (precioUnitario values are IDs, not prices; no quantities; no chapter hierarchy).
-     *
-     * This is a STOP condition per plan §Escape hatches:
-     * "If the fixture data doesn't include enough info to reconstruct a snapshot
-     * (e.g. no per-row rendimiento, no precioInsumo), that is a STOP condition."
-     *
-     * The test is recorded here as a placeholder, tagged @Disabled to be visible.
-     * When valid EMELNORTE fixture data becomes available, this test should be enabled.
+     * Inspection of apus-sample-expansi-n-de-alumbrado-publico.json confirms all entries
+     * have codigo=null and secciones=[] (empty). The fixture cannot be wired into
+     * Motor.consolidar. This is an upstream fixture bug in thesis-docs/plan/domain/_artifacts/.
+     * GM-24 will be enabled when the fixture is repaired.
      */
     @Test
-    void GM_24_SKIPPED_alumbrado_fixture_unusable() {
-        // Documented STOP: EMELNORTE fixture has no APU line data.
-        // See NOTES in the implementation report for details.
-        assertTrue(true, "GM-24 placeholder — see NOTES for STOP condition");
+    @Disabled("EMELNORTE fixture has no APU line data — upstream fixture bug "
+            + "in thesis-docs/plan/domain/_artifacts/. GM-24 will be enabled "
+            + "when the fixture is repaired.")
+    void GM_24_totales_recursivos_emelnorte_alumbrado() {
+        // Placeholder — see @Disabled reason.
+    }
+
+    // ── DIAGNOSTIC (temporary, remove before final) ──────────────────────────
+
+    /**
+     * DIAGNOSTIC: Print per-rubro expected (fixture precioTotal) vs actual (motor precioTotal).
+     * Used to find divergent nodes per plan §2 STOP procedure.
+     * REMOVE before final commit.
+     */
+    @Test
+    @Disabled("DIAGNOSTIC — temporary; remove after STOP resolution. See NOTES in plan 006 report.")
+    void DIAG_rubro_expected_vs_actual() throws Exception {
+        // DIAGNOSTIC approach: directly compare fixture precioTotal vs Motor computation
+        // for each rubro, computing motor's precioTotal = cantidad_fixture × motor_CT.
+        // This avoids the deduplication issue in result.rubros() (same codigo, multiple rubros).
+
+        JsonNode presRoot = Fixtures.loadJson(PRES_TULCAN);
+        JsonNode apusRoot = Fixtures.loadJson(APUS_TULCAN);
+
+        // Build APU lookup from sample
+        Map<String, JsonNode> apuByCode = new LinkedHashMap<>();
+        for (JsonNode apuNode : apusRoot) {
+            JsonNode cod = apuNode.get("codigo");
+            if (cod != null && !cod.isNull() && !cod.asText().isEmpty()) {
+                apuByCode.put(cod.asText(), apuNode);
+            }
+        }
+
+        // For each APU we have, compute its motor CT once
+        Map<String, BigDecimal> motorCT = new LinkedHashMap<>();
+        for (Map.Entry<String, JsonNode> entry : apuByCode.entrySet()) {
+            ApuSnapshot snap = Fixtures.apuFromJson(entry.getValue());
+            ApuCalculado calc = Motor.calcularApu(snap, P_TULCAN);
+            motorCT.put(entry.getKey(), calc.costoTotal());
+        }
+
+        BigDecimal fixtureSum = BigDecimal.ZERO;
+        BigDecimal motorSum = BigDecimal.ZERO;
+        int divergentCount = 0;
+        int stubCount = 0;
+
+        System.out.println("DIAG2: item | codigo | fixturePT | motorPT | delta | source");
+        for (JsonNode row : presRoot) {
+            if (!"rubro".equals(row.get("kind").asText())) continue;
+            JsonNode codigoNode = row.get("codigo");
+            if (codigoNode == null || codigoNode.isNull()) continue;
+            String codigo = codigoNode.asText();
+
+            BigDecimal fixturePT = Fixtures.bigDecimalOrNull(row, "precioTotal");
+            BigDecimal cantidad = Fixtures.bigDecimalOrNull(row, "cantidad");
+            BigDecimal precioUnitario = Fixtures.bigDecimalOrNull(row, "precioUnitario");
+
+            if (fixturePT == null || cantidad == null || precioUnitario == null) {
+                System.out.println("DIAG2 SKIP(null): " + row.get("item").asText() + " | " + codigo);
+                continue;
+            }
+
+            BigDecimal motorPT;
+            String source;
+            if (motorCT.containsKey(codigo)) {
+                // Real APU: motorPT = cantidad × motorCT
+                motorPT = cantidad.multiply(motorCT.get(codigo), new java.math.MathContext(20, RoundingMode.HALF_UP))
+                        .setScale(6, RoundingMode.HALF_UP);
+                source = "real_apu";
+            } else {
+                // Stub: motorPT = cantidad × (fixturePT / cantidad) at scale 6 ≈ fixturePT
+                // With my fix: stubCT = fixturePT / cantidad → motorPT = fixturePT (modulo rounding)
+                BigDecimal stubCT = fixturePT.divide(cantidad, 6, RoundingMode.HALF_UP);
+                motorPT = cantidad.multiply(stubCT, new java.math.MathContext(20, RoundingMode.HALF_UP))
+                        .setScale(6, RoundingMode.HALF_UP);
+                source = "stub";
+                stubCount++;
+            }
+
+            fixtureSum = fixtureSum.add(fixturePT);
+            motorSum = motorSum.add(motorPT);
+
+            BigDecimal delta = motorPT.subtract(fixturePT);
+            if (delta.abs().compareTo(new BigDecimal("0.005")) > 0) {
+                divergentCount++;
+                System.out.printf("DIAG2 DIVERGE [%d]: item=%s codigo=%s fixturePT=%s motorPT=%s delta=%s source=%s%n",
+                        divergentCount,
+                        row.get("item").asText(), codigo,
+                        fixturePT.setScale(6, RoundingMode.HALF_UP),
+                        motorPT.setScale(6, RoundingMode.HALF_UP),
+                        delta.setScale(6, RoundingMode.HALF_UP), source);
+            }
+        }
+        System.out.printf("DIAG2 SUMMARY: fixtureSum=%s motorSum=%s totalDelta=%s%n",
+                fixtureSum.setScale(2, RoundingMode.HALF_UP),
+                motorSum.setScale(2, RoundingMode.HALF_UP),
+                motorSum.subtract(fixtureSum).setScale(6, RoundingMode.HALF_UP));
+        System.out.printf("DIAG2 divergentCount=%d stubCount=%d%n", divergentCount, stubCount);
     }
 }
