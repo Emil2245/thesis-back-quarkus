@@ -1,0 +1,144 @@
+### ============================================================
+### TC-P02 — Auth: Login, Refresh Token y Logout
+### ============================================================
+### Requiere: usuarios registrados y verificados (TC-P01).
+### Flujo: login → refresh → rotación → logout.
+### ============================================================
+
+### ── Login ───────────────────────────────────────────────────
+
+### TC-P02-01 — Login John Doe → 200
+# @name u1_login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{u1Email}}",
+  "password": "{{u1Password}}",
+  "recordarSesion": true
+}
+
+> {%
+  client.global.set("u1_access_token", response.body.accessToken);
+  client.global.set("u1_refresh_token", response.body.refreshToken);
+  client.log("u1 access=" + response.body.accessToken.substring(0, 40) + "...");
+  client.log("u1 refresh=" + response.body.refreshToken.substring(0, 30) + "...");
+  client.log("u1 usuario=" + JSON.stringify(response.body.usuario));
+%}
+
+### TC-P02-02 — Login Ana de Armas → 200
+# @name u2_login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{u2Email}}",
+  "password": "{{u2Password}}",
+  "recordarSesion": true
+}
+
+> {%
+  client.global.set("u2_access_token", response.body.accessToken);
+  client.global.set("u2_refresh_token", response.body.refreshToken);
+  client.log("u2 access=" + response.body.accessToken.substring(0, 40) + "...");
+%}
+
+### ── Errores de login ────────────────────────────────────────
+
+### TC-P02-03 — Password incorrecto → 401
+# @name u1_login_password_mal
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{u1Email}}",
+  "password": "WrongPassword99",
+  "recordarSesion": false
+}
+
+### TC-P02-04 — Email inexistente → 401
+# @name login_email_inexistente
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "noexiste@uce.edu.ec",
+  "password": "{{u1Password}}",
+  "recordarSesion": false
+}
+
+### TC-P02-05 — Email no verificado → 403
+# Intentar login con un usuario registrado pero no verificado
+# @name login_no_verificado
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{u2Email}}",
+  "password": "{{u2Password}}",
+  "recordarSesion": false
+}
+
+### ── Refresh Token ───────────────────────────────────────────
+
+### TC-P02-06 — Refresh exitoso → 200
+# @name u1_refresh
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{u1_refresh_token}}"
+}
+
+> {%
+  client.global.set("u1_refresh_token_viejo", client.global.get("u1_refresh_token"));
+  client.global.set("u1_refresh_token", response.body.refreshToken);
+  client.global.set("u1_access_token", response.body.accessToken);
+  client.log("u1 refresh_nuevo=" + response.body.refreshToken.substring(0, 30) + "...");
+%}
+
+### TC-P02-07 — Refresh token viejo (rotación) → 401
+# El token viejo ya fue revocado por la rotación anterior
+# @name u1_refresh_viejo
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{u1_refresh_token_viejo}}"
+}
+
+### TC-P02-08 — Refresh token inválido → 401
+# @name refresh_token_invalido
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "token-que-no-existe-xyz"
+}
+
+### ── Logout ──────────────────────────────────────────────────
+
+### TC-P02-09 — Logout John → 204
+# @name u1_logout
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer {{u1_access_token}}
+Content-Type: application/json
+
+{
+  "refreshToken": "{{u1_refresh_token}}"
+}
+
+### TC-P02-10 — Logout sin Bearer token → 401
+# @name logout_sin_bearer
+POST {{baseUrl}}/auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": "cualquier-cosa"
+}
+
+### TC-P02-11 — Usar access token después de logout → 401
+# El token fue invalidado
+# @name u1_perfil_despues_logout
+GET {{baseUrl}}/perfil
+Authorization: Bearer {{u1_access_token}}

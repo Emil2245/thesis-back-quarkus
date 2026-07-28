@@ -1,0 +1,29 @@
+meta {
+  name: TC-P03-06 — Restablecer exitoso
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/auth/restablecer
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "token": "{{u1_token_reset}}",
+    "password": "{{u1PasswordNueva}}",
+    "passwordConfirmacion": "{{u1PasswordNueva}}"
+  }
+}
+
+tests {
+  test("Status 204 No Content", function() {
+    expect(res.status).to.equal(204);
+  });
+}

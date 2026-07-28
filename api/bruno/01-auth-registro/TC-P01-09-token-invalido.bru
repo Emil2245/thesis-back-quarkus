@@ -1,0 +1,31 @@
+meta {
+  name: TC-P01-09 — Verificar token inválido
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/auth/verificar-email
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "token": "token-que-no-existe-abc123"
+  }
+}
+
+tests {
+  test("Status 410 Gone", function() {
+    expect(res.status).to.equal(410);
+  });
+
+  test("Error: token-invalido-o-expirado", function() {
+    expect(res.body.codigo).to.equal("token-invalido-o-expirado");
+  });
+}

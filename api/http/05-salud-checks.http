@@ -1,0 +1,22 @@
+### ============================================================
+### TC-P05 — Salud y Documentación de la API
+### ============================================================
+
+### Health check (liveness) → 200
+# @name health_check
+GET http://localhost:8080/q/health
+
+### Ready check (incluye DB) → 200 o 503
+# @name readiness_check
+GET http://localhost:8080/q/health/ready
+
+### DB health check → 200 o 503
+# @name health_db
+GET http://localhost:8080/q/health/ready/db
+
+### OpenAPI spec (JSON) → 200
+# @name openapi_json
+GET http://localhost:8080/q/openapi
+
+### Swagger UI
+# Abrir en navegador: http://localhost:8080/q/swagger-ui

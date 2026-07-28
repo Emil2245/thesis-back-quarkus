@@ -1,0 +1,27 @@
+meta {
+  name: TC-P01-10 — Verificar email John
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/auth/verificar-email
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "token": "{{u1_token_verificacion}}"
+  }
+}
+
+tests {
+  test("Status 204 No Content", function() {
+    expect(res.status).to.equal(204);
+  });
+}

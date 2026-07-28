@@ -1,0 +1,20 @@
+meta {
+  name: TC-P05-01 — Health check (liveness)
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:8080/q/health
+  auth: none
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Status is UP", function() {
+    expect(res.body.status).to.equal("UP");
+  });
+}

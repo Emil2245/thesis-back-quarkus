@@ -1,0 +1,28 @@
+meta {
+  name: TC-P05-04 — OpenAPI spec
+  type: http
+  seq: 4
+}
+
+get {
+  url: http://localhost:8080/q/openapi
+  auth: none
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Response is JSON", function() {
+    expect(res.headers["content-type"]).to.contain("application/json");
+  });
+
+  test("Has openapi version", function() {
+    expect(res.body.openapi).to.not.be.null;
+  });
+
+  test("Has info title", function() {
+    expect(res.body.info.title).to.not.be.null;
+  });
+}

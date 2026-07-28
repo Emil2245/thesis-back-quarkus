@@ -1,0 +1,27 @@
+meta {
+  name: TC-P01-15 — Reenviar verificación (email no existe)
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{baseUrl}}/auth/reenviar-verificacion
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "noexiste@uce.edu.ec"
+  }
+}
+
+tests {
+  test("Status 202 Accepted (anti-enumeración)", function() {
+    expect(res.status).to.equal(202);
+  });
+}

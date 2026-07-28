@@ -1,0 +1,33 @@
+meta {
+  name: TC-P02-05 — Login email no verificado
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{u2Email}}",
+    "password": "{{u2Password}}",
+    "recordarSesion": false
+  }
+}
+
+tests {
+  test("Status 403 Forbidden", function() {
+    expect(res.status).to.equal(403);
+  });
+
+  test("Error: email-no-verificado", function() {
+    expect(res.body.codigo).to.equal("email-no-verificado");
+  });
+}

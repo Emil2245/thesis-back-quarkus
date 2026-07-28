@@ -1,0 +1,32 @@
+meta {
+  name: TC-P04-01 — Perfil John
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/perfil
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Email correcto", function() {
+    expect(res.body.email).to.equal("john.doe@uce.edu.ec");
+  });
+
+  test("Nombre contiene John", function() {
+    expect(res.body.nombre).to.contain("John");
+  });
+
+  test("Rol es USUARIO", function() {
+    expect(res.body.rol).to.equal("USUARIO");
+  });
+}

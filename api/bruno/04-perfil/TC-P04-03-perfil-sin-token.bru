@@ -1,0 +1,16 @@
+meta {
+  name: TC-P04-03 — Perfil sin token
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/perfil
+  auth: none
+}
+
+tests {
+  test("Status 401 Unauthorized", function() {
+    expect(res.status).to.equal(401);
+  });
+}

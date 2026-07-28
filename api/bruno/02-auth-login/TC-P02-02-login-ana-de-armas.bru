@@ -1,0 +1,45 @@
+meta {
+  name: TC-P02-02 — Login Ana de Armas
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{u2Email}}",
+    "password": "{{u2Password}}",
+    "recordarSesion": true
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("u2_access_token", res.body.accessToken);
+    bru.setVar("u2_refresh_token", res.body.refreshToken);
+    console.log("u2 access=" + res.body.accessToken.substring(0, 40) + "...");
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Response has accessToken", function() {
+    expect(res.body.accessToken).to.not.be.null;
+  });
+
+  test("Usuario email matches", function() {
+    expect(res.body.usuario.email).to.equal("ana.armas@gmail.com");
+  });
+}

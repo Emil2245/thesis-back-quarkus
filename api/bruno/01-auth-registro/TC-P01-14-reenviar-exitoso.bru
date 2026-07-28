@@ -1,0 +1,27 @@
+meta {
+  name: TC-P01-14 — Reenviar verificación (después de 60s)
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/auth/reenviar-verificacion
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{u1Email}}"
+  }
+}
+
+tests {
+  test("Status 202 Accepted", function() {
+    expect(res.status).to.equal(202);
+  });
+}

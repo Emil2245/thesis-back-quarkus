@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "Propuestas API — SERCOP",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

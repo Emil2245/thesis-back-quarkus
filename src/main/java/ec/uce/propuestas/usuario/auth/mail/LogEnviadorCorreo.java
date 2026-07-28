@@ -14,17 +14,19 @@ public class LogEnviadorCorreo implements EnviadorCorreo {
 
     @Override
     public void enviarVerificacion(String email, String token, Instant expiresAt) {
-        // NEVER log the token value (RNF-08). Log only the event.
-        LOG.infof("[DEV] Verificación de email enviada a %s (expira: %s)", email, expiresAt);
+        LOG.infof("[DEV-MAIL] Verificación → %s (expira: %s)", email, expiresAt);
+        LOG.infof("[DEV-TOKEN] >>> %s <<<", token);
     }
 
     @Override
     public void enviarReset(String email, String token, Instant expiresAt) {
-        LOG.infof("[DEV] Reset de password enviado a %s (expira: %s)", email, expiresAt);
+        LOG.infof("[DEV-MAIL] Reset → %s (expira: %s)", email, expiresAt);
+        LOG.infof("[DEV-TOKEN] >>> %s <<<", token);
     }
 
     @Override
     public void enviarInvitacion(String email, String token, Instant expiresAt) {
-        LOG.infof("[DEV] Invitación enviada a %s (expira: %s)", email, expiresAt);
+        LOG.infof("[DEV-MAIL] Invitación → %s (expira: %s)", email, expiresAt);
+        LOG.infof("[DEV-TOKEN] >>> %s <<<", token);
     }
 }

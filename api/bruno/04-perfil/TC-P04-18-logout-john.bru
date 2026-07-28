@@ -1,0 +1,31 @@
+meta {
+  name: TC-P04-18 — Logout John
+  type: http
+  seq: 19
+}
+
+post {
+  url: {{baseUrl}}/auth/logout
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "refreshToken": "{{u1_refresh_token}}"
+  }
+}
+
+tests {
+  test("Status 204 No Content", function() {
+    expect(res.status).to.equal(204);
+  });
+}

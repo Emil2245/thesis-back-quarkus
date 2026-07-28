@@ -1,0 +1,20 @@
+meta {
+  name: TC-P02-11 — Perfil después de logout
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/perfil
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 401 Unauthorized (token invalidado)", function() {
+    expect(res.status).to.equal(401);
+  });
+}

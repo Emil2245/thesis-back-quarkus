@@ -1,0 +1,33 @@
+meta {
+  name: TC-P02-04 — Login email inexistente
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "noexiste@uce.edu.ec",
+    "password": "{{u1Password}}",
+    "recordarSesion": false
+  }
+}
+
+tests {
+  test("Status 401 Unauthorized", function() {
+    expect(res.status).to.equal(401);
+  });
+
+  test("Error: credenciales-invalidas", function() {
+    expect(res.body.codigo).to.equal("credenciales-invalidas");
+  });
+}

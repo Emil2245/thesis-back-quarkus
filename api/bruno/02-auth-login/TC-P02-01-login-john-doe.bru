@@ -1,0 +1,55 @@
+meta {
+  name: TC-P02-01 — Login John Doe
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{u1Email}}",
+    "password": "{{u1Password}}",
+    "recordarSesion": true
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("u1_access_token", res.body.accessToken);
+    bru.setVar("u1_refresh_token", res.body.refreshToken);
+    console.log("u1 access=" + res.body.accessToken.substring(0, 40) + "...");
+    console.log("u1 refresh=" + res.body.refreshToken.substring(0, 30) + "...");
+    console.log("u1 usuario=" + JSON.stringify(res.body.usuario));
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Response has accessToken", function() {
+    expect(res.body.accessToken).to.not.be.null;
+  });
+
+  test("Response has refreshToken", function() {
+    expect(res.body.refreshToken).to.not.be.null;
+  });
+
+  test("expiraEnSegundos is 3600", function() {
+    expect(res.body.expiraEnSegundos).to.equal(3600);
+  });
+
+  test("Usuario email matches", function() {
+    expect(res.body.usuario.email).to.equal("john.doe@uce.edu.ec");
+  });
+}

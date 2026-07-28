@@ -1,0 +1,36 @@
+meta {
+  name: TC-P04-05 — John actualiza nombre
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{baseUrl}}/perfil
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "John Doe Updated",
+    "email": "{{u1Email}}"
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Nombre actualizado", function() {
+    expect(res.body.nombre).to.equal("John Doe Updated");
+  });
+}

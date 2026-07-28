@@ -1,0 +1,196 @@
+### ============================================================
+### TC-P01 — Auth: Registro y Verificación de Email
+### ============================================================
+### Flujo completo: registro → duplicado → validaciones →
+### verificación → reenvío con cooldown.
+### Ejecutar en orden secuencial.
+### ============================================================
+
+### ── Registro ─────────────────────────────────────────────────
+
+### TC-P01-01 — Registro John Doe → 201
+# @name u1_registro
+POST {{baseUrl}}/auth/registro
+Content-Type: application/json
+
+{
+  "nombre": "{{u1Nombre}}",
+  "email": "{{u1Email}}",
+  "password": "{{u1Password}}",
+  "passwordConfirmacion": "{{u1Password}}"
+}
+
+> {%
+  client.global.set("u1_id", response.body.id);
+  client.global.set("u1_email_verificado", response.body.emailVerificado);
+  client.log("u1 id=" + response.body.id + " emailVerificado=" + response.body.emailVerificado);
+%}
+
+### TC-P01-02 — Registro Ana de Armas → 201
+# @name u2_registro
+POST {{baseUrl}}/auth/registro
+Content-Type: application/json
+
+{
+  "nombre": "{{u2Nombre}}",
+  "email": "{{u2Email}}",
+  "password": "{{u2Password}}",
+  "passwordConfirmacion": "{{u2Password}}"
+}
+
+> {%
+  client.global.set("u2_id", response.body.id);
+  client.log("u2 id=" + response.body.id);
+%}
+
+### ── Validaciones ─────────────────────────────────────────────
+
+### TC-P01-03 — Email duplicado (John) → 400
+# @name u1_registro_duplicado
+POST {{baseUrl}}/auth/registro
+Content-Type: application/json
+
+{
+  "nombre": "{{u1Nombre}}",
+  "email": "{{u1Email}}",
+  "password": "{{u1Password}}",
+  "passwordConfirmacion": "{{u1Password}}"
+}
+
+### TC-P01-04 — Password sin número → 400
+# @name registro_password_sin_numero
+POST {{baseUrl}}/auth/registro
+Content-Type: application/json
+
+{
+  "nombre": "Test Sin Numero",
+  "email": "test-sin-numero@uce.edu.ec",
+  "password": "SoloLetras",
+  "passwordConfirmacion": "SoloLetras"
+}
+
+### TC-P01-05 — Password muy corta (<8 chars) → 400
+# @name registro_password_corta
+POST {{baseUrl}}/auth/registro
+Content-Type: application/json
+
+{
+  "nombre": "Test Corta",
+  "email": "test-corta@uce.edu.ec",
+  "password": "Ab1",
+  "passwordConfirmacion": "Ab1"
+}
+
+### TC-P01-06 — Password sin letras → 400
+# @name registro_password_sin_letras
+POST {{baseUrl}}/auth/registro
+Content-Type: application/json
+
+{
+  "nombre": "Test Sin Letras",
+  "email": "test-sin-letras@uce.edu.ec",
+  "password": "12345678",
+  "passwordConfirmacion": "12345678"
+}
+
+### TC-P01-07 — Passwords no coinciden → 400
+# @name registro_passwords_no_coinciden
+POST {{baseUrl}}/auth/registro
+Content-Type: application/json
+
+{
+  "nombre": "Test No Coincide",
+  "email": "test-no-coincide@uce.edu.ec",
+  "password": "Clave1234",
+  "passwordConfirmacion": "Clave5678"
+}
+
+### TC-P01-08 — Email inválido → 400
+# @name registro_email_invalido
+POST {{baseUrl}}/auth/registro
+Content-Type: application/json
+
+{
+  "nombre": "Test Email Malo",
+  "email": "no-es-email",
+  "password": "Clave1234",
+  "passwordConfirmacion": "Clave1234"
+}
+
+### ── Verificación de email ───────────────────────────────────
+
+### TC-P01-09 — Verificar con token inválido → 410
+# @name verificar_token_invalido
+POST {{baseUrl}}/auth/verificar-email
+Content-Type: application/json
+
+{
+  "token": "token-que-no-existe-abc123"
+}
+
+### TC-P01-10 — Verificar email de John → 204
+# Reemplazar {{u1_token_verificacion}} con el token de la DB:
+#   SELECT valor FROM token_usuario
+#   WHERE tipo='VERIFICACION_EMAIL' AND consumido_en IS NULL
+#   ORDER BY id DESC LIMIT 1;
+# @name u1_verificar_email
+POST {{baseUrl}}/auth/verificar-email
+Content-Type: application/json
+
+{
+  "token": "{{u1_token_verificacion}}"
+}
+
+### TC-P01-11 — Verificar email de Ana → 204
+# Consultar token para Ana:
+#   SELECT valor FROM token_usuario
+#   WHERE consumido_en IS NULL
+#   ORDER BY id DESC LIMIT 1;
+# @name u2_verificar_email
+POST {{baseUrl}}/auth/verificar-email
+Content-Type: application/json
+
+{
+  "token": "{{u2_token_verificacion}}"
+}
+
+### TC-P01-12 — Token ya consumido → 410
+# @name verificar_token_ya_usado
+POST {{baseUrl}}/auth/verificar-email
+Content-Type: application/json
+
+{
+  "token": "{{u1_token_verificacion}}"
+}
+
+### ── Reenvío de verificación ─────────────────────────────────
+
+### TC-P01-13 — Reenviar verificación (cooldown activo) → 429
+# Debe fallar porque el registro ya envió uno hace menos de 60s
+# @name reenviar_cooldown
+POST {{baseUrl}}/auth/reenviar-verificacion
+Content-Type: application/json
+
+{
+  "email": "{{u1Email}}"
+}
+
+### TC-P01-14 — Reenviar verificación (después de 60s) → 202
+# Esperar 60 segundos y ejecutar
+# @name reenviar_exitoso
+POST {{baseUrl}}/auth/reenviar-verificacion
+Content-Type: application/json
+
+{
+  "email": "{{u1Email}}"
+}
+
+### TC-P01-15 — Reenviar verificación (email no existe) → 202
+# Anti-enumeración: siempre 202
+# @name reenviar_email_inexistente
+POST {{baseUrl}}/auth/reenviar-verificacion
+Content-Type: application/json
+
+{
+  "email": "noexiste@uce.edu.ec"
+}

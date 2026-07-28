@@ -1,0 +1,24 @@
+meta {
+  name: TC-P04-16 — Verificar perfil John actualizado
+  type: http
+  seq: 17
+}
+
+get {
+  url: {{baseUrl}}/perfil
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Nombre actualizado", function() {
+    expect(res.body.nombre).to.equal("John Doe Updated");
+  });
+}

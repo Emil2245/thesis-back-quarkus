@@ -1,0 +1,31 @@
+meta {
+  name: TC-P02-08 — Refresh token inválido
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/auth/refresh
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "refreshToken": "token-que-no-existe-xyz"
+  }
+}
+
+tests {
+  test("Status 401 Unauthorized", function() {
+    expect(res.status).to.equal(401);
+  });
+
+  test("Error: token-invalido-o-expirado", function() {
+    expect(res.body.codigo).to.equal("token-invalido-o-expirado");
+  });
+}

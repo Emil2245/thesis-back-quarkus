@@ -1,0 +1,33 @@
+meta {
+  name: TC-P03-03 — Token inválido
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/auth/restablecer
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "token": "token-que-no-existe-abc123",
+    "password": "NuevaClave123",
+    "passwordConfirmacion": "NuevaClave123"
+  }
+}
+
+tests {
+  test("Status 410 Gone", function() {
+    expect(res.status).to.equal(410);
+  });
+
+  test("Error: token-invalido-o-expirado", function() {
+    expect(res.body.codigo).to.equal("token-invalido-o-expirado");
+  });
+}

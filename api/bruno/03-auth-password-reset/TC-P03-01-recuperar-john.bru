@@ -1,0 +1,27 @@
+meta {
+  name: TC-P03-01 — Recuperar password John (email existe)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/auth/recuperar
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{u1Email}}"
+  }
+}
+
+tests {
+  test("Status 202 Accepted", function() {
+    expect(res.status).to.equal(202);
+  });
+}

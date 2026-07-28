@@ -1,0 +1,50 @@
+meta {
+  name: TC-P01-01 — Registro John Doe
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/auth/registro
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "{{u1Nombre}}",
+    "email": "{{u1Email}}",
+    "password": "{{u1Password}}",
+    "passwordConfirmacion": "{{u1Password}}"
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setVar("u1_id", res.body.id);
+    bru.setVar("u1_email_verificado", res.body.emailVerificado);
+    console.log("u1 id=" + res.body.id + " emailVerificado=" + res.body.emailVerificado);
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("Response has id", function() {
+    expect(res.body.id).to.not.be.null;
+  });
+
+  test("Email no verificado inicialmente", function() {
+    expect(res.body.emailVerificado).to.be.false;
+  });
+
+  test("Rol es USUARIO", function() {
+    expect(res.body.rol).to.equal("USUARIO");
+  });
+}

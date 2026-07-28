@@ -1,0 +1,237 @@
+### ============================================================
+### TC-P04 — Perfil: Leer, Actualizar y Cambiar Password
+### ============================================================
+### Requiere: usuario logueado (TC-P02).
+### Usa tokens de John Doe (u1) y Ana de Armas (u2).
+### ============================================================
+
+### ── Login helpers ───────────────────────────────────────────
+
+### TC-P04-00a — Login John (helper) → 200
+# @name u1_login_helper
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{u1Email}}",
+  "password": "{{u1Password}}",
+  "recordarSesion": true
+}
+
+> {%
+  client.global.set("u1_access_token", response.body.accessToken);
+  client.global.set("u1_refresh_token", response.body.refreshToken);
+%}
+
+### TC-P04-00b — Login Ana (helper) → 200
+# @name u2_login_helper
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{u2Email}}",
+  "password": "{{u2Password}}",
+  "recordarSesion": true
+}
+
+> {%
+  client.global.set("u2_access_token", response.body.accessToken);
+  client.global.set("u2_refresh_token", response.body.refreshToken);
+%}
+
+### ── Leer perfil ─────────────────────────────────────────────
+
+### TC-P04-01 — Perfil de John → 200
+# @name u1_perfil_leer
+GET {{baseUrl}}/perfil
+Authorization: Bearer {{u1_access_token}}
+
+### TC-P04-02 — Perfil de Ana → 200
+# @name u2_perfil_leer
+GET {{baseUrl}}/perfil
+Authorization: Bearer {{u2_access_token}}
+
+### TC-P04-03 — Perfil sin token → 401
+# @name perfil_sin_token
+GET {{baseUrl}}/perfil
+
+### TC-P04-04 — Perfil con token inválido → 401
+# @name perfil_token_invalido
+GET {{baseUrl}}/perfil
+Authorization: Bearer token-falso-abc123
+
+### ── Actualizar perfil ───────────────────────────────────────
+
+### TC-P04-05 — John actualiza nombre → 200
+# @name u1_actualizar_nombre
+PUT {{baseUrl}}/perfil
+Content-Type: application/json
+Authorization: Bearer {{u1_access_token}}
+
+{
+  "nombre": "John Doe Updated",
+  "email": "{{u1Email}}"
+}
+
+### TC-P04-06 — Ana actualiza nombre → 200
+# @name u2_actualizar_nombre
+PUT {{baseUrl}}/perfil
+Content-Type: application/json
+Authorization: Bearer {{u2_access_token}}
+
+{
+  "nombre": "Ana de Armas Updated",
+  "email": "{{u2Email}}"
+}
+
+### TC-P04-07 — Actualizar sin token → 401
+# @name actualizar_sin_token
+PUT {{baseUrl}}/perfil
+Content-Type: application/json
+
+{
+  "nombre": "Sin Token",
+  "email": "test@uce.edu.ec"
+}
+
+### TC-P04-08 — Email duplicado (usar email de Ana) → 400
+# John intenta usar el email de Ana
+# @name u1_email_duplicado
+PUT {{baseUrl}}/perfil
+Content-Type: application/json
+Authorization: Bearer {{u1_access_token}}
+
+{
+  "nombre": "John Doe",
+  "email": "{{u2Email}}"
+}
+
+### ── Cambiar password ────────────────────────────────────────
+
+### TC-P04-09 — John cambia password → 204
+# D-03: revoca TODOS los refresh tokens de John
+# @name u1_cambiar_password
+PUT {{baseUrl}}/perfil/password
+Content-Type: application/json
+Authorization: Bearer {{u1_access_token}}
+
+{
+  "passwordActual": "{{u1Password}}",
+  "passwordNueva": "{{u1PasswordNueva}}",
+  "passwordConfirmacion": "{{u1PasswordNueva}}"
+}
+
+### TC-P04-10 — Password actual incorrecto → 401
+# @name u1_cambiar_password_mal
+PUT {{baseUrl}}/perfil/password
+Content-Type: application/json
+Authorization: Bearer {{u1_access_token}}
+
+{
+  "passwordActual": "WrongPassword99",
+  "passwordNueva": "OtraClave123",
+  "passwordConfirmacion": "OtraClave123"
+}
+
+### TC-P04-11 — Nueva password no cumple política → 400
+# @name u1_cambiar_password_debil
+PUT {{baseUrl}}/perfil/password
+Content-Type: application/json
+Authorization: Bearer {{u1_access_token}}
+
+{
+  "passwordActual": "{{u1PasswordNueva}}",
+  "passwordNueva": "corta",
+  "passwordConfirmacion": "corta"
+}
+
+### TC-P04-12 — Passwords nuevas no coinciden → 400
+# @name u1_cambiar_password_no_coinciden
+PUT {{baseUrl}}/perfil/password
+Content-Type: application/json
+Authorization: Bearer {{u1_access_token}}
+
+{
+  "passwordActual": "{{u1PasswordNueva}}",
+  "passwordNueva": "NuevaClave789",
+  "passwordConfirmacion": "OtraClave456"
+}
+
+### TC-P04-13 — Ana cambia password → 204
+# @name u2_cambiar_password
+PUT {{baseUrl}}/perfil/password
+Content-Type: application/json
+Authorization: Bearer {{u2_access_token}}
+
+{
+  "passwordActual": "{{u2Password}}",
+  "passwordNueva": "{{u2PasswordNueva}}",
+  "passwordConfirmacion": "{{u2PasswordNueva}}"
+}
+
+### ── Verificar cambios ───────────────────────────────────────
+
+### TC-P04-14 — Login John con password nueva → 200
+# @name u1_login_password_nueva
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{u1Email}}",
+  "password": "{{u1PasswordNueva}}",
+  "recordarSesion": true
+}
+
+> {%
+  client.global.set("u1_access_token", response.body.accessToken);
+  client.global.set("u1_refresh_token", response.body.refreshToken);
+%}
+
+### TC-P04-15 — Login Ana con password nueva → 200
+# @name u2_login_password_nueva
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{u2Email}}",
+  "password": "{{u2PasswordNueva}}",
+  "recordarSesion": true
+}
+
+> {%
+  client.global.set("u2_access_token", response.body.accessToken);
+  client.global.set("u2_refresh_token", response.body.refreshToken);
+%}
+
+### TC-P04-16 — Perfil John actualizado → 200
+# Verificar que el nombre cambió
+# @name u1_perfil_verificar
+GET {{baseUrl}}/perfil
+Authorization: Bearer {{u1_access_token}}
+
+### TC-P04-17 — Perfil Ana actualizado → 200
+# @name u2_perfil_verificar
+GET {{baseUrl}}/perfil
+Authorization: Bearer {{u2_access_token}}
+
+### ── Logout final ────────────────────────────────────────────
+
+### TC-P04-18 — Logout John → 204
+# @name u1_logout_final
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer {{u1_access_token}}
+Content-Type: application/json
+
+{
+  "refreshToken": "{{u1_refresh_token}}"
+}
+
+### TC-P04-19 — Logout Ana → 204
+# @name u2_logout_final
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer {{u2_access_token}}
+Content-Type: application/json
+
+{
+  "refreshToken": "{{u2_refresh_token}}"
+}

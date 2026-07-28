@@ -1,0 +1,27 @@
+meta {
+  name: TC-P03-02 — Recuperar password (email no existe)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/auth/recuperar
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "fantasma@uce.edu.ec"
+  }
+}
+
+tests {
+  test("Status 202 Accepted (anti-enumeración)", function() {
+    expect(res.status).to.equal(202);
+  });
+}

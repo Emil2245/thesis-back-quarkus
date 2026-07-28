@@ -1,0 +1,44 @@
+meta {
+  name: TC-P02-06 — Refresh token exitoso
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/auth/refresh
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "refreshToken": "{{u1_refresh_token}}"
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("u1_refresh_token_viejo", bru.getVar("u1_refresh_token"));
+    bru.setVar("u1_refresh_token", res.body.refreshToken);
+    bru.setVar("u1_access_token", res.body.accessToken);
+    console.log("u1 refresh_nuevo=" + res.body.refreshToken.substring(0, 30) + "...");
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Nuevo refresh token difiere del anterior", function() {
+    expect(res.body.refreshToken).to.not.equal(bru.getVar("u1_refresh_token_viejo"));
+  });
+
+  test("Nuevo access token presente", function() {
+    expect(res.body.accessToken).to.not.be.null;
+  });
+}

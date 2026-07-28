@@ -1,0 +1,28 @@
+meta {
+  name: TC-P04-07 — Actualizar sin token
+  type: http
+  seq: 8
+}
+
+put {
+  url: {{baseUrl}}/perfil
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "Sin Token",
+    "email": "test@uce.edu.ec"
+  }
+}
+
+tests {
+  test("Status 401 Unauthorized", function() {
+    expect(res.status).to.equal(401);
+  });
+}

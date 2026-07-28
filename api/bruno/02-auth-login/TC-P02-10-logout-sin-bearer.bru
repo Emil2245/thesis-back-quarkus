@@ -1,0 +1,27 @@
+meta {
+  name: TC-P02-10 — Logout sin Bearer token
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/auth/logout
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "refreshToken": "cualquier-cosa"
+  }
+}
+
+tests {
+  test("Status 401 Unauthorized", function() {
+    expect(res.status).to.equal(401);
+  });
+}

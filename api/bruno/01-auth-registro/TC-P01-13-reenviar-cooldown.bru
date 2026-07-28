@@ -1,0 +1,31 @@
+meta {
+  name: TC-P01-13 — Reenviar verificación (cooldown)
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/auth/reenviar-verificacion
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{u1Email}}"
+  }
+}
+
+tests {
+  test("Status 429 Too Many Requests", function() {
+    expect(res.status).to.equal(429);
+  });
+
+  test("Error: cooldown-activo", function() {
+    expect(res.body.codigo).to.equal("cooldown-activo");
+  });
+}

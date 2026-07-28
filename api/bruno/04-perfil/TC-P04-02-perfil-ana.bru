@@ -1,0 +1,28 @@
+meta {
+  name: TC-P04-02 — Perfil Ana
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/perfil
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u2_access_token}}
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Email correcto", function() {
+    expect(res.body.email).to.equal("ana.armas@gmail.com");
+  });
+
+  test("Nombre contiene Ana", function() {
+    expect(res.body.nombre).to.contain("Ana");
+  });
+}

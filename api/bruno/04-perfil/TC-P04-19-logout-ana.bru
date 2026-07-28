@@ -1,0 +1,31 @@
+meta {
+  name: TC-P04-19 — Logout Ana
+  type: http
+  seq: 20
+}
+
+post {
+  url: {{baseUrl}}/auth/logout
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u2_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "refreshToken": "{{u2_refresh_token}}"
+  }
+}
+
+tests {
+  test("Status 204 No Content", function() {
+    expect(res.status).to.equal(204);
+  });
+}

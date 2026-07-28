@@ -1,0 +1,20 @@
+meta {
+  name: TC-P04-04 — Perfil token inválido
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/perfil
+  auth: bearer
+}
+
+auth:bearer {
+  token: token-falso-abc123
+}
+
+tests {
+  test("Status 401 Unauthorized", function() {
+    expect(res.status).to.equal(401);
+  });
+}

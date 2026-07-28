@@ -1,0 +1,31 @@
+meta {
+  name: TC-P01-12 — Token ya consumido
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/auth/verificar-email
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "token": "{{u1_token_verificacion}}"
+  }
+}
+
+tests {
+  test("Status 410 Gone", function() {
+    expect(res.status).to.equal(410);
+  });
+
+  test("Error: token-invalido-o-expirado", function() {
+    expect(res.body.codigo).to.equal("token-invalido-o-expirado");
+  });
+}

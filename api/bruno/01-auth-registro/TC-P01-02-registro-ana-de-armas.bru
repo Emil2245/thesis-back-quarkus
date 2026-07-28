@@ -1,0 +1,45 @@
+meta {
+  name: TC-P01-02 — Registro Ana de Armas
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/auth/registro
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "{{u2Nombre}}",
+    "email": "{{u2Email}}",
+    "password": "{{u2Password}}",
+    "passwordConfirmacion": "{{u2Password}}"
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setVar("u2_id", res.body.id);
+    console.log("u2 id=" + res.body.id);
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("Response has id", function() {
+    expect(res.body.id).to.not.be.null;
+  });
+
+  test("Nombre correcto", function() {
+    expect(res.body.nombre).to.equal("Ana de Armas");
+  });
+}

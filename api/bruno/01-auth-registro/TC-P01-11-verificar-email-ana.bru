@@ -1,0 +1,27 @@
+meta {
+  name: TC-P01-11 — Verificar email Ana
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/auth/verificar-email
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "token": "{{u2_token_verificacion}}"
+  }
+}
+
+tests {
+  test("Status 204 No Content", function() {
+    expect(res.status).to.equal(204);
+  });
+}
