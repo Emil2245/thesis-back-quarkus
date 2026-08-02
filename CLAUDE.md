@@ -105,12 +105,12 @@ director decides. The current answer to "why are GM-19/20 red" is not
 ## Verification commands (memorize)
 
 ```bash
-./mvnw -q -DskipTests package                          # sanity build
-./mvnw -q test                                         # full suite (~2 min cold)
-./mvnw -q test -Dtest='ec.uce.propuestas.motor.*'      # motor only
-./mvnw -q test -Dtest='ec.uce.propuestas.usuario.*'    # auth only
-./mvnw quarkus:dev                                     # live reload
-./mvnw package -Dnative -Dquarkus.native.container-build=true   # native (~10 min)
+./gradlew build -x test                                    # sanity build
+./gradlew test                                             # full suite (~2 min cold)
+./gradlew test --tests 'ec.uce.propuestas.motor.*'         # motor only
+./gradlew test --tests 'ec.uce.propuestas.usuario.*'       # auth only
+./gradlew --console=plain quarkusDev                       # live reload
+./gradlew build -Dquarkus.native.enabled=true -Dquarkus.native.container-build=true   # native (~10 min)
 ```
 
 Expected test count (as of 2026-07-24): **56 total, 2 red, 2 skipped**.
@@ -184,8 +184,11 @@ outputs, escape hatches ("if X, STOP and report").
   (not in tests — tests use container URL directly). If `quarkus:dev`
   fails with auth errors, either stop the local service or set the DB
   env vars to match it.
-- **`mvnw` sometimes ships without the executable bit** — `chmod +x mvnw`
-  if `./mvnw` says "permission denied" on WSL/macOS.
+- **`gradlew` sometimes ships without the executable bit** — `chmod +x gradlew`
+  if `./gradlew` says "permission denied" on WSL/macOS.
+- **Gradle outputs to `build/`, not `target/`** — the fast-jar lives at
+  `build/quarkus-app/quarkus-run.jar` and the native binary at `build/*-runner`.
+  Dockerfiles and `.dockerignore` already point at `build/`.
 
 ## What NOT to do
 
@@ -196,7 +199,7 @@ outputs, escape hatches ("if X, STOP and report").
 - Do not use `double` or `float` in any file that participates in cost
   arithmetic.
 - Do not log tokens, passwords (raw or hashed), or PII (RNF-08).
-- Do not add dependencies to `pom.xml` without a plan authorizing it.
+- Do not add dependencies to `build.gradle.kts` without a plan authorizing it.
 - Do not run destructive git commands (`push --force`, `reset --hard`,
   `clean -fd`) without explicit user request.
 - Do not silently work around fixture bugs in `thesis-docs`. Report them

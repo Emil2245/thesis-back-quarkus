@@ -29,6 +29,7 @@ iteration I-01 in full plus the I-02 hito (motor de cálculo puro).
 | 004 | [Auth module (registration, login, JWT, reset, invitation)](./004-auth-module.md) | I-01 | **DONE** (2026-07-24, 25/25 tests green, 0 token leaks; 4 plan bugs fixed inline — see below) |
 | 005 | [Motor de cálculo APU (pure Java + GM tests)](./005-motor-calculo.md) | I-02 | **BLOCKED** (2026-07-24, scaffold present in `2fe6c83` but 2/25 GM tests fail — see below) |
 | 006 | [Motor consolidación fix (GM-19/GM-20, GM-21 audit, GM-24 real)](./006-motor-consolidacion-fix.md) | I-02 | **PARTIAL / ESCALATED** (2026-07-24, §1 stub fix + §3 allowlist audit + §4 GM-24 @Disabled all done; GM-19/20 still red — root cause is workbook-rounding semantics, needs domain decision from Emil + director before Motor can be modified) |
+| 007 | [Migración Maven → Gradle](../docs/007-migracion-gradle.md) | build tooling | **DONE** (2026-08-01; build/tests/dev-mode verified; CI/CD deferred — plan 002 debt stays open; refinements modernos en §008 del mismo doc) |
 
 Plans for I-03 through I-12 (proyectos, insumos, APU editor, presupuesto,
 cronograma, export, admin, validación final) are not yet written — they
@@ -243,6 +244,53 @@ before deciding whether:
 **Diagnostic left in place** for the follow-up session:
 `MotorConsolidacionTest.DIAG_rubro_expected_vs_actual` is
 `@Disabled`; remove `@Disabled` and re-run to reproduce the dump.
+
+### 007 — Migración Maven → Gradle (raised 2026-08-01)
+
+Build system migrated from Maven to Gradle 9.5.1 (Kotlin DSL). The plan lives
+in [`../docs/007-migracion-gradle.md`](../docs/007-migracion-gradle.md) (per
+author decision it was placed in `docs/`, not `plans/`). Outcome:
+
+- `pom.xml`, `mvnw`, `mvnw.cmd`, `.mvn/`, `target/` deleted; added
+  `settings.gradle.kts`, `gradle.properties`, `build.gradle.kts`, wrapper
+  (`./gradlew`, Gradle 9.5.1).
+- `./gradlew build -x test` → BUILD SUCCESSFUL, fast-jar at
+  `build/quarkus-app/quarkus-run.jar`.
+- `./gradlew test` → **identical to the Maven baseline: 56 tests, 2 red
+  (GM-19, GM-20 — known domain issue, not a migration regression), 2 skipped
+  (GM-24 @Disabled, DIAG)**. No library failed to resolve or behave
+  differently.
+- `./gradlew --console=plain quarkusDev` smoke-tested against the compose
+  Postgres: health UP, Flyway validated 3 migrations, OpenAPI 200.
+- **CI/CD deferred** (author decision 2026-08-01): the plan 002 workflow
+  debt stays open; when written it must use `./gradlew` and Gradle's
+  `build/test-results/` + `build/*-runner` paths.
+- Gotcha captured: Gradle `Test` task `include` patterns match compiled
+  `.class` names, not `.java` files — `**/*Test.java` leaves the task at
+  `NO-SOURCE`. Use `**/*Test.class` / `**/*IT.class`.
+- Pre-existing (not migration) warnings: `quarkus.health.extensions.enabled`
+  unrecognized and `quarkus.hibernate-orm.database.generation` deprecated,
+  both from `application.yml`.
+
+### 008 — Refinamientos modernos del build (raised 2026-08-01)
+
+Detalle completo en [`../docs/007-migracion-gradle.md`](../docs/007-migracion-gradle.md) §008.
+Resumen (decisión del autor: los planes son base, no muro; se aplica lo moderno
+que aporta valor real):
+
+- **Version catalog** `gradle/libs.versions.toml` — única fuente de versiones
+  (Quarkus 3.37.4, poi, openpdf, jqwik). Plugin vía `alias(libs.plugins.quarkus)`.
+- **Toolchain JDK 25** — el build corre sobre JDK 25 (auto-detectado o
+  auto-descargado vía foojay). Target Java: **21 → 25** (decisión del autor).
+- `gradle.properties` limpio: fuera `quarkusPlatform*` (ahora en el catalog);
+  dentro `org.gradle.caching` + `org.gradle.parallel`.
+- **Lombok/@Builder RECHAZADO** (verificado: DTOs de entrada no se construyen a
+  mano; solo 14 sitios `new <Record>()` en main; motor es Java puro sin framework).
+- **Consul/Stork/Micrometer/OTel/K8s/Jib RECHAZADO** — monólito, no microservicios;
+  `thesis-docs` no lo contempla.
+- Verificado: `./gradlew build` OK, `./gradlew test` 56 tests (2 red GM-19/20,
+  2 skipped — sin regresión), `quarkusDev` arranca en `:8080` (credenciales
+  compose: `DB_USER=postgres DB_PASSWORD=postgres`).
 
 ## Considered and rejected
 

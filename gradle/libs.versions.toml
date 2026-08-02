@@ -1,0 +1,38 @@
+[versions]
+quarkus = "3.37.4"
+poi = "5.4.0"
+openpdf = "2.0.3"
+jqwik = "1.9.0"
+
+[libraries]
+# Platform BOM
+quarkus-platform-bom = { module = "io.quarkus.platform:quarkus-bom", version.ref = "quarkus" }
+
+# Framework (BOM-managed, no version here)
+quarkus-hibernate-orm-panache = { module = "io.quarkus:quarkus-hibernate-orm-panache" }
+quarkus-rest = { module = "io.quarkus:quarkus-rest" }
+quarkus-rest-jackson = { module = "io.quarkus:quarkus-rest-jackson" }
+quarkus-smallrye-health = { module = "io.quarkus:quarkus-smallrye-health" }
+quarkus-smallrye-jwt-build = { module = "io.quarkus:quarkus-smallrye-jwt-build" }
+quarkus-hibernate-validator = { module = "io.quarkus:quarkus-hibernate-validator" }
+quarkus-smallrye-jwt = { module = "io.quarkus:quarkus-smallrye-jwt" }
+quarkus-security-jpa = { module = "io.quarkus:quarkus-security-jpa" }
+quarkus-flyway = { module = "io.quarkus:quarkus-flyway" }
+quarkus-smallrye-openapi = { module = "io.quarkus:quarkus-smallrye-openapi" }
+quarkus-jdbc-postgresql = { module = "io.quarkus:quarkus-jdbc-postgresql" }
+quarkus-config-yaml = { module = "io.quarkus:quarkus-config-yaml" }
+quarkus-arc = { module = "io.quarkus:quarkus-arc" }
+quarkus-elytron-security-common = { module = "io.quarkus:quarkus-elytron-security-common" }
+
+# App libraries (pinned versions)
+poi-ooxml = { module = "org.apache.poi:poi-ooxml", version.ref = "poi" }
+openpdf = { module = "com.github.librepdf:openpdf", version.ref = "openpdf" }
+
+# Test
+quarkus-junit5 = { module = "io.quarkus:quarkus-junit5" }
+rest-assured = { module = "io.rest-assured:rest-assured" }
+jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind" }
+jqwik = { module = "net.jqwik:jqwik", version.ref = "jqwik" }
+
+[plugins]
+quarkus = { id = "io.quarkus", version.ref = "quarkus" }

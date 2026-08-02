@@ -35,7 +35,7 @@ the same commit set. Do not divergently re-decide things here.
 
 ## Stack
 
-- Java 21 · Maven · Quarkus 3.37.4
+- Java 25 (toolchain) · Gradle 9.5.1 (wrapper) · Quarkus 3.37.4
 - Panache ORM (Hibernate) · PostgreSQL 16
 - Flyway migrations
 - SmallRye JWT (bcrypt via Elytron)
@@ -50,16 +50,16 @@ the same commit set. Do not divergently re-decide things here.
 
 ```bash
 # Dev mode with live reload (spins Postgres via Dev Services if Docker is up)
-./mvnw quarkus:dev
+./gradlew --console=plain quarkusDev
 
 # Full build (no tests)
-./mvnw -q -DskipTests package
+./gradlew build -x test
 
 # Test suite (56 tests currently; 2 known-red pending domain decision — see plans/README.md)
-./mvnw -q test
+./gradlew test
 
 # Native image (container build; ~10 min)
-./mvnw package -Dnative -Dquarkus.native.container-build=true
+./gradlew build -Dquarkus.native.enabled=true -Dquarkus.native.container-build=true
 ```
 
 Endpoints in dev:
@@ -129,6 +129,6 @@ plans/                           # Implementation plans (executable playbooks)
 - **"How does the API expose Y?"** → `../thesis-docs/plan/architecture/07-api-contract.md`
 - **"What migration adds table Z?"** → `src/main/resources/db/migration/`
 - **"What plan produced this file?"** → `plans/<NNN>-*.md`
-- **"How do I run tests locally?"** → `./mvnw -q test`
+- **"How do I run tests locally?"** → `./gradlew test`
 
 For AI-assisted development: [`CLAUDE.md`](CLAUDE.md).
