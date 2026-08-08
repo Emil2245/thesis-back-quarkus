@@ -1,0 +1,52 @@
+meta {
+  name: TC-06-01 — Crear proyecto (P-05/P-06)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/proyectos
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+body:json {
+  {
+    "nombreProyecto": "Puente Tulcán",
+    "codigo": "P-2026-01",
+    "descripcion": "Construcción del puente vehicular sobre el río Grande.",
+    "anio": 2026,
+    "fechaInicio": "2026-03-01",
+    "plazoEjecucion": 6,
+    "plazoUnidad": "MES",
+    "direccionInstitucional": "GAD Municipal Tulcán",
+    "subdireccionInstitucional": "Dirección de Obras Públicas"
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setVar("proyectoId", res.body.id);
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("Estado inicial es BORRADOR", function() {
+    expect(res.body.estado).to.equal("BORRADOR");
+  });
+
+  test("Nombre correcto", function() {
+    expect(res.body.nombreProyecto).to.equal("Puente Tulcán");
+  });
+}

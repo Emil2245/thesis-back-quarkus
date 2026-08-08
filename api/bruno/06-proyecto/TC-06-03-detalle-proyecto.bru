@@ -1,0 +1,25 @@
+meta {
+  name: TC-06-03 — Obtener detalle del proyecto
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/proyectos/{{proyectoId}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Es el proyecto creado", function() {
+    expect(res.body.id).to.equal(Number(bru.getVar("proyectoId")));
+    expect(res.body.nombreProyecto).to.equal("Puente Tulcán");
+  });
+}

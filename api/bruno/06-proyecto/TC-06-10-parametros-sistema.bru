@@ -1,0 +1,25 @@
+meta {
+  name: TC-06-10 — Parámetros del sistema (lectura)
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/proyectos/parametros-sistema
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Singleton presente", function() {
+    expect(res.body.id).to.equal(1);
+    expect(res.body.iva).to.equal(0.15);
+  });
+}

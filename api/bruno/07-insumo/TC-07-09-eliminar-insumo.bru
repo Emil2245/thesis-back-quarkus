@@ -1,0 +1,20 @@
+meta {
+  name: TC-07-09 — Eliminar insumo
+  type: http
+  seq: 10
+}
+
+delete {
+  url: {{baseUrl}}/proyectos/{{proyectoId}}/insumos/{{nuevoInsumoId}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 204 No Content", function() {
+    expect(res.status).to.equal(204);
+  });
+}

@@ -1,0 +1,43 @@
+meta {
+  name: TC-06-07 — Crear firmante CONSOLIDADO
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/proyectos/{{proyectoId}}/firmantes
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+body:json {
+  {
+    "nombre": "Ing. María Pérez",
+    "cargo": "Directora de Obras Públicas",
+    "rol": "CONSOLIDADO",
+    "orden": 1
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setVar("firmanteId", res.body.id);
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("Rol correcto", function() {
+    expect(res.body.rol).to.equal("CONSOLIDADO");
+  });
+}

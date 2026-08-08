@@ -1,0 +1,46 @@
+meta {
+  name: TC-07-01 — Crear insumo MATERIAL (P-13)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/proyectos/{{proyectoId}}/insumos
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+body:json {
+  {
+    "codigo": "MAT-001",
+    "tipo": "MATERIAL",
+    "descripcion": "Cemento Portland tipo IP",
+    "unidad": "kg",
+    "precioUnitario": 0.650000
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setVar("nuevoInsumoId", res.body.id);
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("Tipo y precio correctos", function() {
+    expect(res.body.codigo).to.equal("MAT-001");
+    expect(res.body.tipo).to.equal("MATERIAL");
+    expect(res.body.precioUnitario).to.equal(0.65);
+  });
+}

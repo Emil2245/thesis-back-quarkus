@@ -1,0 +1,38 @@
+meta {
+  name: TC-07-02 — Crear insumo MANO_OBRA (unidad fija h, D-06)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/proyectos/{{proyectoId}}/insumos
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+body:json {
+  {
+    "codigo": "MO-001",
+    "tipo": "MANO_OBRA",
+    "descripcion": "Maestro mayor",
+    "unidad": "h",
+    "precioUnitario": 4.250000
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("Unidad forzada a h", function() {
+    expect(res.body.unidad).to.equal("h");
+  });
+}

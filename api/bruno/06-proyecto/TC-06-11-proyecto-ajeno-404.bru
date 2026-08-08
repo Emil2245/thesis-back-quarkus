@@ -1,0 +1,21 @@
+meta {
+  name: TC-06-11 — Acceso a proyecto ajeno → 404
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/proyectos/999999
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 404 no-encontrado", function() {
+    expect(res.status).to.equal(404);
+    expect(res.body.codigo).to.equal("no-encontrado");
+  });
+}

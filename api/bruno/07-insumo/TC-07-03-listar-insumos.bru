@@ -1,0 +1,25 @@
+meta {
+  name: TC-07-03 — Listar insumos de la base del proyecto
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/proyectos/{{proyectoId}}/insumos?page=0&size=25
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Paginación con items", function() {
+    expect(res.body.items).to.be.an("array");
+    expect(res.body.total).to.be.at.least(1);
+  });
+}

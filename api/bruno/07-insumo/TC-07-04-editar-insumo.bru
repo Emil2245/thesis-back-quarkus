@@ -1,0 +1,37 @@
+meta {
+  name: TC-07-04 — Editar insumo
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{baseUrl}}/proyectos/{{proyectoId}}/insumos/{{nuevoInsumoId}}
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+body:json {
+  {
+    "descripcion": "Cemento Portland tipo IP — saco 50kg",
+    "unidad": "kg",
+    "precioUnitario": 0.680000
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Descripción y precio actualizados", function() {
+    expect(res.body.descripcion).to.contain("saco 50kg");
+    expect(res.body.precioUnitario).to.equal(0.68);
+  });
+}

@@ -1,0 +1,35 @@
+meta {
+  name: TC-07-07 — Copiar base central al proyecto (P-14)
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/proyectos/{{proyectoId}}/insumos/copiar
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+body:json {
+  {
+    "fuenteTipo": "CENTRAL",
+    "baseId": {{copiarBaseCentralId}}
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Insumos copiados", function() {
+    expect(res.body.copiados).to.be.at.least(1);
+  });
+}

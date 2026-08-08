@@ -1,0 +1,31 @@
+meta {
+  name: TC-07-10 — Importar CSV de insumos (P-15)
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/proyectos/{{proyectoId}}/insumos/importar
+  body: multipart-form
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+body:multipart-form {
+  archivo: file://./api/bruno/07-insumo/insumos-ejemplo.csv
+  tipo: MATERIAL
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Resultado de importación", function() {
+    expect(res.body).to.have.property("creados");
+    expect(res.body).to.have.property("actualizados");
+  });
+}

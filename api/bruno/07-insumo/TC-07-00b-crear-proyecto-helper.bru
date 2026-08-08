@@ -1,0 +1,40 @@
+meta {
+  name: TC-07-00b — Crear proyecto (helper)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/proyectos
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+body:json {
+  {
+    "nombreProyecto": "Riego La Virginia",
+    "anio": 2026,
+    "plazoEjecucion": 4,
+    "plazoUnidad": "MES",
+    "direccionInstitucional": "GAD"
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setVar("proyectoId", res.body.id);
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+}

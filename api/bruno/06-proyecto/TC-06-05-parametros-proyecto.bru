@@ -1,0 +1,26 @@
+meta {
+  name: TC-06-05 — Parámetros del proyecto (P-07/P-11)
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/proyectos/{{proyectoId}}/parametros
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Defaults de cálculo presentes", function() {
+    expect(res.body.porcentajeHerramientaMenor).to.equal(0.05);
+    expect(res.body.iva).to.equal(0.15);
+    expect(res.body.modoCodigoRubro).to.equal("AUTOGENERADO");
+  });
+}

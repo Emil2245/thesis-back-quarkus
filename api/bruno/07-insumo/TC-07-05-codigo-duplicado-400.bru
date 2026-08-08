@@ -1,0 +1,35 @@
+meta {
+  name: TC-07-05 — Código duplicado en la base → 400
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/proyectos/{{proyectoId}}/insumos
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+body:json {
+  {
+    "codigo": "MAT-001",
+    "tipo": "MATERIAL",
+    "descripcion": "Duplicado",
+    "unidad": "kg",
+    "precioUnitario": 0.100000
+  }
+}
+
+tests {
+  test("Status 400 validacion", function() {
+    expect(res.status).to.equal(400);
+    expect(res.body.codigo).to.equal("validacion");
+  });
+}

@@ -1,0 +1,41 @@
+meta {
+  name: TC-06-04 — Editar proyecto
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/proyectos/{{proyectoId}}
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+body:json {
+  {
+    "nombreProyecto": "Puente Tulcán — Etapa II",
+    "codigo": "P-2026-01",
+    "descripcion": "Ampliación a doble vía.",
+    "anio": 2026,
+    "plazoEjecucion": 8,
+    "plazoUnidad": "MES",
+    "direccionInstitucional": "GAD Municipal Tulcán",
+    "subdireccionInstitucional": "Dirección de Obras Públicas"
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Nombre actualizado", function() {
+    expect(res.body.nombreProyecto).to.equal("Puente Tulcán — Etapa II");
+  });
+}

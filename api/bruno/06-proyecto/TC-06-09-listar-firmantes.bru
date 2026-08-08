@@ -1,0 +1,25 @@
+meta {
+  name: TC-06-09 — Listar firmantes del proyecto
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/proyectos/{{proyectoId}}/firmantes
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Contiene el firmante creado", function() {
+    expect(res.body).to.be.an("array");
+    expect(res.body.length).to.be.at.least(1);
+  });
+}

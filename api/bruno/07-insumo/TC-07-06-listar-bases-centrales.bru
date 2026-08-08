@@ -1,0 +1,33 @@
+meta {
+  name: TC-07-06 — Listar bases centrales (P-13)
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/bases-centrales
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+script:post-response {
+  if (res.status === 200 && res.body.length > 0) {
+    bru.setVar("baseCentralId", res.body[0].id);
+    bru.setVar("copiarBaseCentralId", res.body[0].id);
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Base central IESS presente", function() {
+    expect(res.body).to.be.an("array");
+    expect(res.body[0].tipo).to.equal("CENTRAL");
+    expect(res.body[0].totalInsumos).to.be.at.least(1);
+  });
+}

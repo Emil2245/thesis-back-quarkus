@@ -1,0 +1,38 @@
+meta {
+  name: TC-06-06 — Actualizar parámetros del proyecto
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{baseUrl}}/proyectos/{{proyectoId}}/parametros
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+body:json {
+  {
+    "porcentajeHerramientaMenor": 0.07,
+    "porcentajeIndirecto": 0.20,
+    "iva": 0.15,
+    "moneda": "USD"
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Valores actualizados", function() {
+    expect(res.body.porcentajeHerramientaMenor).to.equal(0.07);
+    expect(res.body.porcentajeIndirecto).to.equal(0.20);
+  });
+}
