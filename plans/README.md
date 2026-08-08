@@ -30,9 +30,11 @@ iteration I-01 in full plus the I-02 hito (motor de cálculo puro).
 | 005 | [Motor de cálculo APU (pure Java + GM tests)](./005-motor-calculo.md) | I-02 | **BLOCKED** (2026-07-24, scaffold present in `2fe6c83` but 2/25 GM tests fail — see below) |
 | 006 | [Motor consolidación fix (GM-19/GM-20, GM-21 audit, GM-24 real)](./006-motor-consolidacion-fix.md) | I-02 | **PARTIAL / ESCALATED** (2026-07-24, §1 stub fix + §3 allowlist audit + §4 GM-24 @Disabled all done; GM-19/20 still red — root cause is workbook-rounding semantics, needs domain decision from Emil + director before Motor can be modified) |
 | 007 | [Migración Maven → Gradle](../docs/007-migracion-gradle.md) | build tooling | **DONE** (2026-08-01; build/tests/dev-mode verified; CI/CD deferred — plan 002 debt stays open; refinements modernos en §008 del mismo doc) |
+| 009 | [Módulos `proyecto` + `insumo`](../docs/modulos/README.md) | I-03 | **DONE** (2026-08-02; ver §009 post-execution notes) |
+| 010 | [Seed de escenarios reales (V004)](../docs/04-SEED-ESCENARIOS.md) | I-04 | **DONE** (2026-08-02; 3 proyectos uno por estado, FINALIZADO = workbook CMT; verificado en Postgres limpio + suite sin regresión) |
 
-Plans for I-03 through I-12 (proyectos, insumos, APU editor, presupuesto,
-cronograma, export, admin, validación final) are not yet written — they
+Plans for I-04 through I-12 (APU editor, presupuesto, cronograma, export,
+admin, validación final) are not yet written — they
 will be authored in later planning sessions once each preceding iteration's
 plans are DONE and CI-green.
 
@@ -74,6 +76,72 @@ plans are DONE and CI-green.
   `thesis-docs/plan/domain/03-glosario.md` verbatim.
 
 ## Post-execution notes
+
+### 009 — Módulos `proyecto` + `insumo` (raised 2026-08-02)
+
+Build second-vertical-slice milestones per `docs/modulos/01-proyecto.md` and
+`docs/modulos/02-insumo.md`. **State: DONE**, full suite green minus the two
+known GM-19/GM-20 reds.
+
+**Proyecto** (`ec.uce.propuestas.proyecto`): entidades `Proyecto`, `Firmante`,
+`ParametrosProyecto`, `ParametrosSistema` (LECTURA), enums `EstadoProyecto`,
+`PlazoUnidad`, `RolFirmante`, `ModoCodigoRubro`; DTOs/mappers; servicios
+`ProyectoService`, `FirmanteService`, `ParametrosProyectoService`; resources
+`/proyectos`, `/proyectos/{id}/firmantes`, `/proyectos/{id}/parametros`,
+`/proyectos/parametros-sistema`. Propiedad resuelta por email del claim JWT →
+404 si ajeno (RNF-05).
+
+**Insumo** (`ec.uce.propuestas.insumo`): `BaseInsumos`, `Insumo`,
+`UnidadCatalogo` + enums `TipoInsumo`, `TipoBase`; `InsumoCrudService`,
+`BaseInsumosService`, `ImportacionInsumoService`, `CopiaBaseService`,
+`UnidadCatalogoService`, `InsumoCatalogoService` (selector multi-fuente
+P-16/P-21); parsing CSV puro (`CsvInsumoParser`, commons-csv) con validación
+por tipo. Recursos `InsumoResource` (`/proyectos/{proyectoId}/insumos`) y
+`BaseInsumosResource` (`/bases-centrales`).
+
+**Deviations (approved, documented in `docs/modulos/`):** (1) `commons-csv`
+added a catalog + build; (2) errores vía `ProblemaException` sobre
+`GlobalExceptionMapper` (no enum nuevo); (3) resources JAX-RS `Response`
+(en vez de `RestResponse<T>`) para coincidir con `PerfilResource`;
+(4) D-08 `eliminar insumo` = `stub → 0` hasta el módulo APU (TODO en código);
+(5) `parametros_sistema.id` es `Short`; (6) **repositorios obligatorios por
+entidad** (`repository/` en ambos módulos) — decisión del autor para separar
+SQL de reglas y evitar refactor al añadir consultas; `docs/01-ARQUITECTURA.md`
+§5 actualizado; `usuario/` queda como caso previo a alinear; (7) **colecciones Bruno**
+`api/bruno/06-proyecto/` y `api/bruno/07-insumo/` con requests autenticados
+(login helper + token en variables) y CSV de ejemplo para importación.
+
+**Suite state:** 63 tests total (antes 56), 2 red (GM-19/GM-20 preexistents,
+sin tocar el motor), 2 skipped (GM-24, DIAG — como antes).
+
+**Scope decision (2026-08-02): P-09 "duplicar proyecto" EXCLUDED.** Interview
+N02 §3 advises against cloning whole projects ("propenso a errores al arrastrar
+cronogramas o cantidades pasadas") and approves only copying **insumo bases**
+(P-17, implemented). Therefore `POST /proyectos/{id}/duplicar` will NOT be
+built; only insumo duplication between bases remains. D-04 is moot. Docs updated
+in `docs/modulos/01-proyecto.md`, `docs/modulos/README.md`,
+`docs/00-ESTADO-ACTUAL.md` and `docs/03-BASE-DATOS.md` (§6 matiz 2).
+
+### 010 — Seed de escenarios reales (V004) (raised 2026-08-02)
+
+`V004__seed_escenarios.sql` (723 KB, ~2600 líneas) añade 3 proyectos completos,
+uno por estado, más soporte (`valor_referencia` Anexo A, `plantilla_apu`
+1 SISTEMA + 1 PERSONAL, `log_actividad` catálogo D-13 sin PII) y 2 usuarios
+logueables (John Doe / Ana de Armas, `Clave1234`, ids 1 y 2). Escenario C
+(FINALIZADO) reutiliza el workbook real **Cetro Médico Tulcán** desde los
+fixtures del motor (298 rubros, 395115.32). **State: DONE.**
+
+**Generación:** script desechable `/tmp/opencode/gen_seed_cmt.py` (fragmento C)
++ `gen_esc_b.py` (escenario B sintético con write-through coherente) +
+`gen_act_cmt.py`/`gen_act_b.py` (actividades; pesos Σ=100.0000). Los 6 códigos
+de APU reutilizados en 2 rubros del workbook se desambiguan con copia `-B`
+(D-09 `rubro.apu_id` UNIQUE).
+
+**Verificación (Postgres 18 limpio + suite):** todas las consultas de Done
+criteria en §7 del plan pasan; `./gradlew test` = 63 tests, 2 red (GM-19/20
+preexistentes), 2 skipped — sin regresión. Notas: la query del plan para el
+capítulo 1 CMT se verificó sobre el **subárbol** (los rubros cuelgan de
+subcapítulos 1.x); el APU real `501772` no tiene MO → no lleva HM (19 HM totales).
 
 ### 003 V003 — insumos seed data quality (raised 2026-07-24)
 
@@ -256,10 +324,8 @@ author decision it was placed in `docs/`, not `plans/`). Outcome:
   (`./gradlew`, Gradle 9.5.1).
 - `./gradlew build -x test` → BUILD SUCCESSFUL, fast-jar at
   `build/quarkus-app/quarkus-run.jar`.
-- `./gradlew test` → **identical to the Maven baseline: 56 tests, 2 red
-  (GM-19, GM-20 — known domain issue, not a migration regression), 2 skipped
-  (GM-24 @Disabled, DIAG)**. No library failed to resolve or behave
-  differently.
+- `./gradlew test` → full suite **63 tests, 2 red (GM-19, GM-20 — known domain
+  issue, not a regression), 2 skipped (GM-24 @Disabled, DIAG)**.
 - `./gradlew --console=plain quarkusDev` smoke-tested against the compose
   Postgres: health UP, Flyway validated 3 migrations, OpenAPI 200.
 - **CI/CD deferred** (author decision 2026-08-01): the plan 002 workflow
