@@ -23,4 +23,19 @@ public class ProblemaException extends WebApplicationException {
     public static ProblemaException noEncontrado(String mensaje) {
         return new ProblemaException(404, "no-encontrado", mensaje);
     }
+
+    /** 400 codigo-duplicado (catálogo de 07-api-contract.md) */
+    public static ProblemaException codigoDuplicado(String mensaje) {
+        return new ProblemaException(400, "codigo-duplicado", mensaje);
+    }
+
+    /** 409 apu-referenciado (D-09 rubro ↔ APU 1:1; D-08 auxiliar) */
+    public static ProblemaException apuReferenciado(String mensaje) {
+        return new ProblemaException(409, "apu-referenciado", mensaje);
+    }
+
+    /** 409 fila-protegida (fila HM del bloque M no editable ni eliminable) */
+    public static ProblemaException filaProtegida(String mensaje) {
+        return new ProblemaException(409, "fila-protegida", mensaje);
+    }
 }

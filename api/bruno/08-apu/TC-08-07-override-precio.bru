@@ -1,0 +1,47 @@
+meta {
+  name: TC-08-07 — Override de precio (P-22)
+  type: http
+  seq: 16
+}
+
+patch {
+  url: {{baseUrl}}/apus/{{apuId}}/detalles/{{filaMoId}}
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+body:json {
+  {
+    "precioOverride": 9.000000
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("precioEfectivo = 9.0, ya no heredado", function() {
+    var detalle = res.body.secciones[1].detalles.find(function(d) {
+      return d.id === {{filaMoId}};
+    });
+    expect(detalle).to.not.be.null;
+    expect(detalle.precioEfectivo).to.equal(9.0);
+    expect(detalle.precioHeredado).to.equal(false);
+  });
+
+  test("Costo recalculado write-through", function() {
+    var detalle = res.body.secciones[1].detalles.find(function(d) {
+      return d.id === {{filaMoId}};
+    });
+    expect(detalle.costoHora).to.equal(9.0);
+    expect(detalle.costo).to.equal(9.0);
+  });
+}

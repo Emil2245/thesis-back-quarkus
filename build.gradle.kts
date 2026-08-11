@@ -37,6 +37,7 @@ dependencies {
     implementation(libs.poi.ooxml)
     implementation(libs.openpdf)
     implementation(libs.commons.csv)
+    implementation(libs.jackson.databind.nullable)
 
     testImplementation(libs.quarkus.junit5)
     testImplementation(libs.rest.assured)

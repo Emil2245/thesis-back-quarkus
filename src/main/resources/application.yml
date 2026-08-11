@@ -4,10 +4,14 @@ quarkus:
 
   http:
     port: 8080
+    auth:
+      # Lazy auth: permite que los fallos de seguridad (401/403) pasen por los
+      # ExceptionMapper de JAX-RS y devuelvan el payload contract (ErrorPayload).
+      proactive: false
     cors:
       enabled: true
       origins: http://localhost:5173,http://localhost:3000
-      methods: GET,POST,PUT,DELETE,OPTIONS
+      methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
       headers: accept,authorization,content-type
 
   datasource:

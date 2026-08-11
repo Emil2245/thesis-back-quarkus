@@ -1,0 +1,39 @@
+meta {
+  name: TC-08-00b — Proyecto semilla (helper)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/proyectos?q=Rehabilitaci%C3%B3n
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+script:post-response {
+  if (res.status === 200 && res.body.items) {
+    var seed = res.body.items.find(function(p) {
+      return p.nombreProyecto === "Rehabilitación de consultorios UCE";
+    });
+    if (seed) {
+      bru.setVar("proyectoId", seed.id);
+    }
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Proyecto semilla encontrado", function() {
+    expect(res.body.items).to.satisfy(function(items) {
+      return items.some(function(p) {
+        return p.nombreProyecto === "Rehabilitación de consultorios UCE";
+      });
+    });
+  });
+}

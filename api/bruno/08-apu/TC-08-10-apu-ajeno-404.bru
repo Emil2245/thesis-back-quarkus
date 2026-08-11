@@ -1,0 +1,21 @@
+meta {
+  name: TC-08-10 — Recurso ajeno → 404 (RNF-05)
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{baseUrl}}/apus/{{apuId}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u2_access_token}}
+}
+
+tests {
+  test("Status 404 no-encontrado", function() {
+    expect(res.status).to.equal(404);
+    expect(res.body.codigo).to.equal("no-encontrado");
+  });
+}

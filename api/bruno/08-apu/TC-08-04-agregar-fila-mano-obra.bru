@@ -1,0 +1,54 @@
+meta {
+  name: TC-08-04 — Agregar fila MANO_OBRA (P-21)
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/apus/{{apuId}}/detalles
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+body:json {
+  {
+    "seccionTipo": "MANO_OBRA",
+    "insumoId": {{insumoMoId}},
+    "cantidad": 1,
+    "rendimiento": 1
+  }
+}
+
+script:post-response {
+  if (res.status === 201 && res.body.secciones && res.body.secciones[1]) {
+    var detalle = res.body.secciones[1].detalles.find(function(d) {
+      return d.insumoId === {{insumoMoId}};
+    });
+    if (detalle) {
+      bru.setVar("filaMoId", detalle.id);
+    }
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("Fila MO con costos calculados", function() {
+    var detalle = res.body.secciones[1].detalles.find(function(d) {
+      return d.insumoId === {{insumoMoId}};
+    });
+    expect(detalle).to.not.be.null;
+    expect(detalle.precioHeredado).to.equal(true);
+    expect(detalle.costoHora).to.equal(4.75);
+    expect(detalle.costo).to.equal(4.75);
+  });
+}

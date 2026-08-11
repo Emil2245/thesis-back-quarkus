@@ -29,7 +29,8 @@ class ProyectoResourceIT {
     void reset() throws Exception {
         mailbox.clear();
         try (Connection con = ds.getConnection(); Statement st = con.createStatement()) {
-            st.execute("TRUNCATE TABLE parametros_proyecto, firmante, insumo, base_insumos, proyecto, " +
+            st.execute("TRUNCATE TABLE apu_detalle, apu_seccion, apu, rubro, capitulo, presupuesto, " +
+                    "insumo, base_insumos, parametros_proyecto, firmante, proyecto, " +
                     "token_usuario, refresh_token, usuario RESTART IDENTITY CASCADE");
         }
     }

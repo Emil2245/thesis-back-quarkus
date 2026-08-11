@@ -1,0 +1,31 @@
+meta {
+  name: TC-08-09 — Fila HM protegida PATCH → 409 (TC-P21-03)
+  type: http
+  seq: 18
+}
+
+patch {
+  url: {{baseUrl}}/apus/{{apuId}}/detalles/{{hmDetalleId}}
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+body:json {
+  {
+    "cantidad": 2
+  }
+}
+
+tests {
+  test("Status 409 fila-protegida", function() {
+    expect(res.status).to.equal(409);
+    expect(res.body.codigo).to.equal("fila-protegida");
+  });
+}

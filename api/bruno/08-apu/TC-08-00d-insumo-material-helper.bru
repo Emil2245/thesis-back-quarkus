@@ -1,0 +1,30 @@
+meta {
+  name: TC-08-00d — Insumo MATERIAL semilla (helper)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/proyectos/{{proyectoId}}/insumos?tipo=MATERIAL&q=MA-035
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+script:post-response {
+  if (res.status === 200 && res.body.items && res.body.items.length > 0) {
+    bru.setVar("insumoMatId", res.body.items[0].id);
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Material semilla encontrado", function() {
+    expect(res.body.items.length).to.be.greaterThan(0);
+  });
+}

@@ -1,0 +1,33 @@
+meta {
+  name: TC-08-03 — Código duplicado en la versión → 400 (P-20)
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/presupuestos/{{presupuestoId}}/apus
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+body:json {
+  {
+    "codigo": "BR-APU-001",
+    "descripcion": "Duplicado",
+    "unidad": "m2"
+  }
+}
+
+tests {
+  test("Status 400 codigo-duplicado", function() {
+    expect(res.status).to.equal(400);
+    expect(res.body.codigo).to.equal("codigo-duplicado");
+  });
+}

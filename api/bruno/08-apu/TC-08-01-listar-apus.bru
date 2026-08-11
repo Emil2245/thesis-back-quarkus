@@ -1,0 +1,25 @@
+meta {
+  name: TC-08-01 — Listar APUs del presupuesto (P-19)
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/presupuestos/{{presupuestoId}}/apus?page=0&size=25
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Paginación con items", function() {
+    expect(res.body.items).to.be.an("array");
+    expect(res.body.total).to.be.greaterThanOrEqual(0);
+  });
+}

@@ -1,0 +1,43 @@
+meta {
+  name: TC-08-06 — Totales recalculados (write-through, P-21)
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/apus/{{apuId}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("HM 5% de MO: 5% x 4.75 = 0.2375", function() {
+    var hm = res.body.secciones[0].detalles.find(function(d) {
+      return d.esHerramientaMenor;
+    });
+    expect(hm).to.not.be.null;
+    expect(hm.descripcion).to.contain("Herramienta Menor");
+    expect(hm.costo).to.equal(0.2375);
+  });
+
+  test("CD = MO + HM + MATERIAL = 4.75 + 0.2375 + 0.32 = 5.3075", function() {
+    expect(res.body.costoDirecto).to.equal(5.3075);
+  });
+
+  test("CI = 18% x CD = 0.95535 (hereda proyecto)", function() {
+    expect(res.body.porcentajeIndirecto).to.equal(null);
+    expect(res.body.porcentajeIndirectoEfectivo).to.equal(0.18);
+    expect(res.body.costoIndirecto).to.equal(0.95535);
+  });
+
+  test("CT = CD + CI = 6.26285", function() {
+    expect(res.body.costoTotal).to.equal(6.26285);
+  });
+}

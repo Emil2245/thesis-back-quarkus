@@ -22,7 +22,7 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
             }
             int status = original.getStatus();
             String codigo = codePorEstatus(status);
-            String mensaje = wae.getMessage() != null ? wae.getMessage() : codigo;
+            String mensaje = mensajeLegible(wae, status, codigo);
             return Response.status(status)
                 .entity(new ErrorPayload(codigo, mensaje))
                 .build();
@@ -55,5 +55,28 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
             case 429 -> "cooldown-activo";
             default  -> "servidor";
         };
+    }
+
+    /**
+     * Para excepciones del framework (p. ej. {@code NotFoundException} por un
+     * path param ilegible, {@code BadRequestException} por JSON malformado) el
+     * mensaje JAX-RS es genérico ("HTTP 404 Not Found"). Se reemplaza por uno
+     * legible en lenguaje de dominio salvo que la excepción traiga ya contexto.
+     */
+    private static String mensajeLegible(WebApplicationException wae, int status, String codigo) {
+        String mensaje = wae.getMessage();
+        if (mensaje == null || mensaje.isBlank()
+                || mensaje.startsWith("HTTP ") || mensaje.equals(codigo)) {
+            return switch (status) {
+                case 404 -> "Recurso no encontrado";
+                case 400 -> "Solicitud inválida";
+                case 401 -> "Credenciales inválidas";
+                case 403 -> "Acceso denegado";
+                case 410 -> "Token inválido o expirado";
+                case 429 -> "Demasiadas solicitudes, intente más tarde";
+                default -> "Error del servidor";
+            };
+        }
+        return mensaje;
     }
 }

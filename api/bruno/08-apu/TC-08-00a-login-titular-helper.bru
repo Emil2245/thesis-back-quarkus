@@ -1,0 +1,35 @@
+meta {
+  name: TC-08-00a — Login titular (helper)
+  type: http
+  seq: 0
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{u1Email}}",
+    "password": "{{u1Password}}",
+    "recordarSesion": true
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("u1_access_token", res.body.accessToken);
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+}

@@ -32,13 +32,13 @@ presupuesto, cronograma, export) y la decisión del director sobre el redondeo.
 
 ## 2. Posición en el cronograma (plan de iteraciones XP)
 
-| Iteración | Semanas | Contenido | Estado real (2026-08-02) |
+| Iteración | Semanas | Contenido | Estado real (2026-08-11) |
 |---|---|---|---|
 | I-01 | 1–2 | Bootstrap Quarkus, CI, schema Postgres, auth | ✅ **Completa** (planes 001–004) |
 | I-02 | 3–4 | **Motor de cálculo puro** + cierre auth (perfil/recuperar) | 🔶 **~90 %** — motor construido pero GM-19/20 rojos y escalados |
 | I-03 | 5–6 | Proyectos (ciclo de vida, parámetros, firmantes) | 🔶 **Núcleo** — crud + firmantes + parámetros + base insumos (plan 009) · TODO: logo, detalle |
 | I-04 | 7–8 | Insumos (CRUD, CSV, bases centrales) | 🔶 **Núcleo** — crud, catálogo, selector multi-fuente, copia, importación CSV (plan 009) · TODO: uso en APU (P-18/D-08) |
-| I-05 | 9–10 | APU núcleo (editor, filas M/N/O/P, HM) | ⬜ No iniciada |
+| I-05 | 9–10 | APU núcleo (editor, filas M/N/O/P, HM) | 🔶 **Núcleo** — P-19…P-22, editor vía `ApuResource`/`PresupuestoApuResource`, filas M/N/O/P, Fila HM protegida, override de precio, write-through vía `Motor.calcularApu` (10 tests verdes) · TODO: auxiliares/%CI en I-06 |
 | I-06 | 11–12 | APU completo (%CI, descuentos, auxiliares, plantillas) | ⬜ No iniciada |
 | I-07 | 13–14 | Presupuesto (capítulos, rubros, totales) | ⬜ No iniciada |
 | I-08 | 15–16 | Versiones y cronograma base | ⬜ No iniciada |
@@ -68,16 +68,17 @@ conformidad CHK, semanas 22–24 SUS y desempeño.
 | 008 | Refinamientos build | tooling | ✅ DONE | Version catalog, toolchain JDK 25, build cache. Lombok y Consul/Stork/OTel/K8s **rechazados** con justificación. |
 | 009 | Módulos `proyecto` + `insumo` | I-03/I-04 | ✅ DONE | CRUD de ambos módulos + importación CSV + copia de base + **repositorios por entidad** (ver `plans/README.md` §009). |
 | 010 | Seed de escenarios (V004) | I-04/I-05 | ✅ DONE | `V004__seed_escenarios.sql`: 3 proyectos (uno por estado BORRADOR/EN_PROCESO/FINALIZADO) con todas las tablas relacionadas; FINALIZADO = workbook real Cetro Médico Tulcán (298 rubros, total 395115.32). Verificado contra Postgres limpio + suite sin regresión (ver `docs/04-SEED-ESCENARIOS.md`). |
+| 011 | Módulo APU núcleo (P-19…P-22) | I-05 | ✅ DONE | P-19 lista/crea APUs por presupuesto, P-20 editor cabecera, P-21 filas M/N/O/P + fila HM protegida, P-22 override de precio con `JsonNullable`. Write-through vía `Motor.calcularApu` (RNF-02 a nivel APU). **10 tests verdes** (2 suites: `ApuCalculoServiceIT` + `ApuResourceIT`), colección Bruno `api/bruno/08-apu/`. Detalle en `docs/modulos/03-apu.md`.
 
 Planes de I-03…I-12 **no escritos** aún (se redactan cuando cada iteración
 precedente cierra CI-verde).
 
 ---
 
-## 4. Estado de las pruebas (baseline 2026-08-01, verificado en test-results)
+## 4. Estado de las pruebas (baseline 2026-08-11, verificado en test-results)
 
-**Total: 63 tests · 2 rojos · 2 skipped** (56 baseline + 7 nuevos de los módulos
-proyecto/insumo; los rojos GM-19/20 y skipped GM-24/DIAG son los conocidos).
+**Total: 73 tests · 2 rojos · 2 skipped** (63 baseline + 10 nuevos del módulo
+APU núcleo; los rojos GM-19/20 y skipped GM-24/DIAG son los conocidos).
 
 | Suite | Tests | Rojos | Skipped | Estado |
 |---|---|---|---|---|
@@ -88,6 +89,8 @@ proyecto/insumo; los rojos GM-19/20 y skipped GM-24/DIAG son los conocidos).
 | `PasswordPolicyTest` | 6 | 0 | 0 | ✅ verde |
 | `ProyectoResourceIT` | 4 | 0 | 0 | ✅ verde |
 | `InsumoResourceIT` | 3 | 0 | 0 | ✅ verde |
+| `ApuCalculoServiceIT` | 2 | 0 | 0 | ✅ verde |
+| `ApuResourceIT` | 8 | 0 | 0 | ✅ verde |
 
 El motor de cálculo por APU es **aritméticamente correcto** (21/21 + 5/5). La
 desviación de GM-19/20 es de ±$2.50/$1.15 sobre el presupuesto Cetro Médico

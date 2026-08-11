@@ -32,8 +32,9 @@ iteration I-01 in full plus the I-02 hito (motor de cálculo puro).
 | 007 | [Migración Maven → Gradle](../docs/007-migracion-gradle.md) | build tooling | **DONE** (2026-08-01; build/tests/dev-mode verified; CI/CD deferred — plan 002 debt stays open; refinements modernos en §008 del mismo doc) |
 | 009 | [Módulos `proyecto` + `insumo`](../docs/modulos/README.md) | I-03 | **DONE** (2026-08-02; ver §009 post-execution notes) |
 | 010 | [Seed de escenarios reales (V004)](../docs/04-SEED-ESCENARIOS.md) | I-04 | **DONE** (2026-08-02; 3 proyectos uno por estado, FINALIZADO = workbook CMT; verificado en Postgres limpio + suite sin regresión) |
+| 011 | [Módulo APU núcleo (P-19…P-22)](../docs/modulos/03-apu.md) | I-05 | **DONE** (2026-08-11; P-19…P-22, editor APU, filas M/N/O/P, fila HM protegida, override precio + `JsonNullable` write-through vía `Motor.calcularApu`; 10 tests verdes, colección Bruno `api/bruno/08-apu/`) |
 
-Plans for I-04 through I-12 (APU editor, presupuesto, cronograma, export,
+Plans for I-06 through I-12 (APU completo, presupuesto, cronograma, export,
 admin, validación final) are not yet written — they
 will be authored in later planning sessions once each preceding iteration's
 plans are DONE and CI-green.
@@ -142,6 +143,30 @@ criteria en §7 del plan pasan; `./gradlew test` = 63 tests, 2 red (GM-19/20
 preexistentes), 2 skipped — sin regresión. Notas: la query del plan para el
 capítulo 1 CMT se verificó sobre el **subárbol** (los rubros cuelgan de
 subcapítulos 1.x); el APU real `501772` no tiene MO → no lleva HM (19 HM totales).
+
+### 011 — Módulo APU núcleo (P-19…P-22) (raised 2026-08-11)
+
+Plan: [`docs/modulos/03-apu.md`](../docs/modulos/03-apu.md). **State: DONE.**
+
+Implementa lista/crea APUs por presupuesto (P-19/P-20), editor de cabecera (P-20),
+filas M/N/O/P (P-21) con fila HM automática protegida, y override de precio vía
+`JsonNullable` (P-22: presente = setea, `null` = vuelve a heredar, omitido = no
+toca). Write-through de derivados (totales, subtotales de sección, costo/costo_hora
+por fila) vía `Motor.calcularApu` — RNF-02 a nivel APU, sin invocar internos de
+`motor/`.
+
+**Desvíos aprobados (documentados en `docs/modulos/03-apu.md` §6):**
+(1) `JsonNullable` vive en `org.openapitools:jackson-databind-nullable` (no viene
+con `quarkus-rest-jackson`); se añadió `jackson-databind-nullable = "0.2.10"` al
+version catalog + `JacksonConfig` (registra `JsonNullableModule`).
+(2) TRUNCATE de `InsumoResourceIT`/`ProyectoResourceIT` ampliado con
+`apu_detalle, apu_seccion, apu, rubro, capitulo, presupuesto` (cascada FK).
+
+**Verificación:** `./gradlew test --tests 'ec.uce.propuestas.apu.*'` → BUILD
+SUCCESSFUL (10 tests). `./gradlew test` completo → 73 tests, 2 red (GM-19/20
+preexistentes), 2 skipped — sin regresión. Colección Bruno `api/bruno/08-apu/`
+apunta al presupuesto v1 del seed de John Doe ("Rehabilitación de consultorios
+UCE"); `presupuestoId` se fija en `environments/dev.bru` (id 1 en BD seed limpia).
 
 ### 003 V003 — insumos seed data quality (raised 2026-07-24)
 

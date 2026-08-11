@@ -1,0 +1,54 @@
+meta {
+  name: TC-08-05 — Agregar fila MATERIAL (P-21)
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/apus/{{apuId}}/detalles
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+body:json {
+  {
+    "seccionTipo": "MATERIAL",
+    "insumoId": {{insumoMatId}},
+    "cantidad": 2
+  }
+}
+
+script:post-response {
+  if (res.status === 201 && res.body.secciones && res.body.secciones[2]) {
+    var detalle = res.body.secciones[2].detalles.find(function(d) {
+      return d.insumoId === {{insumoMatId}};
+    });
+    if (detalle) {
+      bru.setVar("filaMatId", detalle.id);
+    }
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("Fila MATERIAL sin rendimiento", function() {
+    var detalle = res.body.secciones[2].detalles.find(function(d) {
+      return d.insumoId === {{insumoMatId}};
+    });
+    expect(detalle).to.not.be.null;
+    expect(detalle.cantidad).to.equal(2);
+    expect(detalle.rendimiento).to.equal(null);
+    expect(detalle.precioEfectivo).to.equal(0.16);
+    expect(detalle.costo).to.equal(0.32);
+  });
+}
