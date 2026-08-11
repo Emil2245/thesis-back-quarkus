@@ -3,8 +3,8 @@ package ec.uce.propuestas.proyecto.repository;
 import ec.uce.propuestas.proyecto.entity.EstadoProyecto;
 import ec.uce.propuestas.proyecto.entity.Proyecto;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
-import io.quarkus.panache.common.Parameters;
 import io.quarkus.panache.common.Page;
+import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.util.List;

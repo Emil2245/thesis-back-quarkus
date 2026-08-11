@@ -1,14 +1,13 @@
 package ec.uce.propuestas.motor;
 
 import net.jqwik.api.*;
-import net.jqwik.api.constraints.Positive;
-import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Property-based tests for the motor using jqwik.

@@ -1,31 +1,13 @@
 package ec.uce.propuestas.insumo.resource;
 
 import ec.uce.propuestas.common.dto.Page;
-import ec.uce.propuestas.insumo.dto.CopiarBaseRequest;
-import ec.uce.propuestas.insumo.dto.ImportResultadoResponse;
-import ec.uce.propuestas.insumo.dto.InsumoBusquedaResponse;
-import ec.uce.propuestas.insumo.dto.InsumoCrearRequest;
-import ec.uce.propuestas.insumo.dto.InsumoEditarRequest;
-import ec.uce.propuestas.insumo.dto.InsumoResponse;
+import ec.uce.propuestas.insumo.dto.*;
 import ec.uce.propuestas.insumo.entity.TipoInsumo;
-import ec.uce.propuestas.insumo.service.BaseInsumosService;
-import ec.uce.propuestas.insumo.service.CopiaBaseService;
-import ec.uce.propuestas.insumo.service.ImportacionInsumoService;
-import ec.uce.propuestas.insumo.service.InsumoCatalogoService;
-import ec.uce.propuestas.insumo.service.InsumoCrudService;
+import ec.uce.propuestas.insumo.service.*;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.DefaultValue;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.PUT;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 

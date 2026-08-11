@@ -1,7 +1,10 @@
 package ec.uce.propuestas.common;
 
+import ec.uce.propuestas.support.AuthSupport;
 import ec.uce.propuestas.usuario.auth.RecordingEnviadorCorreo;
+import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;
@@ -10,13 +13,7 @@ import java.sql.Statement;
 
 import static io.restassured.RestAssured.given;
 import static io.restassured.http.ContentType.JSON;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.emptyString;
-
-import io.quarkus.test.junit.QuarkusTest;
-import org.junit.jupiter.api.BeforeEach;
-import ec.uce.propuestas.support.AuthSupport;
+import static org.hamcrest.Matchers.*;
 
 /**
  * Verifica que todos los errores HTTP sigan el contract de

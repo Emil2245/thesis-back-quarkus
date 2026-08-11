@@ -5,7 +5,10 @@ import ec.uce.propuestas.motor.*;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Package-private helper. Consolidates a full VersionSnapshot into a VersionCalculada.

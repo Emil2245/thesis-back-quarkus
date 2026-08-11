@@ -3,7 +3,6 @@ package ec.uce.propuestas.insumo.service;
 import ec.uce.propuestas.insumo.dto.ErrorFila;
 import ec.uce.propuestas.insumo.dto.ImportResultadoResponse;
 import ec.uce.propuestas.insumo.dto.InsumoCrearRequest;
-import ec.uce.propuestas.insumo.entity.Insumo;
 import ec.uce.propuestas.insumo.entity.TipoInsumo;
 import ec.uce.propuestas.insumo.repository.InsumoRepository;
 import ec.uce.propuestas.insumo.service.importacion.CsvInsumoParser;

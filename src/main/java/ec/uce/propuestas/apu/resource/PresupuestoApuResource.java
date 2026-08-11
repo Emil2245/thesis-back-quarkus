@@ -9,20 +9,13 @@ import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.common.dto.Page;
 import ec.uce.propuestas.proyecto.service.ProyectoService;
 import ec.uce.propuestas.usuario.UsuarioRepository;
+import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.DefaultValue;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import io.quarkus.security.identity.SecurityIdentity;
 
 /**
  * APUs de una versión de presupuesto (07-api-contract.md §5, P-19/P-20).

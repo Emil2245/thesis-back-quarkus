@@ -4,7 +4,6 @@ import ec.uce.propuestas.insumo.dto.InsumoResponse;
 import ec.uce.propuestas.insumo.entity.Insumo;
 
 import java.time.Instant;
-import java.time.Duration;
 
 public final class InsumoMapper {
 

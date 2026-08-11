@@ -1,13 +1,6 @@
 package ec.uce.propuestas.apu.service;
 
-import ec.uce.propuestas.apu.dto.ApuCrearRequest;
-import ec.uce.propuestas.apu.dto.ApuDetalleCrearRequest;
-import ec.uce.propuestas.apu.dto.ApuDetallePatchRequest;
-import ec.uce.propuestas.apu.dto.ApuDetalleResponse;
-import ec.uce.propuestas.apu.dto.ApuPatchRequest;
-import ec.uce.propuestas.apu.dto.ApuResponse;
-import ec.uce.propuestas.apu.dto.ApuResumenResponse;
-import ec.uce.propuestas.apu.dto.ApuSeccionResponse;
+import ec.uce.propuestas.apu.dto.*;
 import ec.uce.propuestas.apu.entity.Apu;
 import ec.uce.propuestas.apu.entity.ApuDetalle;
 import ec.uce.propuestas.apu.entity.ApuSeccion;
