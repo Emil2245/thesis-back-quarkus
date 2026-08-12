@@ -1,5 +1,9 @@
 package ec.uce.propuestas.apu.service;
 
+import static io.restassured.RestAssured.given;
+import static io.restassured.http.ContentType.JSON;
+import static org.junit.jupiter.api.Assertions.*;
+
 import ec.uce.propuestas.apu.dto.ApuCrearRequest;
 import ec.uce.propuestas.apu.dto.ApuDetalleCrearRequest;
 import ec.uce.propuestas.apu.dto.ApuResponse;
@@ -14,10 +18,6 @@ import ec.uce.propuestas.support.AuthSupport;
 import ec.uce.propuestas.usuario.auth.RecordingEnviadorCorreo;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -25,10 +25,9 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
-
-import static io.restassured.RestAssured.given;
-import static io.restassured.http.ContentType.JSON;
-import static org.junit.jupiter.api.Assertions.*;
+import javax.sql.DataSource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * Write-through del cálculo de un APU (RNF-02 a nivel APU). Reproduce las
@@ -39,56 +38,85 @@ class ApuCalculoServiceIT {
 
     @Inject
     RecordingEnviadorCorreo mailbox;
+
     @Inject
     DataSource ds;
+
     @Inject
     ApuCrudService apuService;
+
     @Inject
     ApuRepository apuRepository;
+
     @Inject
     ApuSeccionRepository seccionRepository;
+
     @Inject
     ApuDetalleRepository detalleRepository;
 
     @BeforeEach
     void reset() throws Exception {
         mailbox.clear();
-        try (Connection con = ds.getConnection(); Statement st = con.createStatement()) {
-            st.execute("TRUNCATE TABLE apu_detalle, apu_seccion, apu, rubro, capitulo, presupuesto, " +
-                    "insumo, base_insumos, parametros_proyecto, firmante, proyecto, token_usuario, " +
-                    "refresh_token, usuario RESTART IDENTITY CASCADE");
+        try (Connection con = ds.getConnection();
+                Statement st = con.createStatement()) {
+            st.execute("TRUNCATE TABLE apu_detalle, apu_seccion, apu, rubro, capitulo, presupuesto, "
+                    + "insumo, base_insumos, parametros_proyecto, firmante, proyecto, token_usuario, "
+                    + "refresh_token, usuario RESTART IDENTITY CASCADE");
         }
     }
 
     private Long crearProyecto(String token) {
         return ((Number) given().contentType(JSON)
-                .header("Authorization", "Bearer " + token)
-                .body(Map.of(
-                        "nombreProyecto", "Pozo APU",
-                        "anio", (short) 2026,
-                        "plazoEjecucion", (short) 4,
-                        "plazoUnidad", "MES",
-                        "direccionInstitucional", "GAD"))
-                .when().post("/api/v1/proyectos")
-                .then().statusCode(201)
-                .extract().path("id")).longValue();
+                        .header("Authorization", "Bearer " + token)
+                        .body(Map.of(
+                                "nombreProyecto", "Pozo APU",
+                                "anio", (short) 2026,
+                                "plazoEjecucion", (short) 4,
+                                "plazoUnidad", "MES",
+                                "direccionInstitucional", "GAD"))
+                        .when()
+                        .post("/api/v1/proyectos")
+                        .then()
+                        .statusCode(201)
+                        .extract()
+                        .path("id"))
+                .longValue();
     }
 
-    private Long crearInsumo(String token, Long proyectoId, String codigo, String tipo,
-                             String descripcion, String unidad, double precio) {
+    private Long crearInsumo(
+            String token,
+            Long proyectoId,
+            String codigo,
+            String tipo,
+            String descripcion,
+            String unidad,
+            double precio) {
         return ((Number) given().contentType(JSON)
-                .header("Authorization", "Bearer " + token)
-                .body(Map.of("codigo", codigo, "tipo", tipo, "descripcion", descripcion,
-                        "unidad", unidad, "precioUnitario", precio))
-                .when().post("/api/v1/proyectos/" + proyectoId + "/insumos")
-                .then().statusCode(201)
-                .extract().path("id")).longValue();
+                        .header("Authorization", "Bearer " + token)
+                        .body(Map.of(
+                                "codigo",
+                                codigo,
+                                "tipo",
+                                tipo,
+                                "descripcion",
+                                descripcion,
+                                "unidad",
+                                unidad,
+                                "precioUnitario",
+                                precio))
+                        .when()
+                        .post("/api/v1/proyectos/" + proyectoId + "/insumos")
+                        .then()
+                        .statusCode(201)
+                        .extract()
+                        .path("id"))
+                .longValue();
     }
 
     private Long insertarPresupuesto(Long proyectoId) throws Exception {
         try (Connection con = ds.getConnection();
-             PreparedStatement ps = con.prepareStatement(
-                     "INSERT INTO presupuesto (proyecto_id, version, es_vigente) VALUES (?, 1, TRUE) RETURNING id")) {
+                PreparedStatement ps = con.prepareStatement(
+                        "INSERT INTO presupuesto (proyecto_id, version, es_vigente) VALUES (?, 1, TRUE) RETURNING id")) {
             ps.setLong(1, proyectoId);
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();
@@ -105,26 +133,26 @@ class ApuCalculoServiceIT {
         Long insumoMo = crearInsumo(token, proyectoId, "MO-001", "MANO_OBRA", "Armador", "h", 8.99);
         Long insumoMat = crearInsumo(token, proyectoId, "MA-001", "MATERIAL", "Cemento", "kg", 1.5);
 
-        ApuResponse apu = apuService.crear(presupuestoId,
-                new ApuCrearRequest("APU-CALC", "Pozo de agua", "m³"));
+        ApuResponse apu = apuService.crear(presupuestoId, new ApuCrearRequest("APU-CALC", "Pozo de agua", "m³"));
 
-        apu = apuService.agregarDetalle(apu.id(),
-                new ApuDetalleCrearRequest(SeccionTipo.MANO_OBRA, insumoMo,
-                        new BigDecimal("1"), new BigDecimal("1")));
-        apu = apuService.agregarDetalle(apu.id(),
-                new ApuDetalleCrearRequest(SeccionTipo.MATERIAL, insumoMat,
-                        new BigDecimal("2"), null));
+        apu = apuService.agregarDetalle(
+                apu.id(),
+                new ApuDetalleCrearRequest(SeccionTipo.MANO_OBRA, insumoMo, new BigDecimal("1"), new BigDecimal("1")));
+        apu = apuService.agregarDetalle(
+                apu.id(), new ApuDetalleCrearRequest(SeccionTipo.MATERIAL, insumoMat, new BigDecimal("2"), null));
 
         // subtotalN = 1 × 8.99 × 1 = 8.99; HM = 0.05 × 8.99 = 0.4495
-        assertEquals(0, apu.costoDirecto().compareTo(new BigDecimal("12.4395")),
-                "CD = M(0.4495) + N(8.99) + O(3.0) + P(0)");
-        assertEquals(0, apu.costoIndirecto().compareTo(BigDecimal.ZERO.setScale(6)),
-                "CI: %CI hereda NULL del proyecto → 0");
+        assertEquals(
+                0, apu.costoDirecto().compareTo(new BigDecimal("12.4395")), "CD = M(0.4495) + N(8.99) + O(3.0) + P(0)");
+        assertEquals(
+                0, apu.costoIndirecto().compareTo(BigDecimal.ZERO.setScale(6)), "CI: %CI hereda NULL del proyecto → 0");
         assertEquals(0, apu.costoTotal().compareTo(new BigDecimal("12.4395")));
 
         // write-through a BD
         Apu persistido = apuRepository.findById(apu.id());
-        assertEquals(0, persistido.costoDirecto.compareTo(new BigDecimal("12.439500")),
+        assertEquals(
+                0,
+                persistido.costoDirecto.compareTo(new BigDecimal("12.439500")),
                 "escala 6 en BD: 0.449500 + 8.990000 + 3.000000");
         assertEquals(0, persistido.costoTotal.compareTo(new BigDecimal("12.439500")));
 
@@ -168,11 +196,11 @@ class ApuCalculoServiceIT {
         Long presupuestoId = insertarPresupuesto(proyectoId);
         Long insumoMo = crearInsumo(token, proyectoId, "MO-002", "MANO_OBRA", "Maestro", "h", 4.0);
 
-        ApuResponse apu = apuService.crear(presupuestoId,
-                new ApuCrearRequest("APU-CALC-2", "Fila sistema", "u"));
-        apu = apuService.agregarDetalle(apu.id(),
-                new ApuDetalleCrearRequest(SeccionTipo.MANO_OBRA, insumoMo,
-                        new BigDecimal("2"), new BigDecimal("0.5")));
+        ApuResponse apu = apuService.crear(presupuestoId, new ApuCrearRequest("APU-CALC-2", "Fila sistema", "u"));
+        apu = apuService.agregarDetalle(
+                apu.id(),
+                new ApuDetalleCrearRequest(
+                        SeccionTipo.MANO_OBRA, insumoMo, new BigDecimal("2"), new BigDecimal("0.5")));
 
         // CD = HM(0.05 × 4.0) + N(2 × 4 × 0.5 = 4.0) = 0.2 + 4.0 = 4.2
         assertEquals(0, apu.costoTotal().compareTo(new BigDecimal("4.2")));

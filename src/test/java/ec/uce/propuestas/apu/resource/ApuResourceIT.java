@@ -1,24 +1,23 @@
 package ec.uce.propuestas.apu.resource;
 
+import static io.restassured.RestAssured.given;
+import static io.restassured.http.ContentType.JSON;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+
 import ec.uce.propuestas.support.AuthSupport;
 import ec.uce.propuestas.usuario.auth.RecordingEnviadorCorreo;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Map;
-
-import static io.restassured.RestAssured.given;
-import static io.restassured.http.ContentType.JSON;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
+import javax.sql.DataSource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * Flujo REST del agregado {@code apu} (P-19…P-22). Patrón {@code InsumoResourceIT}.
@@ -29,48 +28,73 @@ class ApuResourceIT {
 
     @Inject
     RecordingEnviadorCorreo mailbox;
+
     @Inject
     DataSource ds;
 
     @BeforeEach
     void reset() throws Exception {
         mailbox.clear();
-        try (Connection con = ds.getConnection(); Statement st = con.createStatement()) {
-            st.execute("TRUNCATE TABLE apu_detalle, apu_seccion, apu, rubro, capitulo, presupuesto, " +
-                    "insumo, base_insumos, parametros_proyecto, firmante, proyecto, token_usuario, " +
-                    "refresh_token, usuario RESTART IDENTITY CASCADE");
+        try (Connection con = ds.getConnection();
+                Statement st = con.createStatement()) {
+            st.execute("TRUNCATE TABLE apu_detalle, apu_seccion, apu, rubro, capitulo, presupuesto, "
+                    + "insumo, base_insumos, parametros_proyecto, firmante, proyecto, token_usuario, "
+                    + "refresh_token, usuario RESTART IDENTITY CASCADE");
         }
     }
 
     private Long crearProyecto(String token) {
         return ((Number) given().contentType(JSON)
-                .header("Authorization", "Bearer " + token)
-                .body(Map.of(
-                        "nombreProyecto", "Redes UCE",
-                        "anio", (short) 2026,
-                        "plazoEjecucion", (short) 4,
-                        "plazoUnidad", "MES",
-                        "direccionInstitucional", "Universidad Central del Ecuador"))
-                .when().post("/api/v1/proyectos")
-                .then().statusCode(201)
-                .extract().path("id")).longValue();
+                        .header("Authorization", "Bearer " + token)
+                        .body(Map.of(
+                                "nombreProyecto", "Redes UCE",
+                                "anio", (short) 2026,
+                                "plazoEjecucion", (short) 4,
+                                "plazoUnidad", "MES",
+                                "direccionInstitucional", "Universidad Central del Ecuador"))
+                        .when()
+                        .post("/api/v1/proyectos")
+                        .then()
+                        .statusCode(201)
+                        .extract()
+                        .path("id"))
+                .longValue();
     }
 
-    private Long crearInsumo(String token, Long proyectoId, String codigo, String tipo,
-                             String descripcion, String unidad, double precio) {
+    private Long crearInsumo(
+            String token,
+            Long proyectoId,
+            String codigo,
+            String tipo,
+            String descripcion,
+            String unidad,
+            double precio) {
         return ((Number) given().contentType(JSON)
-                .header("Authorization", "Bearer " + token)
-                .body(Map.of("codigo", codigo, "tipo", tipo, "descripcion", descripcion,
-                        "unidad", unidad, "precioUnitario", precio))
-                .when().post("/api/v1/proyectos/" + proyectoId + "/insumos")
-                .then().statusCode(201)
-                .extract().path("id")).longValue();
+                        .header("Authorization", "Bearer " + token)
+                        .body(Map.of(
+                                "codigo",
+                                codigo,
+                                "tipo",
+                                tipo,
+                                "descripcion",
+                                descripcion,
+                                "unidad",
+                                unidad,
+                                "precioUnitario",
+                                precio))
+                        .when()
+                        .post("/api/v1/proyectos/" + proyectoId + "/insumos")
+                        .then()
+                        .statusCode(201)
+                        .extract()
+                        .path("id"))
+                .longValue();
     }
 
     private Long insertarPresupuesto(Long proyectoId) throws Exception {
         try (Connection con = ds.getConnection();
-             PreparedStatement ps = con.prepareStatement(
-                     "INSERT INTO presupuesto (proyecto_id, version, es_vigente) VALUES (?, 1, TRUE) RETURNING id")) {
+                PreparedStatement ps = con.prepareStatement(
+                        "INSERT INTO presupuesto (proyecto_id, version, es_vigente) VALUES (?, 1, TRUE) RETURNING id")) {
             ps.setLong(1, proyectoId);
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();
@@ -81,11 +105,15 @@ class ApuResourceIT {
 
     private Long crearApu(String token, Long presupuestoId, String codigo) {
         return ((Number) given().contentType(JSON)
-                .header("Authorization", "Bearer " + token)
-                .body(Map.of("codigo", codigo, "descripcion", "Instalación", "unidad", "m"))
-                .when().post("/api/v1/presupuestos/" + presupuestoId + "/apus")
-                .then().statusCode(201)
-                .extract().path("id")).longValue();
+                        .header("Authorization", "Bearer " + token)
+                        .body(Map.of("codigo", codigo, "descripcion", "Instalación", "unidad", "m"))
+                        .when()
+                        .post("/api/v1/presupuestos/" + presupuestoId + "/apus")
+                        .then()
+                        .statusCode(201)
+                        .extract()
+                        .path("id"))
+                .longValue();
     }
 
     @Test
@@ -97,8 +125,10 @@ class ApuResourceIT {
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(Map.of("codigo", "PZ-001", "descripcion", "Pozo", "unidad", "u"))
-                .when().post("/api/v1/presupuestos/" + presupuestoId + "/apus")
-                .then().statusCode(201)
+                .when()
+                .post("/api/v1/presupuestos/" + presupuestoId + "/apus")
+                .then()
+                .statusCode(201)
                 .body("codigo", equalTo("PZ-001"))
                 .body("secciones.size()", is(4))
                 .body("secciones[0].tipo", equalTo("EQUIPO"))
@@ -121,14 +151,18 @@ class ApuResourceIT {
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(Map.of("codigo", "DUP-001", "descripcion", "Otro", "unidad", "u"))
-                .when().post("/api/v1/presupuestos/" + presupuestoV1 + "/apus")
-                .then().statusCode(400)
+                .when()
+                .post("/api/v1/presupuestos/" + presupuestoV1 + "/apus")
+                .then()
+                .statusCode(400)
                 .body("codigo", equalTo("codigo-duplicado"));
 
         // misma versión, listado → un solo APU
         given().header("Authorization", "Bearer " + token)
-                .when().get("/api/v1/presupuestos/" + presupuestoV1 + "/apus")
-                .then().statusCode(200)
+                .when()
+                .get("/api/v1/presupuestos/" + presupuestoV1 + "/apus")
+                .then()
+                .statusCode(200)
                 .body("total", is(1));
     }
 
@@ -146,18 +180,21 @@ class ApuResourceIT {
 
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
-                .body(Map.of("seccionTipo", "MANO_OBRA", "insumoId", mo.intValue(),
-                        "cantidad", 2.0, "rendimiento", 1.0))
-                .when().post("/api/v1/apus/" + apuId + "/detalles")
-                .then().statusCode(201)
+                .body(Map.of(
+                        "seccionTipo", "MANO_OBRA", "insumoId", mo.intValue(), "cantidad", 2.0, "rendimiento", 1.0))
+                .when()
+                .post("/api/v1/apus/" + apuId + "/detalles")
+                .then()
+                .statusCode(201)
                 .body("secciones[" + numSec + "].detalles.size()", is(1));
 
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
-                .body(Map.of("seccionTipo", "MATERIAL", "insumoId", mat.intValue(),
-                        "cantidad", 3.0))
-                .when().post("/api/v1/apus/" + apuId + "/detalles")
-                .then().statusCode(201)
+                .body(Map.of("seccionTipo", "MATERIAL", "insumoId", mat.intValue(), "cantidad", 3.0))
+                .when()
+                .post("/api/v1/apus/" + apuId + "/detalles")
+                .then()
+                .statusCode(201)
                 .body("secciones[" + matSec + "].detalles.size()", is(1))
                 // CD = HM(0.05×4×2×1=0.4) + N(2×4×1=8) + O(3×2=6) = 14.4
                 .body("costoDirecto", comparesTo(new BigDecimal("14.4")))
@@ -173,20 +210,27 @@ class ApuResourceIT {
         Long apuId = crearApu(token, presupuestoId, "HM-001");
 
         Integer detalleId = given().header("Authorization", "Bearer " + token)
-                .when().get("/api/v1/apus/" + apuId)
-                .then().statusCode(200)
-                .extract().path("secciones[0].detalles[0].id");
+                .when()
+                .get("/api/v1/apus/" + apuId)
+                .then()
+                .statusCode(200)
+                .extract()
+                .path("secciones[0].detalles[0].id");
 
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(Map.of("cantidad", 3.0))
-                .when().patch("/api/v1/apus/" + apuId + "/detalles/" + detalleId)
-                .then().statusCode(409)
+                .when()
+                .patch("/api/v1/apus/" + apuId + "/detalles/" + detalleId)
+                .then()
+                .statusCode(409)
                 .body("codigo", equalTo("fila-protegida"));
 
         given().header("Authorization", "Bearer " + token)
-                .when().delete("/api/v1/apus/" + apuId + "/detalles/" + detalleId)
-                .then().statusCode(409)
+                .when()
+                .delete("/api/v1/apus/" + apuId + "/detalles/" + detalleId)
+                .then()
+                .statusCode(409)
                 .body("codigo", equalTo("fila-protegida"));
     }
 
@@ -200,16 +244,21 @@ class ApuResourceIT {
 
         Integer detalleId = given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
-                .body(Map.of("seccionTipo", "MANO_OBRA", "insumoId", mo.intValue(),
-                        "cantidad", 1.0, "rendimiento", 1.0))
-                .when().post("/api/v1/apus/" + apuId + "/detalles")
-                .then().statusCode(201)
-                .extract().path("secciones[1].detalles[0].id");
+                .body(Map.of(
+                        "seccionTipo", "MANO_OBRA", "insumoId", mo.intValue(), "cantidad", 1.0, "rendimiento", 1.0))
+                .when()
+                .post("/api/v1/apus/" + apuId + "/detalles")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("secciones[1].detalles[0].id");
 
         // hereda precio del insumo
         given().header("Authorization", "Bearer " + token)
-                .when().get("/api/v1/apus/" + apuId)
-                .then().statusCode(200)
+                .when()
+                .get("/api/v1/apus/" + apuId)
+                .then()
+                .statusCode(200)
                 .body("secciones[1].detalles[0].precioEfectivo", comparesTo(new BigDecimal("5.0")))
                 .body("secciones[1].detalles[0].precioHeredado", is(true));
 
@@ -217,8 +266,10 @@ class ApuResourceIT {
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(Map.of("precioOverride", 7.5))
-                .when().patch("/api/v1/apus/" + apuId + "/detalles/" + detalleId)
-                .then().statusCode(200)
+                .when()
+                .patch("/api/v1/apus/" + apuId + "/detalles/" + detalleId)
+                .then()
+                .statusCode(200)
                 .body("secciones[1].detalles[0].precioEfectivo", comparesTo(new BigDecimal("7.5")))
                 .body("secciones[1].detalles[0].precioHeredado", is(false));
 
@@ -226,8 +277,10 @@ class ApuResourceIT {
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body("{\"precioOverride\": null}")
-                .when().patch("/api/v1/apus/" + apuId + "/detalles/" + detalleId)
-                .then().statusCode(200)
+                .when()
+                .patch("/api/v1/apus/" + apuId + "/detalles/" + detalleId)
+                .then()
+                .statusCode(200)
                 .body("secciones[1].detalles[0].precioEfectivo", comparesTo(new BigDecimal("5.0")))
                 .body("secciones[1].detalles[0].precioHeredado", is(true));
     }
@@ -243,20 +296,26 @@ class ApuResourceIT {
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(Map.of("seccionTipo", "MATERIAL", "insumoId", mat.intValue(), "cantidad", 1.0))
-                .when().post("/api/v1/apus/" + apuId + "/detalles")
-                .then().statusCode(201);
+                .when()
+                .post("/api/v1/apus/" + apuId + "/detalles")
+                .then()
+                .statusCode(201);
 
         // actualizo el precio del insumo
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(Map.of("descripcion", "Ángulo 50", "unidad", "kg", "precioUnitario", 2.5))
-                .when().put("/api/v1/proyectos/" + proyectoId + "/insumos/" + mat)
-                .then().statusCode(200);
+                .when()
+                .put("/api/v1/proyectos/" + proyectoId + "/insumos/" + mat)
+                .then()
+                .statusCode(200);
 
         // la fila sin override refleja el nuevo precio
         given().header("Authorization", "Bearer " + token)
-                .when().get("/api/v1/apus/" + apuId)
-                .then().statusCode(200)
+                .when()
+                .get("/api/v1/apus/" + apuId)
+                .then()
+                .statusCode(200)
                 .body("secciones[2].detalles[0].precioEfectivo", comparesTo(new BigDecimal("2.5")))
                 .body("secciones[2].detalles[0].precioHeredado", is(true));
     }
@@ -271,8 +330,10 @@ class ApuResourceIT {
         insertarRubroVinculado(presupuestoId, apuId);
 
         given().header("Authorization", "Bearer " + token)
-                .when().delete("/api/v1/apus/" + apuId)
-                .then().statusCode(409)
+                .when()
+                .delete("/api/v1/apus/" + apuId)
+                .then()
+                .statusCode(409)
                 .body("codigo", equalTo("apu-referenciado"));
     }
 
@@ -285,15 +346,18 @@ class ApuResourceIT {
 
         String intruso = AuthSupport.registrarConToken(mailbox, "intruso@ex.com");
         given().header("Authorization", "Bearer " + intruso)
-                .when().get("/api/v1/apus/" + apuId)
-                .then().statusCode(404)
+                .when()
+                .get("/api/v1/apus/" + apuId)
+                .then()
+                .statusCode(404)
                 .body("codigo", equalTo("no-encontrado"));
     }
 
     private void insertarRubroVinculado(Long presupuestoId, Long apuId) throws Exception {
-        try (Connection con = ds.getConnection(); Statement st = con.createStatement()) {
-            st.execute("INSERT INTO capitulo (presupuesto_id, item, descripcion, orden) "
-                    + "VALUES (" + presupuestoId + ", '1', 'Capitulo 1', 1)");
+        try (Connection con = ds.getConnection();
+                Statement st = con.createStatement()) {
+            st.execute("INSERT INTO capitulo (presupuesto_id, item, descripcion, orden) " + "VALUES (" + presupuestoId
+                    + ", '1', 'Capitulo 1', 1)");
             st.execute("INSERT INTO rubro (capitulo_id, apu_id, item, codigo, descripcion, unidad, cantidad) "
                     + "SELECT c.id, " + apuId + ", '1', 'VD-001', 'Válvula', 'u', 1 "
                     + "FROM capitulo c WHERE c.presupuesto_id = " + presupuestoId);

@@ -7,5 +7,5 @@ public record FirmanteCrearRequest(
         @NotBlank @Size(max = 200) String nombre,
         @NotBlank @Size(max = 300) String cargo,
         @NotNull RolFirmante rol,
-        @NotNull @Min(1) @Max(32767) Short orden
-) {}
+        @NotNull @Min(1) @Max(32767) Short orden) {
+}

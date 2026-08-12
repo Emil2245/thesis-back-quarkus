@@ -6,6 +6,7 @@ meta {
 
 get {
   url: {{baseUrl}}/proyectos?page=0&size=25
+  body: none
   auth: bearer
 }
 
@@ -17,7 +18,7 @@ tests {
   test("Status 200 OK", function() {
     expect(res.status).to.equal(200);
   });
-
+  
   test("Respuesta paginada", function() {
     expect(res.body.items).to.be.an("array");
     expect(res.body.total).to.be.at.least(1);

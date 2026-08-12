@@ -17,8 +17,10 @@ public class ParametrosProyectoService {
 
     @Inject
     ParametrosProyectoRepository parametrosRepository;
+
     @Inject
     ParametrosSistemaRepository sistemaRepository;
+
     @Inject
     ProyectoService proyectoService;
 
@@ -30,8 +32,7 @@ public class ParametrosProyectoService {
     }
 
     @Transactional
-    public ParametrosProyectoResponse actualizar(Long usuarioId, Long proyectoId,
-                                                 ParametrosProyectoEditarRequest req) {
+    public ParametrosProyectoResponse actualizar(Long usuarioId, Long proyectoId, ParametrosProyectoEditarRequest req) {
         proyectoService.validarPropietario(usuarioId, proyectoId);
         ParametrosProyecto p = obtenerOCrear(proyectoId);
         p.porcentajeHerramientaMenor = req.porcentajeHerramientaMenor();

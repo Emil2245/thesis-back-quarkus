@@ -1,7 +1,6 @@
 package ec.uce.propuestas.proyecto.dto;
 
 import jakarta.validation.constraints.*;
-
 import java.time.LocalDate;
 
 public record ProyectoCrearRequest(
@@ -13,6 +12,4 @@ public record ProyectoCrearRequest(
         @NotNull @Min(1) Short plazoEjecucion,
         @NotNull String plazoUnidad,
         @NotBlank @Size(max = 200) String direccionInstitucional,
-        @Size(max = 200) String subdireccionInstitucional
-) {
-}
+        @Size(max = 200) String subdireccionInstitucional) {}

@@ -9,7 +9,6 @@ import ec.uce.propuestas.insumo.repository.BaseInsumosRepository;
 import ec.uce.propuestas.insumo.repository.InsumoRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -24,13 +23,15 @@ public class InsumoCatalogoService {
 
     @Inject
     BaseInsumosRepository baseInsumosRepository;
+
     @Inject
     InsumoRepository insumoRepository;
+
     @Inject
     BaseInsumosService baseInsumosService;
 
-    public Page<InsumoBusquedaResponse> buscar(Long proyectoId, String q, boolean soloCentrales,
-                                               int pageIndex, int pageSize) {
+    public Page<InsumoBusquedaResponse> buscar(
+            Long proyectoId, String q, boolean soloCentrales, int pageIndex, int pageSize) {
         List<BaseInsumos> bases = new ArrayList<>(baseInsumosRepository.listarCentralesActivas());
         if (!soloCentrales && proyectoId != null) {
             bases.add(baseInsumosService.asegurarBaseProyecto(proyectoId));
@@ -51,12 +52,22 @@ public class InsumoCatalogoService {
             baseTipo.put(b.id, b.tipo);
         });
 
-        List<InsumoBusquedaResponse> items = pageItems.stream().map(i -> {
-            boolean esCentral = baseTipo.get(i.baseId) == TipoBase.CENTRAL;
-            return new InsumoBusquedaResponse(i.id, i.codigo, i.tipo, i.descripcion, i.unidad,
-                    i.precioUnitario, i.updatedAt, desactualizado(i, corte),
-                    esCentral ? "CENTRAL" : "PROYECTO", baseNombre.get(i.baseId));
-        }).toList();
+        List<InsumoBusquedaResponse> items = pageItems.stream()
+                .map(i -> {
+                    boolean esCentral = baseTipo.get(i.baseId) == TipoBase.CENTRAL;
+                    return new InsumoBusquedaResponse(
+                            i.id,
+                            i.codigo,
+                            i.tipo,
+                            i.descripcion,
+                            i.unidad,
+                            i.precioUnitario,
+                            i.updatedAt,
+                            desactualizado(i, corte),
+                            esCentral ? "CENTRAL" : "PROYECTO",
+                            baseNombre.get(i.baseId));
+                })
+                .toList();
 
         return Page.of(items, total, pageIndex, pageSize);
     }

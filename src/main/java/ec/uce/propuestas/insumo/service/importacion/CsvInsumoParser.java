@@ -1,10 +1,6 @@
 package ec.uce.propuestas.insumo.service.importacion;
 
 import ec.uce.propuestas.insumo.entity.TipoInsumo;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVParser;
-import org.apache.commons.csv.CSVRecord;
-
 import java.io.IOException;
 import java.io.StringReader;
 import java.math.BigDecimal;
@@ -13,6 +9,9 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
 
 /**
  * Parser de CSV de insumos (P-15) — MODO PURO, sin I/O ni framework.
@@ -29,8 +28,7 @@ public final class CsvInsumoParser {
             .setTrim(true)
             .build();
 
-    private CsvInsumoParser() {
-    }
+    private CsvInsumoParser() {}
 
     /**
      * @param csv   contenido del archivo (UTF-8).
@@ -73,8 +71,14 @@ public final class CsvInsumoParser {
         return s == null || s.isBlank();
     }
 
-    private static FilaInsumo validarFila(long num, String codigo, String descripcion, String unidad,
-                                          String precio, TipoInsumo tipo, Set<String> vistos) {
+    private static FilaInsumo validarFila(
+            long num,
+            String codigo,
+            String descripcion,
+            String unidad,
+            String precio,
+            TipoInsumo tipo,
+            Set<String> vistos) {
         if (isBlank(codigo)) {
             return FilaInsumo.error("codigo", "Código requerido");
         }

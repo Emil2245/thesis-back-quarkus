@@ -10,7 +10,6 @@ import ec.uce.propuestas.insumo.service.importacion.FilaInsumo;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,6 +23,7 @@ public class ImportacionInsumoService {
 
     @Inject
     InsumoCrudService crud;
+
     @Inject
     InsumoRepository insumoRepository;
 

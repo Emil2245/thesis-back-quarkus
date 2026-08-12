@@ -1,17 +1,16 @@
 package ec.uce.propuestas.motor;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 /**
  * Golden Master tests for the consolidation grain (Motor.consolidar).
@@ -29,12 +28,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  */
 class MotorConsolidacionTest {
 
-    private static final ParametrosCalculo P_TULCAN = new ParametrosCalculo(
-            new BigDecimal("0.0500"),
-            new BigDecimal("0.1800"),
-            null,
-            BigDecimal.ZERO
-    );
+    private static final ParametrosCalculo P_TULCAN =
+            new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1800"), null, BigDecimal.ZERO);
 
     private static final String PRES_TULCAN = "presupuesto-apus-cetro-medico-tulcan.json";
     private static final String APUS_TULCAN = "apus-sample-apus-cetro-medico-tulcan.json";
@@ -53,8 +48,8 @@ class MotorConsolidacionTest {
         BigDecimal expected = new BigDecimal("395115.32");
         BigDecimal actual2dp = result.totalGeneral().setScale(2, RoundingMode.HALF_UP);
 
-        assertEquals(0, expected.compareTo(actual2dp),
-                "totalGeneral rounded 2dp should be 395115.32, got " + actual2dp);
+        assertEquals(
+                0, expected.compareTo(actual2dp), "totalGeneral rounded 2dp should be 395115.32, got " + actual2dp);
     }
 
     // ── GM-20 ──────────────────────────────────────────────────────────────
@@ -69,13 +64,13 @@ class MotorConsolidacionTest {
 
         // Expected root chapter totals (from presupuesto fixture, verified by summing rubro prices):
         Map<String, BigDecimal> expectedByItem = new HashMap<>();
-        expectedByItem.put("1", new BigDecimal("158908.05"));  // SISTEMA ARQUITECTONICO
-        expectedByItem.put("2", new BigDecimal("39871.59"));   // SISTEMA ELECTRICO
-        expectedByItem.put("3", new BigDecimal("18797.60"));   // SISTEMA ELECTRONICO
-        expectedByItem.put("4", new BigDecimal("12608.34"));   // SISTEMA HIDROSANITARIO
-        expectedByItem.put("5", new BigDecimal("155519.26"));  // SISTEMA MECANICO
-        expectedByItem.put("6", new BigDecimal("1777.19"));    // IMPACTO AMBIENTAL Y SEG. INDUSTRIAL
-        expectedByItem.put("7", new BigDecimal("7633.29"));    // SISTEMA ESTRUCTURAL
+        expectedByItem.put("1", new BigDecimal("158908.05")); // SISTEMA ARQUITECTONICO
+        expectedByItem.put("2", new BigDecimal("39871.59")); // SISTEMA ELECTRICO
+        expectedByItem.put("3", new BigDecimal("18797.60")); // SISTEMA ELECTRONICO
+        expectedByItem.put("4", new BigDecimal("12608.34")); // SISTEMA HIDROSANITARIO
+        expectedByItem.put("5", new BigDecimal("155519.26")); // SISTEMA MECANICO
+        expectedByItem.put("6", new BigDecimal("1777.19")); // IMPACTO AMBIENTAL Y SEG. INDUSTRIAL
+        expectedByItem.put("7", new BigDecimal("7633.29")); // SISTEMA ESTRUCTURAL
 
         // Build lookup: item → total from result
         Map<String, BigDecimal> actualByItem = new HashMap<>();
@@ -90,7 +85,9 @@ class MotorConsolidacionTest {
             BigDecimal expected = entry.getValue();
             BigDecimal actual = actualByItem.get(item);
             assertNotNull(actual, "Chapter " + item + " not found in result");
-            assertEquals(0, expected.compareTo(actual),
+            assertEquals(
+                    0,
+                    expected.compareTo(actual),
                     "Chapter " + item + " total: expected=" + expected + " actual=" + actual);
         }
     }
@@ -134,17 +131,17 @@ class MotorConsolidacionTest {
         // Note: plan 005 estimated 6 mismatches; actual fixture data yields 11.
         // See plan 006 NOTES for the thesis-docs domain doc update recommendation.
         Map<String, BigDecimal> allowlistDelta = new HashMap<>();
-        allowlistDelta.put("501BM6",  new BigDecimal("0.01")); // motor=5.54 fixture=5.53
-        allowlistDelta.put("501D1V",  new BigDecimal("0.02")); // motor=32.23 fixture=32.25
-        allowlistDelta.put("501DQR",  new BigDecimal("0.01")); // motor=177.67 fixture=177.66
-        allowlistDelta.put("501D00",  new BigDecimal("0.01")); // motor=197.82 fixture=197.83
-        allowlistDelta.put("502897",  new BigDecimal("0.01")); // motor=523.72 fixture=523.73
-        allowlistDelta.put("500ASU",  new BigDecimal("0.03")); // motor=10.84 fixture=10.87 (appears 2x in presupuesto)
-        allowlistDelta.put("502ARV",  new BigDecimal("0.01")); // motor=4.13 fixture=4.14
-        allowlistDelta.put("503B30",  new BigDecimal("0.01")); // motor=19.03 fixture=19.02
-        allowlistDelta.put("501DH5",  new BigDecimal("0.01")); // motor=15.19 fixture=15.20
-        allowlistDelta.put("505APQ",  new BigDecimal("0.01")); // motor=27.70 fixture=27.71
-        allowlistDelta.put("500C2S",  new BigDecimal("0.01")); // motor=2753.62 fixture=2753.61
+        allowlistDelta.put("501BM6", new BigDecimal("0.01")); // motor=5.54 fixture=5.53
+        allowlistDelta.put("501D1V", new BigDecimal("0.02")); // motor=32.23 fixture=32.25
+        allowlistDelta.put("501DQR", new BigDecimal("0.01")); // motor=177.67 fixture=177.66
+        allowlistDelta.put("501D00", new BigDecimal("0.01")); // motor=197.82 fixture=197.83
+        allowlistDelta.put("502897", new BigDecimal("0.01")); // motor=523.72 fixture=523.73
+        allowlistDelta.put("500ASU", new BigDecimal("0.03")); // motor=10.84 fixture=10.87 (appears 2x in presupuesto)
+        allowlistDelta.put("502ARV", new BigDecimal("0.01")); // motor=4.13 fixture=4.14
+        allowlistDelta.put("503B30", new BigDecimal("0.01")); // motor=19.03 fixture=19.02
+        allowlistDelta.put("501DH5", new BigDecimal("0.01")); // motor=15.19 fixture=15.20
+        allowlistDelta.put("505APQ", new BigDecimal("0.01")); // motor=27.70 fixture=27.71
+        allowlistDelta.put("500C2S", new BigDecimal("0.01")); // motor=2753.62 fixture=2753.61
 
         // Check each rubro in the presupuesto that we have motor data for
         for (JsonNode row : presRoot) {
@@ -153,7 +150,7 @@ class MotorConsolidacionTest {
             JsonNode codigoNode = row.get("codigo");
             if (codigoNode == null || codigoNode.isNull()) continue;
             String codigo = codigoNode.asText();
-            if (!motorCT.containsKey(codigo)) continue;  // Only check APUs we have data for
+            if (!motorCT.containsKey(codigo)) continue; // Only check APUs we have data for
 
             BigDecimal puFixture = Fixtures.bigDecimalOrNull(row, "precioUnitario");
             if (puFixture == null) continue;
@@ -163,14 +160,18 @@ class MotorConsolidacionTest {
 
             if (allowlistDelta.containsKey(codigo)) {
                 BigDecimal allowedDelta = allowlistDelta.get(codigo);
-                assertEquals(0, allowedDelta.compareTo(delta),
+                assertEquals(
+                        0,
+                        allowedDelta.compareTo(delta),
                         "GM-21 allowlist mismatch for " + codigo
                                 + ": motor=" + motorValue
                                 + " fixture=" + puFixture
                                 + " delta=" + delta
                                 + " expected_delta=" + allowedDelta);
             } else {
-                assertEquals(0, BigDecimal.ZERO.compareTo(delta),
+                assertEquals(
+                        0,
+                        BigDecimal.ZERO.compareTo(delta),
                         "GM-21 unexpected mismatch for " + codigo
                                 + ": motor=" + motorValue
                                 + " fixture=" + puFixture
@@ -275,15 +276,19 @@ class MotorConsolidacionTest {
             BigDecimal delta = motorPT.subtract(fixturePT);
             if (delta.abs().compareTo(new BigDecimal("0.005")) > 0) {
                 divergentCount++;
-                System.out.printf("DIAG2 DIVERGE [%d]: item=%s codigo=%s fixturePT=%s motorPT=%s delta=%s source=%s%n",
+                System.out.printf(
+                        "DIAG2 DIVERGE [%d]: item=%s codigo=%s fixturePT=%s motorPT=%s delta=%s source=%s%n",
                         divergentCount,
-                        row.get("item").asText(), codigo,
+                        row.get("item").asText(),
+                        codigo,
                         fixturePT.setScale(6, RoundingMode.HALF_UP),
                         motorPT.setScale(6, RoundingMode.HALF_UP),
-                        delta.setScale(6, RoundingMode.HALF_UP), source);
+                        delta.setScale(6, RoundingMode.HALF_UP),
+                        source);
             }
         }
-        System.out.printf("DIAG2 SUMMARY: fixtureSum=%s motorSum=%s totalDelta=%s%n",
+        System.out.printf(
+                "DIAG2 SUMMARY: fixtureSum=%s motorSum=%s totalDelta=%s%n",
                 fixtureSum.setScale(2, RoundingMode.HALF_UP),
                 motorSum.setScale(2, RoundingMode.HALF_UP),
                 motorSum.subtract(fixtureSum).setScale(6, RoundingMode.HALF_UP));

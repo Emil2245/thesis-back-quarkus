@@ -1,7 +1,6 @@
 package ec.uce.propuestas.proyecto.dto;
 
 import ec.uce.propuestas.proyecto.entity.ModoCodigoRubro;
-
 import java.math.BigDecimal;
 
 /** Parámetros de cálculo de un proyecto (07-api-contract.md §3). */
@@ -18,5 +17,4 @@ public record ParametrosProyectoResponse(
         boolean mostrarNombreProyectoHeader,
         boolean enumerarApus,
         String mensajeFooter,
-        ModoCodigoRubro modoCodigoRubro
-) {}
+        ModoCodigoRubro modoCodigoRubro) {}

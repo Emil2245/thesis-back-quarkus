@@ -11,10 +11,9 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
-import org.jboss.logging.Logger;
-
 import java.time.Duration;
 import java.time.Instant;
+import org.jboss.logging.Logger;
 
 @ApplicationScoped
 public class AuthService {
@@ -22,13 +21,19 @@ public class AuthService {
     private static final Logger LOG = Logger.getLogger(AuthService.class);
 
     // Canned dummy hash used for constant-time defence when email is unknown
-    private static final String DUMMY_HASH =
-        "$2a$10$wJ7c.T3JB0kV5iZz8Q1wnOgSbYbHHcFd3KaJq8XtsMgRm5Y9GNMhO";
+    private static final String DUMMY_HASH = "$2a$10$wJ7c.T3JB0kV5iZz8Q1wnOgSbYbHHcFd3KaJq8XtsMgRm5Y9GNMhO";
 
-    @Inject UsuarioRepository usuarioRepo;
-    @Inject PasswordService passwordService;
-    @Inject TokenService tokenService;
-    @Inject EnviadorCorreo enviadorCorreo;
+    @Inject
+    UsuarioRepository usuarioRepo;
+
+    @Inject
+    PasswordService passwordService;
+
+    @Inject
+    TokenService tokenService;
+
+    @Inject
+    EnviadorCorreo enviadorCorreo;
 
     // -----------------------------------------------------------------------
     // Registration / verification
@@ -40,8 +45,7 @@ public class AuthService {
             throw error(400, "validacion", "Las contraseñas no coinciden");
         }
         if (!PasswordPolicy.isValid(req.password())) {
-            throw error(400, "validacion",
-                "La contraseña debe tener al menos 8 caracteres, una letra y un número");
+            throw error(400, "validacion", "La contraseña debe tener al menos 8 caracteres, una letra y un número");
         }
         if (usuarioRepo.isEmailTaken(req.email())) {
             throw error(400, "validacion", "El correo ya está registrado");
@@ -55,7 +59,7 @@ public class AuthService {
 
         Instant expiresAt = Instant.now().plus(tokenService.verificacionTtl());
         String raw = tokenService.issueOneTimeToken(
-            u, TipoToken.VERIFICACION_EMAIL, tokenService.verificacionTtl(), u.email);
+                u, TipoToken.VERIFICACION_EMAIL, tokenService.verificacionTtl(), u.email);
         enviadorCorreo.enviarVerificacion(u.email, raw, expiresAt);
         LOG.infof("Registro: usuario id=%d, email enviado", u.id);
 
@@ -87,13 +91,12 @@ public class AuthService {
 
         var latest = tokenService.findLatestToken(u.id, TipoToken.VERIFICACION_EMAIL);
         if (latest != null && latest.createdAt.isAfter(Instant.now().minus(cooldown))) {
-            throw error(429, "cooldown-activo",
-                "Debe esperar antes de reenviar el correo de verificación");
+            throw error(429, "cooldown-activo", "Debe esperar antes de reenviar el correo de verificación");
         }
 
         Instant expiresAt = Instant.now().plus(tokenService.verificacionTtl());
         String raw = tokenService.issueOneTimeToken(
-            u, TipoToken.VERIFICACION_EMAIL, tokenService.verificacionTtl(), u.email);
+                u, TipoToken.VERIFICACION_EMAIL, tokenService.verificacionTtl(), u.email);
         enviadorCorreo.enviarVerificacion(u.email, raw, expiresAt);
         LOG.infof("Verificación reenviada: usuario id=%d", u.id);
     }
@@ -127,11 +130,7 @@ public class AuthService {
         String refreshRaw = tokenService.issueRefreshToken(u, req.recordarSesion());
         LOG.infof("Login exitoso: usuario id=%d", u.id);
 
-        return new TokenResponse(
-            accessToken,
-            tokenService.accessTokenTtlSeconds(),
-            refreshRaw,
-            toUsuarioResponse(u));
+        return new TokenResponse(accessToken, tokenService.accessTokenTtlSeconds(), refreshRaw, toUsuarioResponse(u));
     }
 
     @Transactional
@@ -152,10 +151,7 @@ public class AuthService {
         LOG.infof("Token renovado: usuario id=%d", u.id);
 
         return new TokenResponse(
-            newAccessToken,
-            tokenService.accessTokenTtlSeconds(),
-            optNewRaw.get(),
-            toUsuarioResponse(u));
+                newAccessToken, tokenService.accessTokenTtlSeconds(), optNewRaw.get(), toUsuarioResponse(u));
     }
 
     @Transactional
@@ -177,8 +173,7 @@ public class AuthService {
         }
         Usuario u = optUser.get();
         Instant expiresAt = Instant.now().plus(tokenService.resetTtl());
-        String raw = tokenService.issueOneTimeToken(
-            u, TipoToken.RESET_PASSWORD, tokenService.resetTtl(), u.email);
+        String raw = tokenService.issueOneTimeToken(u, TipoToken.RESET_PASSWORD, tokenService.resetTtl(), u.email);
         enviadorCorreo.enviarReset(u.email, raw, expiresAt);
         LOG.infof("Recuperación iniciada: usuario id=%d", u.id);
     }
@@ -189,8 +184,7 @@ public class AuthService {
             throw error(400, "validacion", "Las contraseñas no coinciden");
         }
         if (!PasswordPolicy.isValid(req.password())) {
-            throw error(400, "validacion",
-                "La contraseña debe tener al menos 8 caracteres, una letra y un número");
+            throw error(400, "validacion", "La contraseña debe tener al menos 8 caracteres, una letra y un número");
         }
 
         Long uid = tokenService.consumeOneTimeToken(req.token(), TipoToken.RESET_PASSWORD);
@@ -215,8 +209,7 @@ public class AuthService {
             throw error(400, "validacion", "Las contraseñas no coinciden");
         }
         if (!PasswordPolicy.isValid(req.password())) {
-            throw error(400, "validacion",
-                "La contraseña debe tener al menos 8 caracteres, una letra y un número");
+            throw error(400, "validacion", "La contraseña debe tener al menos 8 caracteres, una letra y un número");
         }
 
         Long uid = tokenService.consumeOneTimeToken(req.token(), TipoToken.INVITACION);
@@ -226,7 +219,7 @@ public class AuthService {
 
         Usuario u = usuarioRepo.findById(uid);
         u.passwordHash = passwordService.hash(req.password());
-        u.emailVerificado = true;  // invitation implies admin vouched for the email
+        u.emailVerificado = true; // invitation implies admin vouched for the email
         u.activo = true;
         LOG.infof("Invitación aceptada: usuario id=%d", uid);
     }
@@ -236,15 +229,15 @@ public class AuthService {
     // -----------------------------------------------------------------------
 
     public PerfilResponse leerPerfil(String email) {
-        var u = usuarioRepo.findByEmail(email)
-            .orElseThrow(() -> error(404, "no-encontrado", "Usuario no encontrado"));
+        var u = usuarioRepo.findByEmail(email).orElseThrow(() -> error(404, "no-encontrado", "Usuario no encontrado"));
         return new PerfilResponse(u.id, u.nombre, u.email, u.rol.name(), u.createdAt);
     }
 
     @Transactional
     public PerfilResponse actualizarPerfil(String currentEmail, PerfilActualizarRequest req) {
-        var u = usuarioRepo.findByEmail(currentEmail)
-            .orElseThrow(() -> error(404, "no-encontrado", "Usuario no encontrado"));
+        var u = usuarioRepo
+                .findByEmail(currentEmail)
+                .orElseThrow(() -> error(404, "no-encontrado", "Usuario no encontrado"));
 
         boolean emailChanged = !req.email().equalsIgnoreCase(currentEmail);
         if (emailChanged && usuarioRepo.isEmailTaken(req.email())) {
@@ -256,7 +249,7 @@ public class AuthService {
             // D-03: New email requires re-verification; account keeps operating with old email
             Instant expiresAt = Instant.now().plus(tokenService.verificacionTtl());
             String raw = tokenService.issueOneTimeToken(
-                u, TipoToken.CAMBIO_EMAIL, tokenService.verificacionTtl(), req.email());
+                    u, TipoToken.CAMBIO_EMAIL, tokenService.verificacionTtl(), req.email());
             enviadorCorreo.enviarVerificacion(req.email(), raw, expiresAt);
             LOG.infof("Cambio de email iniciado: usuario id=%d", u.id);
         }
@@ -270,12 +263,10 @@ public class AuthService {
             throw error(400, "validacion", "Las contraseñas no coinciden");
         }
         if (!PasswordPolicy.isValid(req.passwordNueva())) {
-            throw error(400, "validacion",
-                "La contraseña debe tener al menos 8 caracteres, una letra y un número");
+            throw error(400, "validacion", "La contraseña debe tener al menos 8 caracteres, una letra y un número");
         }
 
-        var u = usuarioRepo.findByEmail(email)
-            .orElseThrow(() -> error(404, "no-encontrado", "Usuario no encontrado"));
+        var u = usuarioRepo.findByEmail(email).orElseThrow(() -> error(404, "no-encontrado", "Usuario no encontrado"));
 
         if (!passwordService.verify(req.passwordActual(), u.passwordHash)) {
             throw error(401, "credenciales-invalidas", "Contraseña actual incorrecta");
@@ -298,6 +289,6 @@ public class AuthService {
     private static WebApplicationException error(int status, String codigo, String mensaje) {
         var payload = new ErrorPayload(codigo, mensaje);
         return new WebApplicationException(
-            Response.status(status).entity(payload).build());
+                Response.status(status).entity(payload).build());
     }
 }

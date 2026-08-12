@@ -4,7 +4,6 @@ import ec.uce.propuestas.insumo.entity.BaseInsumos;
 import ec.uce.propuestas.insumo.entity.TipoBase;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import jakarta.enterprise.context.ApplicationScoped;
-
 import java.util.List;
 import java.util.Optional;
 

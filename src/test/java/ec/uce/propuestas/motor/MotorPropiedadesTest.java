@@ -1,13 +1,12 @@
 package ec.uce.propuestas.motor;
 
-import net.jqwik.api.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import net.jqwik.api.*;
 
 /**
  * Property-based tests for the motor using jqwik.
@@ -33,19 +32,12 @@ class MotorPropiedadesTest {
 
         return Combinators.combine(positiveDecimal, positiveDecimal, positiveDecimal)
                 .as((jornal, rend, matPrecio) -> {
-                    FilaSnapshot mo = new FilaSnapshot(
-                            SeccionTipo.MANO_OBRA, false,
-                            BigDecimal.ONE,
-                            rend,
-                            jornal, null, null);
-                    FilaSnapshot hm = new FilaSnapshot(
-                            SeccionTipo.EQUIPO, true,
-                            new BigDecimal("5"), null, null, null, null);
-                    FilaSnapshot mat = new FilaSnapshot(
-                            SeccionTipo.MATERIAL, false,
-                            BigDecimal.ONE,
-                            null,
-                            matPrecio, null, null);
+                    FilaSnapshot mo =
+                            new FilaSnapshot(SeccionTipo.MANO_OBRA, false, BigDecimal.ONE, rend, jornal, null, null);
+                    FilaSnapshot hm =
+                            new FilaSnapshot(SeccionTipo.EQUIPO, true, new BigDecimal("5"), null, null, null, null);
+                    FilaSnapshot mat =
+                            new FilaSnapshot(SeccionTipo.MATERIAL, false, BigDecimal.ONE, null, matPrecio, null, null);
                     return new ApuSnapshot("PROP-TEST", false, List.of(hm, mo, mat));
                 });
     }
@@ -59,21 +51,15 @@ class MotorPropiedadesTest {
                 .filter(d -> d.compareTo(BigDecimal.ZERO) > 0);
 
         return positiveDecimal.map(matPrecio -> {
-            FilaSnapshot mat = new FilaSnapshot(
-                    SeccionTipo.MATERIAL, false,
-                    BigDecimal.ONE, null, matPrecio, null, null);
+            FilaSnapshot mat =
+                    new FilaSnapshot(SeccionTipo.MATERIAL, false, BigDecimal.ONE, null, matPrecio, null, null);
             return new ApuSnapshot("AUX-PROP", true, List.of(mat));
         });
     }
 
     /** Generate a valid ParametrosCalculo with no per-apu override, no discount. */
     private ParametrosCalculo baseParams() {
-        return new ParametrosCalculo(
-                new BigDecimal("0.0500"),
-                new BigDecimal("0.1800"),
-                null,
-                BigDecimal.ZERO
-        );
+        return new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1800"), null, BigDecimal.ZERO);
     }
 
     // ── Properties ─────────────────────────────────────────────────────────
@@ -84,8 +70,7 @@ class MotorPropiedadesTest {
      */
     @Property(tries = 100)
     void descuento_no_cambia_CD(@ForAll("apuSnapshots") ApuSnapshot snap) {
-        var p0 = new ParametrosCalculo(
-                new BigDecimal("0.0500"), new BigDecimal("0.1800"), null, BigDecimal.ZERO);
+        var p0 = new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1800"), null, BigDecimal.ZERO);
         var pDisc = new ParametrosCalculo(
                 new BigDecimal("0.0500"), new BigDecimal("0.1800"), null, new BigDecimal("0.1000"));
 
@@ -93,11 +78,14 @@ class MotorPropiedadesTest {
         ApuCalculado rD = Motor.calcularApu(snap, pDisc);
 
         // CD is independent of descuento
-        assertEquals(0, r0.costoDirecto().compareTo(rD.costoDirecto()),
+        assertEquals(
+                0,
+                r0.costoDirecto().compareTo(rD.costoDirecto()),
                 "costoDirecto must not change when only descuento changes");
 
         // CD_ajustado decreases with discount
-        assertTrue(rD.costoDirectoAjustado().compareTo(r0.costoDirectoAjustado()) < 0,
+        assertTrue(
+                rD.costoDirectoAjustado().compareTo(r0.costoDirectoAjustado()) < 0,
                 "CD_ajustado with 10% descuento must be less than without descuento");
     }
 
@@ -108,16 +96,19 @@ class MotorPropiedadesTest {
     void ci_cero_hace_CT_igual_a_CDajustado(@ForAll("apuSnapshots") ApuSnapshot snap) {
         var p = new ParametrosCalculo(
                 new BigDecimal("0.0500"),
-                BigDecimal.ZERO,   // porcentajeIndirectoDefault = 0
+                BigDecimal.ZERO, // porcentajeIndirectoDefault = 0
                 null,
-                BigDecimal.ZERO
-        );
+                BigDecimal.ZERO);
 
         ApuCalculado r = Motor.calcularApu(snap, p);
 
-        assertEquals(0, BigDecimal.ZERO.setScale(6, RoundingMode.HALF_UP).compareTo(r.costoIndirecto()),
+        assertEquals(
+                0,
+                BigDecimal.ZERO.setScale(6, RoundingMode.HALF_UP).compareTo(r.costoIndirecto()),
                 "costoIndirecto must be 0 when %CI=0");
-        assertEquals(0, r.costoDirectoAjustado().compareTo(r.costoTotal()),
+        assertEquals(
+                0,
+                r.costoDirectoAjustado().compareTo(r.costoTotal()),
                 "costoTotal must equal costoDirectoAjustado when CI=0");
     }
 
@@ -128,14 +119,15 @@ class MotorPropiedadesTest {
     void auxiliar_tiene_CI_cero(@ForAll("apuSnapshotsAuxiliares") ApuSnapshot aux) {
         var p = new ParametrosCalculo(
                 new BigDecimal("0.0500"),
-                new BigDecimal("0.2000"),  // 20% CI — should still be ignored for auxiliar
+                new BigDecimal("0.2000"), // 20% CI — should still be ignored for auxiliar
                 null,
-                BigDecimal.ZERO
-        );
+                BigDecimal.ZERO);
 
         ApuCalculado r = Motor.calcularApu(aux, p);
 
-        assertEquals(0, BigDecimal.ZERO.setScale(6, RoundingMode.HALF_UP).compareTo(r.costoIndirecto()),
+        assertEquals(
+                0,
+                BigDecimal.ZERO.setScale(6, RoundingMode.HALF_UP).compareTo(r.costoIndirecto()),
                 "auxiliar APU must always have costoIndirecto = 0");
     }
 
@@ -169,7 +161,9 @@ class MotorPropiedadesTest {
                 .add(r.subtotalP())
                 .setScale(6, RoundingMode.HALF_UP);
 
-        assertEquals(0, sumSubtotals.compareTo(r.costoDirecto()),
+        assertEquals(
+                0,
+                sumSubtotals.compareTo(r.costoDirecto()),
                 "CD must equal M+N+O+P; got CD=" + r.costoDirecto() + " sum=" + sumSubtotals);
     }
 }

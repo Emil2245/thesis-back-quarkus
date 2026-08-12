@@ -16,5 +16,4 @@ public record ApuDetalleResponse(
         BigDecimal precioEfectivo,
         boolean precioHeredado,
         BigDecimal costoHora,
-        BigDecimal costo
-) {}
+        BigDecimal costo) {}

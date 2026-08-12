@@ -4,7 +4,6 @@ import ec.uce.propuestas.apu.entity.Apu;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -25,16 +24,20 @@ public class ApuRepository implements PanacheRepositoryBase<Apu, Long> {
         if (q != null && !q.isBlank()) {
             ql.append(" and (lower(codigo) like ?2 or lower(descripcion) like ?2)");
             return find(ql.toString(), presupuestoId, "%" + q.toLowerCase() + "%")
-                    .page(Page.of(pageIndex, pageSize)).list();
+                    .page(Page.of(pageIndex, pageSize))
+                    .list();
         }
         return find(ql.toString(), presupuestoId)
-                .page(Page.of(pageIndex, pageSize)).list();
+                .page(Page.of(pageIndex, pageSize))
+                .list();
     }
 
     public long contarDePresupuesto(Long presupuestoId, String q) {
         if (q != null && !q.isBlank()) {
-            return count("presupuestoId = ?1 and (lower(codigo) like ?2 or lower(descripcion) like ?2)",
-                    presupuestoId, "%" + q.toLowerCase() + "%");
+            return count(
+                    "presupuestoId = ?1 and (lower(codigo) like ?2 or lower(descripcion) like ?2)",
+                    presupuestoId,
+                    "%" + q.toLowerCase() + "%");
         }
         return count("presupuestoId = ?1", presupuestoId);
     }
@@ -61,7 +64,8 @@ public class ApuRepository implements PanacheRepositoryBase<Apu, Long> {
     /** Resuelve el proyecto dueño de un APU (vía su versión). */
     public Optional<Long> proyectoDeApu(Long apuId) {
         return getEntityManager()
-                .createNativeQuery("select p.proyecto_id from apu a join presupuesto p on p.id = a.presupuesto_id where a.id = ?1")
+                .createNativeQuery(
+                        "select p.proyecto_id from apu a join presupuesto p on p.id = a.presupuesto_id where a.id = ?1")
                 .setParameter(1, apuId)
                 .getResultStream()
                 .map(o -> ((Number) o).longValue())

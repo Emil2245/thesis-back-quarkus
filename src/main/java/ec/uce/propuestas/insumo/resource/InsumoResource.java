@@ -10,7 +10,6 @@ import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-
 import java.io.IOException;
 
 /**
@@ -24,12 +23,16 @@ public class InsumoResource {
 
     @Inject
     BaseInsumosService baseInsumosService;
+
     @Inject
     InsumoCrudService crud;
+
     @Inject
     InsumoCatalogoService catalogo;
+
     @Inject
     ImportacionInsumoService importacion;
+
     @Inject
     CopiaBaseService copia;
 
@@ -44,7 +47,8 @@ public class InsumoResource {
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("size") @DefaultValue("25") int size) {
         var base = baseInsumosService.asegurarBaseProyecto(proyectoId);
-        return Response.ok(baseInsumosService.listarInsumosBase(base.id, tipo, q, desactualizados, page, size)).build();
+        return Response.ok(baseInsumosService.listarInsumosBase(base.id, tipo, q, desactualizados, page, size))
+                .build();
     }
 
     /** Selector multi-fuente (P-16/P-21): central + proyecto. */
@@ -64,22 +68,24 @@ public class InsumoResource {
     @POST
     public Response crear(@PathParam("proyectoId") Long proyectoId, @Valid InsumoCrearRequest req) {
         var base = baseInsumosService.asegurarBaseProyecto(proyectoId);
-        return Response.status(Response.Status.CREATED).entity(crud.crear(base.id, req)).build();
+        return Response.status(Response.Status.CREATED)
+                .entity(crud.crear(base.id, req))
+                .build();
     }
 
     @PUT
     @Path("/{insumoId}")
-    public InsumoResponse editar(@PathParam("proyectoId") Long proyectoId,
-                                 @PathParam("insumoId") Long insumoId,
-                                 @Valid InsumoEditarRequest req) {
+    public InsumoResponse editar(
+            @PathParam("proyectoId") Long proyectoId,
+            @PathParam("insumoId") Long insumoId,
+            @Valid InsumoEditarRequest req) {
         var base = baseInsumosService.asegurarBaseProyecto(proyectoId);
         return crud.actualizar(base.id, insumoId, req);
     }
 
     @DELETE
     @Path("/{insumoId}")
-    public Response eliminar(@PathParam("proyectoId") Long proyectoId,
-                             @PathParam("insumoId") Long insumoId) {
+    public Response eliminar(@PathParam("proyectoId") Long proyectoId, @PathParam("insumoId") Long insumoId) {
         var base = baseInsumosService.asegurarBaseProyecto(proyectoId);
         crud.eliminar(base.id, insumoId);
         return Response.noContent().build();
@@ -89,8 +95,8 @@ public class InsumoResource {
     @POST
     @Path("/importar")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-    public ImportResultadoResponse importar(@PathParam("proyectoId") Long proyectoId,
-                                            InsumoImportForm form) throws IOException {
+    public ImportResultadoResponse importar(@PathParam("proyectoId") Long proyectoId, InsumoImportForm form)
+            throws IOException {
         var base = baseInsumosService.asegurarBaseProyecto(proyectoId);
         byte[] contenido = java.nio.file.Files.readAllBytes(form.archivo.uploadedFile());
         return importacion.importarCsv(base.id, contenido);

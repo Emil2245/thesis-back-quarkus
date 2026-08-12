@@ -4,7 +4,6 @@ import ec.uce.propuestas.proyecto.entity.Firmante;
 import ec.uce.propuestas.proyecto.entity.RolFirmante;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import jakarta.enterprise.context.ApplicationScoped;
-
 import java.util.List;
 import java.util.Optional;
 

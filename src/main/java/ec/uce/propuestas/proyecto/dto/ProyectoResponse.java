@@ -2,7 +2,6 @@ package ec.uce.propuestas.proyecto.dto;
 
 import ec.uce.propuestas.proyecto.entity.EstadoProyecto;
 import ec.uce.propuestas.proyecto.entity.PlazoUnidad;
-
 import java.time.Instant;
 import java.time.LocalDate;
 
@@ -19,5 +18,4 @@ public record ProyectoResponse(
         String direccionInstitucional,
         String subdireccionInstitucional,
         boolean tieneLogo,
-        Instant updatedAt
-) {}
+        Instant updatedAt) {}

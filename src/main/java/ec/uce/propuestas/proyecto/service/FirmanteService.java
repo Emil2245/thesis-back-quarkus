@@ -9,7 +9,6 @@ import ec.uce.propuestas.proyecto.repository.FirmanteRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-
 import java.util.List;
 
 @ApplicationScoped
@@ -17,13 +16,15 @@ public class FirmanteService {
 
     @Inject
     FirmanteRepository firmanteRepository;
+
     @Inject
     ProyectoService proyectoService;
 
     public List<FirmanteResponse> listarDeProyecto(Long usuarioId, Long proyectoId) {
         proyectoService.validarPropietario(usuarioId, proyectoId);
-        return firmanteRepository.listarDeProyecto(proyectoId)
-                .stream().map(FirmanteMapper::toResponse).toList();
+        return firmanteRepository.listarDeProyecto(proyectoId).stream()
+                .map(FirmanteMapper::toResponse)
+                .toList();
     }
 
     @Transactional
@@ -45,7 +46,8 @@ public class FirmanteService {
     @Transactional
     public FirmanteResponse actualizar(Long usuarioId, Long proyectoId, Long firmanteId, FirmanteCrearRequest req) {
         proyectoService.validarPropietario(usuarioId, proyectoId);
-        Firmante f = firmanteRepository.findByIdYProyecto(firmanteId, proyectoId)
+        Firmante f = firmanteRepository
+                .findByIdYProyecto(firmanteId, proyectoId)
                 .orElseThrow(() -> ProblemaException.noEncontrado("Firmante no encontrado"));
         f.nombre = req.nombre();
         f.cargo = req.cargo();
@@ -58,7 +60,8 @@ public class FirmanteService {
     @Transactional
     public void eliminar(Long usuarioId, Long proyectoId, Long firmanteId) {
         proyectoService.validarPropietario(usuarioId, proyectoId);
-        Firmante f = firmanteRepository.findByIdYProyecto(firmanteId, proyectoId)
+        Firmante f = firmanteRepository
+                .findByIdYProyecto(firmanteId, proyectoId)
                 .orElseThrow(() -> ProblemaException.noEncontrado("Firmante no encontrado"));
         firmanteRepository.delete(f);
     }

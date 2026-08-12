@@ -7,9 +7,9 @@ import java.util.Objects;
 public record RubroConPrecio(
         String codigo,
         BigDecimal cantidad,
-        BigDecimal precioUnitario,   // = apu.costoTotal (scale 6)
-        BigDecimal precioTotal       // = cantidad × precioUnitario (scale 6)
-) {
+        BigDecimal precioUnitario, // = apu.costoTotal (scale 6)
+        BigDecimal precioTotal // = cantidad × precioUnitario (scale 6)
+        ) {
     public RubroConPrecio {
         Objects.requireNonNull(codigo, "codigo must not be null");
     }

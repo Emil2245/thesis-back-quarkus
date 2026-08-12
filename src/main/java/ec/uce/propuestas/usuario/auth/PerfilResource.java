@@ -17,8 +17,11 @@ import jakarta.ws.rs.core.Response;
 @RolesAllowed({"USUARIO", "SUPER_ADMIN"})
 public class PerfilResource {
 
-    @Inject SecurityIdentity identity;
-    @Inject AuthService svc;
+    @Inject
+    SecurityIdentity identity;
+
+    @Inject
+    AuthService svc;
 
     @GET
     public PerfilResponse leer() {

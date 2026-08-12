@@ -12,7 +12,6 @@ import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-
 import java.util.List;
 
 /** Firmantes del proyecto (P-11). Ruta {@code /proyectos/{proyectoId}/firmantes}. */
@@ -24,14 +23,17 @@ public class FirmanteResource {
 
     @Inject
     FirmanteService firmanteService;
+
     @Inject
     SecurityIdentity identity;
+
     @Inject
     UsuarioRepository usuarioRepository;
 
     private Long usuarioId() {
         String email = identity.getPrincipal().getName();
-        return usuarioRepository.findByEmail(email)
+        return usuarioRepository
+                .findByEmail(email)
                 .map(u -> u.id)
                 .orElseThrow(() -> ProblemaException.noEncontrado("Usuario autenticado no encontrado"));
     }
@@ -45,21 +47,22 @@ public class FirmanteResource {
     @POST
     public Response crear(@PathParam("proyectoId") Long proyectoId, @Valid FirmanteCrearRequest req) {
         return Response.status(Response.Status.CREATED)
-                .entity(firmanteService.crear(usuarioId(), proyectoId, req)).build();
+                .entity(firmanteService.crear(usuarioId(), proyectoId, req))
+                .build();
     }
 
     @PUT
     @Path("/{firmanteId}")
-    public FirmanteResponse editar(@PathParam("proyectoId") Long proyectoId,
-                                   @PathParam("firmanteId") Long firmanteId,
-                                   @Valid FirmanteCrearRequest req) {
+    public FirmanteResponse editar(
+            @PathParam("proyectoId") Long proyectoId,
+            @PathParam("firmanteId") Long firmanteId,
+            @Valid FirmanteCrearRequest req) {
         return firmanteService.actualizar(usuarioId(), proyectoId, firmanteId, req);
     }
 
     @DELETE
     @Path("/{firmanteId}")
-    public Response eliminar(@PathParam("proyectoId") Long proyectoId,
-                             @PathParam("firmanteId") Long firmanteId) {
+    public Response eliminar(@PathParam("proyectoId") Long proyectoId, @PathParam("firmanteId") Long firmanteId) {
         firmanteService.eliminar(usuarioId(), proyectoId, firmanteId);
         return Response.noContent().build();
     }

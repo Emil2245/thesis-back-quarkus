@@ -21,11 +21,11 @@ public class ValidacionExceptionMapper implements ExceptionMapper<ConstraintViol
     @Override
     public Response toResponse(ConstraintViolationException cve) {
         String primerMensaje = cve.getConstraintViolations().stream()
-            .findFirst()
-            .map(v -> v.getMessage())
-            .orElse("Datos de entrada inválidos");
+                .findFirst()
+                .map(v -> v.getMessage())
+                .orElse("Datos de entrada inválidos");
         return Response.status(400)
-            .entity(new ErrorPayload("validacion", primerMensaje))
-            .build();
+                .entity(new ErrorPayload("validacion", primerMensaje))
+                .build();
     }
 }

@@ -2,7 +2,6 @@ package ec.uce.propuestas.apu.entity;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 
@@ -51,8 +50,12 @@ public class Apu extends PanacheEntityBase {
     public Instant updatedAt;
 
     @PrePersist
-    void onInsert() { createdAt = updatedAt = Instant.now(); }
+    void onInsert() {
+        createdAt = updatedAt = Instant.now();
+    }
 
     @PreUpdate
-    void onUpdate() { updatedAt = Instant.now(); }
+    void onUpdate() {
+        updatedAt = Instant.now();
+    }
 }

@@ -11,5 +11,4 @@ public record ApuResumenResponse(
         boolean esAuxiliar,
         BigDecimal costoDirecto,
         BigDecimal costoTotal,
-        boolean vinculado
-) {}
+        boolean vinculado) {}

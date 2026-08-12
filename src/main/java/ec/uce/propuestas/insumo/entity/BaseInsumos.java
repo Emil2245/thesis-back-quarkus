@@ -2,7 +2,6 @@ package ec.uce.propuestas.insumo.entity;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
-
 import java.time.Instant;
 
 @Entity
@@ -33,8 +32,12 @@ public class BaseInsumos extends PanacheEntityBase {
     public Instant updatedAt;
 
     @PrePersist
-    void onInsert() { createdAt = updatedAt = Instant.now(); }
+    void onInsert() {
+        createdAt = updatedAt = Instant.now();
+    }
 
     @PreUpdate
-    void onUpdate() { updatedAt = Instant.now(); }
+    void onUpdate() {
+        updatedAt = Instant.now();
+    }
 }

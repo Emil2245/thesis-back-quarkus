@@ -10,16 +10,16 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-
 import java.time.Duration;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @Path("/auth")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public class AuthResource {
 
-    @Inject AuthService svc;
+    @Inject
+    AuthService svc;
 
     @ConfigProperty(name = "app.auth.reenvio-cooldown")
     Duration reenvioTtl;
@@ -81,7 +81,7 @@ public class AuthResource {
     @PermitAll
     public Response recuperar(@Valid RecuperarPasswordRequest r) {
         svc.iniciarRecuperacion(r.email());
-        return Response.accepted().build();  // always 202 — anti-enumeration
+        return Response.accepted().build(); // always 202 — anti-enumeration
     }
 
     // POST /auth/restablecer

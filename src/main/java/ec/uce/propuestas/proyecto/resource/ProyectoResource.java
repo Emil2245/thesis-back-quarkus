@@ -31,16 +31,20 @@ public class ProyectoResource {
 
     @Inject
     ProyectoService proyectoService;
+
     @Inject
     ParametrosProyectoService parametrosService;
+
     @Inject
     SecurityIdentity identity;
+
     @Inject
     UsuarioRepository usuarioRepository;
 
     private Long usuarioId() {
         String email = identity.getPrincipal().getName();
-        return usuarioRepository.findByEmail(email)
+        return usuarioRepository
+                .findByEmail(email)
                 .map(u -> u.id)
                 .orElseThrow(() -> ProblemaException.noEncontrado("Usuario autenticado no encontrado"));
     }
@@ -57,7 +61,9 @@ public class ProyectoResource {
 
     @POST
     public Response crear(@Valid ProyectoCrearRequest req) {
-        return Response.status(Response.Status.CREATED).entity(proyectoService.crear(usuarioId(), req)).build();
+        return Response.status(Response.Status.CREATED)
+                .entity(proyectoService.crear(usuarioId(), req))
+                .build();
     }
 
     @GET

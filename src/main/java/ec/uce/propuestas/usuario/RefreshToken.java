@@ -2,7 +2,6 @@ package ec.uce.propuestas.usuario;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
-
 import java.time.Instant;
 
 @Entity
@@ -30,5 +29,7 @@ public class RefreshToken extends PanacheEntityBase {
     public Instant createdAt;
 
     @PrePersist
-    void onInsert() { createdAt = Instant.now(); }
+    void onInsert() {
+        createdAt = Instant.now();
+    }
 }

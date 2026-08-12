@@ -1,7 +1,6 @@
 package ec.uce.propuestas.motor.internal;
 
 import ec.uce.propuestas.motor.*;
-
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
@@ -47,7 +46,8 @@ public final class Consolidador {
         for (RubroConPrecio r : rubros) {
             BigDecimal peso = totalGeneral.compareTo(BigDecimal.ZERO) == 0
                     ? BigDecimal.ZERO
-                    : r.precioTotal().multiply(new BigDecimal("100"), MC)
+                    : r.precioTotal()
+                            .multiply(new BigDecimal("100"), MC)
                             .divide(totalGeneral, SCALE_PCT, RoundingMode.HALF_UP);
             pesos.add(new PesoPonderado(r.codigo(), peso));
         }
@@ -71,19 +71,11 @@ public final class Consolidador {
             }
         }
 
-        return new VersionCalculada(
-                apusCalculados,
-                rubros,
-                capitulos,
-                totalGeneral,
-                pesos,
-                avances
-        );
+        return new VersionCalculada(apusCalculados, rubros, capitulos, totalGeneral, pesos, avances);
     }
 
-    private static void collectAndComputeApus(List<CapituloSnapshot> caps,
-                                               ParametrosCalculo params,
-                                               Map<String, ApuCalculado> result) {
+    private static void collectAndComputeApus(
+            List<CapituloSnapshot> caps, ParametrosCalculo params, Map<String, ApuCalculado> result) {
         for (CapituloSnapshot cap : caps) {
             collectAndComputeApus(cap.subcapitulos(), params, result);
             for (RubroSnapshot rubro : cap.rubros()) {
@@ -95,17 +87,15 @@ public final class Consolidador {
         }
     }
 
-    private static void collectRubros(List<CapituloSnapshot> caps,
-                                       Map<String, ApuCalculado> apus,
-                                       List<RubroConPrecio> result) {
+    private static void collectRubros(
+            List<CapituloSnapshot> caps, Map<String, ApuCalculado> apus, List<RubroConPrecio> result) {
         for (CapituloSnapshot cap : caps) {
             collectRubros(cap.subcapitulos(), apus, result);
             for (RubroSnapshot r : cap.rubros()) {
                 ApuCalculado apu = apus.get(r.apu().codigo());
                 BigDecimal precioUnitario = apu.costoTotal();
-                BigDecimal precioTotal = r.cantidad()
-                        .multiply(precioUnitario, MC)
-                        .setScale(SCALE, RoundingMode.HALF_UP);
+                BigDecimal precioTotal =
+                        r.cantidad().multiply(precioUnitario, MC).setScale(SCALE, RoundingMode.HALF_UP);
                 result.add(new RubroConPrecio(r.codigo(), r.cantidad(), precioUnitario, precioTotal));
             }
         }
@@ -115,9 +105,8 @@ public final class Consolidador {
      * Recursively compute chapter total (sum of all rubro precioTotal under this chapter).
      * Appends this chapter (and sub-chapters) to the flat list.
      */
-    private static BigDecimal computeCapituloTotal(CapituloSnapshot cap,
-                                                    Map<String, ApuCalculado> apus,
-                                                    List<CapituloConTotal> result) {
+    private static BigDecimal computeCapituloTotal(
+            CapituloSnapshot cap, Map<String, ApuCalculado> apus, List<CapituloConTotal> result) {
         BigDecimal total = BigDecimal.ZERO;
 
         // Sub-chapters first
@@ -129,9 +118,7 @@ public final class Consolidador {
         // Direct rubros
         for (RubroSnapshot r : cap.rubros()) {
             ApuCalculado apu = apus.get(r.apu().codigo());
-            BigDecimal precioTotal = r.cantidad()
-                    .multiply(apu.costoTotal(), MC)
-                    .setScale(SCALE, RoundingMode.HALF_UP);
+            BigDecimal precioTotal = r.cantidad().multiply(apu.costoTotal(), MC).setScale(SCALE, RoundingMode.HALF_UP);
             total = total.add(precioTotal);
         }
 

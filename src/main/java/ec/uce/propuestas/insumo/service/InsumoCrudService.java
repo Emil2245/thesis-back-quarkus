@@ -69,7 +69,8 @@ public class InsumoCrudService {
     }
 
     private Insumo validarExistencia(Long baseId, Long id) {
-        return insumoRepository.findByIdYBase(id, baseId)
+        return insumoRepository
+                .findByIdYBase(id, baseId)
                 .orElseThrow(() -> ProblemaException.noEncontrado("Insumo no encontrado en esta base"));
     }
 

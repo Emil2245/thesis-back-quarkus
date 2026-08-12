@@ -21,13 +21,16 @@ public class ParametrosProyectoResource {
 
     @Inject
     ParametrosProyectoService parametrosService;
+
     @Inject
     SecurityIdentity identity;
+
     @Inject
     UsuarioRepository usuarioRepository;
 
     private Long usuarioId() {
-        return usuarioRepository.findByEmail(identity.getPrincipal().getName())
+        return usuarioRepository
+                .findByEmail(identity.getPrincipal().getName())
                 .map(u -> u.id)
                 .orElseThrow(() -> ProblemaException.noEncontrado("Usuario autenticado no encontrado"));
     }
@@ -39,8 +42,8 @@ public class ParametrosProyectoResource {
     }
 
     @PUT
-    public ParametrosProyectoResponse editar(@PathParam("proyectoId") Long proyectoId,
-                                             @Valid ParametrosProyectoEditarRequest req) {
+    public ParametrosProyectoResponse editar(
+            @PathParam("proyectoId") Long proyectoId, @Valid ParametrosProyectoEditarRequest req) {
         return parametrosService.actualizar(usuarioId(), proyectoId, req);
     }
 }

@@ -2,7 +2,6 @@ package ec.uce.propuestas.motor;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -64,7 +63,7 @@ final class Fixtures {
      */
     static ApuSnapshot apuFromJson(JsonNode apuNode) {
         String codigo = apuNode.get("codigo").asText();
-        boolean esAuxiliar = false;  // sample APUs all have CI applied (porcentajeIndirecto != null)
+        boolean esAuxiliar = false; // sample APUs all have CI applied (porcentajeIndirecto != null)
 
         List<FilaSnapshot> filas = new ArrayList<>();
 
@@ -90,8 +89,8 @@ final class Fixtures {
      * This matches the presupuesto's 2dp-rounded precioUnitario for every rubro.
      */
     static ApuSnapshot stubApuFromPrecioUnitario(String codigo, BigDecimal precioUnitario) {
-        FilaSnapshot mat = new FilaSnapshot(SeccionTipo.MATERIAL, false,
-                BigDecimal.ONE, null, precioUnitario, null, null);
+        FilaSnapshot mat =
+                new FilaSnapshot(SeccionTipo.MATERIAL, false, BigDecimal.ONE, null, precioUnitario, null, null);
         return new ApuSnapshot(codigo, true, List.of(mat));
     }
 
@@ -105,8 +104,8 @@ final class Fixtures {
      * @param apusFile         apus-sample-*.json filename
      * @param params           ParametrosCalculo to use
      */
-    static VersionSnapshot versionFromJson(String presupuestoFile, String apusFile,
-                                            ParametrosCalculo params) throws IOException {
+    static VersionSnapshot versionFromJson(String presupuestoFile, String apusFile, ParametrosCalculo params)
+            throws IOException {
         JsonNode presupuestoArray = loadJson(presupuestoFile);
         JsonNode apusArray = loadJson(apusFile);
 
@@ -126,7 +125,8 @@ final class Fixtures {
     }
 
     private static FilaSnapshot lineaToFila(SeccionTipo tipo, JsonNode linea) {
-        boolean esHM = linea.has("esHerramientaMenor") && linea.get("esHerramientaMenor").asBoolean();
+        boolean esHM = linea.has("esHerramientaMenor")
+                && linea.get("esHerramientaMenor").asBoolean();
 
         if (esHM) {
             // HM row: cantidad = percentage integer (e.g. 5), no precioInsumo, no rendimiento
@@ -141,27 +141,23 @@ final class Fixtures {
                 // tarifa = precioInsumo, rendimiento = numeric rendimiento
                 BigDecimal tarifa = bigDecimalOrNull(linea, "tarifa");
                 BigDecimal rendimiento = bigDecimalOrNull(linea, "rendimiento");
-                return new FilaSnapshot(SeccionTipo.EQUIPO, false, cantidad, rendimiento,
-                        tarifa, null, null);
+                return new FilaSnapshot(SeccionTipo.EQUIPO, false, cantidad, rendimiento, tarifa, null, null);
             }
             case MANO_OBRA: {
                 // jornal = precioInsumo
                 BigDecimal jornal = bigDecimalOrNull(linea, "jornal");
                 BigDecimal rendimiento = bigDecimalOrNull(linea, "rendimiento");
-                return new FilaSnapshot(SeccionTipo.MANO_OBRA, false, cantidad, rendimiento,
-                        jornal, null, null);
+                return new FilaSnapshot(SeccionTipo.MANO_OBRA, false, cantidad, rendimiento, jornal, null, null);
             }
             case MATERIAL: {
                 // precioUnitario = precioInsumo, no rendimiento
                 BigDecimal precioUnitario = bigDecimalOrNull(linea, "precioUnitario");
-                return new FilaSnapshot(SeccionTipo.MATERIAL, false, cantidad, null,
-                        precioUnitario, null, null);
+                return new FilaSnapshot(SeccionTipo.MATERIAL, false, cantidad, null, precioUnitario, null, null);
             }
             case TRANSPORTE: {
                 // precioUnitario = precioInsumo, no rendimiento multiplication
                 BigDecimal precioUnitario = bigDecimalOrNull(linea, "precioUnitario");
-                return new FilaSnapshot(SeccionTipo.TRANSPORTE, false, cantidad, null,
-                        precioUnitario, null, null);
+                return new FilaSnapshot(SeccionTipo.TRANSPORTE, false, cantidad, null, precioUnitario, null, null);
             }
             default:
                 throw new IllegalStateException("Unknown tipo: " + tipo);
@@ -173,8 +169,7 @@ final class Fixtures {
      * Uses a stack to track the current chapter at each depth level.
      * For rubros without an APU in the sample, creates a stub APU from precioUnitario.
      */
-    private static List<CapituloSnapshot> buildHierarchy(JsonNode presupuestoArray,
-                                                          Map<String, JsonNode> apuByCode) {
+    private static List<CapituloSnapshot> buildHierarchy(JsonNode presupuestoArray, Map<String, JsonNode> apuByCode) {
         List<CapituloSnapshot> roots = new ArrayList<>();
         Deque<CapituloBuilder> stack = new ArrayDeque<>();
 
@@ -182,8 +177,10 @@ final class Fixtures {
             String kind = row.get("kind").asText();
             int depth = row.get("depth").asInt();
             String item = row.get("item").asText();
-            String descripcion = row.has("descripcion") && !row.get("descripcion").isNull()
-                    ? row.get("descripcion").asText() : "";
+            String descripcion =
+                    row.has("descripcion") && !row.get("descripcion").isNull()
+                            ? row.get("descripcion").asText()
+                            : "";
 
             if ("capitulo".equals(kind) || "subcapitulo".equals(kind)) {
                 // Pop builders deeper than this depth

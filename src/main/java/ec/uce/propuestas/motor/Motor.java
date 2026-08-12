@@ -2,7 +2,6 @@ package ec.uce.propuestas.motor;
 
 import ec.uce.propuestas.motor.internal.CalculadorFila;
 import ec.uce.propuestas.motor.internal.Consolidador;
-
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
@@ -23,8 +22,6 @@ import java.util.List;
  * only happens for truly irrational results, not for the straightforward multiplications here).
  */
 public final class Motor {
-
-    
 
     private Motor() {}
 
@@ -72,11 +69,7 @@ public final class Motor {
         FilaCalculada hmCalc = null;
         if (hmRow != null) {
             costoHmExact = p.porcentajeHerramientaMenor().multiply(subtotalN, MC);
-            hmCalc = new FilaCalculada(
-                    SeccionTipo.EQUIPO, true,
-                    hmRow.cantidad(), null, null, null,
-                    costoHmExact
-            );
+            hmCalc = new FilaCalculada(SeccionTipo.EQUIPO, true, hmRow.cantidad(), null, null, null, costoHmExact);
         }
 
         // 3) Non-HM EQUIPO rows
@@ -150,8 +143,7 @@ public final class Motor {
                 costoDirecto,
                 costoDirectoAjustado,
                 costoIndirecto,
-                costoTotal
-        );
+                costoTotal);
     }
 
     /**

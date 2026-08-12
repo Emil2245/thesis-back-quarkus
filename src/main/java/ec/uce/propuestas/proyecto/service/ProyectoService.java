@@ -13,7 +13,6 @@ import ec.uce.propuestas.proyecto.repository.ProyectoRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-
 import java.util.List;
 
 @ApplicationScoped
@@ -23,8 +22,8 @@ public class ProyectoService {
     ProyectoRepository proyectoRepository;
 
     /** Lista los proyectos del usuario autenticado (propietario), paginado. */
-    public Page<ProyectoResponse> listarDeUsuario(Long usuarioId, String q, EstadoProyecto estado,
-                                                  int pageIndex, int pageSize) {
+    public Page<ProyectoResponse> listarDeUsuario(
+            Long usuarioId, String q, EstadoProyecto estado, int pageIndex, int pageSize) {
         List<Proyecto> items;
         long total;
         if (q != null && !q.isBlank() || estado != null) {
@@ -47,7 +46,9 @@ public class ProyectoService {
         p.anio = req.anio();
         p.fechaInicio = req.fechaInicio();
         p.plazoEjecucion = req.plazoEjecucion();
-        p.plazoUnidad = req.plazoUnidad() == null ? null : PlazoUnidad.valueOf(req.plazoUnidad().toUpperCase());
+        p.plazoUnidad = req.plazoUnidad() == null
+                ? null
+                : PlazoUnidad.valueOf(req.plazoUnidad().toUpperCase());
         p.direccionInstitucional = req.direccionInstitucional();
         p.subdireccionInstitucional = req.subdireccionInstitucional();
         p.estado = EstadoProyecto.BORRADOR;
@@ -84,7 +85,8 @@ public class ProyectoService {
 
     /** Valida que el proyecto pertenezca al usuario (RNF-05). */
     public Proyecto validarPropietario(Long usuarioId, Long id) {
-        return proyectoRepository.findByIdYPropietario(id, usuarioId)
+        return proyectoRepository
+                .findByIdYPropietario(id, usuarioId)
                 .orElseThrow(() -> ProblemaException.noEncontrado("Proyecto no encontrado"));
     }
 }

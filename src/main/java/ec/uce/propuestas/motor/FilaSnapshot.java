@@ -11,12 +11,12 @@ import java.util.Objects;
 public record FilaSnapshot(
         SeccionTipo seccion,
         boolean esHerramientaMenor,
-        BigDecimal cantidad,           // null iff esHerramientaMenor
-        BigDecimal rendimiento,        // null for MATERIAL/TRANSPORTE and for HM row
-        BigDecimal precioInsumo,       // null iff esHerramientaMenor
-        BigDecimal overridePrecio,     // nullable; when non-null, overrides precioInsumo
-        BigDecimal cdAuxiliar          // non-null iff row is an auxiliar reference (MATERIAL)
-) {
+        BigDecimal cantidad, // null iff esHerramientaMenor
+        BigDecimal rendimiento, // null for MATERIAL/TRANSPORTE and for HM row
+        BigDecimal precioInsumo, // null iff esHerramientaMenor
+        BigDecimal overridePrecio, // nullable; when non-null, overrides precioInsumo
+        BigDecimal cdAuxiliar // non-null iff row is an auxiliar reference (MATERIAL)
+        ) {
     public FilaSnapshot {
         Objects.requireNonNull(seccion, "seccion must not be null");
         if (esHerramientaMenor && seccion != SeccionTipo.EQUIPO) {

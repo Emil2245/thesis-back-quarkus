@@ -21,7 +21,6 @@ import ec.uce.propuestas.proyecto.service.ParametrosProyectoService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -33,28 +32,35 @@ public class ApuCrudService {
 
     @Inject
     ApuRepository apuRepository;
+
     @Inject
     ApuSeccionRepository seccionRepository;
+
     @Inject
     ApuDetalleRepository detalleRepository;
+
     @Inject
     InsumoRepository insumoRepository;
+
     @Inject
     ParametrosProyectoService parametrosService;
+
     @Inject
     ApuCalculoService calculoService;
 
     @Transactional
     public ApuResponse crear(Long presupuestoId, ApuCrearRequest req) {
-        if (req.codigo() != null && !req.codigo().isBlank()
-                && apuRepository.findByPresupuestoYCodigo(presupuestoId, req.codigo()).isPresent()) {
+        if (req.codigo() != null
+                && !req.codigo().isBlank()
+                && apuRepository
+                        .findByPresupuestoYCodigo(presupuestoId, req.codigo())
+                        .isPresent()) {
             throw ProblemaException.codigoDuplicado("Código duplicado en esta versión del presupuesto");
         }
 
         Apu apu = new Apu();
         apu.presupuestoId = presupuestoId;
-        apu.codigo = req.codigo() != null && !req.codigo().isBlank()
-                ? req.codigo() : siguienteCodigo(presupuestoId);
+        apu.codigo = req.codigo() != null && !req.codigo().isBlank() ? req.codigo() : siguienteCodigo(presupuestoId);
         apu.descripcion = req.descripcion();
         apu.unidad = req.unidad();
         apuRepository.persist(apu);
@@ -67,8 +73,7 @@ public class ApuCrudService {
     }
 
     public Page<ApuResumenResponse> listar(Long presupuestoId, String q, int page, int size) {
-        List<ApuResumenResponse> items = apuRepository.listarDePresupuesto(presupuestoId, q, page, size)
-                .stream()
+        List<ApuResumenResponse> items = apuRepository.listarDePresupuesto(presupuestoId, q, page, size).stream()
                 .map(a -> ApuResumenMapper.toResponse(a, apuRepository.estaVinculado(a.id)))
                 .toList();
         long total = apuRepository.contarDePresupuesto(presupuestoId, q);
@@ -85,9 +90,12 @@ public class ApuCrudService {
         if (req.codigo() != null && req.codigo().isPresent()) {
             String nuevo = req.codigo().get();
             if (nuevo != null && !nuevo.isBlank()) {
-                apuRepository.findByPresupuestoYCodigo(apu.presupuestoId, nuevo)
+                apuRepository
+                        .findByPresupuestoYCodigo(apu.presupuestoId, nuevo)
                         .filter(o -> !o.id.equals(apuId))
-                        .ifPresent(o -> { throw ProblemaException.codigoDuplicado("Código duplicado en esta versión del presupuesto"); });
+                        .ifPresent(o -> {
+                            throw ProblemaException.codigoDuplicado("Código duplicado en esta versión del presupuesto");
+                        });
                 apu.codigo = nuevo;
             }
         }
@@ -107,7 +115,8 @@ public class ApuCrudService {
     public void eliminar(Long apuId) {
         Apu apu = _validar(apuId);
         if (apuRepository.estaVinculado(apuId)) {
-            throw ProblemaException.apuReferenciado("El APU está vinculado a un rubro del presupuesto y no puede eliminarse");
+            throw ProblemaException.apuReferenciado(
+                    "El APU está vinculado a un rubro del presupuesto y no puede eliminarse");
         }
         apuRepository.delete(apu);
     }
@@ -115,7 +124,8 @@ public class ApuCrudService {
     @Transactional
     public ApuResponse agregarDetalle(Long apuId, ApuDetalleCrearRequest req) {
         Apu apu = _validar(apuId);
-        Long proyectoId = apuRepository.proyectoDePresupuesto(apu.presupuestoId)
+        Long proyectoId = apuRepository
+                .proyectoDePresupuesto(apu.presupuestoId)
                 .orElseThrow(() -> ProblemaException.noEncontrado("Presupuesto no encontrado"));
 
         Insumo insumo = insumoRepository.findById(req.insumoId());
@@ -124,7 +134,8 @@ public class ApuCrudService {
         }
         validarSeccionParaInsumo(req.seccionTipo(), insumo.tipo);
 
-        ApuSeccion seccion = seccionRepository.findByApuYTipo(apuId, req.seccionTipo())
+        ApuSeccion seccion = seccionRepository
+                .findByApuYTipo(apuId, req.seccionTipo())
                 .orElseThrow(() -> ProblemaException.noEncontrado("Sección no encontrada para el tipo indicado"));
 
         ApuDetalle d = new ApuDetalle();
@@ -154,7 +165,9 @@ public class ApuCrudService {
         }
         SeccionTipo tipo = tipoDeDetalle(apuId, d.seccionId);
 
-        if (req.cantidad() != null && req.cantidad().isPresent() && req.cantidad().get() != null) {
+        if (req.cantidad() != null
+                && req.cantidad().isPresent()
+                && req.cantidad().get() != null) {
             BigDecimal v = req.cantidad().get();
             if (v.signum() <= 0) throw ProblemaException.validacion("cantidad debe ser mayor a 0");
             d.cantidad = v;
@@ -206,11 +219,11 @@ public class ApuCrudService {
 
     /** Reconstruye el response completo: secciones en orden M/N/O/P + precios efectivos. */
     public ApuResponse respuestaCompleta(Apu apu) {
-        Long proyectoId = apuRepository.proyectoDePresupuesto(apu.presupuestoId)
+        Long proyectoId = apuRepository
+                .proyectoDePresupuesto(apu.presupuestoId)
                 .orElseThrow(() -> ProblemaException.noEncontrado("Presupuesto no encontrado"));
         ParametrosProyecto params = parametrosService.obtenerOCrear(proyectoId);
-        BigDecimal ciEfectivo = apu.porcentajeIndirecto != null
-                ? apu.porcentajeIndirecto : params.porcentajeIndirecto;
+        BigDecimal ciEfectivo = apu.porcentajeIndirecto != null ? apu.porcentajeIndirecto : params.porcentajeIndirecto;
 
         List<ApuSeccion> secciones = seccionRepository.listarDeApu(apu.id);
         secciones.sort(Comparator.comparingInt(s -> s.tipo.ordinal()));
@@ -221,9 +234,8 @@ public class ApuCrudService {
             List<ApuDetalleResponse> respDetalles = detalles.stream()
                     .map(d -> {
                         Insumo insumo = d.insumoId == null ? null : insumoRepository.findById(d.insumoId);
-                        return ApuDetalleMapper.toResponse(d,
-                                calculoService.precioEfectivo(d, s.tipo, insumo),
-                                overrideDe(d, s.tipo) == null);
+                        return ApuDetalleMapper.toResponse(
+                                d, calculoService.precioEfectivo(d, s.tipo, insumo), overrideDe(d, s.tipo) == null);
                     })
                     .toList();
             respSecciones.add(new ApuSeccionResponse(s.tipo, s.orden, s.subtotal, respDetalles));
@@ -234,8 +246,8 @@ public class ApuCrudService {
 
     private void crearSecciones(Apu apu) {
         short orden = 1;
-        for (SeccionTipo tipo : List.of(SeccionTipo.EQUIPO, SeccionTipo.MANO_OBRA,
-                SeccionTipo.MATERIAL, SeccionTipo.TRANSPORTE)) {
+        for (SeccionTipo tipo :
+                List.of(SeccionTipo.EQUIPO, SeccionTipo.MANO_OBRA, SeccionTipo.MATERIAL, SeccionTipo.TRANSPORTE)) {
             ApuSeccion s = new ApuSeccion();
             s.apuId = apu.id;
             s.tipo = tipo;
@@ -243,7 +255,8 @@ public class ApuCrudService {
             seccionRepository.persist(s);
         }
         // fila HM, primera del bloque M (decisión §17 #9)
-        ApuSeccion equipo = seccionRepository.findByApuYTipo(apu.id, SeccionTipo.EQUIPO).orElseThrow();
+        ApuSeccion equipo =
+                seccionRepository.findByApuYTipo(apu.id, SeccionTipo.EQUIPO).orElseThrow();
         ApuDetalle hm = new ApuDetalle();
         hm.seccionId = equipo.id;
         hm.descripcion = "Herramienta Menor 5%MO";
@@ -253,7 +266,8 @@ public class ApuCrudService {
     }
 
     private ApuDetalle resolverDetalle(Long apuId, Long detalleId) {
-        return detalleRepository.findByIdYSeccionDeApu(detalleId, apuId)
+        return detalleRepository
+                .findByIdYSeccionDeApu(detalleId, apuId)
                 .orElseThrow(() -> ProblemaException.noEncontrado("Fila no encontrada en este APU"));
     }
 
@@ -292,12 +306,13 @@ public class ApuCrudService {
     }
 
     private static void validarSeccionParaInsumo(SeccionTipo seccion, TipoInsumo tipoInsumo) {
-        boolean ok = switch (seccion) {
-            case EQUIPO -> tipoInsumo == TipoInsumo.EQUIPO;
-            case MANO_OBRA -> tipoInsumo == TipoInsumo.MANO_OBRA;
-            case MATERIAL -> tipoInsumo == TipoInsumo.MATERIAL;
-            case TRANSPORTE -> tipoInsumo == TipoInsumo.TRANSPORTE;
-        };
+        boolean ok =
+                switch (seccion) {
+                    case EQUIPO -> tipoInsumo == TipoInsumo.EQUIPO;
+                    case MANO_OBRA -> tipoInsumo == TipoInsumo.MANO_OBRA;
+                    case MATERIAL -> tipoInsumo == TipoInsumo.MATERIAL;
+                    case TRANSPORTE -> tipoInsumo == TipoInsumo.TRANSPORTE;
+                };
         if (!ok) {
             throw ProblemaException.validacion("El insumo no es compatible con la sección " + seccion);
         }

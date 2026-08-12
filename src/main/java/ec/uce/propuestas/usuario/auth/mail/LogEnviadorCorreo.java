@@ -2,9 +2,8 @@ package ec.uce.propuestas.usuario.auth.mail;
 
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
-import org.jboss.logging.Logger;
-
 import java.time.Instant;
+import org.jboss.logging.Logger;
 
 @ApplicationScoped
 @Priority(1)

@@ -2,7 +2,6 @@ package ec.uce.propuestas.proyecto.entity;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 
@@ -56,5 +55,7 @@ public class ParametrosProyecto extends PanacheEntityBase {
 
     @jakarta.persistence.PrePersist
     @jakarta.persistence.PreUpdate
-    void onWrite() { updatedAt = Instant.now(); }
+    void onWrite() {
+        updatedAt = Instant.now();
+    }
 }

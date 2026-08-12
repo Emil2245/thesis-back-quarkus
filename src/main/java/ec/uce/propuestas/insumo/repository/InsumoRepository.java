@@ -6,7 +6,6 @@ import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import io.quarkus.panache.common.Page;
 import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -16,14 +15,14 @@ import java.util.Optional;
 public class InsumoRepository implements PanacheRepositoryBase<Insumo, Long> {
 
     public Optional<Insumo> findByBaseYcodigo(Long baseId, String codigo) {
-        return find("baseId = :baseId and codigo = :codigo",
-                Parameters.with("baseId", baseId).and("codigo", codigo))
+        return find(
+                        "baseId = :baseId and codigo = :codigo",
+                        Parameters.with("baseId", baseId).and("codigo", codigo))
                 .firstResultOptional();
     }
 
     public Optional<Insumo> findByIdYBase(Long id, Long baseId) {
-        return find("id = :id and baseId = :baseId",
-                Parameters.with("id", id).and("baseId", baseId))
+        return find("id = :id and baseId = :baseId", Parameters.with("id", id).and("baseId", baseId))
                 .firstResultOptional();
     }
 
@@ -36,17 +35,20 @@ public class InsumoRepository implements PanacheRepositoryBase<Insumo, Long> {
     }
 
     /** Listado con filtros (tipo, texto, desactualizados) y paginación. */
-    public List<Insumo> listarDeBaseConFiltros(Long baseId, TipoInsumo tipo, String q,
-                                               boolean desactualizadosOnly, long desactualizadoCorte,
-                                               int pageIndex, int pageSize) {
+    public List<Insumo> listarDeBaseConFiltros(
+            Long baseId,
+            TipoInsumo tipo,
+            String q,
+            boolean desactualizadosOnly,
+            long desactualizadoCorte,
+            int pageIndex,
+            int pageSize) {
         Filtros f = filtros(baseId, tipo, q, desactualizadosOnly, desactualizadoCorte);
-        return find(f.sql, f.params)
-                .page(Page.of(pageIndex, pageSize))
-                .list();
+        return find(f.sql, f.params).page(Page.of(pageIndex, pageSize)).list();
     }
 
-    public long contarDeBaseConFiltros(Long baseId, TipoInsumo tipo, String q,
-                                       boolean desactualizadosOnly, long desactualizadoCorte) {
+    public long contarDeBaseConFiltros(
+            Long baseId, TipoInsumo tipo, String q, boolean desactualizadosOnly, long desactualizadoCorte) {
         Filtros f = filtros(baseId, tipo, q, desactualizadosOnly, desactualizadoCorte);
         return count(f.sql, f.params);
     }
@@ -60,9 +62,7 @@ public class InsumoRepository implements PanacheRepositoryBase<Insumo, Long> {
             params = params.and("q", "%" + q.toLowerCase() + "%");
         }
         ql.append(" order by codigo");
-        return find(ql.toString(), params)
-                .page(Page.of(pageIndex, pageSize))
-                .list();
+        return find(ql.toString(), params).page(Page.of(pageIndex, pageSize)).list();
     }
 
     public long contarDeBases(List<Long> baseIds, String q) {
@@ -76,11 +76,10 @@ public class InsumoRepository implements PanacheRepositoryBase<Insumo, Long> {
         return count(ql.toString(), params);
     }
 
-    private record Filtros(String sql, Parameters params) {
-    }
+    private record Filtros(String sql, Parameters params) {}
 
-    private static Filtros filtros(Long baseId, TipoInsumo tipo, String q,
-                                   boolean desactualizadosOnly, long desactualizadoCorte) {
+    private static Filtros filtros(
+            Long baseId, TipoInsumo tipo, String q, boolean desactualizadosOnly, long desactualizadoCorte) {
         StringBuilder ql = new StringBuilder("baseId = :baseId");
         Parameters params = Parameters.with("baseId", baseId);
         if (tipo != null) {

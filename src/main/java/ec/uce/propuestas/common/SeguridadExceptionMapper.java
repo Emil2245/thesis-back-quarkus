@@ -40,8 +40,6 @@ public class SeguridadExceptionMapper {
     }
 
     private static Response error(int status, String codigo, String mensaje) {
-        return Response.status(status)
-            .entity(new ErrorPayload(codigo, mensaje))
-            .build();
+        return Response.status(status).entity(new ErrorPayload(codigo, mensaje)).build();
     }
 }

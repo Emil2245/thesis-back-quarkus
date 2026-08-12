@@ -4,7 +4,6 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-
 import java.time.LocalDate;
 
 public record ProyectoEditarRequest(
@@ -16,5 +15,4 @@ public record ProyectoEditarRequest(
         @Min(1) Short plazoEjecucion,
         String plazoUnidad,
         @NotBlank @Size(max = 200) String direccionInstitucional,
-        @Size(max = 200) String subdireccionInstitucional
-) {}
+        @Size(max = 200) String subdireccionInstitucional) {}

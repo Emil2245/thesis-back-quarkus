@@ -4,7 +4,6 @@ import ec.uce.propuestas.usuario.auth.mail.EnviadorCorreo;
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Alternative;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -33,7 +32,11 @@ public class RecordingEnviadorCorreo implements EnviadorCorreo {
         entregas.add(new Entrega(email, "invitacion", token, Instant.now()));
     }
 
-    public List<Entrega> entregas() { return List.copyOf(entregas); }
+    public List<Entrega> entregas() {
+        return List.copyOf(entregas);
+    }
 
-    public void clear() { entregas.clear(); }
+    public void clear() {
+        entregas.clear();
+    }
 }

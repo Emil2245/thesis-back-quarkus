@@ -1,12 +1,11 @@
 package ec.uce.propuestas.motor;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.Test;
 
 /**
  * Golden Master tests for the per-APU grain of the motor.
@@ -24,12 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class MotorApuTest {
 
-    private static final ParametrosCalculo P_TULCAN = new ParametrosCalculo(
-            new BigDecimal("0.0500"),
-            new BigDecimal("0.1800"),
-            null,
-            BigDecimal.ZERO
-    );
+    private static final ParametrosCalculo P_TULCAN =
+            new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1800"), null, BigDecimal.ZERO);
 
     private static final String TULCAN_FILE = "apus-sample-apus-cetro-medico-tulcan.json";
 
@@ -37,8 +32,7 @@ class MotorApuTest {
     private static void assertEq6(String label, BigDecimal expected, BigDecimal actual) {
         BigDecimal e = expected.setScale(6, RoundingMode.HALF_UP);
         BigDecimal a = actual.setScale(6, RoundingMode.HALF_UP);
-        assertEquals(0, e.compareTo(a),
-                label + ": expected=" + e + " actual=" + a);
+        assertEquals(0, e.compareTo(a), label + ": expected=" + e + " actual=" + a);
     }
 
     private static ApuCalculado computeApu(JsonNode root, String codigo) {
@@ -57,10 +51,8 @@ class MotorApuTest {
         ApuCalculado out = Motor.calcularApu(snap, P_TULCAN);
 
         // Fixture exact values (no float noise)
-        assertEquals(0, new BigDecimal("4.690875").compareTo(out.costoDirecto()),
-                "501BM6 costoDirecto");
-        assertEquals(0, new BigDecimal("5.5352325").compareTo(out.costoTotal()),
-                "501BM6 costoTotal");
+        assertEquals(0, new BigDecimal("4.690875").compareTo(out.costoDirecto()), "501BM6 costoDirecto");
+        assertEquals(0, new BigDecimal("5.5352325").compareTo(out.costoTotal()), "501BM6 costoTotal");
     }
 
     // ── GM-02 ──────────────────────────────────────────────────────────────
@@ -258,8 +250,7 @@ class MotorApuTest {
         ApuCalculado out = computeApu(root, "501BM6");
 
         // subtotalN = 4.4675; HM = 5% × 4.4675 = 0.223375
-        assertEquals(0, new BigDecimal("0.223375").compareTo(out.costoHm()),
-                "501BM6 costoHm should be 0.223375");
+        assertEquals(0, new BigDecimal("0.223375").compareTo(out.costoHm()), "501BM6 costoHm should be 0.223375");
     }
 
     // ── GM-23 — Annex C.7 APU built by hand ───────────────────────────────
@@ -296,64 +287,79 @@ class MotorApuTest {
     @Test
     void GM_23_Annex_C7_501062_vinil_disipador() {
         // MANO_OBRA rows: using Annex costo-column values as price, cantidad=1, rend=1.0
-        FilaSnapshot moInstalador = new FilaSnapshot(SeccionTipo.MANO_OBRA, false,
-                new BigDecimal("1.00"), new BigDecimal("1.00000"),
-                new BigDecimal("4.28"), null, null);
-        FilaSnapshot moPeon = new FilaSnapshot(SeccionTipo.MANO_OBRA, false,
-                new BigDecimal("1.00"), new BigDecimal("1.00000"),
-                new BigDecimal("4.23"), null, null);
+        FilaSnapshot moInstalador = new FilaSnapshot(
+                SeccionTipo.MANO_OBRA,
+                false,
+                new BigDecimal("1.00"),
+                new BigDecimal("1.00000"),
+                new BigDecimal("4.28"),
+                null,
+                null);
+        FilaSnapshot moPeon = new FilaSnapshot(
+                SeccionTipo.MANO_OBRA,
+                false,
+                new BigDecimal("1.00"),
+                new BigDecimal("1.00000"),
+                new BigDecimal("4.23"),
+                null,
+                null);
         // Maestro: Annex shows costo=0.48 (= 0.10×4.75 displayed at 2dp).
         // Using price=0.48, cantidad=1, rend=1.0 to exactly match the Annex's subtotalN=8.99.
-        FilaSnapshot moMaestro = new FilaSnapshot(SeccionTipo.MANO_OBRA, false,
-                new BigDecimal("1.00"), new BigDecimal("1.00000"),
-                new BigDecimal("0.48"), null, null);
+        FilaSnapshot moMaestro = new FilaSnapshot(
+                SeccionTipo.MANO_OBRA,
+                false,
+                new BigDecimal("1.00"),
+                new BigDecimal("1.00000"),
+                new BigDecimal("0.48"),
+                null,
+                null);
 
         // EQUIPO: HM row only (5% of MO)
-        FilaSnapshot hmFila = new FilaSnapshot(SeccionTipo.EQUIPO, true,
-                new BigDecimal("5"), null, null, null, null);
+        FilaSnapshot hmFila = new FilaSnapshot(SeccionTipo.EQUIPO, true, new BigDecimal("5"), null, null, null, null);
 
         // MATERIAL rows: using Annex costo-column values as price, cantidad=1
-        FilaSnapshot matVinil = new FilaSnapshot(SeccionTipo.MATERIAL, false,
-                new BigDecimal("1.00"), null, new BigDecimal("45.60"), null, null);
+        FilaSnapshot matVinil = new FilaSnapshot(
+                SeccionTipo.MATERIAL, false, new BigDecimal("1.00"), null, new BigDecimal("45.60"), null, null);
         // Cordón: Annex shows costo=0.51; using price=0.51 to get subtotalO=51.95
-        FilaSnapshot matCordon = new FilaSnapshot(SeccionTipo.MATERIAL, false,
-                new BigDecimal("1.00"), null, new BigDecimal("0.51"), null, null);
+        FilaSnapshot matCordon = new FilaSnapshot(
+                SeccionTipo.MATERIAL, false, new BigDecimal("1.00"), null, new BigDecimal("0.51"), null, null);
         // Pegamento: Annex shows costo=5.84 (inconsistent with 0.10×61.49=6.149)
-        FilaSnapshot matPegamento = new FilaSnapshot(SeccionTipo.MATERIAL, false,
-                new BigDecimal("1.00"), null, new BigDecimal("5.84"), null, null);
+        FilaSnapshot matPegamento = new FilaSnapshot(
+                SeccionTipo.MATERIAL, false, new BigDecimal("1.00"), null, new BigDecimal("5.84"), null, null);
 
         // APU snapshot — NOT auxiliar
-        ApuSnapshot snap = new ApuSnapshot("501062", false,
-                java.util.List.of(hmFila, moInstalador, moPeon, moMaestro,
-                        matVinil, matCordon, matPegamento));
+        ApuSnapshot snap = new ApuSnapshot(
+                "501062",
+                false,
+                java.util.List.of(hmFila, moInstalador, moPeon, moMaestro, matVinil, matCordon, matPegamento));
 
-        ParametrosCalculo p = new ParametrosCalculo(
-                new BigDecimal("0.0500"),
-                new BigDecimal("0.1800"),
-                null,
-                BigDecimal.ZERO
-        );
+        ParametrosCalculo p =
+                new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1800"), null, BigDecimal.ZERO);
 
         ApuCalculado out = Motor.calcularApu(snap, p);
 
         // Annex C.7 verification: assert motor's exact values round to the Annex's 2dp values
         // HM = 5% × 8.99 = 0.4495 → 0.45 at 2dp
-        assertEquals(0,
+        assertEquals(
+                0,
                 new BigDecimal("0.45").compareTo(out.costoHm().setScale(2, RoundingMode.HALF_UP)),
                 "Annex C.7 HM rounded 2dp should be 0.45, got " + out.costoHm());
 
         // CD = 0.4495 + 8.99 + 51.95 = 61.3895 → 61.39 at 2dp
-        assertEquals(0,
+        assertEquals(
+                0,
                 new BigDecimal("61.39").compareTo(out.costoDirecto().setScale(2, RoundingMode.HALF_UP)),
                 "Annex C.7 CD rounded 2dp should be 61.39, got " + out.costoDirecto());
 
         // CI = 61.3895 × 0.18 = 11.05011 → 11.05 at 2dp
-        assertEquals(0,
+        assertEquals(
+                0,
                 new BigDecimal("11.05").compareTo(out.costoIndirecto().setScale(2, RoundingMode.HALF_UP)),
                 "Annex C.7 CI rounded 2dp should be 11.05, got " + out.costoIndirecto());
 
         // CT = 61.3895 + 11.05011 = 72.43961 → 72.44 at 2dp
-        assertEquals(0,
+        assertEquals(
+                0,
                 new BigDecimal("72.44").compareTo(out.costoTotal().setScale(2, RoundingMode.HALF_UP)),
                 "Annex C.7 CT rounded 2dp should be 72.44, got " + out.costoTotal());
     }
@@ -370,7 +376,9 @@ class MotorApuTest {
         ApuCalculado out = computeApu(root, "501BM6");
 
         BigDecimal rounded2dp = out.costoTotal().setScale(2, RoundingMode.HALF_UP);
-        assertEquals(0, new BigDecimal("5.54").compareTo(rounded2dp),
+        assertEquals(
+                0,
+                new BigDecimal("5.54").compareTo(rounded2dp),
                 "501BM6 CT rounded 2dp should be 5.54, got " + rounded2dp);
     }
 }

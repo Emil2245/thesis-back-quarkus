@@ -4,7 +4,6 @@ import ec.uce.propuestas.insumo.entity.UnidadCatalogo;
 import ec.uce.propuestas.insumo.repository.UnidadCatalogoRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-
 import java.util.List;
 
 /** Catálogo de unidades (P-13/P-16). Solo lectura. */

@@ -29,24 +29,30 @@ public class ApuResource {
 
     @Inject
     ApuCrudService apuService;
+
     @Inject
     ApuRepository apuRepository;
+
     @Inject
     ProyectoService proyectoService;
+
     @Inject
     SecurityIdentity identity;
+
     @Inject
     UsuarioRepository usuarioRepository;
 
     private Long usuarioId() {
         String email = identity.getPrincipal().getName();
-        return usuarioRepository.findByEmail(email)
+        return usuarioRepository
+                .findByEmail(email)
                 .map(u -> u.id)
                 .orElseThrow(() -> ProblemaException.noEncontrado("Usuario autenticado no encontrado"));
     }
 
     private void validarAcceso(Long apuId) {
-        Long proyectoId = apuRepository.proyectoDeApu(apuId)
+        Long proyectoId = apuRepository
+                .proyectoDeApu(apuId)
                 .orElseThrow(() -> ProblemaException.noEncontrado("APU no encontrado"));
         proyectoService.validarPropietario(usuarioId(), proyectoId);
     }
@@ -81,17 +87,15 @@ public class ApuResource {
 
     @PATCH
     @Path("/detalles/{detalleId}")
-    public ApuResponse editarDetalle(@PathParam("apuId") Long apuId,
-                                     @PathParam("detalleId") Long detalleId,
-                                     @Valid ApuDetallePatchRequest req) {
+    public ApuResponse editarDetalle(
+            @PathParam("apuId") Long apuId, @PathParam("detalleId") Long detalleId, @Valid ApuDetallePatchRequest req) {
         validarAcceso(apuId);
         return apuService.editarDetalle(apuId, detalleId, req);
     }
 
     @DELETE
     @Path("/detalles/{detalleId}")
-    public ApuResponse eliminarDetalle(@PathParam("apuId") Long apuId,
-                                       @PathParam("detalleId") Long detalleId) {
+    public ApuResponse eliminarDetalle(@PathParam("apuId") Long apuId, @PathParam("detalleId") Long detalleId) {
         validarAcceso(apuId);
         return apuService.eliminarDetalle(apuId, detalleId);
     }

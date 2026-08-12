@@ -6,7 +6,6 @@ import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import io.quarkus.panache.common.Page;
 import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -18,14 +17,13 @@ import java.util.Optional;
 public class ProyectoRepository implements PanacheRepositoryBase<Proyecto, Long> {
 
     public List<Proyecto> listarDePropietario(Long usuarioId, int pageIndex, int pageSize) {
-        return find("usuarioId = :usuarioId order by updatedAt desc",
-                Parameters.with("usuarioId", usuarioId))
+        return find("usuarioId = :usuarioId order by updatedAt desc", Parameters.with("usuarioId", usuarioId))
                 .page(Page.of(pageIndex, pageSize))
                 .list();
     }
 
-    public List<Proyecto> buscarDePropietario(Long usuarioId, String q, EstadoProyecto estado,
-                                              int pageIndex, int pageSize) {
+    public List<Proyecto> buscarDePropietario(
+            Long usuarioId, String q, EstadoProyecto estado, int pageIndex, int pageSize) {
         StringBuilder ql = new StringBuilder("usuarioId = :usuarioId");
         Parameters params = Parameters.with("usuarioId", usuarioId);
         if (estado != null) {
@@ -37,9 +35,7 @@ public class ProyectoRepository implements PanacheRepositoryBase<Proyecto, Long>
             params = params.and("q", "%" + q.toLowerCase() + "%");
         }
         ql.append(" order by updatedAt desc");
-        return find(ql.toString(), params)
-                .page(Page.of(pageIndex, pageSize))
-                .list();
+        return find(ql.toString(), params).page(Page.of(pageIndex, pageSize)).list();
     }
 
     public long contarDePropietario(Long usuarioId) {
@@ -48,8 +44,9 @@ public class ProyectoRepository implements PanacheRepositoryBase<Proyecto, Long>
 
     /** Valida propiedad (RNF-05): devuelve vacío si el proyecto no es del usuario. */
     public Optional<Proyecto> findByIdYPropietario(Long id, Long usuarioId) {
-        return find("id = :id and usuarioId = :usuarioId",
-                Parameters.with("id", id).and("usuarioId", usuarioId))
+        return find(
+                        "id = :id and usuarioId = :usuarioId",
+                        Parameters.with("id", id).and("usuarioId", usuarioId))
                 .firstResultOptional();
     }
 }

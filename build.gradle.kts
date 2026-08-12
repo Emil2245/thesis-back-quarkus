@@ -1,6 +1,7 @@
 plugins {
     java
     alias(libs.plugins.quarkus)
+    alias(libs.plugins.spotless)
 }
 
 group = "ec.uce.propuestas"
@@ -48,6 +49,7 @@ dependencies {
 tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
     options.compilerArgs.add("-parameters")
+    options.compilerArgs.add("-Xlint:all")
 }
 
 tasks.withType<Test>().configureEach {
@@ -55,4 +57,14 @@ tasks.withType<Test>().configureEach {
     include("**/*Test.class")
     include("**/*IT.class")
     systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
+}
+
+spotless {
+    java {
+        palantirJavaFormat()
+    }
+}
+
+tasks.named("check") {
+    dependsOn("spotlessCheck")
 }

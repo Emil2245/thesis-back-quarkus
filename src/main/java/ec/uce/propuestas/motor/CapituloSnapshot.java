@@ -7,10 +7,10 @@ import java.util.Objects;
 public record CapituloSnapshot(
         String item,
         String descripcion,
-        int depth,                             // 1 = root chapter
-        List<CapituloSnapshot> subcapitulos,   // recursive sub-chapters
-        List<RubroSnapshot> rubros             // leaf rubros at this level
-) {
+        int depth, // 1 = root chapter
+        List<CapituloSnapshot> subcapitulos, // recursive sub-chapters
+        List<RubroSnapshot> rubros // leaf rubros at this level
+        ) {
     public CapituloSnapshot {
         Objects.requireNonNull(item, "item must not be null");
         Objects.requireNonNull(subcapitulos, "subcapitulos must not be null");

@@ -9,8 +9,7 @@ public record FilaInsumo(
         String unidad,
         BigDecimal precioUnitario,
         String errorCampo,
-        String errorMensaje
-) {
+        String errorMensaje) {
 
     public boolean valida() {
         return errorCampo == null && errorMensaje == null;

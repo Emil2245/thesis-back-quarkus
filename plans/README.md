@@ -33,6 +33,7 @@ iteration I-01 in full plus the I-02 hito (motor de cálculo puro).
 | 009 | [Módulos `proyecto` + `insumo`](../docs/modulos/README.md) | I-03 | **DONE** (2026-08-02; ver §009 post-execution notes) |
 | 010 | [Seed de escenarios reales (V004)](../docs/04-SEED-ESCENARIOS.md) | I-04 | **DONE** (2026-08-02; 3 proyectos uno por estado, FINALIZADO = workbook CMT; verificado en Postgres limpio + suite sin regresión) |
 | 011 | [Módulo APU núcleo (P-19…P-22)](../docs/modulos/03-apu.md) | I-05 | **DONE** (2026-08-11; P-19…P-22, editor APU, filas M/N/O/P, fila HM protegida, override precio + `JsonNullable` write-through vía `Motor.calcularApu`; 10 tests verdes, colección Bruno `api/bruno/08-apu/`) |
+| 012 | [Formatter + lint (Spotless/Palantir + -Xlint:all)](../docs/012-format-lint.md) | tooling | **DONE** (2026-08-11; 142 archivos formateados, 0 warnings lint, sin regresión; ver nota post-ejecución) |
 
 Plans for I-06 through I-12 (APU completo, presupuesto, cronograma, export,
 admin, validación final) are not yet written — they
@@ -382,6 +383,23 @@ que aporta valor real):
 - Verificado: `./gradlew build` OK, `./gradlew test` 56 tests (2 red GM-19/20,
   2 skipped — sin regresión), `quarkusDev` arranca en `:8080` (credenciales
   compose: `DB_USER=postgres DB_PASSWORD=postgres`).
+
+### 012 — Formatter + lint (raised 2026-08-11)
+
+Plan: [`docs/012-format-lint.md`](../docs/012-format-lint.md). **State: DONE.**
+
+Spotless 8.9.0 (`com.diffplug.spotless`, palantir-java-format sin versión fija)
++ `-Xlint:all` en `JavaCompile`. `spotlessApply` formateó 142 archivos Java
+(main + tests, +1465/−1196, whitespace-only — verificado vía `git diff -w` y
+suite). `spotlessCheck` acoplado a `check` via `tasks.named("check")`.
+
+**Decisiones del autor:** (1) motor formateado *sin* exclusión — los cambios
+en `Motor.java`/`internal/Consolidador.java` son whitespace-only (GM-19/20
+siguen red por el tema de rounding del workbook, no por formato); (2) Error
+Prone NO se añade (requiere su propio plan); (3) `-Werror` NO — solo ver.
+
+**Verificación:** `./gradlew spotlessCheck` OK · `./gradlew build -x test` OK ·
+`./gradlew test` → 77 tests, 2 red (GM-19/20 preexistentes), 2 skipped.
 
 ## Considered and rejected
 

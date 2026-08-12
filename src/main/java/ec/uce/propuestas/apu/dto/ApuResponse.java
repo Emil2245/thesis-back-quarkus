@@ -16,5 +16,4 @@ public record ApuResponse(
         BigDecimal porcentajeIndirecto,
         BigDecimal porcentajeIndirectoEfectivo,
         BigDecimal porcentajeDescuento,
-        List<ApuSeccionResponse> secciones
-) {}
+        List<ApuSeccionResponse> secciones) {}

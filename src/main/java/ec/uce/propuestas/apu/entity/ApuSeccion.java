@@ -3,7 +3,6 @@ package ec.uce.propuestas.apu.entity;
 import ec.uce.propuestas.motor.SeccionTipo;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
-
 import java.math.BigDecimal;
 
 @Entity

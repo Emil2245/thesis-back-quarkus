@@ -29,24 +29,30 @@ public class PresupuestoApuResource {
 
     @Inject
     ApuCrudService apuService;
+
     @Inject
     ApuRepository apuRepository;
+
     @Inject
     ProyectoService proyectoService;
+
     @Inject
     SecurityIdentity identity;
+
     @Inject
     UsuarioRepository usuarioRepository;
 
     private Long usuarioId() {
         String email = identity.getPrincipal().getName();
-        return usuarioRepository.findByEmail(email)
+        return usuarioRepository
+                .findByEmail(email)
                 .map(u -> u.id)
                 .orElseThrow(() -> ProblemaException.noEncontrado("Usuario autenticado no encontrado"));
     }
 
     private void validarAcceso(Long presupuestoId) {
-        Long proyectoId = apuRepository.proyectoDePresupuesto(presupuestoId)
+        Long proyectoId = apuRepository
+                .proyectoDePresupuesto(presupuestoId)
                 .orElseThrow(() -> ProblemaException.noEncontrado("Presupuesto no encontrado"));
         proyectoService.validarPropietario(usuarioId(), proyectoId);
     }
@@ -63,8 +69,7 @@ public class PresupuestoApuResource {
     }
 
     @POST
-    public Response crear(@PathParam("presupuestoId") Long presupuestoId,
-                          @Valid ApuCrearRequest req) {
+    public Response crear(@PathParam("presupuestoId") Long presupuestoId, @Valid ApuCrearRequest req) {
         validarAcceso(presupuestoId);
         ApuResponse creado = apuService.crear(presupuestoId, req);
         return Response.status(Response.Status.CREATED).entity(creado).build();

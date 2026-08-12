@@ -5,6 +5,7 @@ openpdf = "2.0.3"
 jqwik = "1.9.0"
 commons-csv = "1.12.0"
 jackson-databind-nullable = "0.2.10"
+spotless = "8.9.0"
 
 [libraries]
 # Platform BOM
@@ -40,3 +41,4 @@ jqwik = { module = "net.jqwik:jqwik", version.ref = "jqwik" }
 
 [plugins]
 quarkus = { id = "io.quarkus", version.ref = "quarkus" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }

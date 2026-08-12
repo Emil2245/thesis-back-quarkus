@@ -7,8 +7,6 @@ import ec.uce.propuestas.usuario.Usuario;
 import io.smallrye.jwt.build.Jwt;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -18,6 +16,7 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.Optional;
 import java.util.Set;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
 public class TokenService {
@@ -44,10 +43,10 @@ public class TokenService {
 
     public String mintAccessToken(Usuario usuario) {
         return Jwt.issuer("https://propuestas-api.local")
-            .upn(usuario.email)
-            .groups(Set.of(usuario.rol.name()))
-            .expiresIn(ACCESS_TOKEN_TTL_SECONDS)
-            .sign();
+                .upn(usuario.email)
+                .groups(Set.of(usuario.rol.name()))
+                .expiresIn(ACCESS_TOKEN_TTL_SECONDS)
+                .sign();
     }
 
     // ---------- Refresh tokens ----------
@@ -99,9 +98,7 @@ public class TokenService {
 
     @Transactional
     public void revokeAllRefreshTokensForUser(Long usuarioId) {
-        RefreshToken.update(
-            "revocadoEn = ?1 WHERE usuario.id = ?2 AND revocadoEn IS NULL",
-            Instant.now(), usuarioId);
+        RefreshToken.update("revocadoEn = ?1 WHERE usuario.id = ?2 AND revocadoEn IS NULL", Instant.now(), usuarioId);
     }
 
     public Optional<Usuario> findUsuarioByRefreshToken(String rawToken) {
@@ -132,18 +129,23 @@ public class TokenService {
         return raw;
     }
 
-    public Duration verificacionTtl() { return verificacionTtl; }
-    public Duration resetTtl() { return resetTtl; }
-    public Duration invitacionTtl() { return invitacionTtl; }
+    public Duration verificacionTtl() {
+        return verificacionTtl;
+    }
+
+    public Duration resetTtl() {
+        return resetTtl;
+    }
+
+    public Duration invitacionTtl() {
+        return invitacionTtl;
+    }
 
     @Transactional
     public Long consumeOneTimeToken(String rawToken, TipoToken expectedTipo) {
         String hash = sha256Hex(rawToken);
         TokenUsuario tu = TokenUsuario.find("tokenHash", hash).firstResult();
-        if (tu == null
-            || tu.tipo != expectedTipo
-            || tu.expiraEn.isBefore(Instant.now())
-            || tu.usadoEn != null) {
+        if (tu == null || tu.tipo != expectedTipo || tu.expiraEn.isBefore(Instant.now()) || tu.usadoEn != null) {
             return null;
         }
         tu.usadoEn = Instant.now();
@@ -152,9 +154,8 @@ public class TokenService {
 
     /** Returns the most recent TokenUsuario for the given user/type (may be null). */
     public TokenUsuario findLatestToken(Long usuarioId, TipoToken tipo) {
-        return TokenUsuario.find(
-            "usuario.id = ?1 AND tipo = ?2 ORDER BY createdAt DESC",
-            usuarioId, tipo).firstResult();
+        return TokenUsuario.find("usuario.id = ?1 AND tipo = ?2 ORDER BY createdAt DESC", usuarioId, tipo)
+                .firstResult();
     }
 
     // ---------- Utilities ----------

@@ -24,25 +24,25 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
             String codigo = codePorEstatus(status);
             String mensaje = mensajeLegible(wae, status, codigo);
             return Response.status(status)
-                .entity(new ErrorPayload(codigo, mensaje))
-                .build();
+                    .entity(new ErrorPayload(codigo, mensaje))
+                    .build();
         }
 
         if (t instanceof ConstraintViolationException cve) {
             String firstMsg = cve.getConstraintViolations().stream()
-                .findFirst()
-                .map(v -> v.getMessage())
-                .orElse("Datos de entrada inválidos");
+                    .findFirst()
+                    .map(v -> v.getMessage())
+                    .orElse("Datos de entrada inválidos");
             return Response.status(400)
-                .entity(new ErrorPayload("validacion", firstMsg))
-                .build();
+                    .entity(new ErrorPayload("validacion", firstMsg))
+                    .build();
         }
 
         // Fallthrough: 500 — log throwable, never leak internals
         LOG.error("Error inesperado del servidor", t);
         return Response.status(500)
-            .entity(new ErrorPayload("servidor", "Error interno del servidor"))
-            .build();
+                .entity(new ErrorPayload("servidor", "Error interno del servidor"))
+                .build();
     }
 
     private static String codePorEstatus(int status) {
@@ -53,7 +53,7 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
             case 404 -> "no-encontrado";
             case 410 -> "token-invalido-o-expirado";
             case 429 -> "cooldown-activo";
-            default  -> "servidor";
+            default -> "servidor";
         };
     }
 
@@ -65,8 +65,7 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
      */
     private static String mensajeLegible(WebApplicationException wae, int status, String codigo) {
         String mensaje = wae.getMessage();
-        if (mensaje == null || mensaje.isBlank()
-                || mensaje.startsWith("HTTP ") || mensaje.equals(codigo)) {
+        if (mensaje == null || mensaje.isBlank() || mensaje.startsWith("HTTP ") || mensaje.equals(codigo)) {
             return switch (status) {
                 case 404 -> "Recurso no encontrado";
                 case 400 -> "Solicitud inválida";

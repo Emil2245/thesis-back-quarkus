@@ -10,7 +10,6 @@ import ec.uce.propuestas.insumo.repository.InsumoRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,8 +22,10 @@ public class CopiaBaseService {
 
     @Inject
     BaseInsumosRepository baseInsumosRepository;
+
     @Inject
     InsumoRepository insumoRepository;
+
     @Inject
     BaseInsumosService baseInsumosService;
 

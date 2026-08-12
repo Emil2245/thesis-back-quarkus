@@ -15,7 +15,6 @@ import ec.uce.propuestas.proyecto.service.ParametrosProyectoService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -32,18 +31,23 @@ public class ApuCalculoService {
 
     @Inject
     ApuRepository apuRepository;
+
     @Inject
     ApuSeccionRepository seccionRepository;
+
     @Inject
     ApuDetalleRepository detalleRepository;
+
     @Inject
     InsumoRepository insumoRepository;
+
     @Inject
     ParametrosProyectoService parametrosService;
 
     @Transactional
     public ApuCalculado recalcular(Apu apu) {
-        Long proyectoId = apuRepository.proyectoDePresupuesto(apu.presupuestoId)
+        Long proyectoId = apuRepository
+                .proyectoDePresupuesto(apu.presupuestoId)
                 .orElseThrow(() -> ProblemaException.noEncontrado("Presupuesto no encontrado"));
         ParametrosProyecto params = parametrosService.obtenerOCrear(proyectoId);
 
@@ -107,18 +111,16 @@ public class ApuCalculoService {
     public BigDecimal precioEfectivo(ApuDetalle d, SeccionTipo tipo, Insumo insumo) {
         if (d.esHerramientaMenor) return null;
         BigDecimal override = overrideDeDetalle(d, tipo);
-        return override != null ? override
-                : (insumo == null ? null : insumo.precioUnitario);
+        return override != null ? override : (insumo == null ? null : insumo.precioUnitario);
     }
 
     static FilaSnapshot snapshotDeDetalle(ApuDetalle d, SeccionTipo tipo, Insumo insumo, BigDecimal porcentajeHm) {
         if (d.esHerramientaMenor) {
-            return new FilaSnapshot(SeccionTipo.EQUIPO, true,
-                    porcentajeHm.multiply(BigDecimal.valueOf(100)), null, null, null, null);
+            return new FilaSnapshot(
+                    SeccionTipo.EQUIPO, true, porcentajeHm.multiply(BigDecimal.valueOf(100)), null, null, null, null);
         }
         BigDecimal precioInsumo = insumo == null ? null : insumo.precioUnitario;
-        return new FilaSnapshot(tipo, false, d.cantidad, d.rendimiento,
-                precioInsumo, overrideDeDetalle(d, tipo), null);
+        return new FilaSnapshot(tipo, false, d.cantidad, d.rendimiento, precioInsumo, overrideDeDetalle(d, tipo), null);
     }
 
     static BigDecimal overrideDeDetalle(ApuDetalle d, SeccionTipo tipo) {
@@ -129,8 +131,10 @@ public class ApuCalculoService {
     }
 
     static String descripcionHm(BigDecimal porcentajeHm) {
-        String pct = porcentajeHm.multiply(BigDecimal.valueOf(100))
-                .stripTrailingZeros().toPlainString();
+        String pct = porcentajeHm
+                .multiply(BigDecimal.valueOf(100))
+                .stripTrailingZeros()
+                .toPlainString();
         return "Herramienta Menor " + pct + "%MO";
     }
 }

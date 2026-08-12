@@ -62,6 +62,22 @@ the same commit set. Do not divergently re-decide things here.
 ./gradlew build -Dquarkus.native.enabled=true -Dquarkus.native.container-build=true
 ```
 
+## Formatting & lint
+
+The build uses **Spotless** (palantir-java-format) for Java style and
+`-Xlint:all` for javac warnings. Run before committing:
+
+```bash
+# Format all Java in place (main + tests)
+./gradlew spotlessApply
+
+# Check only (also runs automatically as part of `./gradlew build` / `check`)
+./gradlew spotlessCheck
+```
+
+If `spotlessCheck` fails in CI, run `spotlessApply` and re-commit. Details and
+decisions in [docs/012-format-lint.md](docs/012-format-lint.md).
+
 Endpoints in dev:
 - `/q/health` — liveness
 - `/q/openapi` — OpenAPI 3 YAML

@@ -3,7 +3,6 @@ package ec.uce.propuestas.motor.internal;
 import ec.uce.propuestas.motor.FilaCalculada;
 import ec.uce.propuestas.motor.FilaSnapshot;
 import ec.uce.propuestas.motor.SeccionTipo;
-
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
@@ -28,7 +27,11 @@ public final class CalculadorFila {
         BigDecimal precio = effectivePrice(f);
         BigDecimal costoHora = f.cantidad().multiply(precio, MC);
         BigDecimal costoFila = costoHora.multiply(f.rendimiento(), MC);
-        return new FilaCalculada(SeccionTipo.EQUIPO, false, f.cantidad(), f.rendimiento(),
+        return new FilaCalculada(
+                SeccionTipo.EQUIPO,
+                false,
+                f.cantidad(),
+                f.rendimiento(),
                 precio,
                 costoHora.setScale(SCALE, RoundingMode.HALF_UP),
                 costoFila);
@@ -39,7 +42,11 @@ public final class CalculadorFila {
         BigDecimal precio = effectivePrice(f);
         BigDecimal costoHora = f.cantidad().multiply(precio, MC);
         BigDecimal costoFila = costoHora.multiply(f.rendimiento(), MC);
-        return new FilaCalculada(SeccionTipo.MANO_OBRA, false, f.cantidad(), f.rendimiento(),
+        return new FilaCalculada(
+                SeccionTipo.MANO_OBRA,
+                false,
+                f.cantidad(),
+                f.rendimiento(),
                 precio,
                 costoHora.setScale(SCALE, RoundingMode.HALF_UP),
                 costoFila);
@@ -52,8 +59,7 @@ public final class CalculadorFila {
     public static FilaCalculada calcularMaterial(FilaSnapshot f) {
         BigDecimal precio = f.cdAuxiliar() != null ? f.cdAuxiliar() : effectivePrice(f);
         BigDecimal costoFila = f.cantidad().multiply(precio, MC);
-        return new FilaCalculada(SeccionTipo.MATERIAL, false, f.cantidad(), null,
-                precio, null, costoFila);
+        return new FilaCalculada(SeccionTipo.MATERIAL, false, f.cantidad(), null, precio, null, costoFila);
     }
 
     /**
@@ -62,8 +68,7 @@ public final class CalculadorFila {
     public static FilaCalculada calcularTransporte(FilaSnapshot f) {
         BigDecimal precio = effectivePrice(f);
         BigDecimal costoFila = f.cantidad().multiply(precio, MC);
-        return new FilaCalculada(SeccionTipo.TRANSPORTE, false, f.cantidad(), null,
-                precio, null, costoFila);
+        return new FilaCalculada(SeccionTipo.TRANSPORTE, false, f.cantidad(), null, precio, null, costoFila);
     }
 
     /** COALESCE(overridePrecio, precioInsumo). */

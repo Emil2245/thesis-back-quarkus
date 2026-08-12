@@ -5,9 +5,8 @@ import java.util.Objects;
 
 /** Cumulative schedule advance for a single period. */
 public record AvancePeriodo(
-        int periodo,
-        BigDecimal avanceAcumuladoPct   // sum across all activities for this period (scale 4)
-) {
+        int periodo, BigDecimal avanceAcumuladoPct // sum across all activities for this period (scale 4)
+        ) {
     public AvancePeriodo {
         Objects.requireNonNull(avanceAcumuladoPct, "avanceAcumuladoPct must not be null");
     }

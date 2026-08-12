@@ -1,7 +1,6 @@
 package ec.uce.propuestas.insumo.dto;
 
 import ec.uce.propuestas.insumo.entity.TipoInsumo;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 
@@ -16,5 +15,4 @@ public record InsumoBusquedaResponse(
         Instant fechaActualizacion,
         boolean desactualizado,
         String fuente,
-        String baseNombre
-) {}
+        String baseNombre) {}
