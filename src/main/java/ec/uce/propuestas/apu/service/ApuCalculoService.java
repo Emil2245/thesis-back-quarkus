@@ -188,7 +188,7 @@ public class ApuCalculoService {
                         apu.porcentajeDescuento));
 
         return new ApuCalculoResponse(
-                apu.id,
+                apu.publicId,
                 apu.codigo,
                 buildParametros(params, apu),
                 buildSecciones(secciones, entidades, out),
@@ -254,7 +254,7 @@ public class ApuCalculoService {
                     + escala6(fc.precioUnitarioEfectivo()).toPlainString();
         }
         return new ApuCalculoLinea(
-                d.id,
+                d.publicId,
                 d.orden,
                 fc.seccion(),
                 fc.esHerramientaMenor(),

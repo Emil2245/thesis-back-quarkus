@@ -146,7 +146,7 @@ public class ApuCrudService {
     /** P-45 (N04 §ESP). GET retorna una forma JSON estable e independiente del APU. */
     public EspecificacionTecnicaResponse obtenerEspecificacionTecnica(Long apuId) {
         Apu apu = _validar(apuId);
-        return new EspecificacionTecnicaResponse(apu.id, apu.especificacionTecnica);
+        return new EspecificacionTecnicaResponse(apu.publicId, apu.especificacionTecnica);
     }
 
     static String normalizarEspecificacion(String texto) {

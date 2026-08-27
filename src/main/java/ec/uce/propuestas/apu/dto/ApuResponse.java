@@ -2,10 +2,11 @@ package ec.uce.propuestas.apu.dto;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 /** Detalle completo de un APU (07-api-contract.md Apéndice B). */
 public record ApuResponse(
-        Long id,
+        UUID id,
         String codigo,
         String descripcion,
         String unidad,

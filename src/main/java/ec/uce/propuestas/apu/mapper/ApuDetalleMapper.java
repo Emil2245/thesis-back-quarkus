@@ -14,7 +14,7 @@ public final class ApuDetalleMapper {
      */
     public static ApuDetalleResponse toResponse(ApuDetalle d, BigDecimal precioEfectivo, boolean precioHeredado) {
         return new ApuDetalleResponse(
-                d.id,
+                d.publicId,
                 d.orden,
                 d.descripcion,
                 d.esHerramientaMenor,

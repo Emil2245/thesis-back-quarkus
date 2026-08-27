@@ -2,6 +2,7 @@ package ec.uce.propuestas.apu.dto;
 
 import ec.uce.propuestas.motor.SeccionTipo;
 import java.math.BigDecimal;
+import java.util.UUID;
 
 /**
  * Una línea del desglose de cálculo de un APU (dossier §B.8, P-27).
@@ -13,7 +14,7 @@ import java.math.BigDecimal;
  * motor.
  */
 public record ApuCalculoLinea(
-        Long detalleId,
+        UUID detalleId,
         Short orden,
         SeccionTipo seccion,
         boolean esHerramientaMenor,

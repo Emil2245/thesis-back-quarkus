@@ -16,7 +16,7 @@ public final class ApuMapper {
     public static ApuResponse toResponse(
             Apu e, BigDecimal porcentajeIndirectoEfectivo, List<ApuSeccionResponse> secciones) {
         return new ApuResponse(
-                e.id,
+                e.publicId,
                 e.codigo,
                 e.descripcion,
                 e.unidad,
