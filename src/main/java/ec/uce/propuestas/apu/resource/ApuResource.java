@@ -1,5 +1,6 @@
 package ec.uce.propuestas.apu.resource;
 
+import ec.uce.propuestas.apu.dto.ApuCalculoResponse;
 import ec.uce.propuestas.apu.dto.ApuDetalleCrearRequest;
 import ec.uce.propuestas.apu.dto.ApuDetallePatchRequest;
 import ec.uce.propuestas.apu.dto.ApuDuplicarRequest;
@@ -8,6 +9,7 @@ import ec.uce.propuestas.apu.dto.ApuResponse;
 import ec.uce.propuestas.apu.dto.EspecificacionTecnicaRequest;
 import ec.uce.propuestas.apu.dto.EspecificacionTecnicaResponse;
 import ec.uce.propuestas.apu.repository.ApuRepository;
+import ec.uce.propuestas.apu.service.ApuCalculoService;
 import ec.uce.propuestas.apu.service.ApuCrudService;
 import ec.uce.propuestas.apu.service.ApuDuplicarService;
 import ec.uce.propuestas.common.ProblemaException;
@@ -37,6 +39,9 @@ public class ApuResource {
 
     @Inject
     ApuDuplicarService duplicarService;
+
+    @Inject
+    ApuCalculoService calculoService;
 
     @Inject
     ApuRepository apuRepository;
@@ -147,5 +152,16 @@ public class ApuResource {
         Boolean copiarET = req == null ? null : req.copiarET();
         ApuResponse copia = duplicarService.duplicar(apuId, copiarET);
         return Response.status(Response.Status.CREATED).entity(copia).build();
+    }
+
+    /** P-27 (dossier §B.8). Desglose de cálculo del APU (solo proyecta, no recalcula). */
+    @GET
+    @Path("/calculo")
+    @Consumes(MediaType.WILDCARD)
+    public ApuCalculoResponse calculo(@PathParam("apuId") Long apuId) {
+        validarAcceso(apuId);
+        ec.uce.propuestas.apu.entity.Apu apu = apuRepository.findById(apuId);
+        if (apu == null) throw ProblemaException.noEncontrado("APU no encontrado");
+        return calculoService.proyectar(apu);
     }
 }

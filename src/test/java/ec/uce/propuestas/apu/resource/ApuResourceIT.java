@@ -979,4 +979,223 @@ class ApuResourceIT {
                 .statusCode(200)
                 .body("total", is(3));
     }
+
+    @Test
+    void TC_P27_01_calculo_shape_4_secciones_parametros_resumen() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p27shape@ex.com");
+        Long proyectoId = crearProyecto(token);
+        Long presupuestoId = insertarPresupuesto(proyectoId);
+        Long mo = crearInsumo(token, proyectoId, "MO-P27-1", "MANO_OBRA", "Peón", "h", 4.0);
+        Long mat = crearInsumo(token, proyectoId, "MA-P27-1", "MATERIAL", "Tubo", "m", 2.0);
+        Long apuId = crearApu(token, presupuestoId, "P27-SHAPE");
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of(
+                        "seccionTipo", "MANO_OBRA", "insumoId", mo.intValue(), "cantidad", 2.0, "rendimiento", 1.0))
+                .when()
+                .post("/api/v1/apus/" + apuId + "/detalles")
+                .then()
+                .statusCode(201);
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("seccionTipo", "MATERIAL", "insumoId", mat.intValue(), "cantidad", 3.0))
+                .when()
+                .post("/api/v1/apus/" + apuId + "/detalles")
+                .then()
+                .statusCode(201);
+
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/apus/" + apuId + "/calculo")
+                .then()
+                .statusCode(200)
+                .body("apuId", equalTo(apuId.intValue()))
+                .body("codigo", equalTo("P27-SHAPE"))
+                .body("parametros.hm", comparesTo(new BigDecimal("0.0500")))
+                .body("parametros.descuento", comparesTo(new BigDecimal("0.0000")))
+                .body("parametros.ciAplicado", comparesTo(new BigDecimal("0.0000")))
+                .body("secciones.size()", is(4))
+                .body("secciones[0].tipo", equalTo("EQUIPO"))
+                .body("secciones[1].tipo", equalTo("MANO_OBRA"))
+                .body("secciones[2].tipo", equalTo("MATERIAL"))
+                .body("secciones[3].tipo", equalTo("TRANSPORTE"))
+                .body("secciones[0].lineas.size()", is(1))
+                .body("secciones[0].lineas[0].esHerramientaMenor", is(true))
+                .body("secciones[1].lineas.size()", is(1))
+                .body("secciones[2].lineas.size()", is(1))
+                .body("secciones[3].lineas.size()", is(0))
+                .body("secciones[3].operacion", equalTo("0"))
+                .body("resumen.cd", comparesTo(new BigDecimal("14.400000")))
+                .body("resumen.cdAjustado", comparesTo(new BigDecimal("14.400000")))
+                .body("resumen.ci", comparesTo(new BigDecimal("0.000000")))
+                .body("resumen.ct", comparesTo(new BigDecimal("14.400000")));
+    }
+
+    @Test
+    void TC_P27_02_calculo_valores_y_operaciones_a_6dp_con_porcentajes() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p27vals@ex.com");
+        Long proyectoId = crearProyecto(token);
+        Long presupuestoId = insertarPresupuesto(proyectoId);
+        Long mo = crearInsumo(token, proyectoId, "MO-P27-2", "MANO_OBRA", "Soldador", "h", 5.0);
+        Long mat = crearInsumo(token, proyectoId, "MA-P27-2", "MATERIAL", "Cemento", "kg", 1.5);
+        Long apuId = crearApu(token, presupuestoId, "P27-VALS");
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of(
+                        "seccionTipo", "MANO_OBRA", "insumoId", mo.intValue(), "cantidad", 2.0, "rendimiento", 1.0))
+                .when()
+                .post("/api/v1/apus/" + apuId + "/detalles")
+                .then()
+                .statusCode(201);
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("seccionTipo", "MATERIAL", "insumoId", mat.intValue(), "cantidad", 3.0))
+                .when()
+                .post("/api/v1/apus/" + apuId + "/detalles")
+                .then()
+                .statusCode(201);
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body("0.2000")
+                .when()
+                .patch("/api/v1/apus/" + apuId + "/porcentaje-indirecto")
+                .then()
+                .statusCode(200);
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body("0.1000")
+                .when()
+                .patch("/api/v1/apus/" + apuId + "/porcentaje-descuento")
+                .then()
+                .statusCode(200);
+
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/apus/" + apuId + "/calculo")
+                .then()
+                .statusCode(200)
+                .body("parametros.hm", comparesTo(new BigDecimal("0.0500")))
+                .body("parametros.ciDefault", equalTo(null))
+                .body("parametros.ciAplicado", comparesTo(new BigDecimal("0.2000")))
+                .body("parametros.descuento", comparesTo(new BigDecimal("0.1000")))
+                .body("secciones[1].lineas[0].operacion", equalTo("2.000000 × 5.000000 × 1.000000"))
+                .body("secciones[1].lineas[0].resultado", comparesTo(new BigDecimal("10.000000")))
+                .body("secciones[1].operacion", equalTo("10.000000"))
+                .body("secciones[1].subtotal", comparesTo(new BigDecimal("10.000000")))
+                .body("secciones[1].resultado", comparesTo(new BigDecimal("10.000000")))
+                .body("secciones[2].lineas[0].operacion", equalTo("3.000000 × 1.500000"))
+                .body("secciones[2].lineas[0].resultado", comparesTo(new BigDecimal("4.500000")))
+                .body("secciones[0].lineas[0].operacion", equalTo("0.050000 × 10.000000"))
+                .body("secciones[0].lineas[0].resultado", comparesTo(new BigDecimal("0.500000")))
+                .body("secciones[0].subtotal", comparesTo(new BigDecimal("0.500000")))
+                .body("resumen.cd", comparesTo(new BigDecimal("15.000000")))
+                .body("resumen.cdAjustado", comparesTo(new BigDecimal("13.500000")))
+                .body("resumen.operacionCdAjustado", equalTo("15.000000 × 0.9000"))
+                .body("resumen.ci", comparesTo(new BigDecimal("2.700000")))
+                .body("resumen.ct", comparesTo(new BigDecimal("16.200000")));
+    }
+
+    @Test
+    void TC_P27_03_calculo_excluye_tipos_internos_del_motor() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p27noexpose@ex.com");
+        Long proyectoId = crearProyecto(token);
+        Long presupuestoId = insertarPresupuesto(proyectoId);
+        Long mo = crearInsumo(token, proyectoId, "MO-P27-3", "MANO_OBRA", "Peón", "h", 4.0);
+        Long apuId = crearApu(token, presupuestoId, "P27-LEAK");
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of(
+                        "seccionTipo", "MANO_OBRA", "insumoId", mo.intValue(), "cantidad", 1.0, "rendimiento", 1.0))
+                .when()
+                .post("/api/v1/apus/" + apuId + "/detalles")
+                .then()
+                .statusCode(201);
+
+        var json = given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/apus/" + apuId + "/calculo")
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath();
+
+        @SuppressWarnings("unchecked")
+        java.util.Set<String> bodyKeys =
+                (java.util.Set<String>) (java.util.Set<?>) json.getMap("").keySet();
+        org.junit.jupiter.api.Assertions.assertFalse(
+                bodyKeys.contains("motor") || bodyKeys.contains("filas") || bodyKeys.contains("apu"),
+                "no debe exponer nombres de campos internos del motor/aggregado");
+
+        @SuppressWarnings("unchecked")
+        java.util.Set<String> resumenKeys = (java.util.Set<String>)
+                (java.util.Set<?>) json.getMap("resumen").keySet();
+        org.junit.jupiter.api.Assertions.assertEquals(
+                java.util.Set.of("cd", "cdAjustado", "operacionCdAjustado", "ci", "ct"),
+                resumenKeys,
+                "resumen expone exactamente los 5 campos del contrato");
+
+        @SuppressWarnings("unchecked")
+        java.util.Set<String> parametrosKeys = (java.util.Set<String>)
+                (java.util.Set<?>) json.getMap("parametros").keySet();
+        org.junit.jupiter.api.Assertions.assertEquals(
+                java.util.Set.of("hm", "ciDefault", "ciAplicado", "descuento"),
+                parametrosKeys,
+                "parametros expone los 4 campos");
+
+        @SuppressWarnings("unchecked")
+        java.util.Set<String> seccionKeys = (java.util.Set<String>)
+                (java.util.Set<?>) json.getMap("secciones[0]").keySet();
+        org.junit.jupiter.api.Assertions.assertEquals(
+                java.util.Set.of("tipo", "subtotal", "operacion", "resultado", "lineas"),
+                seccionKeys,
+                "seccion expone los 5 campos");
+
+        @SuppressWarnings("unchecked")
+        java.util.Set<String> lineaKeys = (java.util.Set<String>)
+                (java.util.Set<?>) json.getMap("secciones[0].lineas[0]").keySet();
+        org.junit.jupiter.api.Assertions.assertEquals(
+                java.util.Set.of(
+                        "detalleId",
+                        "orden",
+                        "seccion",
+                        "esHerramientaMenor",
+                        "insumoId",
+                        "descripcion",
+                        "cantidad",
+                        "rendimiento",
+                        "precioEfectivo",
+                        "costoHora",
+                        "operacion",
+                        "resultado"),
+                lineaKeys,
+                "linea expone los 12 campos del contrato, sin tipos del motor");
+    }
+
+    @Test
+    void TC_P27_04_calculo_de_otro_usuario_devuelve_404() throws Exception {
+        String dueno = AuthSupport.registrarConToken(mailbox, "p27dueno@ex.com");
+        Long proyectoId = crearProyecto(dueno);
+        Long presupuestoId = insertarPresupuesto(proyectoId);
+        Long apuId = crearApu(dueno, presupuestoId, "P27-AJ");
+
+        String intruso = AuthSupport.registrarConToken(mailbox, "p27intruso@ex.com");
+
+        given().header("Authorization", "Bearer " + intruso)
+                .when()
+                .get("/api/v1/apus/" + apuId + "/calculo")
+                .then()
+                .statusCode(404)
+                .body("codigo", equalTo("no-encontrado"));
+
+        given().header("Authorization", "Bearer " + dueno)
+                .when()
+                .get("/api/v1/apus/9999999/calculo")
+                .then()
+                .statusCode(404)
+                .body("codigo", equalTo("no-encontrado"));
+    }
 }
