@@ -2,6 +2,7 @@ package ec.uce.propuestas.proyecto.resource;
 
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.common.dto.Page;
+import ec.uce.propuestas.proyecto.dto.ParametrosSistemaEditarRequest;
 import ec.uce.propuestas.proyecto.dto.ProyectoCrearRequest;
 import ec.uce.propuestas.proyecto.dto.ProyectoEditarRequest;
 import ec.uce.propuestas.proyecto.dto.ProyectoResponse;
@@ -93,5 +94,16 @@ public class ProyectoResource {
     @Consumes(MediaType.WILDCARD)
     public ParametrosSistema parametrosSistema() {
         return parametrosService.leerSistema();
+    }
+
+    /**
+     * Parámetros globales — escritura restringida a SUPER_ADMIN. Edita defaults y
+     * rangos configurables de HM/CI/IVA/descuento (N04 §A6).
+     */
+    @PUT
+    @Path("/parametros-sistema")
+    @RolesAllowed("SUPER_ADMIN")
+    public ParametrosSistema editarParametrosSistema(@Valid ParametrosSistemaEditarRequest req) {
+        return parametrosService.actualizarSistema(req);
     }
 }

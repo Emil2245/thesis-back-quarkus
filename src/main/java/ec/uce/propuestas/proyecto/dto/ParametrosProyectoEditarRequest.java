@@ -1,13 +1,16 @@
 package ec.uce.propuestas.proyecto.dto;
 
-import jakarta.validation.constraints.DecimalMax;
-import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 
+/**
+ * Edición de los parámetros de cálculo de un proyecto. Los rangos efectivos de
+ * HM, CI e IVA se leen desde {@link ec.uce.propuestas.proyecto.entity.ParametrosSistema}
+ * y la validación es responsabilidad del servicio (no Bean Validation hardcoded).
+ */
 public record ParametrosProyectoEditarRequest(
-        @NotNull @DecimalMin("0.0000") @DecimalMax("0.2000") BigDecimal porcentajeHerramientaMenor,
-        @DecimalMin("0.0000") @DecimalMax("1.0000") BigDecimal porcentajeIndirecto,
-        @NotNull @DecimalMin("0.0000") @DecimalMax("0.3000") BigDecimal iva,
+        @NotNull BigDecimal porcentajeHerramientaMenor,
+        BigDecimal porcentajeIndirecto,
+        @NotNull BigDecimal iva,
         @Size(max = 10) String moneda) {}
