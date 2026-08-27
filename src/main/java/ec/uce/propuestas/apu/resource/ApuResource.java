@@ -2,12 +2,14 @@ package ec.uce.propuestas.apu.resource;
 
 import ec.uce.propuestas.apu.dto.ApuDetalleCrearRequest;
 import ec.uce.propuestas.apu.dto.ApuDetallePatchRequest;
+import ec.uce.propuestas.apu.dto.ApuDuplicarRequest;
 import ec.uce.propuestas.apu.dto.ApuPatchRequest;
 import ec.uce.propuestas.apu.dto.ApuResponse;
 import ec.uce.propuestas.apu.dto.EspecificacionTecnicaRequest;
 import ec.uce.propuestas.apu.dto.EspecificacionTecnicaResponse;
 import ec.uce.propuestas.apu.repository.ApuRepository;
 import ec.uce.propuestas.apu.service.ApuCrudService;
+import ec.uce.propuestas.apu.service.ApuDuplicarService;
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.proyecto.service.ProyectoService;
 import ec.uce.propuestas.usuario.UsuarioRepository;
@@ -32,6 +34,9 @@ public class ApuResource {
 
     @Inject
     ApuCrudService apuService;
+
+    @Inject
+    ApuDuplicarService duplicarService;
 
     @Inject
     ApuRepository apuRepository;
@@ -132,5 +137,15 @@ public class ApuResource {
     public ApuResponse eliminarDetalle(@PathParam("apuId") Long apuId, @PathParam("detalleId") Long detalleId) {
         validarAcceso(apuId);
         return apuService.eliminarDetalle(apuId, detalleId);
+    }
+
+    /** POST /apus/{apuId}/duplicar (dossier §B.7 opción a). Body opcional: {@code copiarET} (default false). */
+    @POST
+    @Path("/duplicar")
+    public Response duplicar(@PathParam("apuId") Long apuId, ApuDuplicarRequest req) {
+        validarAcceso(apuId);
+        Boolean copiarET = req == null ? null : req.copiarET();
+        ApuResponse copia = duplicarService.duplicar(apuId, copiarET);
+        return Response.status(Response.Status.CREATED).entity(copia).build();
     }
 }

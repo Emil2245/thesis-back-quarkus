@@ -606,4 +606,377 @@ class ApuResourceIT {
                 .statusCode(200)
                 .body("contenido", equalTo(null));
     }
+
+    @Test
+    void TC_P46_01_duplicar_deep_copy_preserva_secciones_filas_orden_y_overrides() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p46deep@ex.com");
+        Long proyectoId = crearProyecto(token);
+        Long presupuestoId = insertarPresupuesto(proyectoId);
+        Long mo = crearInsumo(token, proyectoId, "MO-D-010", "MANO_OBRA", "Peón", "h", 4.0);
+        Long mat = crearInsumo(token, proyectoId, "MA-D-010", "MATERIAL", "Tubo", "m", 2.5);
+        Long apuId = crearApu(token, presupuestoId, "DUP-SRC");
+
+        // fila MO con override para que la copia preserve el override (no heredar)
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of(
+                        "seccionTipo", "MANO_OBRA", "insumoId", mo.intValue(), "cantidad", 2.0, "rendimiento", 1.5))
+                .when()
+                .post("/api/v1/apus/" + apuId + "/detalles")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("secciones[1].detalles[0].id");
+
+        Integer moDetalleId = given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/apus/" + apuId)
+                .then()
+                .statusCode(200)
+                .extract()
+                .path("secciones[1].detalles[0].id");
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("precioOverride", 7.0))
+                .when()
+                .patch("/api/v1/apus/" + apuId + "/detalles/" + moDetalleId)
+                .then()
+                .statusCode(200)
+                .body("secciones[1].detalles[0].precioEfectivo", comparesTo(new BigDecimal("7.0")))
+                .body("secciones[1].detalles[0].precioHeredado", is(false));
+
+        // fila MATERIAL sin override (heredada)
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("seccionTipo", "MATERIAL", "insumoId", mat.intValue(), "cantidad", 3.0))
+                .when()
+                .post("/api/v1/apus/" + apuId + "/detalles")
+                .then()
+                .statusCode(201);
+
+        // duplicar
+        Integer copiaId = given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of())
+                .when()
+                .post("/api/v1/apus/" + apuId + "/duplicar")
+                .then()
+                .statusCode(201)
+                .body("codigo", equalTo("APU-002"))
+                .body("descripcion", equalTo("Instalación"))
+                .body("unidad", equalTo("m"))
+                .body("secciones.size()", is(4))
+                .body("secciones[0].tipo", equalTo("EQUIPO"))
+                .body("secciones[1].tipo", equalTo("MANO_OBRA"))
+                .body("secciones[2].tipo", equalTo("MATERIAL"))
+                .body("secciones[3].tipo", equalTo("TRANSPORTE"))
+                // HM copiada en bloque M (orden 1)
+                .body("secciones[0].detalles[0].esHerramientaMenor", is(true))
+                // fila MO copiada: cantidad, rendimiento, override preservados
+                .body("secciones[1].detalles.size()", is(1))
+                .body("secciones[1].detalles[0].cantidad", comparesTo(new BigDecimal("2.0")))
+                .body("secciones[1].detalles[0].rendimiento", comparesTo(new BigDecimal("1.5")))
+                .body("secciones[1].detalles[0].precioEfectivo", comparesTo(new BigDecimal("7.0")))
+                .body("secciones[1].detalles[0].precioHeredado", is(false))
+                .body("secciones[1].detalles[0].insumoId", is(mo.intValue()))
+                // fila MATERIAL copiada: cantidad y precio heredado preservados
+                .body("secciones[2].detalles.size()", is(1))
+                .body("secciones[2].detalles[0].cantidad", comparesTo(new BigDecimal("3.0")))
+                .body("secciones[2].detalles[0].precioEfectivo", comparesTo(new BigDecimal("2.5")))
+                .body("secciones[2].detalles[0].precioHeredado", is(true))
+                .body("secciones[2].detalles[0].insumoId", is(mat.intValue()))
+                // totales recalculados: HM(0.05*7*2*1.5=1.05) + N(2*7*1.5=21) + O(3*2.5=7.5) = 29.55
+                .body("costoDirecto", comparesTo(new BigDecimal("29.55")))
+                .body("costoTotal", comparesTo(new BigDecimal("29.55")))
+                .extract()
+                .path("id");
+
+        // código del duplicado NO debe coincidir con el del origen
+        org.junit.jupiter.api.Assertions.assertNotEquals(apuId.longValue(), copiaId.longValue());
+
+        // verificación de IDs de detalle distintos (deep copy, no compartidos)
+        java.util.List<java.util.List<Integer>> srcDetIdsNested = given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/apus/" + apuId)
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath()
+                .get("secciones.detalles.id");
+        java.util.List<java.util.List<Integer>> copiaDetIdsNested = given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/apus/" + copiaId)
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath()
+                .get("secciones.detalles.id");
+        java.util.Set<Integer> srcDetIds = srcDetIdsNested.stream()
+                .flatMap(java.util.Collection::stream)
+                .collect(java.util.stream.Collectors.toSet());
+        java.util.Set<Integer> copiaDetIds = copiaDetIdsNested.stream()
+                .flatMap(java.util.Collection::stream)
+                .collect(java.util.stream.Collectors.toSet());
+        org.junit.jupiter.api.Assertions.assertFalse(
+                srcDetIds.stream().anyMatch(copiaDetIds::contains),
+                "los IDs de detalle del origen no deben aparecer en la copia");
+    }
+
+    @Test
+    void TC_P46_02_duplicar_copiarET_true_copia_especificacion_tecnica() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p46ettrue@ex.com");
+        Long proyectoId = crearProyecto(token);
+        Long presupuestoId = insertarPresupuesto(proyectoId);
+        Long apuId = crearApu(token, presupuestoId, "ET-COPY-T-001");
+
+        String et = "Dosificación 1:2:3, vibrado, curado 7 días.";
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("texto", et))
+                .when()
+                .put("/api/v1/apus/" + apuId + "/especificacion-tecnica")
+                .then()
+                .statusCode(200);
+
+        Integer copiaId = given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("copiarET", true))
+                .when()
+                .post("/api/v1/apus/" + apuId + "/duplicar")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
+
+        // GET de la copia debe mostrar el mismo ET
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/apus/" + copiaId + "/especificacion-tecnica")
+                .then()
+                .statusCode(200)
+                .body("contenido", equalTo(et));
+    }
+
+    @Test
+    void TC_P46_03_duplicar_copiarET_false_y_ausente_no_copian_especificacion() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p46etfalse@ex.com");
+        Long proyectoId = crearProyecto(token);
+        Long presupuestoId = insertarPresupuesto(proyectoId);
+        Long apuId = crearApu(token, presupuestoId, "ET-COPY-F-001");
+
+        String et = "Texto que NO debe copiarse a ninguna de las dos copias.";
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("texto", et))
+                .when()
+                .put("/api/v1/apus/" + apuId + "/especificacion-tecnica")
+                .then()
+                .statusCode(200);
+
+        // copiarET=false explícito
+        Integer copia1 = given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("copiarET", false))
+                .when()
+                .post("/api/v1/apus/" + apuId + "/duplicar")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
+
+        // body ausente (null) → default false
+        Integer copia2 = given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .post("/api/v1/apus/" + apuId + "/duplicar")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
+
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/apus/" + copia1 + "/especificacion-tecnica")
+                .then()
+                .statusCode(200)
+                .body("contenido", equalTo(null));
+
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/apus/" + copia2 + "/especificacion-tecnica")
+                .then()
+                .statusCode(200)
+                .body("contenido", equalTo(null));
+    }
+
+    @Test
+    void TC_P46_04_duplicar_genera_codigo_unico_APU_n_sin_colision() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p46uniq@ex.com");
+        Long proyectoId = crearProyecto(token);
+        Long presupuestoId = insertarPresupuesto(proyectoId);
+        Long apuId = crearApu(token, presupuestoId, "APU-001");
+
+        // 1ª copia → APU-002
+        Integer copia1 = given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of())
+                .when()
+                .post("/api/v1/apus/" + apuId + "/duplicar")
+                .then()
+                .statusCode(201)
+                .body("codigo", equalTo("APU-002"))
+                .extract()
+                .path("id");
+
+        // 2ª copia → APU-003
+        Integer copia2 = given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of())
+                .when()
+                .post("/api/v1/apus/" + apuId + "/duplicar")
+                .then()
+                .statusCode(201)
+                .body("codigo", equalTo("APU-003"))
+                .extract()
+                .path("id");
+
+        // duplicar la 1ª copia → APU-004
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of())
+                .when()
+                .post("/api/v1/apus/" + copia1 + "/duplicar")
+                .then()
+                .statusCode(201)
+                .body("codigo", equalTo("APU-004"));
+
+        // ninguna colisiona con el origen ni entre sí
+        org.junit.jupiter.api.Assertions.assertNotEquals(apuId.longValue(), copia1.longValue());
+        org.junit.jupiter.api.Assertions.assertNotEquals(apuId.longValue(), copia2.longValue());
+        org.junit.jupiter.api.Assertions.assertNotEquals(copia1.longValue(), copia2.longValue());
+
+        // el presupuesto ahora tiene 4 APUs (origen + 3 copias)
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/presupuestos/" + presupuestoId + "/apus")
+                .then()
+                .statusCode(200)
+                .body("total", is(4));
+    }
+
+    @Test
+    void TC_P46_05_duplicar_APU_de_otro_usuario_devuelve_404() throws Exception {
+        String dueno = AuthSupport.registrarConToken(mailbox, "duenodup@ex.com");
+        Long proyectoId = crearProyecto(dueno);
+        Long presupuestoId = insertarPresupuesto(proyectoId);
+        Long apuId = crearApu(dueno, presupuestoId, "AJ-DUP-001");
+
+        String intruso = AuthSupport.registrarConToken(mailbox, "intrusodup@ex.com");
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + intruso)
+                .body(Map.of())
+                .when()
+                .post("/api/v1/apus/" + apuId + "/duplicar")
+                .then()
+                .statusCode(404)
+                .body("codigo", equalTo("no-encontrado"));
+
+        // verificación negativa: el dueño aún tiene exactamente 1 APU
+        given().header("Authorization", "Bearer " + dueno)
+                .when()
+                .get("/api/v1/presupuestos/" + presupuestoId + "/apus")
+                .then()
+                .statusCode(200)
+                .body("total", is(1));
+    }
+
+    @Test
+    void TC_P46_06_duplicar_no_muta_el_origen_inmutabilidad() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p46inmut@ex.com");
+        Long proyectoId = crearProyecto(token);
+        Long presupuestoId = insertarPresupuesto(proyectoId);
+        Long mo = crearInsumo(token, proyectoId, "MO-IMM-010", "MANO_OBRA", "Peón", "h", 4.0);
+        Long apuId = crearApu(token, presupuestoId, "IMM-SRC");
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of(
+                        "seccionTipo", "MANO_OBRA", "insumoId", mo.intValue(), "cantidad", 2.0, "rendimiento", 1.0))
+                .when()
+                .post("/api/v1/apus/" + apuId + "/detalles")
+                .then()
+                .statusCode(201);
+
+        // snapshot del origen antes de duplicar
+        var antes = given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/apus/" + apuId)
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath();
+
+        Number cdAntes = antes.get("costoDirecto");
+        Number totalAntes = antes.get("costoTotal");
+        String codigoAntes = antes.get("codigo");
+        int numSeccionesAntes = antes.getList("secciones").size();
+        int numFilasMoAntes = antes.getList("secciones[1].detalles").size();
+
+        // duplicar dos veces
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of())
+                .when()
+                .post("/api/v1/apus/" + apuId + "/duplicar")
+                .then()
+                .statusCode(201);
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("copiarET", true))
+                .when()
+                .post("/api/v1/apus/" + apuId + "/duplicar")
+                .then()
+                .statusCode(201);
+
+        // verificación: el origen NO cambió tras las duplicaciones
+        var despues = given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/apus/" + apuId)
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath();
+
+        org.junit.jupiter.api.Assertions.assertEquals(
+                java.util.Objects.toString(antes.get("id")),
+                java.util.Objects.toString(despues.get("id")),
+                "id inmutable");
+        org.junit.jupiter.api.Assertions.assertEquals(codigoAntes, despues.getString("codigo"), "codigo inmutable");
+        org.junit.jupiter.api.Assertions.assertEquals(
+                numSeccionesAntes, despues.getList("secciones").size(), "secciones.size inmutable");
+        org.junit.jupiter.api.Assertions.assertEquals(
+                numFilasMoAntes, despues.getList("secciones[1].detalles").size(), "filas MO inmutables");
+        org.junit.jupiter.api.Assertions.assertEquals(
+                cdAntes.doubleValue(),
+                ((Number) despues.get("costoDirecto")).doubleValue(),
+                0.0001,
+                "costoDirecto inmutable");
+        org.junit.jupiter.api.Assertions.assertEquals(
+                totalAntes.doubleValue(),
+                ((Number) despues.get("costoTotal")).doubleValue(),
+                0.0001,
+                "costoTotal inmutable");
+
+        // presupuesto ahora tiene 3 APUs (origen + 2 copias)
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/presupuestos/" + presupuestoId + "/apus")
+                .then()
+                .statusCode(200)
+                .body("total", is(3));
+    }
 }
