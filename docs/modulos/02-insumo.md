@@ -51,12 +51,24 @@ ec/uce/propuestas/insumo/
 
 ## 2. Entidades
 
-**`BaseInsumos`**: `id` IDENTITY; `nombre`, `tipo` (CENTRAL/PROYECTO), `proyecto_id`
-(null si CENTRAL), `archivada`. Métodos de dominio: `esProyectoDe(proyectoId)`.
+**`BaseInsumos`**: `id` IDENTITY; `nombre`, `tipo`
+(**`CENTRAL` | `PROYECTO` | `PERSONAL`** — N04 §A9, ampliado 18-08-2026),
+`proyecto_id` (null si CENTRAL/PERSONAL), `usuario_id` (set si PERSONAL — FK
+→ `usuario`), `archivada`. Métodos de dominio: `esProyectoDe(proyectoId)`,
+`esDeUsuario(usuarioId)`, `esCentral()`.
 
 **`Insumo`**: `id`, `base_id`, `codigo`, `tipo`, `descripcion`, `unidad`,
 `precio_unitario` (`BigDecimal`), `createdAt`, `updatedAt`. UNIQUE(`base_id,codigo`).
 - `UnidadCatalogo` (LECTURA): `codigo` PK, `descripcion`.
+
+> **Decisión N04 §A9 — bases SIEMPRE copia al usar:** las filas de APU
+> referencian **solo** la base PROYECTO. Al usar un insumo desde CENTRAL o
+> PERSONAL (`agregarDetalle`, `cargarPlantilla`), el sistema copia al
+> proyecto (dedup por `(base_id, codigo)`). Por construcción, una edición
+> del Super-Admin en CENTRAL nunca afecta APUs de usuarios.
+> Detalle + excepciones: `plan/domain/02-data-model.md` §10, §17 #16;
+> implementación: `04-apu-avanzado.md` §2.5 (FORMA 2 edición atómica
+> recalcula APUs que heredan), §2.8 (PERSONAL).
 
 ## 3. Servicio base
 
@@ -142,6 +154,17 @@ ec/uce/propuestas/insumo/
 
 ## 9. Fuera de alcance (TODO)
 - Editar/eliminar `base_insumos` CENTRAL (admin P-39) → I-11.
-- Recalculo de precios/APU (RNF propios) en edición.
+- **NUEVO I-06 (N04 §A9):** gestión de bases `PERSONAL` del usuario
+  (`GET/POST/DELETE /bases-personales`; compartir entre proyectos propios).
+  Detalle: `04-apu-avanzado.md` §2.8.
+- **NUEVO I-06 (N04 §A1 FORMA 2):** edición atómica de columnas en la base
+  PROYECTO dispara `RecalculoService.recalcular(EDICION_ATOMICA_INSUMO)` —
+  propaga a APUs que heredan (override NULL). Detalle:
+  `04-apu-avanzado.md` §2.5.
+- **NUEVO I-06 (N04 §D-12):** archivar central (oculta del catálogo) y
+  borrar central (sin bloqueo de referencias). Endpoint
+  `PUT /bases-central/{baseId}/archivar` + `DELETE /bases-central/{baseId}`.
+- Recalculo de precios/APU (RNF propios) en edición → I-06 vía
+  `RecalculoService` (módulo nuevo).
 - ETag/Cache-Control en bases centrales (economic, no prior).
 - Refactor de la app a nueva convención (limpieza separada).

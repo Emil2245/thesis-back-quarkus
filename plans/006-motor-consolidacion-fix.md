@@ -1,9 +1,11 @@
 # 006 — Motor consolidación fix: GM-19 & GM-20, GM-21 allowlist audit, GM-24 real impl
 
-- **Status:** TODO
-- **Iteration:** I-02 (roadmap/01, semana 4)
+- **Status:** ✅ **RESUELTO (2026-08-19 — N04-bis Kevin Andrade, decisión funcional)**
+- **Resolución aplicada:** **Opción (a) — modificar `internal/Consolidador.java`** para redondear `RubroConPrecio.precioUnitario` y `precioTotal` a 2 dp en la frontera APU→Rubro. Rounding mode: `RoundingMode.DOWN` (match Excel ROUNDDOWN / TRUNCATE que usa el workbook IESS — **excepción documentada** a la regla general HALF_UP de CALC/DISPLAY).
+- **Iteration:** I-02 (roadmap/01, semana 4) — implementación ahora
 - **Depends on:** 005 (motor scaffold present in `2fe6c83`)
-- **Blocks:** the I-02 hito "GM api verdes" — without this fix, the thesis's `exactitud_calculo` variable is not defensible
+- **Blocks:** the I-02 hito "GM api verdes" — with this fix, the thesis's `exactitud_calculo` variable IS defensible (0.00 deviation vs workbook IESS)
+- **CLAUDE.md override:** la regla "Do not touch `Motor.java` or `internal/Consolidador.java` until the director decides" se levanta **para esta decisión específica**, justificada por cambio de requerimientos funcionales (N04-bis 2026-08-19). Documentado en `thesis-back-quarkus/CLAUDE.md` y `thesis-docs/CLAUDE.md`.
 
 ---
 
@@ -106,7 +108,50 @@ Same as plan 005:
 
 ## Steps
 
-### 1 — Fix the stub-precision bug
+### 1 — Implementar opción (a): redondeo 2dp en `Consolidador.java`
+
+Path: `src/main/java/ec/uce/propuestas/motor/internal/Consolidador.java`.
+
+**1a** — Localizar el método que construye `RubroConPrecio` a partir del
+APU. Normalmente en `consolidar()` (o un helper llamado desde ahí).
+Identificar la línea donde se asigna `precioUnitario = apu.costoTotal`.
+
+**1b** — Aplicar el redondeo a 2 dp **antes** de construir el Rubro:
+
+```java
+// Antes (motor 005):
+// rubro.precioUnitario = apu.costoTotal;
+
+// Después (006 opción a):
+// En la frontera APU→Rubro, redondeamos a 2 dp con HALF_DOWN (match
+// Excel ROUNDDOWN / workbook IESS). Documentado en DM §16.
+rubro.precioUnitario = apu.costoTotal.setScale(2, RoundingMode.DOWN);
+
+// Y luego para precioTotal:
+rubro.precioTotal = cantidad.multiply(rubro.precioUnitario)
+                       .setScale(2, RoundingMode.DOWN);
+```
+
+**1c** — Imports: añadir `import java.math.RoundingMode;` si no está.
+
+**1d** — NO tocar `Motor.java` ni `internal/CalculadorFila.java` (siguen
+usando HALF_UP a 3 dp = CALC_PRECISION dentro del APU).
+
+### 1.1 — Actualizar los tests existentes
+
+Tras el cambio, los siguientes golden masters deben pasar **sin tocar
+sus assertions** (los expected values del workbook ya son los
+correctos):
+
+- **GM-19** `MotorConsolidacionTest.GM_19_total_general_tulcan` —
+  `totalGeneral == 395115.32` (delta 0.00 vs workbook).
+- **GM-20** `MotorConsolidacionTest.GM_20_totales_capitulos_raiz_tulcan` —
+  cada capítulo raíz reproduce el valor del workbook.
+- **GM-21** allowlist: probablemente todas las 11 entradas se cierran a
+  delta 0 (porque la fuente de la discordia era el redondeo intermedio);
+  ejecutar auditoría y reportar.
+
+### 2 — Verificación post-cambio
 
 Path: `src/test/java/ec/uce/propuestas/motor/Fixtures.java`. Two edits.
 
@@ -147,35 +192,21 @@ not already imported (it may be; check the existing imports).
 ### 2 — Re-run and verify
 
 ```bash
-./mvnw -q test -Dtest='ec.uce.propuestas.motor.MotorConsolidacionTest'
+./gradlew test --tests 'ec.uce.propuestas.motor.MotorConsolidacionTest'
 ```
 
-**Expected:**
-- GM-19 passes: `totalGeneral (2dp) == 395115.32`.
-- GM-20 passes: all 7 root chapter totals match.
-- GM-21 result unchanged (may still pass/fail per its allowlist — see §3).
-- GM-24 result unchanged (still a stub — see §4).
+**Expected (post-cambio opción a):**
+- GM-19 passes: `totalGeneral (2dp) == 395115.32` (delta 0.00).
+- GM-20 passes: all 7 root chapter totals match (delta 0.00).
+- GM-21 allowlist: la mayoría o todas las 11 entradas deben cerrar a
+  delta 0 (la fuente de la discordia era el redondeo intermedio del
+  workbook vs motor). Auditar y reportar las que queden.
 
-**If GM-19 or GM-20 STILL fails after §1:**
-- **STOP.** Do NOT modify Motor code yet.
-- Add a temporary diagnostic dump inside the test (a `@Disabled`ed
-  new test method is fine — remove before commit) that prints, for
-  every root chapter and every leaf rubro:
-  ```
-  <item>  <depth>  <expected precioTotal>  <actual precioTotal>  <delta>
-  ```
-  by re-parsing the fixture and walking `result.rubros()` /
-  `result.capitulos()`.
-- Report the first divergent node in NOTES. Common culprits:
-  - `cantidad` parsed as `String` instead of `BigDecimal` (loss).
-  - A rubro whose fixture has `precioTotal = null` — that rubro would
-    fall back to `precioUnitario` and drift again.
-  - A chapter whose child rubros' `precioTotal` fields sum to a value
-    different from the chapter's own `precioTotal` field (workbook
-    inconsistency — that's an upstream fixture bug, STOP condition).
-
-Only if a genuine Motor bug is found (after the diagnostic dump) may
-you edit `Consolidador.java`.
+**Si GM-19 o GM-20 SIGUE fallando tras §1** (improbable con opción a):
+- **STOP.** Re-ejecutar el diagnostic dump (§2 original) y reportar.
+- Verificar que `RoundingMode.DOWN` esté importado y aplicado
+  correctamente en `Consolidador.java`.
+- NO tocar Motor.java.
 
 ### 3 — Audit the GM-21 allowlist
 

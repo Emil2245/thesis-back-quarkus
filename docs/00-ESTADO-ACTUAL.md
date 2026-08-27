@@ -39,7 +39,7 @@ presupuesto, cronograma, export) y la decisión del director sobre el redondeo.
 | I-03 | 5–6 | Proyectos (ciclo de vida, parámetros, firmantes) | 🔶 **Núcleo** — crud + firmantes + parámetros + base insumos (plan 009) · TODO: logo, detalle |
 | I-04 | 7–8 | Insumos (CRUD, CSV, bases centrales) | 🔶 **Núcleo** — crud, catálogo, selector multi-fuente, copia, importación CSV (plan 009) · TODO: uso en APU (P-18/D-08) |
 | I-05 | 9–10 | APU núcleo (editor, filas M/N/O/P, HM) | 🔶 **Núcleo** — P-19…P-22, editor vía `ApuResource`/`PresupuestoApuResource`, filas M/N/O/P, Fila HM protegida, override de precio, write-through vía `Motor.calcularApu` (10 tests verdes) · TODO: auxiliares/%CI en I-06 |
-| I-06 | 11–12 | APU completo (%CI, descuentos, auxiliares, plantillas) | ⬜ No iniciada |
+| I-06 | 11–12 | APU completo + decisiones N04 (%CI, descuentos, auxiliares, plantillas, ET, PERSONAL, rangos parametrizables, decimales) | � No iniciada · plan listo: [`docs/modulos/04-apu-avanzado.md`](modulos/04-apu-avanzado.md) |
 | I-07 | 13–14 | Presupuesto (capítulos, rubros, totales) | ⬜ No iniciada |
 | I-08 | 15–16 | Versiones y cronograma base | ⬜ No iniciada |
 | I-09 | 17–18 | Cronograma visual y sincronía | ⬜ No iniciada |
@@ -62,15 +62,16 @@ conformidad CHK, semanas 22–24 SUS y desempeño.
 | 002 | CI GitHub Actions | I-01 | ⚠️ **DEUDA** | Plan "DONE" pero **no existe `.github/` en el repo**; se difirió en 007 para reescribirse con `./gradlew`. Sin CI real hasta la fecha. |
 | 003 | Schema Postgres (V001–V003) | I-01 | ✅ DONE | **21 tablas** + seed (V002/V003). Calidad del seed IESS con gaps upstream (ver §6). |
 | 004 | Módulo auth | I-01 | ✅ DONE | **25/25 tests verdes** (19 IT + 6 unit), 0 fugas de tokens. 4 bugs del plan corregidos inline (documentados). |
-| 005 | Motor de cálculo | I-02 | 🔴 **BLOCKED** | Scaffold completo; **21/25 GMs verdes**, GM-19 y GM-20 rojos, GM-24 `@Disabled` (fixture upstream), 1 diagnóstico `@Disabled`. |
-| 006 | Fix consolidación (GM-19/20) | I-02 | 🟠 **ESCALADO** | Fix de precisión de stubs aplicado; causa raíz = **redondeo intermedio del workbook fuente** (2 dp en `precioUnitario`), no bug del motor. En espera de decisión del director (opciones a/b/c). |
+| 005 | Motor de cálculo | I-02 | 🔶 **~90 %** — scaffold completo; **21/25 GMs verdes**; GM-19/20 pendientes del fix 006; GM-24 `@Disabled` (fixture upstream), 1 diagnóstico `@Disabled`. |
+| 006 | Fix consolidación (GM-19/20) | I-02 | ✅ **RESUELTO (2026-08-19 — N04-bis)** — opción (a) aplicada: `internal/Consolidador.java` aplica `RoundingMode.DOWN` a 2 dp en la frontera APU→Rubro (match workbook IESS); GM-19/20 esperados verdes tras ejecución. Excepción documentada a la regla HALF_UP del motor. |
 | 007 | Migración Maven → Gradle | tooling | ✅ DONE | Gradle 9.5.1 + Kotlin DSL, verificado: build, 56 tests (2 red/2 skipped, sin regresión), `quarkusDev`. |
 | 008 | Refinamientos build | tooling | ✅ DONE | Version catalog, toolchain JDK 25, build cache. Lombok y Consul/Stork/OTel/K8s **rechazados** con justificación. |
 | 009 | Módulos `proyecto` + `insumo` | I-03/I-04 | ✅ DONE | CRUD de ambos módulos + importación CSV + copia de base + **repositorios por entidad** (ver `plans/README.md` §009). |
 | 010 | Seed de escenarios (V004) | I-04/I-05 | ✅ DONE | `V004__seed_escenarios.sql`: 3 proyectos (uno por estado BORRADOR/EN_PROCESO/FINALIZADO) con todas las tablas relacionadas; FINALIZADO = workbook real Cetro Médico Tulcán (298 rubros, total 395115.32). Verificado contra Postgres limpio + suite sin regresión (ver `docs/04-SEED-ESCENARIOS.md`). |
-| 011 | Módulo APU núcleo (P-19…P-22) | I-05 | ✅ DONE | P-19 lista/crea APUs por presupuesto, P-20 editor cabecera, P-21 filas M/N/O/P + fila HM protegida, P-22 override de precio con `JsonNullable`. Write-through vía `Motor.calcularApu` (RNF-02 a nivel APU). **10 tests verdes** (2 suites: `ApuCalculoServiceIT` + `ApuResourceIT`), colección Bruno `api/bruno/08-apu/`. Detalle en `docs/modulos/03-apu.md`.
+| 011 | Módulo APU núcleo (P-19…P-22) | I-05 | ✅ DONE | P-19 lista/crea APUs por presupuesto, P-20 editor cabecera, P-21 filas M/N/O/P + fila HM protegida, P-22 override de precio con `JsonNullable`. Write-through vía `Motor.calcularApu` (RNF-02 a nivel APU). **10 tests verdes** (2 suites: `ApuCalculoServiceIT` + `ApuResourceIT`), colección Bruno `api/bruno/08-apu/`. Detalle en `docs/modulos/03-apu.md`. |
+| 013 | Módulo APU avanzado (P-23…P-27, P-45, P-46 + N04) | I-06 | ⬜ TODO | Plan completo: [`docs/modulos/04-apu-avanzado.md`](modulos/04-apu-avanzado.md). Incluye: %CI override (P-23), descuento CD legacy (P-24), auxiliares sin anidamiento (P-25 — N04 §A2), plantillas con fallback (P-26 — N04 §B.4), desglose cálculo (P-27), Especificaciones Técnicas (P-45 — N04 §ESP, NUEVA), plantilla de proyecto (P-46 — N04 §A8), `POST /apus/{id}/duplicar` (dossier §B.7), módulo `recalculo` (write-through parámetros — dossier §B.6), base PERSONAL (N04 §A9), rangos parametrizables (N04 §A6), `CALC_PRECISION=3`/`DISPLAY_PRECISION=2` (N04 §#7). |
 
-Planes de I-03…I-12 **no escritos** aún (se redactan cuando cada iteración
+Planes de I-07…I-12 **no escritos** aún (se redactan cuando cada iteración
 precedente cierra CI-verde).
 
 ---
@@ -136,7 +137,7 @@ database/db_schemas/                   # DDL exportado de la BD (documental)
 
 | # | Asunto | Tipo | Dueño | Bloquea |
 |---|---|---|---|---|
-| 1 | **GM-19/GM-20 rojos** — semántica de redondeo workbook vs motor | Decisión de dominio (opciones a/b/c) | Director + Emil | Hito semana 4, gate de export I-10 |
+| 1 | ~~**GM-19/GM-20 rojos** — semántica de redondeo workbook vs motor~~ **RESUELTO (N04-bis 2026-08-19)** — opción (a) de `plans/006` aplicada (modificar `Consolidador.java` con `RoundingMode.DOWN`); 25/25 GMs esperados verdes tras ejecución | Kevin (decisión funcional) | Cerrado en docs; pendiente ejecución en backend |
 | 2 | **CI/CD no existe** — `.github/` ausente; plan 002 + 007 lo difieren | Deuda | Autores | Hito "CI activo" (semana 2), todo control de regresión |
 | 3 | Seed insumos V003 — sin `codigo` real, `unidad='h'` forzada, mismatch `m²/m³` vs `m2/m3` | Data quality upstream | Kevin / fuente IESS | Ninguno funcional (aviso cosmético), posible `V004__reseed_insumos.sql` |
 | 4 | GM-24 `@Disabled` — fixture EMELNORTE con `secciones` vacías y `codigo` null | Fixture upstream | thesis-docs | Cobertura de consolidación parcial |
@@ -151,7 +152,7 @@ database/db_schemas/                   # DDL exportado de la BD (documental)
 
 ## 7. Qué falta para "terminar" (macro)
 
-1. **Desbloquear el motor** (decisión director sobre GM-19/20) → cerrar I-02.
+1. **Ejecutar el fix GM-19/20** (`plans/006` opción a: modificar `internal/Consolidador.java` con `RoundingMode.DOWN` 2 dp en frontera APU→Rubro) → 25/25 GMs verdes → cerrar I-02.
 2. **Escribir y ejecutar planes I-05…I-12** — el grueso del código:
    APU → presupuesto → versiones/cronograma → export → admin → validación.
    (I-03 proyecto núcleo e I-04 insumo núcleo ya sentados en plan 009.)

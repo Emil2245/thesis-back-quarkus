@@ -10,6 +10,7 @@ empaquetado de `documentos/01-ARQUITECTURA.md §5`.
 | [01-proyecto](01-proyecto.md) | `ec.uce.propuestas.proyecto` | P-05…P-11 | Implementado (crud núcleo) · TODO: logo, detalle |
 | [02-insumo](02-insumo.md) | `ec.uce.propuestas.insumo` | P-13…P-18 | Implementado (crud, catálogo, selector, copia) · TODO: uso en APU (P-18) |
 | [03-apu](03-apu.md) | `ec.uce.propuestas.apu` | P-19…P-22 | Implementado (lista/crea APUs, editor, filas M/N/O/P, fila HM protegida, override precio, write-through vía motor) · TODO: I-06 cubre P-23…P-27 |
+| [04-apu-avanzado](04-apu-avanzado.md) | `apu` (ampliar) + `recalculo` (nuevo) + `plantilla` (nuevo) + `documento` (extender) | P-23…P-27, P-45, P-46 | Pendiente — plan completo escrito (N04 18-08-2026); cubre las decisiones N04 (A1 descuento CD, A2 auxiliares sin anidamiento, A3 HM reordenable, A6 rangos parametrizables, A9 bases SIEMPRE copia + nuevo tipo PERSONAL, D-12 archivar sin bloqueo, #7 decimales, ET nueva feature) |
 
 **Decisiones de diseño compartidas** (resuelven las preguntas de arquitectura):
 

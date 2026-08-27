@@ -93,14 +93,32 @@ Lives in `src/main/java/ec/uce/propuestas/motor/`. Contract:
 - **Golden Masters** (`GM-01`…`GM-25`) are the acceptance test. Any GM
   failing → real bug. Do NOT add tolerance, do NOT adjust expected values.
 
-**Current motor status** (2026-07-24): 21/25 GMs green. **GM-19 and GM-20
-are RED**, escalated to the director. The failing tests reflect a
-semantic tension between motor arithmetic (6-dp full precision) and
-workbook fixtures (2-dp precioUnitario rounding). See
-[`plans/README.md`](plans/README.md) §"006" for details.
-**Do not touch `Motor.java` or `internal/Consolidador.java`** until the
-director decides. The current answer to "why are GM-19/20 red" is not
-"a Motor bug"; it's a documented open question.
+**Current motor status** (2026-08-19): **GM-19/GM-20 RESUELTO** vía
+[`plans/006`](plans/006-motor-consolidacion-fix.md) opción (a) — modificar
+`internal/Consolidador.java` para redondear `RubroConPrecio.precioUnitario`
+y `precioTotal` a 2 dp (`RoundingMode.DOWN`) en la frontera APU→Rubro. Esto
+match el workbook IESS (que usa ROUNDDOWN o valores 2 dp tipeados).
+Expected post-cambio: 25/25 GMs verdes.
+
+**Regla de modificación del Motor (N04-bis 2026-08-19):**
+- **`Motor.calcularApu()` y `internal/CalculadorFila.java`:** no se tocan
+  salvo cambio de requerimientos funcionales explícito, documentado en
+  el `plans/` correspondiente (no se ajustan tolerances ni se "mejoran"
+  fórmulas verdes).
+- **`internal/Consolidador.java`:** se permite modificar **solo** para
+  cambios de requerimientos funcionales. El caso vigente que justificó
+  la excepción es GM-19/GM-20 (N04-bis). Cada nueva excepción debe
+  documentarse con su plan (`plans/NNN`) y referenciarse aquí.
+- **`Fixture.java`:** no tocar las assertions de los GMs; solo reparaciones
+  justificadas (con STOP conditions documentadas).
+
+**Para cambios futuros al motor:** abrir `plans/0NN-motor-fix.md`
+siguiendo el patrón de `plans/006`. Cada cambio debe:
+1. Justificar el cambio por un cambio de requerimientos funcionales.
+2. Actualizar `CLAUDE.md` y `thesis-docs/CLAUDE.md` con la nota
+   correspondiente.
+3. NO tocar tolerances de GMs existentes.
+4. Re-correr `./gradlew test` completo y reportar baseline + delta.
 
 ## Verification commands (memorize)
 
