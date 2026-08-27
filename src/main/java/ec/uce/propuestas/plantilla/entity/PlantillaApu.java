@@ -1,16 +1,29 @@
-package ec.uce.propuestas.apu.entity;
+package ec.uce.propuestas.plantilla.entity;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 import org.hibernate.annotations.Generated;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.generator.EventType;
+import org.hibernate.type.SqlTypes;
 
+/**
+ * Plantilla de APU (SISTEMA o PERSONAL). WU-03 — identidad externa inmutable
+ * {@code publicId} UUIDv7 generada por la columna {@code public_id}. El
+ * {@code snapshot_secciones} se persiste como JSONB con forma canónica
+ * (sin {@code apuAuxiliarId}); las claves heredadas {@code tarifaJornal} y
+ * {@code costo} se toleran en lectura pero nunca se escriben.
+ */
 @Entity
-@Table(name = "apu")
-public class Apu extends PanacheEntityBase {
+@Table(name = "plantilla_apu")
+public class PlantillaApu extends PanacheEntityBase {
+
+    public enum Tipo {
+        SISTEMA,
+        PERSONAL
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -21,35 +34,28 @@ public class Apu extends PanacheEntityBase {
     @Column(name = "public_id", insertable = false, updatable = false)
     public UUID publicId;
 
-    @Column(name = "presupuesto_id", nullable = false)
-    public Long presupuestoId;
-
-    @Column(nullable = false, length = 20)
-    public String codigo;
-
     @Column(nullable = false)
-    public String descripcion;
+    public String nombre;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
+    public Tipo tipo;
+
+    @Column(name = "usuario_id")
+    public Long usuarioId;
+
+    @Column(name = "descripcion_rubro")
+    public String descripcionRubro;
+
+    @Column(length = 10)
     public String unidad;
-
-    @Column(name = "porcentaje_indirecto", precision = 5, scale = 4)
-    public BigDecimal porcentajeIndirecto;
-
-    @Column(name = "porcentaje_descuento", nullable = false, precision = 5, scale = 4)
-    public BigDecimal porcentajeDescuento = BigDecimal.ZERO;
 
     @Column(name = "especificacion_tecnica", columnDefinition = "TEXT")
     public String especificacionTecnica;
 
-    @Column(name = "costo_directo", nullable = false, precision = 14, scale = 6)
-    public BigDecimal costoDirecto = BigDecimal.ZERO;
-
-    @Column(name = "costo_indirecto", nullable = false, precision = 14, scale = 6)
-    public BigDecimal costoIndirecto = BigDecimal.ZERO;
-
-    @Column(name = "costo_total", nullable = false, precision = 14, scale = 6)
-    public BigDecimal costoTotal = BigDecimal.ZERO;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "snapshot_secciones", nullable = false, columnDefinition = "jsonb")
+    public String snapshotSecciones;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     public Instant createdAt;

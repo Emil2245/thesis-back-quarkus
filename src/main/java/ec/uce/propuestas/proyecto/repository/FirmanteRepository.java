@@ -6,6 +6,7 @@ import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @ApplicationScoped
 public class FirmanteRepository implements PanacheRepositoryBase<Firmante, Long> {
@@ -20,5 +21,23 @@ public class FirmanteRepository implements PanacheRepositoryBase<Firmante, Long>
 
     public boolean existeRolOrden(Long proyectoId, RolFirmante rol, Short orden) {
         return count("proyectoId = ?1 and rol = ?2 and orden = ?3", proyectoId, rol, orden) > 0;
+    }
+
+    /**
+     * WU-03 — Resolución por {@code public_id} (UUIDv7) con scope de owner. El firmante pertenece
+     * al proyecto dueño; el caller debe ser el dueño del proyecto que contiene al firmante. Filas
+     * de proyectos ajenos devuelven {@link Optional#empty()}.
+     */
+    public Optional<Firmante> findByPublicIdAndOwnerScope(UUID publicId, Long callerUsuarioId) {
+        return getEntityManager()
+                .createQuery(
+                        "select f from Firmante f, Proyecto p "
+                                + "where f.publicId = :publicId and f.proyectoId = p.id and p.usuarioId = :caller",
+                        Firmante.class)
+                .setParameter("publicId", publicId)
+                .setParameter("caller", callerUsuarioId)
+                .getResultList()
+                .stream()
+                .findFirst();
     }
 }

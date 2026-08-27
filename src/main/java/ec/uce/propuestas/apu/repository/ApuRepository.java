@@ -6,6 +6,7 @@ import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /** Acceso a {@code apu}. Reglas de negocio en los services. */
 @ApplicationScoped
@@ -82,6 +83,26 @@ public class ApuRepository implements PanacheRepositoryBase<Apu, Long> {
                 .setParameter(1, apuId)
                 .getResultStream()
                 .map(o -> ((Number) o).longValue())
+                .findFirst();
+    }
+
+    /**
+     * WU-03 — Resolución por {@code public_id} (UUIDv7) con scope de owner. Travesía owner:
+     * APU → Presupuesto → Proyecto → caller. Cualquier fila de un proyecto ajeno devuelve
+     * {@link Optional#empty()}. Las juntas posteriores y el write-through usan el
+     * {@code BIGINT} interno; el {@code public_id} nunca se reutiliza como FK.
+     */
+    public Optional<Apu> findByPublicIdAndOwnerScope(UUID publicId, Long callerUsuarioId) {
+        return getEntityManager()
+                .createQuery(
+                        "select a from Apu a, Presupuesto p, Proyecto pr "
+                                + "where a.publicId = :publicId and a.presupuestoId = p.id "
+                                + "and p.proyectoId = pr.id and pr.usuarioId = :caller",
+                        Apu.class)
+                .setParameter("publicId", publicId)
+                .setParameter("caller", callerUsuarioId)
+                .getResultList()
+                .stream()
                 .findFirst();
     }
 }

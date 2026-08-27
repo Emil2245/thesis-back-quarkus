@@ -1,6 +1,7 @@
 package ec.uce.propuestas.insumo.repository;
 
 import ec.uce.propuestas.insumo.entity.Insumo;
+import ec.uce.propuestas.insumo.entity.TipoBase;
 import ec.uce.propuestas.insumo.entity.TipoInsumo;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import io.quarkus.panache.common.Page;
@@ -9,6 +10,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /** Acceso a {@code insumo}. Reglas de negocio en los services. */
 @ApplicationScoped
@@ -74,6 +76,31 @@ public class InsumoRepository implements PanacheRepositoryBase<Insumo, Long> {
             params = params.and("q", "%" + q.toLowerCase() + "%");
         }
         return count(ql.toString(), params);
+    }
+
+    /**
+     * WU-03 — Resolución por {@code public_id} (UUIDv7) con scope de owner. Travesía owner:
+     * Insumo → BaseInsumos → caller (PERSONAL o dueño del proyecto PROYECTO). Bases CENTRALES
+     * quedan fuera de este seam de USUARIO; una fila de otro dueño devuelve
+     * {@link Optional#empty()} (mapeo a 404). El {@code public_id} nunca se usa como FK ni
+     * como grant de autorización.
+     */
+    public Optional<Insumo> findByPublicIdAndOwnerScope(UUID publicId, Long callerUsuarioId) {
+        return getEntityManager()
+                .createQuery(
+                        "select i from Insumo i, BaseInsumos b, Proyecto p "
+                                + "where i.publicId = :publicId and i.baseId = b.id "
+                                + "and ((b.tipo = :tipoPersonal and b.usuarioId = :caller) "
+                                + "  or (b.tipo = :tipoProyecto "
+                                + "      and b.proyectoId = p.id and p.usuarioId = :caller))",
+                        Insumo.class)
+                .setParameter("publicId", publicId)
+                .setParameter("caller", callerUsuarioId)
+                .setParameter("tipoPersonal", TipoBase.PERSONAL)
+                .setParameter("tipoProyecto", TipoBase.PROYECTO)
+                .getResultList()
+                .stream()
+                .findFirst();
     }
 
     private record Filtros(String sql, Parameters params) {}
