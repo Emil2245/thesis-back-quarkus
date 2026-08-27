@@ -19,6 +19,19 @@ public class ApuRepository implements PanacheRepositoryBase<Apu, Long> {
         return find("presupuestoId = ?1 and codigo = ?2", presupuestoId, codigo).firstResultOptional();
     }
 
+    /**
+     * P-45 (N04 §ESP): APUs de una versión de presupuesto con ET no nula y no vacía
+     * (Postgres: {@code <> ''}), ordenados por código. El service aplica el corte
+     * adicional de whitespace-only en Java para cubrir líneas/tabs que el operador
+     * SQL {@code trim()} estándar no recorta en todas las plataformas.
+     */
+    public List<Apu> listarConEspecificacionTecnica(Long presupuestoId) {
+        return find(
+                        "presupuestoId = ?1 and especificacionTecnica is not null and especificacionTecnica <> '' order by codigo",
+                        presupuestoId)
+                .list();
+    }
+
     public List<Apu> listarDePresupuesto(Long presupuestoId, String q, int pageIndex, int pageSize) {
         StringBuilder ql = new StringBuilder("presupuestoId = ?1");
         if (q != null && !q.isBlank()) {

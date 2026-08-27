@@ -50,6 +50,14 @@ public class Proyecto extends PanacheEntityBase {
     @Column(name = "logo")
     public byte[] logo;
 
+    /** N04-bis P-45: cabecera del documento Word de ETs; default `null` → export usa "ESPECIFICACIONES TÉCNICAS". */
+    @Column(name = "titulo_et_1")
+    public String tituloEt1;
+
+    /** N04-bis P-45: subcabecera del documento Word de ETs; default `null` → export usa `<nombre_proyecto>`. */
+    @Column(name = "titulo_et_2")
+    public String tituloEt2;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     public Instant createdAt;
 
