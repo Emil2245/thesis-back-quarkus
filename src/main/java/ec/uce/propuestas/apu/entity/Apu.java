@@ -25,9 +25,6 @@ public class Apu extends PanacheEntityBase {
     @Column(nullable = false, length = 10)
     public String unidad;
 
-    @Column(name = "es_auxiliar", nullable = false)
-    public boolean esAuxiliar;
-
     @Column(name = "porcentaje_indirecto", precision = 5, scale = 4)
     public BigDecimal porcentajeIndirecto;
 

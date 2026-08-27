@@ -377,4 +377,48 @@ class ApuResourceIT {
             }
         };
     }
+
+    @Test
+    void TC_P23_P24_porcentajes_actualizan_y_restauran() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p23p24@ex.com");
+        Long proyectoId = crearProyecto(token);
+        Long presupuestoId = insertarPresupuesto(proyectoId);
+        Long apuId = crearApu(token, presupuestoId, "PCT-001");
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body("0.2200")
+                .when()
+                .patch("/api/v1/apus/" + apuId + "/porcentaje-indirecto")
+                .then()
+                .statusCode(200)
+                .body("porcentajeIndirecto", comparesTo(new BigDecimal("0.22")));
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body("0.1000")
+                .when()
+                .patch("/api/v1/apus/" + apuId + "/porcentaje-descuento")
+                .then()
+                .statusCode(200)
+                .body("porcentajeDescuento", comparesTo(new BigDecimal("0.10")));
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body("null")
+                .when()
+                .patch("/api/v1/apus/" + apuId + "/porcentaje-indirecto")
+                .then()
+                .statusCode(200)
+                .body("porcentajeIndirecto", equalTo(null));
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body("null")
+                .when()
+                .patch("/api/v1/apus/" + apuId + "/porcentaje-descuento")
+                .then()
+                .statusCode(200)
+                .body("porcentajeDescuento", comparesTo(BigDecimal.ZERO));
+    }
 }

@@ -16,6 +16,7 @@ import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.math.BigDecimal;
 
 /**
  * Agregado {@code apu} (07-api-contract.md §5, P-21/P-22). Ruta
@@ -68,6 +69,20 @@ public class ApuResource {
     public ApuResponse editarCabecera(@PathParam("apuId") Long apuId, @Valid ApuPatchRequest req) {
         validarAcceso(apuId);
         return apuService.editarCabecera(apuId, req);
+    }
+
+    @PATCH
+    @Path("/porcentaje-indirecto")
+    public ApuResponse actualizarPorcentajeIndirecto(@PathParam("apuId") Long apuId, BigDecimal valor) {
+        validarAcceso(apuId);
+        return apuService.actualizarPorcentajeIndirecto(apuId, valor);
+    }
+
+    @PATCH
+    @Path("/porcentaje-descuento")
+    public ApuResponse actualizarPorcentajeDescuento(@PathParam("apuId") Long apuId, BigDecimal valor) {
+        validarAcceso(apuId);
+        return apuService.actualizarPorcentajeDescuento(apuId, valor);
     }
 
     @DELETE

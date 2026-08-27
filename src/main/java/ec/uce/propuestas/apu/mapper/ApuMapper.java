@@ -20,7 +20,6 @@ public final class ApuMapper {
                 e.codigo,
                 e.descripcion,
                 e.unidad,
-                e.esAuxiliar,
                 e.costoDirecto,
                 e.costoIndirecto,
                 e.costoTotal,

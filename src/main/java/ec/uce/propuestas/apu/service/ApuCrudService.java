@@ -112,6 +112,33 @@ public class ApuCrudService {
     }
 
     @Transactional
+    public ApuResponse actualizarPorcentajeIndirecto(Long apuId, BigDecimal valor) {
+        Apu apu = _validar(apuId);
+        validarPorcentaje(valor, BigDecimal.ONE, "porcentajeIndirecto");
+        apu.porcentajeIndirecto = valor;
+        apuRepository.persist(apu);
+        calculoService.recalcular(apu);
+        return respuestaCompleta(apu);
+    }
+
+    @Transactional
+    public ApuResponse actualizarPorcentajeDescuento(Long apuId, BigDecimal valor) {
+        Apu apu = _validar(apuId);
+        BigDecimal efectivo = valor == null ? BigDecimal.ZERO : valor;
+        validarPorcentaje(efectivo, new BigDecimal("0.5000"), "porcentajeDescuento");
+        apu.porcentajeDescuento = efectivo;
+        apuRepository.persist(apu);
+        calculoService.recalcular(apu);
+        return respuestaCompleta(apu);
+    }
+
+    private static void validarPorcentaje(BigDecimal valor, BigDecimal maximo, String campo) {
+        if (valor != null && (valor.signum() < 0 || valor.compareTo(maximo) > 0)) {
+            throw ProblemaException.validacion(campo + " fuera del rango permitido");
+        }
+    }
+
+    @Transactional
     public void eliminar(Long apuId) {
         Apu apu = _validar(apuId);
         if (apuRepository.estaVinculado(apuId)) {

@@ -19,7 +19,6 @@ public final class ApuDetalleMapper {
                 d.descripcion,
                 d.esHerramientaMenor,
                 d.insumoId,
-                d.apuAuxiliarId,
                 d.cantidad,
                 d.rendimiento,
                 d.unidad,
