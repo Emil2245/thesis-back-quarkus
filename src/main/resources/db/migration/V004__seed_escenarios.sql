@@ -12,9 +12,9 @@
 -- ============================================================
 -- 1. USUARIOS (ids 1 y 2; BD recreada desde cero; login real en Bruno)
 -- ============================================================
-INSERT INTO usuario (nombre, email, password_hash, rol, email_verificado, activo) VALUES
-  ('John Doe', 'john.doe@uce.edu.ec', '$2a$10$KOAVI0jaG1Ick9sS7cb1ueiymWQP.NjWezhlPzBMk4gRp.m5MnL3m', 'USUARIO', TRUE, TRUE),
-  ('Ana de Armas', 'ana.armas@gmail.com', '$2a$10$Q2.wPP5hPAeQ4twFrhO2/ezyuwqyCUzcjttRXG9NamqXSYsLc0mJi', 'USUARIO', TRUE, TRUE);
+INSERT INTO usuario (public_id, nombre, email, password_hash, rol, email_verificado, activo) VALUES
+  ('0192f6c4-7c8a-7abc-8000-000000001001'::uuid, 'John Doe', 'john.doe@uce.edu.ec', '$2a$10$KOAVI0jaG1Ick9sS7cb1ueiymWQP.NjWezhlPzBMk4gRp.m5MnL3m', 'USUARIO', TRUE, TRUE),
+  ('0192f6c4-7c8a-7abc-8000-000000001002'::uuid, 'Ana de Armas', 'ana.armas@gmail.com', '$2a$10$Q2.wPP5hPAeQ4twFrhO2/ezyuwqyCUzcjttRXG9NamqXSYsLc0mJi', 'USUARIO', TRUE, TRUE);
 
 -- ============================================================
 -- 2. VALOR_REFERENCIA — Anexo A (sin CAMICON, agenda A7)
@@ -28,10 +28,10 @@ INSERT INTO valor_referencia (clave, valor, descripcion, fuente) VALUES
 -- ============================================================
 -- 3. PROYECTOS (uno por estado)
 -- ============================================================
-INSERT INTO proyecto (usuario_id, nombre_proyecto, codigo, descripcion, anio, fecha_inicio, plazo_ejecucion, plazo_unidad, estado, direccion_institucional, subdireccion_institucional) VALUES
-  ((SELECT id FROM usuario WHERE email = 'ana.armas@gmail.com'),  'Adecuación de consultorio odontológico', 'UCE-CON-2026-A', 'Adecuación de consultorio odontológico en el campus universitario', 2026, DATE '2026-06-01', 4, 'MES', 'BORRADOR',    'Universidad Central del Ecuador', 'Facultad de Odontología'),
-  ((SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'),  'Rehabilitación de consultorios UCE',    'UCE-CON-2026-B', 'Rehabilitación integral de consultorios médicos universitarios', 2026, DATE '2026-03-02', 8, 'MES', 'EN_PROCESO',  'Universidad Central del Ecuador', 'Facultad de Medicina'),
-  ((SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'),  'Cetro Médico Tulcán',                    'CMT-2023',        'Construcción del Centro Médico Tulcán', 2023, DATE '2023-02-06', 12, 'MES', 'FINALIZADO', 'IESS', 'Dirección Provincial Carchi');
+INSERT INTO proyecto (public_id, usuario_id, nombre_proyecto, codigo, descripcion, anio, fecha_inicio, plazo_ejecucion, plazo_unidad, estado, direccion_institucional, subdireccion_institucional, titulo_et_1, titulo_et_2) VALUES
+  ('0192f6c4-7c8a-7abc-8000-000000001101'::uuid, (SELECT id FROM usuario WHERE email = 'ana.armas@gmail.com'),  'Adecuación de consultorio odontológico', 'UCE-CON-2026-A', 'Adecuación de consultorio odontológico en el campus universitario', 2026, DATE '2026-06-01', 4, 'MES', 'BORRADOR',    'Universidad Central del Ecuador', 'Facultad de Odontología', 'ESPECIFICACIONES TÉCNICAS', 'BORRADOR-ET'),
+  ('0192f6c4-7c8a-7abc-8000-000000001102'::uuid, (SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'),  'Rehabilitación de consultorios UCE',    'UCE-CON-2026-B', 'Rehabilitación integral de consultorios médicos universitarios', 2026, DATE '2026-03-02', 8, 'MES', 'EN_PROCESO',  'Universidad Central del Ecuador', 'Facultad de Medicina', 'ESPECIFICACIONES TÉCNICAS', 'EN-PROCESO-ET'),
+  ('0192f6c4-7c8a-7abc-8000-000000001103'::uuid, (SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'),  'Cetro Médico Tulcán',                    'CMT-2023',        'Construcción del Centro Médico Tulcán', 2023, DATE '2023-02-06', 12, 'MES', 'FINALIZADO', 'IESS', 'Dirección Provincial Carchi', 'ESPECIFICACIONES TÉCNICAS', 'ESTANCIA-ACADEMICA');
 
 -- ============================================================
 -- 4. PARAMETROS_PROYECTO (copia de parametros_sistema; CI NULL → hereda, DM §11)
@@ -44,23 +44,23 @@ INSERT INTO parametros_proyecto (proyecto_id, porcentaje_herramienta_menor, porc
 -- ============================================================
 -- 5. FIRMANTES
 -- ============================================================
-INSERT INTO firmante (proyecto_id, nombre, cargo, rol, orden) VALUES
+INSERT INTO firmante (public_id, proyecto_id, nombre, cargo, rol, orden) VALUES
   -- Escenario A (BORRADOR)
-  ((SELECT id FROM proyecto WHERE nombre_proyecto = 'Adecuación de consultorio odontológico'), 'Ing. Ana de Armas',  'Responsable de la propuesta', 'CONSOLIDADO', 1),
-  ((SELECT id FROM proyecto WHERE nombre_proyecto = 'Adecuación de consultorio odontológico'), 'Ing. John Doe',      'Jefe de Presupuestos',        'APROBADO',    1),
+  ('0192f6c4-7c8a-7abc-8000-000000001301'::uuid, (SELECT id FROM proyecto WHERE nombre_proyecto = 'Adecuación de consultorio odontológico'), 'Ing. Ana de Armas',  'Responsable de la propuesta', 'CONSOLIDADO', 1),
+  ('0192f6c4-7c8a-7abc-8000-000000001302'::uuid, (SELECT id FROM proyecto WHERE nombre_proyecto = 'Adecuación de consultorio odontológico'), 'Ing. John Doe',      'Jefe de Presupuestos',        'APROBADO',    1),
   -- Escenario B (EN_PROCESO)
-  ((SELECT id FROM proyecto WHERE nombre_proyecto = 'Rehabilitación de consultorios UCE'),     'Ing. John Doe',      'Responsable de la propuesta', 'CONSOLIDADO', 1),
-  ((SELECT id FROM proyecto WHERE nombre_proyecto = 'Rehabilitación de consultorios UCE'),     'Ing. Ana de Armas',  'Jefe de Presupuestos',        'APROBADO',    1),
+  ('0192f6c4-7c8a-7abc-8000-000000001303'::uuid, (SELECT id FROM proyecto WHERE nombre_proyecto = 'Rehabilitación de consultorios UCE'),     'Ing. John Doe',      'Responsable de la propuesta', 'CONSOLIDADO', 1),
+  ('0192f6c4-7c8a-7abc-8000-000000001304'::uuid, (SELECT id FROM proyecto WHERE nombre_proyecto = 'Rehabilitación de consultorios UCE'),     'Ing. Ana de Armas',  'Jefe de Presupuestos',        'APROBADO',    1),
   -- Escenario C (FINALIZADO)
-  ((SELECT id FROM proyecto WHERE nombre_proyecto = 'Cetro Médico Tulcán'),                    'Ing. John Doe',      'Responsable de la propuesta', 'CONSOLIDADO', 1),
-  ((SELECT id FROM proyecto WHERE nombre_proyecto = 'Cetro Médico Tulcán'),                    'Ing. Ana de Armas',  'Revisión técnica',            'APROBADO',    1),
-  ((SELECT id FROM proyecto WHERE nombre_proyecto = 'Cetro Médico Tulcán'),                    'Ing. Emil Verkade',  'Aprobación final',            'APROBADO',    2);
+  ('0192f6c4-7c8a-7abc-8000-000000001305'::uuid, (SELECT id FROM proyecto WHERE nombre_proyecto = 'Cetro Médico Tulcán'),                    'Ing. John Doe',      'Responsable de la propuesta', 'CONSOLIDADO', 1),
+  ('0192f6c4-7c8a-7abc-8000-000000001306'::uuid, (SELECT id FROM proyecto WHERE nombre_proyecto = 'Cetro Médico Tulcán'),                    'Ing. Ana de Armas',  'Revisión técnica',            'APROBADO',    1),
+  ('0192f6c4-7c8a-7abc-8000-000000001307'::uuid, (SELECT id FROM proyecto WHERE nombre_proyecto = 'Cetro Médico Tulcán'),                    'Ing. Emil Verkade',  'Aprobación final',            'APROBADO',    2);
 
 -- ============================================================
 -- 6a. BASES PROYECTO + INSUMOS (Escenario A, BORRADOR — preparación)
 -- ============================================================
-INSERT INTO base_insumos (nombre, tipo, proyecto_id, archivada) VALUES
-  ('Base PROYECTO Adecuación de consultorio odontológico', 'PROYECTO',
+INSERT INTO base_insumos (public_id, nombre, tipo, proyecto_id, archivada) VALUES
+  ('0192f6c4-7c8a-7abc-8000-000000000011'::uuid, 'Base PROYECTO Adecuación de consultorio odontológico', 'PROYECTO',
    (SELECT id FROM proyecto WHERE nombre_proyecto = 'Adecuación de consultorio odontológico'), FALSE);
 
 INSERT INTO insumo (base_id, codigo, tipo, descripcion, unidad, precio_unitario)
@@ -77,8 +77,8 @@ FROM (VALUES
 -- ============================================================
 -- 6b. BASES PROYECTO + INSUMOS (Escenario B, EN_PROCESO)
 -- ============================================================
-INSERT INTO base_insumos (nombre, tipo, proyecto_id, archivada) VALUES
-  ('Base PROYECTO Rehabilitación de consultorios UCE', 'PROYECTO',
+INSERT INTO base_insumos (public_id, nombre, tipo, proyecto_id, archivada) VALUES
+  ('0192f6c4-7c8a-7abc-8000-000000000012'::uuid, 'Base PROYECTO Rehabilitación de consultorios UCE', 'PROYECTO',
    (SELECT id FROM proyecto WHERE nombre_proyecto = 'Rehabilitación de consultorios UCE'), FALSE);
 
 INSERT INTO insumo (base_id, codigo, tipo, descripcion, unidad, precio_unitario)
@@ -94,8 +94,8 @@ FROM (VALUES
 -- ============================================================
 -- 6c. BASES PROYECTO + INSUMOS (Escenario C, FINALIZADO — 93 insumos copiados de la central IESS)
 -- ============================================================
-INSERT INTO base_insumos (nombre, tipo, proyecto_id, archivada) VALUES
-  ('Base PROYECTO Cetro Médico Tulcán', 'PROYECTO',
+INSERT INTO base_insumos (public_id, nombre, tipo, proyecto_id, archivada) VALUES
+  ('0192f6c4-7c8a-7abc-8000-000000000013'::uuid, 'Base PROYECTO Cetro Médico Tulcán', 'PROYECTO',
    (SELECT id FROM proyecto WHERE nombre_proyecto = 'Cetro Médico Tulcán'), FALSE);
 
 INSERT INTO insumo (base_id, codigo, tipo, descripcion, unidad, precio_unitario)
@@ -106,10 +106,10 @@ WHERE base_id = (SELECT id FROM base_insumos WHERE nombre = 'Base IESS Cetro Mé
 -- ============================================================
 -- 7. PRESUPUESTOS (B: EN_PROCESO; C: FINALIZADO — total = workbook)
 -- ============================================================
-INSERT INTO presupuesto (proyecto_id, version, es_vigente, origen_id, notas, porcentaje_indirecto, total) VALUES
-  ((SELECT id FROM proyecto WHERE nombre_proyecto = 'Rehabilitación de consultorios UCE'),
+INSERT INTO presupuesto (public_id, proyecto_id, version, es_vigente, origen_id, notas, porcentaje_indirecto, total) VALUES
+  ('0192f6c4-7c8a-7abc-8000-000000001201'::uuid, (SELECT id FROM proyecto WHERE nombre_proyecto = 'Rehabilitación de consultorios UCE'),
    1, TRUE, NULL, 'Presupuesto v1 en elaboración (EN_PROCESO)', 0.1800, 26464.866000),
-  ((SELECT id FROM proyecto WHERE nombre_proyecto = 'Cetro Médico Tulcán'),
+  ('0192f6c4-7c8a-7abc-8000-000000001202'::uuid, (SELECT id FROM proyecto WHERE nombre_proyecto = 'Cetro Médico Tulcán'),
    1, TRUE, NULL, 'Presupuesto definitivo — workbook real CMT', 0.1800, 395115.320000);
 
 -- ============================================================
@@ -2595,19 +2595,19 @@ VALUES ((SELECT id FROM cronograma WHERE presupuesto_id = (SELECT id FROM presup
 -- 10. PLANTILLAS APU
 -- 10a. SISTEMA: snapshot del APU real 501BM6 (workbook)
 -- ============================================================
-INSERT INTO plantilla_apu (nombre, tipo, usuario_id, descripcion_rubro, unidad, snapshot_secciones) VALUES
-  ('Retiro de pisos de porcelanato/cerámica (Sistema)', 'SISTEMA', NULL,
+INSERT INTO plantilla_apu (public_id, nombre, tipo, usuario_id, descripcion_rubro, unidad, snapshot_secciones) VALUES
+  ('0192f6c4-7c8a-7abc-8000-000000002001'::uuid, 'Retiro de pisos de porcelanato/cerámica (Sistema)', 'SISTEMA', NULL,
    'Retiro de pisos de porcelanato/cerámica', 'm2',
-   '{"secciones":[{"tipo":"EQUIPO","lineas":[{"esHerramientaMenor":true,"descripcion":"Herramienta Menor 5%MO","costo":0.0235}]},{"tipo":"MANO_OBRA","lineas":[{"insumoCodigo":"MO-001","cantidad":0.1,"tarifaJornal":4.75,"rendimiento":0.5,"costo":0.2375},{"insumoCodigo":"MO-002","cantidad":0.1,"tarifaJornal":4.23,"rendimiento":0.5,"costo":0.2115}]},{"tipo":"MATERIAL","lineas":[]},{"tipo":"TRANSPORTE","lineas":[]}]}'::jsonb);
+   '{"secciones":[{"tipo":"EQUIPO","lineas":[{"esHerramientaMenor":true}]},{"tipo":"MANO_OBRA","lineas":[{"insumoCodigo":"MO-001","cantidad":0.1,"rendimiento":0.5,"precioOverride":null},{"insumoCodigo":"MO-002","cantidad":0.1,"rendimiento":0.5,"precioOverride":null}]},{"tipo":"MATERIAL","lineas":[]},{"tipo":"TRANSPORTE","lineas":[]}]}'::jsonb);
 
 -- ============================================================
 -- 10b. PERSONAL: plantilla propia de John Doe (demostración del tipo PERSONAL)
 -- ============================================================
-INSERT INTO plantilla_apu (nombre, tipo, usuario_id, descripcion_rubro, unidad, snapshot_secciones) VALUES
-  ('Replanteo y nivelación (John Doe)', 'PERSONAL',
+INSERT INTO plantilla_apu (public_id, nombre, tipo, usuario_id, descripcion_rubro, unidad, snapshot_secciones) VALUES
+  ('0192f6c4-7c8a-7abc-8000-000000002002'::uuid, 'Replanteo y nivelación (John Doe)', 'PERSONAL',
    (SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'),
    'Replanteo y nivelación', 'm2',
-   '{"secciones":[{"tipo":"EQUIPO","lineas":[{"esHerramientaMenor":true,"descripcion":"Herramienta Menor 5%MO","costo":0.0235}]},{"tipo":"MANO_OBRA","lineas":[{"insumoCodigo":"MO-001","cantidad":0.1,"tarifaJornal":4.75,"rendimiento":0.1,"costo":0.0475},{"insumoCodigo":"MO-002","cantidad":1.0,"tarifaJornal":4.23,"rendimiento":0.1,"costo":0.423}]},{"tipo":"MATERIAL","lineas":[]},{"tipo":"TRANSPORTE","lineas":[]}]}'::jsonb);
+   '{"secciones":[{"tipo":"EQUIPO","lineas":[{"esHerramientaMenor":true}]},{"tipo":"MANO_OBRA","lineas":[{"insumoCodigo":"MO-001","cantidad":0.1,"rendimiento":0.1,"precioOverride":null},{"insumoCodigo":"MO-002","cantidad":1.0,"rendimiento":0.1,"precioOverride":null}]},{"tipo":"MATERIAL","lineas":[]},{"tipo":"TRANSPORTE","lineas":[]}]}'::jsonb);
 
 -- ============================================================
 -- 11. LOG_ACTIVIDAD — catálogo D-13, detalle JSONB sin PII (RNF-08)
@@ -2640,3 +2640,57 @@ INSERT INTO log_actividad (usuario_id, evento, entidad, entidad_id, detalle) VAL
   ((SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'),  'presupuesto.vigente_marcado', 'presupuesto',
      (SELECT id FROM presupuesto WHERE proyecto_id = (SELECT id FROM proyecto WHERE nombre_proyecto = 'Cetro Médico Tulcán') AND version = 1), '{"es_vigente":true}'::jsonb),
   ((SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'),  'documento.exportado',  'documento', NULL, '{"tipo":"presupuesto"}'::jsonb);
+
+-- PERSONAL catalog example: one owner, five reusable insumos, all four types.
+INSERT INTO base_insumos (public_id, nombre, tipo, usuario_id, archivada) VALUES
+  ('0192f6c4-7c8a-7abc-8000-000000000021'::uuid, 'mis-rubros', 'PERSONAL', (SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'), FALSE);
+INSERT INTO insumo (public_id, base_id, codigo, tipo, descripcion, unidad, precio_unitario)
+SELECT v.public_id::uuid, (SELECT id FROM base_insumos WHERE nombre = 'mis-rubros'), v.codigo, v.tipo, v.descripcion, v.unidad, v.precio
+FROM (VALUES
+  ('0192f6c4-7c8a-7abc-8000-000000000101', 'PER-EQ-001', 'EQUIPO', 'Equipo personal', 'h', 12.00),
+  ('0192f6c4-7c8a-7abc-8000-000000000102', 'PER-MO-001', 'MANO_OBRA', 'Oficial personal', 'h', 8.00),
+  ('0192f6c4-7c8a-7abc-8000-000000000103', 'PER-MA-001', 'MATERIAL', 'Material personal', 'u', 3.50),
+  ('0192f6c4-7c8a-7abc-8000-000000000104', 'PER-TR-001', 'TRANSPORTE', 'Transporte personal', 'viaje', 35.00),
+  ('0192f6c4-7c8a-7abc-8000-000000000105', 'PER-MA-002', 'MATERIAL', 'Consumible personal', 'u', 1.25)
+) AS v(public_id, codigo, tipo, descripcion, unidad, precio);
+
+-- Flexible ordinary APU: a single TRANSPORTE section is not auxiliary data.
+INSERT INTO apu (public_id, presupuesto_id, codigo, descripcion, unidad, porcentaje_indirecto, porcentaje_descuento, costo_directo, costo_indirecto, costo_total)
+VALUES ('0192f6c4-7c8a-7abc-8000-000000000201'::uuid, (SELECT id FROM presupuesto WHERE proyecto_id = (SELECT id FROM proyecto WHERE nombre_proyecto = 'Rehabilitación de consultorios UCE') AND version = 1),
+        'REP-TR-001', 'Transporte independiente', 'viaje', NULL, 0, 35.000000, 0, 35.000000);
+INSERT INTO apu_seccion (apu_id, tipo, subtotal, orden)
+VALUES ((SELECT id FROM apu WHERE codigo = 'REP-TR-001'), 'TRANSPORTE', 35.000000, 0);
+INSERT INTO apu_detalle (public_id, seccion_id, insumo_id, descripcion, orden, cantidad, precio_unitario_tarifa, unidad, costo)
+VALUES ('0192f6c4-7c8a-7abc-8000-000000000301'::uuid, (SELECT id FROM apu_seccion WHERE apu_id = (SELECT id FROM apu WHERE codigo = 'REP-TR-001') AND tipo = 'TRANSPORTE'),
+        (SELECT id FROM insumo WHERE codigo = 'PER-TR-001'), 'Transporte personal', 1, 1, 35.000000, 'viaje', 35.000000);
+
+-- Structural-only representatives for later budget and schedule work.
+INSERT INTO presupuesto_rubro (presupuesto_id, apu_id)
+SELECT p.id, a.id FROM presupuesto p JOIN apu a ON a.presupuesto_id = p.id ORDER BY a.id LIMIT 1;
+INSERT INTO cronograma_actividad (presupuesto_id, rubro_id)
+SELECT p.id, r.id FROM presupuesto p JOIN rubro r ON r.capitulo_id IN (SELECT c.id FROM capitulo c WHERE c.presupuesto_id = p.id) ORDER BY r.id LIMIT 1;
+INSERT INTO plantilla_proyecto (public_id, usuario_id, nombre, snapshot_estructura)
+VALUES ('0192f6c4-7c8a-7abc-8000-000000000401'::uuid, (SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'), 'Plantilla Cetro estructural',
+        '{"capitulos":[{"item":"1","apus":[{"codigo":"REP-TR-001"}]}]}'::jsonb);
+
+-- The compatibility column and deterministic seed triggers never survive V004.
+DROP TRIGGER seed_public_id_usuario ON usuario;
+DROP TRIGGER seed_public_id_firmante ON firmante;
+DROP TRIGGER seed_public_id_proyecto ON proyecto;
+DROP TRIGGER seed_public_id_presupuesto ON presupuesto;
+DROP TRIGGER seed_public_id_apu ON apu;
+DROP TRIGGER seed_public_id_apu_detalle ON apu_detalle;
+DROP TRIGGER seed_public_id_base_insumos ON base_insumos;
+DROP TRIGGER seed_public_id_insumo ON insumo;
+DROP TRIGGER seed_public_id_plantilla_apu ON plantilla_apu;
+DROP TRIGGER seed_public_id_plantilla_proyecto ON plantilla_proyecto;
+DROP FUNCTION fn_seed_public_id();
+DO $$
+DECLARE table_name TEXT;
+BEGIN
+  FOREACH table_name IN ARRAY ARRAY['usuario','firmante','proyecto','presupuesto','apu','apu_detalle','base_insumos','insumo','plantilla_apu','plantilla_proyecto'] LOOP
+    EXECUTE format('ALTER TABLE %I ALTER COLUMN public_id SET DEFAULT uuidv7()', table_name);
+  END LOOP;
+  EXECUTE 'ALTER TABLE apu DROP COLUMN ' || 'es_' || 'auxiliar';
+END
+$$;

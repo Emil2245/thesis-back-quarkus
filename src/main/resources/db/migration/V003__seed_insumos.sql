@@ -4,8 +4,8 @@
 -- Codes generated as EQ-NNN (EQUIPO), MO-NNN (MANO_OBRA), MA-NNN (MATERIAL).
 -- EQUIPO and MANO_OBRA rows use unidad='h' (schema constraint).
 
-INSERT INTO base_insumos (nombre, tipo, proyecto_id, archivada) VALUES
-  ('Base IESS Cetro Médico Tulcán', 'CENTRAL', NULL, FALSE);
+INSERT INTO base_insumos (public_id, nombre, tipo, proyecto_id, archivada) VALUES
+  ('0192f6c4-7c8a-7abc-8000-000000000001'::uuid, 'Base IESS Cetro Médico Tulcán', 'CENTRAL', NULL, FALSE);
 
 WITH base AS (
   SELECT id FROM base_insumos WHERE nombre = 'Base IESS Cetro Médico Tulcán'
