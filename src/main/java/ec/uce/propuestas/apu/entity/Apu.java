@@ -31,6 +31,9 @@ public class Apu extends PanacheEntityBase {
     @Column(name = "porcentaje_descuento", nullable = false, precision = 5, scale = 4)
     public BigDecimal porcentajeDescuento = BigDecimal.ZERO;
 
+    @Column(name = "especificacion_tecnica", columnDefinition = "TEXT")
+    public String especificacionTecnica;
+
     @Column(name = "costo_directo", nullable = false, precision = 14, scale = 6)
     public BigDecimal costoDirecto = BigDecimal.ZERO;
 

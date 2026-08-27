@@ -421,4 +421,189 @@ class ApuResourceIT {
                 .statusCode(200)
                 .body("porcentajeDescuento", comparesTo(BigDecimal.ZERO));
     }
+
+    @Test
+    void TC_P45_01_et_roundtrip_get_devuelve_contenido_persistente() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p45rt@ex.com");
+        Long proyectoId = crearProyecto(token);
+        Long presupuestoId = insertarPresupuesto(proyectoId);
+        Long apuId = crearApu(token, presupuestoId, "ET-RT-001");
+
+        String texto = "Dosificación 1:2:3, vibrado mecánico, curado húmedo 7 días.\n"
+                + "Calidad: cemento Portland tipo I, Norma NEC-2015, ACI 318.";
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("texto", texto))
+                .when()
+                .put("/api/v1/apus/" + apuId + "/especificacion-tecnica")
+                .then()
+                .statusCode(200)
+                .body("codigo", equalTo("ET-RT-001"));
+
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/apus/" + apuId + "/especificacion-tecnica")
+                .then()
+                .statusCode(200)
+                .body("apuId", equalTo(apuId.intValue()))
+                .body("contenido", equalTo(texto));
+    }
+
+    @Test
+    void TC_P45_02_et_null_y_vacio_limpian_contenido() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p45clr@ex.com");
+        Long proyectoId = crearProyecto(token);
+        Long presupuestoId = insertarPresupuesto(proyectoId);
+        Long apuId = crearApu(token, presupuestoId, "ET-CLR-001");
+
+        // sembrar texto
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("texto", "Texto inicial a limpiar"))
+                .when()
+                .put("/api/v1/apus/" + apuId + "/especificacion-tecnica")
+                .then()
+                .statusCode(200);
+
+        // null explícito → contenido null en GET
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(java.util.Collections.singletonMap("texto", (Object) null))
+                .when()
+                .put("/api/v1/apus/" + apuId + "/especificacion-tecnica")
+                .then()
+                .statusCode(200);
+
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/apus/" + apuId + "/especificacion-tecnica")
+                .then()
+                .statusCode(200)
+                .body("apuId", equalTo(apuId.intValue()))
+                .body("contenido", equalTo(null));
+
+        // cadena vacía → contenido null en GET (limpieza)
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("texto", "Texto reaparecido"))
+                .when()
+                .put("/api/v1/apus/" + apuId + "/especificacion-tecnica")
+                .then()
+                .statusCode(200);
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("texto", ""))
+                .when()
+                .put("/api/v1/apus/" + apuId + "/especificacion-tecnica")
+                .then()
+                .statusCode(200);
+
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/apus/" + apuId + "/especificacion-tecnica")
+                .then()
+                .statusCode(200)
+                .body("contenido", equalTo(null));
+    }
+
+    @Test
+    void TC_P45_03_et_multibyte_excede_65536_bytes_rechaza_con_400() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p45mb@ex.com");
+        Long proyectoId = crearProyecto(token);
+        Long presupuestoId = insertarPresupuesto(proyectoId);
+        Long apuId = crearApu(token, presupuestoId, "ET-MB-001");
+
+        // "á" son 2 bytes UTF-8; 65 537 caracteres 'á' = 131 074 bytes > 65 536
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 65_537; i++) {
+            sb.append('á');
+        }
+        String enorme = sb.toString();
+        int bytes = enorme.getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+        // sanity check del setup
+        org.junit.jupiter.api.Assertions.assertEquals(131_074, bytes);
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("texto", enorme))
+                .when()
+                .put("/api/v1/apus/" + apuId + "/especificacion-tecnica")
+                .then()
+                .statusCode(400)
+                .body("codigo", equalTo("validacion"));
+
+        // verificación negativa: el contenido no debe haberse persistido
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/apus/" + apuId + "/especificacion-tecnica")
+                .then()
+                .statusCode(200)
+                .body("contenido", equalTo(null));
+    }
+
+    @Test
+    void TC_P45_04_et_exacto_65536_bytes_se_acepta() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p45bd@ex.com");
+        Long proyectoId = crearProyecto(token);
+        Long presupuestoId = insertarPresupuesto(proyectoId);
+        Long apuId = crearApu(token, presupuestoId, "ET-BD-001");
+
+        // 'a' es 1 byte ASCII; 65 536 caracteres = exactamente el límite permitido
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 65_536; i++) {
+            sb.append('a');
+        }
+        String limite = sb.toString();
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("texto", limite))
+                .when()
+                .put("/api/v1/apus/" + apuId + "/especificacion-tecnica")
+                .then()
+                .statusCode(200);
+
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/apus/" + apuId + "/especificacion-tecnica")
+                .then()
+                .statusCode(200)
+                .body("contenido.length()", is(65_536));
+    }
+
+    @Test
+    void RNF05_et_de_otro_usuario_devuelve_404_en_get_y_put() throws Exception {
+        String dueno = AuthSupport.registrarConToken(mailbox, "duenoet@ex.com");
+        Long proyectoId = crearProyecto(dueno);
+        Long presupuestoId = insertarPresupuesto(proyectoId);
+        Long apuId = crearApu(dueno, presupuestoId, "ET-AJ-001");
+
+        String intruso = AuthSupport.registrarConToken(mailbox, "intrusoet@ex.com");
+
+        given().header("Authorization", "Bearer " + intruso)
+                .when()
+                .get("/api/v1/apus/" + apuId + "/especificacion-tecnica")
+                .then()
+                .statusCode(404)
+                .body("codigo", equalTo("no-encontrado"));
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + intruso)
+                .body(Map.of("texto", "intento de adulteración"))
+                .when()
+                .put("/api/v1/apus/" + apuId + "/especificacion-tecnica")
+                .then()
+                .statusCode(404)
+                .body("codigo", equalTo("no-encontrado"));
+
+        // verificación negativa: el contenido del dueño sigue intacto
+        given().header("Authorization", "Bearer " + dueno)
+                .when()
+                .get("/api/v1/apus/" + apuId + "/especificacion-tecnica")
+                .then()
+                .statusCode(200)
+                .body("contenido", equalTo(null));
+    }
 }

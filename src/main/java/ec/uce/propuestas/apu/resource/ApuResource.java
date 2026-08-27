@@ -4,6 +4,8 @@ import ec.uce.propuestas.apu.dto.ApuDetalleCrearRequest;
 import ec.uce.propuestas.apu.dto.ApuDetallePatchRequest;
 import ec.uce.propuestas.apu.dto.ApuPatchRequest;
 import ec.uce.propuestas.apu.dto.ApuResponse;
+import ec.uce.propuestas.apu.dto.EspecificacionTecnicaRequest;
+import ec.uce.propuestas.apu.dto.EspecificacionTecnicaResponse;
 import ec.uce.propuestas.apu.repository.ApuRepository;
 import ec.uce.propuestas.apu.service.ApuCrudService;
 import ec.uce.propuestas.common.ProblemaException;
@@ -83,6 +85,23 @@ public class ApuResource {
     public ApuResponse actualizarPorcentajeDescuento(@PathParam("apuId") Long apuId, BigDecimal valor) {
         validarAcceso(apuId);
         return apuService.actualizarPorcentajeDescuento(apuId, valor);
+    }
+
+    /** P-45 (N04 §ESP). GET retorna la forma JSON estable del ET del APU. */
+    @GET
+    @Path("/especificacion-tecnica")
+    @Consumes(MediaType.WILDCARD)
+    public EspecificacionTecnicaResponse obtenerEspecificacionTecnica(@PathParam("apuId") Long apuId) {
+        validarAcceso(apuId);
+        return apuService.obtenerEspecificacionTecnica(apuId);
+    }
+
+    /** P-45 (N04 §ESP). PUT persiste el ET. {@code texto} null o vacío = limpiar. */
+    @PUT
+    @Path("/especificacion-tecnica")
+    public ApuResponse guardarEspecificacionTecnica(@PathParam("apuId") Long apuId, EspecificacionTecnicaRequest req) {
+        validarAcceso(apuId);
+        return apuService.guardarEspecificacionTecnica(apuId, req == null ? null : req.texto());
     }
 
     @DELETE

@@ -22,6 +22,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -131,6 +132,34 @@ public class ApuCrudService {
         calculoService.recalcular(apu);
         return respuestaCompleta(apu);
     }
+
+    /** P-45 (N04 §ESP). Límite 65 536 bytes UTF-8 (RNF-09). {@code texto} null o "" = limpiar. */
+    @Transactional
+    public ApuResponse guardarEspecificacionTecnica(Long apuId, String texto) {
+        Apu apu = _validar(apuId);
+        String normalizado = normalizarEspecificacion(texto);
+        apu.especificacionTecnica = normalizado;
+        apuRepository.persist(apu);
+        return respuestaCompleta(apu);
+    }
+
+    /** P-45 (N04 §ESP). GET retorna una forma JSON estable e independiente del APU. */
+    public EspecificacionTecnicaResponse obtenerEspecificacionTecnica(Long apuId) {
+        Apu apu = _validar(apuId);
+        return new EspecificacionTecnicaResponse(apu.id, apu.especificacionTecnica);
+    }
+
+    static String normalizarEspecificacion(String texto) {
+        if (texto == null || texto.isEmpty()) {
+            return null;
+        }
+        if (texto.getBytes(StandardCharsets.UTF_8).length > MAX_ET_BYTES) {
+            throw ProblemaException.validacion("especificacionTecnica excede el límite de 65536 bytes UTF-8");
+        }
+        return texto;
+    }
+
+    private static final int MAX_ET_BYTES = 65_536;
 
     private static void validarPorcentaje(BigDecimal valor, BigDecimal maximo, String campo) {
         if (valor != null && (valor.signum() < 0 || valor.compareTo(maximo) > 0)) {
