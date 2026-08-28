@@ -2747,13 +2747,13 @@ INSERT INTO log_actividad (usuario_id, evento, entidad, entidad_id, detalle) VAL
 INSERT INTO base_insumos (public_id, nombre, tipo, usuario_id, archivada) VALUES
   ('0192f6c4-7c8a-7abc-8000-000000000021'::uuid, 'mis-rubros', 'PERSONAL', (SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'), FALSE);
 INSERT INTO insumo (public_id, base_id, codigo, tipo, descripcion, unidad, precio_unitario)
-SELECT v.public_id::uuid, (SELECT id FROM base_insumos WHERE nombre = 'mis-rubros'), v.codigo, v.tipo, v.descripcion, v.unidad, v.precio
+SELECT v.public_id, (SELECT id FROM base_insumos WHERE nombre = 'mis-rubros'), v.codigo, v.tipo, v.descripcion, v.unidad, v.precio
 FROM (VALUES
-  ('0192f6c4-7c8a-7abc-8000-000000000101', 'PER-EQ-001', 'EQUIPO', 'Equipo personal', 'h', 12.00),
-  ('0192f6c4-7c8a-7abc-8000-000000000102', 'PER-MO-001', 'MANO_OBRA', 'Oficial personal', 'h', 8.00),
-  ('0192f6c4-7c8a-7abc-8000-000000000103', 'PER-MA-001', 'MATERIAL', 'Material personal', 'u', 3.50),
-  ('0192f6c4-7c8a-7abc-8000-000000000104', 'PER-TR-001', 'TRANSPORTE', 'Transporte personal', 'viaje', 35.00),
-  ('0192f6c4-7c8a-7abc-8000-000000000105', 'PER-MA-002', 'MATERIAL', 'Consumible personal', 'u', 1.25)
+  ('0192f6c4-7c8a-7abc-8000-000000000101'::uuid, 'PER-EQ-001', 'EQUIPO', 'Equipo personal', 'h', 12.00),
+  ('0192f6c4-7c8a-7abc-8000-000000000102'::uuid, 'PER-MO-001', 'MANO_OBRA', 'Oficial personal', 'h', 8.00),
+  ('0192f6c4-7c8a-7abc-8000-000000000103'::uuid, 'PER-MA-001', 'MATERIAL', 'Material personal', 'u', 3.50),
+  ('0192f6c4-7c8a-7abc-8000-000000000104'::uuid, 'PER-TR-001', 'TRANSPORTE', 'Transporte personal', 'viaje', 35.00),
+  ('0192f6c4-7c8a-7abc-8000-000000000105'::uuid, 'PER-MA-002', 'MATERIAL', 'Consumible personal', 'u', 1.25)
 ) AS v(public_id, codigo, tipo, descripcion, unidad, precio);
 
 -- Flexible ordinary APU: a single TRANSPORTE section is not auxiliary data.
@@ -2774,25 +2774,3 @@ SELECT p.id, r.id FROM presupuesto p JOIN rubro r ON r.capitulo_id IN (SELECT c.
 INSERT INTO plantilla_proyecto (public_id, usuario_id, nombre, snapshot_estructura)
 VALUES ('0192f6c4-7c8a-7abc-8000-000000000401'::uuid, (SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'), 'Plantilla Cetro estructural',
         '{"capitulos":[{"item":"1","apus":[{"codigo":"REP-TR-001"}]}]}'::jsonb);
-
--- The compatibility column and deterministic seed triggers never survive V004.
-DROP TRIGGER seed_public_id_usuario ON usuario;
-DROP TRIGGER seed_public_id_firmante ON firmante;
-DROP TRIGGER seed_public_id_proyecto ON proyecto;
-DROP TRIGGER seed_public_id_presupuesto ON presupuesto;
-DROP TRIGGER seed_public_id_apu ON apu;
-DROP TRIGGER seed_public_id_apu_detalle ON apu_detalle;
-DROP TRIGGER seed_public_id_base_insumos ON base_insumos;
-DROP TRIGGER seed_public_id_insumo ON insumo;
-DROP TRIGGER seed_public_id_plantilla_apu ON plantilla_apu;
-DROP TRIGGER seed_public_id_plantilla_proyecto ON plantilla_proyecto;
-DROP FUNCTION fn_seed_public_id();
-DO $$
-DECLARE table_name TEXT;
-BEGIN
-  FOREACH table_name IN ARRAY ARRAY['usuario','firmante','proyecto','presupuesto','apu','apu_detalle','base_insumos','insumo','plantilla_apu','plantilla_proyecto'] LOOP
-    EXECUTE format('ALTER TABLE %I ALTER COLUMN public_id SET DEFAULT uuidv7()', table_name);
-  END LOOP;
-  EXECUTE 'ALTER TABLE apu DROP COLUMN ' || 'es_' || 'auxiliar';
-END
-$$;
