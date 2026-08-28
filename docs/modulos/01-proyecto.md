@@ -111,17 +111,22 @@ tanto:
 - **FirmanteService**: CRUD; `UNIQUE(rol, orden)` — `POST` más de una vez con
   mismo orden → 400 `validacion`. no reordena automáticamente el resto (simple).
 - **ParametrosProyectoService**: `obtener(proyectoId)` → si no existe fila, crea
-  una copia de `ParametrosSistema` (P-11). `actualizar(proyectoId, req)` valida
-  rangos **leídos desde `ParametrosSistema`** (N04 §A6 — rangos
+  una copia de `ParametrosSistema` (P-11). `actualizar(usuarioId, proyectoId, req)`
+  valida rangos **leídos desde `ParametrosSistema`** (N04 §A6 — rangos
   parametrizables; default %HM ∈ [0, 0.20]; %CI ∈ [0,1]; IVA ∈ [0, 0.30];
-  `monto>0` para plazo). Tras actualizar:
-  - **%HM**: invoca `RecalculoService.recalcular(PORCENTAJE_HERRAMIENTA_MENOR,
-    alcance=[presupuesto vigente])` — recalcula TODOS los APUs (HM no tiene
-    override por APU).
-  - **%CI**: invoca `RecalculoService.recalcular(PORCENTAJE_INDIRECTO_DEFAULT,
-    alcance=[presupuesto vigente])` — recalcula solo APUs con
-    `porcentaje_indirecto IS NULL` (los override no se tocan).
-  Implementación: ver `04-apu-avanzado.md` §2.9.
+  `moneda` libre). Tras persistir devuelve un seam **neutro**
+  `ParametrosProyectoCambio` con:
+  - `proyectoId` interno (Long resuelto),
+  - flags de cambio numérico **escala-insensibles y null-safe**:
+    `porcentajeHerramientaMenorCambio`, `porcentajeIndirectoCambio`,
+  - `ParametrosProyectoResponse` ya materializado.
+
+  Este seam **no dispara recálculo**: queda preparado como entrada para
+  WU-07, que conectará `RecalculoService` cuando exista el motor de
+  presupuesto/APU vigente. Hoy, la mutación se limita a persistir la fila;
+  las actualizaciones globales de rangos en `actualizarSistema` (sólo
+  SUPER_ADMIN) permanecen sin efectos colaterales. Implementación futura
+  del recálculo: ver `04-apu-avanzado.md` §2.9.
 
 ## 5. REST resources (RestResponse<T>)
 

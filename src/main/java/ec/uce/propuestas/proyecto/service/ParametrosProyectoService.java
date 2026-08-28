@@ -35,7 +35,7 @@ public class ParametrosProyectoService {
     }
 
     @Transactional
-    public ParametrosProyectoResponse actualizar(Long usuarioId, Long proyectoId, ParametrosProyectoEditarRequest req) {
+    public ParametrosProyectoCambio actualizar(Long usuarioId, Long proyectoId, ParametrosProyectoEditarRequest req) {
         proyectoService.validarPropietario(usuarioId, proyectoId);
         ParametrosSistema sistema = leerSistema();
         validarRangoDinamico(
@@ -47,12 +47,26 @@ public class ParametrosProyectoService {
         validarRangoDinamico(req.iva(), sistema.rangoIvaMin, sistema.rangoIvaMax, "iva");
 
         ParametrosProyecto p = obtenerOCrear(proyectoId);
+        // Snapshot numérico previo: escala-insensible (compareTo) y null-safe.
+        BigDecimal hmPrevio = p.porcentajeHerramientaMenor;
+        BigDecimal ciPrevio = p.porcentajeIndirecto;
         p.porcentajeHerramientaMenor = req.porcentajeHerramientaMenor();
         p.porcentajeIndirecto = req.porcentajeIndirecto();
         p.iva = req.iva();
         p.moneda = req.moneda();
         parametrosRepository.persist(p);
-        return ParametrosProyectoMapper.toResponse(p);
+        return new ParametrosProyectoCambio(
+                p.proyectoId,
+                cambioNumerico(ciPrevio, p.porcentajeIndirecto),
+                cambioNumerico(hmPrevio, p.porcentajeHerramientaMenor),
+                ParametrosProyectoMapper.toResponse(p));
+    }
+
+    /** True si {@code solicitado} difiere numéricamente de {@code previo}. Null-safe. */
+    private static boolean cambioNumerico(BigDecimal previo, BigDecimal solicitado) {
+        if (previo == null && solicitado == null) return false;
+        if (previo == null || solicitado == null) return true;
+        return previo.compareTo(solicitado) != 0;
     }
 
     /** Crea la fila de parámetros con defaults si aún no existe (tabla de uno-a-uno). */

@@ -44,6 +44,6 @@ public class ParametrosProyectoResource {
     @PUT
     public ParametrosProyectoResponse editar(
             @PathParam("proyectoId") Long proyectoId, @Valid ParametrosProyectoEditarRequest req) {
-        return parametrosService.actualizar(usuarioId(), proyectoId, req);
+        return parametrosService.actualizar(usuarioId(), proyectoId, req).parametros();
     }
 }
