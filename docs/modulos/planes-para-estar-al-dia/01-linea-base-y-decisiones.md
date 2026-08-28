@@ -12,8 +12,18 @@ El trabajo pendiente de `ParametrosProyectoCambio` queda resuelto, y las fuentes
 
 ### Incluye
 
-- Revisar y terminar, si sigue pendiente, `ParametrosProyectoCambio`.
-- Mantener sus datos internos fuera del contrato REST: el resource devuelve solo `cambio.parametros()`.
+- Confirmar que `ParametrosProyectoCambio` ya está commiteado en `main`
+  (Plan 01 cerrado): la clase y su test viven en
+  `proyecto/service/ParametrosProyectoCambio{Test}.java`.
+- Mantener sus datos internos fuera del contrato REST: el resource
+  devuelve solo `cambio.parametros()`. **No** se expone `Long proyectoId`,
+  ni los flags `porcentajeIndirectoCambio` / `porcentajeHerramientaMenorCambio`
+  por REST.
+- La migración de los paths `proyectoId` y de la identidad interna
+  expuesta en `ParametrosProyectoResponse` (que sigue como `Long`) a
+  UUIDv7 público **queda diferida** al
+  [Plan 07](./07-uuidv7-fronteras-rest.md); este Plan 01 no introduce
+  ningún cambio de tipo `Long`→`UUID` en esa respuesta.
 - Reconciliar `docs/modulos/04-apu-avanzado.md` con la decisión no-links.
 - Sincronizar las fuentes globales enumeradas en `estado-actual.md` §2.2.
 - Actualizar `plans/README.md` para reflejar el estado real de los planes 006 y 013.
@@ -24,6 +34,8 @@ El trabajo pendiente de `ParametrosProyectoCambio` queda resuelto, y las fuentes
 - Crear `ApuValidacionService` o columnas auxiliares.
 - Cambiar fórmulas del motor.
 - Implementar capacidades de los planes 02–08.
+- Migrar `ParametrosProyectoResponse.id` ni los paths `proyectoId` a
+  UUIDv7 (esto es trabajo del Plan 07).
 
 ## Pasos
 
@@ -33,7 +45,12 @@ El trabajo pendiente de `ParametrosProyectoCambio` queda resuelto, y las fuentes
    - cambio de `%CI`;
    - cambio de `%HM`;
    - respuesta final de parámetros.
-3. Completar sus pruebas unitarias y hacer que `ParametrosProyectoResource` exponga únicamente la respuesta pública.
+3. Confirmar que el recurso `ParametrosProyectoResource` sigue
+   exponiendo únicamente `cambio.parametros()` (ya validado en este Plan
+   01: el endpoint devuelve `ParametrosProyectoResponse`, no el seam
+   completo). La migración del `Long proyectoId` del path a UUIDv7, y
+   la del campo `id` de `ParametrosProyectoResponse` a UUIDv7, están
+   explícitamente diferidas a [Plan 07](./07-uuidv7-fronteras-rest.md).
 4. En `docs/modulos/04-apu-avanzado.md`:
    - retirar P-25 auxiliar y sus DTOs/servicios/campos propuestos;
    - registrar que los casos `TC-P25-*` de enlaces quedaron obsoletos;

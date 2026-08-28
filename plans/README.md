@@ -28,75 +28,66 @@ iteration I-01 in full plus the I-02 hito (motor de cálculo puro).
 | 003 | [Postgres schema baseline (V001–V003 migrations)](./003-schema-baseline.md) | I-01 | **DONE** (2026-07-24, reviewer-verified; see V003 data-quality note below) |
 | 004 | [Auth module (registration, login, JWT, reset, invitation)](./004-auth-module.md) | I-01 | **DONE** (2026-07-24, 25/25 tests green, 0 token leaks; 4 plan bugs fixed inline — see below) |
 | 005 | [Motor de cálculo APU (pure Java + GM tests)](./005-motor-calculo.md) | I-02 | **BLOCKED** (2026-07-24, scaffold present in `2fe6c83` but 2/25 GM tests fail — see below) |
-| 006 | [Motor consolidación fix (GM-19/GM-20, GM-21 audit, GM-24 real)](./006-motor-consolidacion-fix.md) | I-02 | ✅ **RESUELTO (2026-08-19 — N04-bis, decisión funcional)**)** — opción (a) aplicada: modificar `internal/Consolidador.java` para redondear a 2 dp (`RoundingMode.DOWN`) en la frontera APU→Rubro, match workbook IESS. GM-19/20 esperados verdes. |
+| 006 | [Motor consolidación fix (GM-19/GM-20, GM-21 audit, GM-24 real)](./006-motor-consolidacion-fix.md) | I-02 | **DECISIÓN CERRADA (2026-08-19 — N04-bis)** — opción (a) funcionalmente aprobada (modificar `internal/Consolidador.java` para redondear a 2 dp `RoundingMode.DOWN` en la frontera APU→Rubro, match workbook IESS). **Implementación de código pendiente** hasta ejecutar [`docs/modulos/planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md`](../docs/modulos/planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md) (Plan 02), que exige el plan obligatorio `plans/014-motor-precision-no-links.md`. Detalle histórico de investigación abajo. |
 | 007 | [Migración Maven → Gradle](../docs/007-migracion-gradle.md) | build tooling | **DONE** (2026-08-01; build/tests/dev-mode verified; CI/CD deferred — plan 002 debt stays open; refinements modernos en §008 del mismo doc) |
 | 009 | [Módulos `proyecto` + `insumo`](../docs/modulos/README.md) | I-03 | **DONE** (2026-08-02; ver §009 post-execution notes) |
 | 010 | [Seed de escenarios reales (V004)](../docs/04-SEED-ESCENARIOS.md) | I-04 | **DONE** (2026-08-02; 3 proyectos uno por estado, FINALIZADO = workbook CMT; verificado en Postgres limpio + suite sin regresión) |
 | 011 | [Módulo APU núcleo (P-19…P-22)](../docs/modulos/03-apu.md) | I-05 | **DONE** (2026-08-11; P-19…P-22, editor APU, filas M/N/O/P, fila HM protegida, override precio + `JsonNullable` write-through vía `Motor.calcularApu`; 10 tests verdes, colección Bruno `api/bruno/08-apu/`) |
 | 012 | [Formatter + lint (Spotless/Palantir + -Xlint:all)](../docs/012-format-lint.md) | tooling | **DONE** (2026-08-11; 142 archivos formateados, 0 warnings lint, sin regresión; ver nota post-ejecución) |
-| 013 | [Módulo APU avanzado (P-23…P-27, P-45, P-46 + decisiones N04)](../docs/modulos/04-apu-avanzado.md) | I-06 | **TODO** (plan completo escrito tras N04 18-08-2026 — Ing. Carlosama) |
+| 013 | [Módulo APU avanzado (P-23…P-27, P-45, P-46 + decisiones N04)](../docs/modulos/04-apu-avanzado.md) | I-06 | **PARTIAL** (reconciliado 2026-08-28 tras N04 temporal). P-25 marcado **OBSOLETO/SUPERSEDED**; `ApuValidacionService`, `CAMBIO_AUXILIAR`, `es_auxiliar`, `apu_auxiliar_id`, `cdAuxiliar` y la creación del módulo `recalculo` **no se implementan**. **DONE:** P-24 descuento legacy, duplicar APU, ET (Apache POI), rangos parametrizables, bases PERSONALES, copia al usar, seam `ParametrosProyectoCambio`. **PARTIAL:** P-23 %CI por APU (sin propagación global), P-27 desglose (sin `CALC_PRECISION` aún). **MISSING:** P-26 plantillas APU, P-46 plantilla de proyecto, `CALC_PRECISION=3` / `DOWN` 2 dp (Plan 02), UUIDv7 en módulos actuales (Plan 07). **DEFERRED:** write-through global (`recalculo`), descuento global FORMA 1, recálculo atómico FORMA 2. |
 
 Plans for I-07 through I-12 (presupuesto, cronograma, export, admin,
 validación final) are not yet written — they
 will be authored in later planning sessions once each preceding iteration's
 plans are DONE and CI-green.
 
-### 013 — Módulo APU avanzado (P-23…P-27, P-45, P-46 + decisiones N04) (raised 2026-08-19)
+### 013 — Módulo APU avanzado (P-23…P-27, P-45, P-46 + decisiones N04) (raised 2026-08-19, reconciled 2026-08-28)
 
 Plan: [`../docs/modulos/04-apu-avanzado.md`](../docs/modulos/04-apu-avanzado.md).
-**State: TODO** (plan completo escrito; pendiente ejecución).
+**State: PARTIAL** (reconciliado tras N04 temporal, 2026-08-28). El
+documento se conserva como rastro histórico; las instrucciones activas
+están en [`../docs/modulos/planes-para-estar-al-dia/`](../docs/modulos/planes-para-estar-al-dia/).
 
-Cubre las decisiones congeladas en la entrevista N04 (18-08-2026) con el
-Ing. Alvaro Carlosama (respaldadas en
-`thesis-docs/plan/design/07-decisiones-i06-pendientes.md`):
+**Decisión de mayor autoridad:** la entrevista N04 **temporal**
+(`../thesis-docs/DOCUMENTOS/entrevistas/04/temporal/Respuesta_Entrevista_N04_TERMPORAL.md`
+§2) elimina los enlaces entre APUs. Por tanto:
 
-- **A1 — Descuento CD (dos formas):** FORMA 1 = descuento global % que reduce
-  columnas específicas en la base PROYECTO (tarifa en EQUIPO/TRANSPORTE,
-  `precio_unitario` en MATERIAL; **MO exenta por ley**); FORMA 2 = edición
-  atómica de columnas en base PROYECTO. Atajo legacy `APU.porcentaje_descuento`
-  se conserva. Nunca monto absoluto.
-- **A2 — Auxiliares sin anidamiento:** validación dura en `agregarDetalle` /
-  `actualizarDetalle`; rechaza `apuAuxiliarId` si el APU destino es
-  auxiliar.
-- **A3 — HM primera por defecto + reordenable:** motor ordena por `orden`;
-  UI permite drag; CHK-05 verifica posición **real**.
-- **A6 — Rangos parametrizables globalmente:** `ParametrosSistema` con
-  columnas de rango; `PUT /proyectos/{id}/parametros` lee rangos de ahí.
-- **A9 — Bases SIEMPRE copia al usar + base PERSONAL:** enum `TipoBase`
-  amplía con `PERSONAL`; `agregarDetalle` resuelve CENTRAL/PERSONAL → PROYECTO.
-- **D-12 — Archivar sin bloqueo:** `PUT /bases-central/{id}/archivar`
-  (oculta del catálogo) + `DELETE` (no se bloquea con referencias).
-- **#7 — Decimales:** motor redondea cada operación a `CALC_PRECISION`
-  (default 3, env); export aplica `DISPLAY_PRECISION` (default 2). BD
-  persiste 6 dp sin pérdida.
-- **ET — Especificaciones Técnicas:** columna `apu.especificacion_tecnica`;
-  PUT/GET por APU; export Word único por proyecto vía `documento/`.
-- **A8 — Plantilla de proyecto completo:** nuevo `PlantillaProyecto` +
-  `POST /proyectos/{id}/desde-plantilla/{plantillaId}`; misma mecánica de
-  fallback que P-26.
+- **P-25 (auxiliares) — OBSOLETO/SUPERSEDED.** `es_auxiliar`,
+  `apu_auxiliar_id`, `apuAuxiliarId`, `cdAuxiliar`, `CAMBIO_AUXILIAR` y
+  `ApuValidacionService` **no se implementan**. Un supuesto "auxiliar"
+  se modela como otro APU/rubro independiente.
+- **Módulo `recalculo` — DEFERRED.** No se crea ningún módulo nuevo de
+  primer nivel en esta etapa.
+- **Librería documental — Apache POI** (`poi-ooxml`), ya presente en
+  dependencias. **No** se usa docx4j.
 
-Módulo nuevo: **`recalculo`** (deep, 08-codebase-design §1) que cubre
-write-through al cambiar parámetros (dossier §B.6) + edición atómica + descuento
-global. Sin tocar `Motor.java` (el motor queda puro, snapshot-in/result-out;
-`RecalculoService` aplica el resultado vía `ApuCrudService`).
+**Estado por capacidad** (cruzado con
+[`../docs/modulos/estado-actual.md`](../docs/modulos/estado-actual.md) §4):
 
-**Estimación de scope:** ~18 tests nuevos (5 unit del motor/servicios +
-~13 IT de recursos). Sin nueva tabla crítica — solo 1 columna nueva
-(`apu.especificacion_tecnica`) + ampliación de `tipo_base` enum + columnas
-de rango en `parametros_sistema`. Migración V005 opcional (solo si se
-elige reseed de plantillas canónicas).
+| Capacidad | Estado |
+|---|---|
+| P-23 `%CI` por APU (PATCH + recalcular local) | **DONE** |
+| P-23 propagación al cambiar default del proyecto | **DEFERRED** (requería `recalculo`) |
+| P-24 descuento legacy por APU (`PATCH /apus/{id}/porcentaje-descuento`) | **DONE** |
+| P-25 enlaces auxiliares | **OBSOLETO/SUPERSEDED** |
+| P-26 plantillas personales + carga con fallback | **MISSING** — Plan 04 ([planes-para-estar-al-dia/04](../docs/modulos/planes-para-estar-al-dia/04-plantillas-apu.md)) |
+| P-27 desglose de cálculo | **PARTIAL** — Plan 03; aplicar `CALC_PRECISION` queda en Plan 02 |
+| P-45 ET (PUT/GET + DOCX con Apache POI) | **DONE** |
+| P-46 plantilla de proyecto | **MISSING** — Plan 06 ([planes-para-estar-al-dia/06](../docs/modulos/planes-para-estar-al-dia/06-plantillas-proyecto.md)) |
+| `POST /apus/{id}/duplicar` | **DONE** |
+| Rangos parametrizables (A6) | **DONE** |
+| Base `PERSONAL` (A9) | **DONE** |
+| A3 reordenamiento filas | **PARTIAL** |
+| A9 copia al usar | **DONE** |
+| D-12 archivar/borrar central | **MISSING** — Plan 05 ([planes-para-estar-al-dia/05](../docs/modulos/planes-para-estar-al-dia/05-administracion-bases.md)) |
+| `CALC_PRECISION`/`DISPLAY_PRECISION` | **MISSING** — Plan 02 ([planes-para-estar-al-dia/02](../docs/modulos/planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)) |
+| Consolidación APU→Rubro `DOWN` 2 dp | **MISSING** — Plan 02 ([planes-para-estar-al-dia/02](../docs/modulos/planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)) |
+| UUIDv7 en módulos actuales | **PARTIAL** — Plan 07 ([planes-para-estar-al-dia/07](../docs/modulos/planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md)) |
+| Write-through global (`recalculo`) | **DEFERRED** |
 
-**Decisiones de scope del autor (a confirmar al inicio de la ejecución):**
-- ¿Se crea migración V005 para reseed de plantillas canónicas? (N04 §B.4
-  recomienda "no" — reader tolera campos extra; default).
-- ¿El módulo `recalculo` se crea como submódulo de `apu/` o como paquete
-  hermano? (Plan propone hermano, `ec.uce.propuestas.recalculo`).
-- ¿`EspecificacionTecnicaWriter` usa docx4j o apache poi + extensión? (Plan
-  propone docx4j).
-
-**Pre-flight con el ingeniero antes de ejecutar:**
-- Confirmar plantilla/formato ET (agenda A-ET, §17 #18).
-- Confirmar si SERCOP/CAMICON exige 3 dp en cálculo (agenda A6-bis, §17 #19).
+> **No aplicar** las instrucciones activas del documento
+> `../docs/modulos/04-apu-avanzado.md` sin cruzar con esta matriz. Su
+> contenido histórico se preserva solo para auditoría.
 
 ## Dependency graph
 
@@ -343,7 +334,15 @@ is exported. And `mvnw` was committed without the executable bit, so
 `./mvnw` fails without `chmod +x` first. Neither is worth a plan on its
 own; note them in the repo's dev-setup doc when one exists.
 
-### 006 — executed partially, STOPPED per plan protocol (raised 2026-07-24)
+### 006 — executed partially, STOPPED per plan protocol (raised 2026-07-24, decision closed 2026-08-19 N04-bis)
+
+**Status actual (2026-08-28):** **DECISIÓN CERRADA**, código de motor
+**pendiente** de implementar vía
+[`../docs/modulos/planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md`](../docs/modulos/planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)
+(Plan 02). La opción (a) de N04-bis (modificar `internal/Consolidador.java`
+para `RoundingMode.DOWN` 2 dp en frontera APU→Rubro) está aprobada a nivel
+funcional pero **no se ha aplicado al código** todavía. El bloque
+siguiente conserva la historia de investigación para auditoría.
 
 **What landed cleanly** (safe to keep, not merged yet — uncommitted in the
 working tree):

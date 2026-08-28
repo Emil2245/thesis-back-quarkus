@@ -1,113 +1,131 @@
 # Plan 04 — Módulo `apu-avanzado` (P-23…P-27, P-45, P-46 + decisiones N04) — I-06
 
-> Playbook auto-contenido. Sigue `docs/modulos/README.md`. **Crea** migración
-> `V005__*.sql` (única del I-06) si se opta por reseed de plantillas
-> canónicas (`V004` ya siembra 2 plantillas con precios/costos — ver §6).
+> **Estado actual (reconciliado 2026-08-28 tras entrevista N04 temporal):**
+> este documento **ya no describe trabajo activo**. Su contenido original
+> queda aquí **solo como historial de decisiones**; las instrucciones activas
+> están en [`docs/modulos/planes-para-estar-al-dia/`](planes-para-estar-al-dia/)
+> (planes 01–08) y en [`docs/modulos/estado-actual.md`](estado-actual.md) §4.
 >
-> **Decisiones congeladas (N04 18-08-2026 — Ing. Carlosama, dossier
-> `plan/design/07-decisiones-i06-pendientes.md`):** A1 (descuento CD — dos
-> formas, MO exenta, nunca monto absoluto), A2 (auxiliares sin
-> anidamiento), A3 (HM primera por defecto + reordenable), A6 (rangos
-> parametrizables globalmente), A9 (bases SIEMPRE copia al usar; nuevo
-> tipo PERSONAL), A8/D-12 (plantilla de proyecto + archivar central sin
-> bloqueo), #7 (CALC_PRECISION=3, DISPLAY_PRECISION=2), ET (nueva
-> feature). Detalle y rationale en `thesis-docs/plan/domain/02-data-model.md`
-> §17 #9, #11, #12, #16, #18, #19.
+> **Decisión no-links (N04 temporal):** NO existen enlaces entre APUs.
+> P-25, `es_auxiliar`, `apu_auxiliar_id`, `apuAuxiliarId`, `cdAuxiliar`,
+> `CAMBIO_AUXILIAR` y `ApuValidacionService` quedan **superados**. Un APU es
+> siempre un análisis ordinario independiente; un supuesto "auxiliar" se
+> modela como otro APU/rubro independiente. Detalle y rationale:
+> [`docs/modulos/estado-actual.md`](estado-actual.md) §2.1 y
+> `../thesis-docs/DOCUMENTOS/entrevistas/04/temporal/Respuesta_Entrevista_N04_TERMPORAL.md`
+> §2.
+>
+> **Librería documental:** la exportación de Especificaciones Técnicas usa
+> **Apache POI** (`poi-ooxml`), ya presente en dependencias; no se usa
+> docx4j.
+>
+> **Módulo profundo `recalculo`:** **DEFERRED**. No existe ni se crea en
+> esta etapa. Las decisiones de propagación global (%HM, %CI default,
+> descuentos, write-through) requieren ese módulo, que queda fuera del
+> alcance actual.
+>
+> **Capacidades actuales** (cruzadas con [`estado-actual.md`](estado-actual.md)
+> §4): %CI y descuento legacy por APU → DONE; duplicar APU → DONE; ET
+> (Apache POI) → DONE; rangos configurables → DONE; bases PERSONALES +
+> copia al usar → DONE; desglose de cálculo → PARTIAL; plantillas APU →
+> MISSING (Plan 04); plantilla de proyecto → MISSING (Plan 06);
+> consolidación APU→Rubro a 2 dp `DOWN` → MISSING (Plan 02); UUIDv7 en
+> módulos actuales → PARTIAL (Plan 07); write-through global → DEFERRED.
+>
+> ---
+>
+> **Bloque histórico (no aplicar):** secciones siguientes reproducen el
+> plan original N04 (18-08-2026, Ing. Carlosama) como rastro de auditoría.
+> Las instrucciones activas son las de
+> [`planes-para-estar-al-dia/`](planes-para-estar-al-dia/).
 
-## 0. Alcance
+## 0. Alcance histórico (N04 18-08-2026, antes del ajuste temporal)
 
-**Procesos P-xx que entran en I-06:**
+> **Bloque histórico — no aplicar.** Reproduce la tabla original del plan
+> N04 antes de la decisión no-links. Conservar solo como auditoría.
+> Para el alcance vigente, ver
+> [`planes-para-estar-al-dia/`](planes-para-estar-al-dia/).
 
-| Proceso | Tema | Decisión N04 que aplica |
+**Procesos P-xx que entran en I-06 (N04 original):**
+
+| Proceso | Tema | Estado actual |
 |---|---|---|
-| P-23 | %CI override por rubro (heredando default) | §17 #17 (sin cambios) |
-| P-24 | Descuento CD por rubro (campo legacy `APU.porcentaje_descuento`) | §17 #11 (atajo simple) |
-| P-25 | Rubro auxiliar (`es_auxiliar`, `apu_auxiliar_id`) — **validación sin anidamiento** | §17 #12 |
-| P-26 | Plantillas personales + carga con fallback | §17 #16 + §B.4 |
-| P-27 | Desglose de cálculo (`ApuCalculoResponse`) | §B.8 |
-| P-45 | **NUEVO** — Especificaciones Técnicas por APU | §17 #18 (ET) |
-| P-46 | **NUEVO** — Plantilla de proyecto completo | §A8 reactivado (N04) |
-| `POST /apus/{id}/duplicar` | Decisión dossier §B.7 (opción a) | — |
-| Módulo `recalculo` | Decisión dossier §B.6 (write-through al cambiar parámetros) | §17 #17 |
-| Rangos parametrizables | Decisión N04 §A6 | DM §11 |
-| `CALC_PRECISION` / `DISPLAY_PRECISION` | Decisión N04 §#7 | DM §0, §16, §17 #19 |
-| Base `PERSONAL` | Decisión N04 §A9 | DM §10, §17 #16 |
-| Reordenamiento filas/secciones | Decisión N04 §A3 | DM §9, §17 #9 |
+| P-23 | %CI override por rubro (heredando default) | **DONE** en `ApuCrudService` (Plan 03 contrato; propagación global = DEFERRED) |
+| P-24 | Descuento CD por rubro (campo legacy `APU.porcentaje_descuento`) | **DONE** (`PATCH /apus/{id}/porcentaje-descuento`) |
+| P-25 | Rubro auxiliar (`es_auxiliar`, `apu_auxiliar_id`) — **validación sin anidamiento** | **OBSOLETO/SUPERSEDED** — N04 temporal elimina los enlaces entre APUs |
+| P-26 | Plantillas personales + carga con fallback | **MISSING** — Plan 04 ([planes-para-estar-al-dia/04](planes-para-estar-al-dia/04-plantillas-apu.md)) |
+| P-27 | Desglose de cálculo (`ApuCalculoResponse`) | **PARTIAL** — Plan 03 |
+| P-45 | **NUEVO** — Especificaciones Técnicas por APU | **DONE** (Apache POI) |
+| P-46 | **NUEVO** — Plantilla de proyecto completo | **MISSING** — Plan 06 ([planes-para-estar-al-dia/06](planes-para-estar-al-dia/06-plantillas-proyecto.md)) |
+| `POST /apus/{id}/duplicar` | Decisión dossier §B.7 (opción a) | **DONE** |
+| Módulo `recalculo` | Decisión dossier §B.6 (write-through al cambiar parámetros) | **DEFERRED** — no se crea módulo nuevo en esta etapa |
+| Rangos parametrizables | Decisión N04 §A6 | **DONE** |
+| `CALC_PRECISION` / `DISPLAY_PRECISION` | Decisión N04 §#7 | **MISSING** — Plan 02 ([planes-para-estar-al-dia/02](planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)) |
+| Base `PERSONAL` | Decisión N04 §A9 | **DONE** |
+| Reordenamiento filas/secciones | Decisión N04 §A3 | **PARTIAL** — Plan 03 |
 
 **Procesos que NO entran (quedan para iteraciones futuras):**
 
 - P-39 admin edición/eliminación de bases CENTRALES (admin Super-Admin) →
-  **I-11**.
-- Reordenamiento con drag-and-drop visual (Gantt, presupuesto) → **I-09**.
+  Plan 05 ([planes-para-estar-al-dia/05](planes-para-estar-al-dia/05-administracion-bases.md)).
+- Reordenamiento con drag-and-drop visual (Gantt, presupuesto) → fuera del
+  MVP.
 - Selección múltiple y operaciones bulk en APU → fuera del MVP.
+- **Cualquier plan 02–08** descrito en
+  [`planes-para-estar-al-dia/`](planes-para-estar-al-dia/) **no está
+  implementado**: este doc solo conserva su rastro histórico.
 
-## 1. Arquitectura de empaquetado (nuevo código I-06)
+## 1. Arquitectura de empaquetado (N04 original — bloque histórico)
+
+> **Bloque histórico — no aplicar.** Las decisiones de empaquetado de
+> N04 original (módulos `recalculo`, DTOs auxiliares, etc.) **no se
+> implementan** en esta etapa. El árbol real del backend se mantiene en
+> los módulos existentes (`apu`, `plantilla`, `proyecto`, `insumo`,
+> `documento`).
 
 ```
 ec/uce/propuestas/
 ├── apu/                          (continúa desde I-05; ver 03-apu.md)
-│   ├── dto/
-│   │   ├── ApuPorcentajeIndirectoRequest.java       (PATCH override %CI)
-│   │   ├── ApuPorcentajeDescuentoRequest.java       (PATCH legacy %desc)
-│   │   ├── ApuDetalleAuxiliarRequest.java           (filas O con apu_auxiliar_id)
-│   │   ├── ApuCalculoResponse.java                  (P-27 desglose)
-│   │   ├── ApuDuplicarResponse.java                 (POST /apus/{id}/duplicar)
-│   │   ├── EspecificacionTecnicaRequest.java        (P-45 PUT /apus/{id}/especificacion-tecnica)
-│   │   └── EspecificacionTecnicaResponse.java
-│   ├── service/
-│   │   ├── ApuCalculoService.java          (existente; ampliar para P-27)
-│   │   ├── ApuValidacionService.java       (nuevo; valida sin anidamiento A2)
-│   │   ├── ApuDuplicarService.java         (nuevo; dossier §B.7 opción a)
-│   │   └── EspecificacionTecnicaService.java (nuevo; P-45)
+│   ├── dto/  (sin ApuDetalleAuxiliarRequest; sin ApuValidacionService)
+│   ├── service/  (ApuCalculoService local + ApuDuplicarService + ET via documento)
 │   └── resource/
-│       └── ApuResource.java               (ampliar: nuevos endpoints)
-├── recalculo/                     (nuevo módulo deep, 08-codebase-design §1)
-│   ├── RecalculoService.java              (API: `recalcular(Alcance)`)
-│   ├── dto/AlcanceRecalculo.java          (versión, APUs subset, tipo de cambio)
-│   └── internal/...                       (helpers package-private)
-├── plantilla/                     (nuevo módulo; reusa lo de 03-apu para APU)
-│   ├── entity/PlantillaProyecto.java
-│   ├── service/PlantillaProyectoService.java
-│   ├── dto/...
-│   └── resource/PlantillaProyectoResource.java
-└── documento/                     (extender para ET Word — ver 04-export-sercop-spec.md §7)
+├── plantilla/                    (extender sin crear submódulos profundos)
+│   └── entity/PlantillaProyecto.java  (P-46 — MISSING, Plan 06)
+└── documento/                    (extender para ET Word — Apache POI, no docx4j)
     └── service/
-        └── EspecificacionTecnicaWriter.java    (genera .docx por proyecto)
+        └── EspecificacionesTecnicasService.java    (genera .docx por proyecto)
 ```
 
-**Schema (V005 opcional):**
+**Schema (N04 original — bloque histórico):**
 
-- Si el reseed de plantillas canónicas se elige (alternativa a del dossier
-  §B.4.b): `V005__seed_plantillas_canonico.sql` reescribe las 2 plantillas
-  sembradas en V004 al JSON canónico sin precios.
-- Si se elige la opción **a)** del dossier (reader tolera campos extra del
-  seed V004): no se crea migración; el reader hace `.path("tarifaJornal")
-  .ifPresent(...)` style. **Recomendado por defecto** (menos migración,
-  menos riesgo).
-- Para ET: agregar columna `apu.especificacion_tecnica TEXT` (nullable) en
-  V005 (o ampliar V001 si V005 no se crea).
-- Para PERSONAL: ampliar enum `tipo_base` con `PERSONAL` y agregar
-  `base_insumos.usuario_id UUID FK → usuario` (nullable).
-- Para parametrizabilidad de rangos: agregar columnas en `parametros_sistema`:
-  `rango_hm_min NUMERIC(5,4)`, `rango_hm_max NUMERIC(5,4)`, etc.
+- V005 ya **no se contempla** para esta etapa; el reader actual tolera
+  campos extra del seed V004 (opción a) y los planes futuros deciden
+  aisladamente.
+- ET (`apu.especificacion_tecnica`) y PERSONAL
+  (`base_insumos.usuario_id`, `tipo_base = PERSONAL`) ya están aplicados
+  en V001–V004.
+- Rangos parametrizables ya están aplicados en `parametros_sistema`/
+  `parametros_proyecto` (Plan 01 cerrado).
+- No se crea paquete nuevo `recalculo/` — el write-through global está
+  **DEFERRED**. La propagación local por APU la realiza
+  `apu.service.ApuCalculoService.recalcular(apu)` (instancia del propio
+  APU), no un servicio global.
 
-## 2. Servicios nuevos / ampliados
+## 2. Servicios nuevos / ampliados (N04 original — bloque histórico)
 
-### 2.1 `ApuValidacionService` (N04 §A2 — sin anidamiento)
+> **Bloque histórico — no aplicar.** Se conserva para auditoría de las
+> decisiones N04 que quedaron superadas o ya integradas. Las instrucciones
+> activas viven en [`planes-para-estar-al-dia/`](planes-para-estar-al-dia/).
 
-```
-boolean validarFilaAuxiliar(APU destino, APUDetalle detalle):
-  if destino.es_auxiliar and detalle.apu_auxiliar_id is not null:
-    throw ProblemaException("validacion",
-      "Sin anidamiento: un rubro auxiliar no puede referenciar a otro auxiliar.")
-  return true
-```
+### 2.1 `ApuValidacionService` — OBSOLETO/SUPERSEDED
 
-Llamado desde `ApuCrudService.agregarDetalle` (03-apu) y
-`actualizarDetalle`. Error HTTP 400 con `type: "validacion"` (consistente con
-el `GlobalExceptionMapper` existente).
+> La decisión no-links elimina cualquier validación de anidamiento
+> auxiliar. **No crear** `ApuValidacionService.validarFilaAuxiliar`.
+> No exponer `es_auxiliar`, `apu_auxiliar_id`, `apuAuxiliarId`,
+> `cdAuxiliar` ni `CAMBIO_AUXILIAR`. Un APU no puede referenciar a otro
+> APU desde sus filas; `apu_detalle.apu_auxiliar_id` no existe.
 
-### 2.2 `ApuCalculoService` (ampliar para P-27)
+### 2.2 `ApuCalculoService` (P-27 — parcialmente activo)
 
 Devuelve `ApuCalculoResponse` con el desglose (dossier §B.8):
 
@@ -125,19 +143,20 @@ legible: `"0.500000 × 4.750000 × 0.500000"`) y `resultado` (BigDecimal a 6 dp)
 El cálculo reutiliza `Motor.calcularApu` (puro, sin I/O) — el servicio
 **no** recalcula; solo proyecta el resultado a la estructura del response.
 
-**Precisión:** todos los `resultado` se redondean al motor a `CALC_PRECISION`
-dp (default 3). Las cadenas `operacion` muestran los operandos a 6 dp
-(persistencia) sin redondear (auditoría).
+**Precisión:** la aplicación de `CALC_PRECISION` (default 3) sobre los
+`resultado` del response está **pendiente** y la consolidan
+[planes-para-estar-al-dia/02](planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md).
+El estado actual del desglose es **PARTIAL** (ver
+[`estado-actual.md`](estado-actual.md) §4).
 
-### 2.3 `ApuDuplicarService` (dossier §B.7 opción a)
+### 2.3 `ApuDuplicarService` (DONE — sección activa)
 
 ```
 APU duplicar(long apuId, long duenoId, boolean copiarET):
   APU origen = repository.findOrThrow(apuId, duenoId)  // 404 si ajeno
   APU copia = origen.deepCopyExceptoIdYPrecios()
   copia.codigo = generarCodigoUnico(copia.presupuesto_id, "APU-")
-  // preserva: es_auxiliar, porcentaje_indirecto (override o NULL), porcentaje_descuento
-  // preserva: apu_auxiliar_id en filas MATERIAL (mismo auxiliar referenciado)
+  // preserva: porcentaje_indirecto (override o NULL), porcentaje_descuento
   // copia secciones + filas (4 secciones + n filas)
   // recalcula write-through via Motor.calcularApu (mismas filas → mismo resultado)
   // copia especificacion_tecnica si copiarET
@@ -145,11 +164,11 @@ APU duplicar(long apuId, long duenoId, boolean copiarET):
   return copia
 ```
 
-`generarCodigoUnico(presupuesto_id, "APU-")` cuenta APUs en esa versión y
-genera `APU-{count+1}`; si colisiona (APUs borrados), incrementa hasta
-encontrar uno libre (provisión de I-05 documentada en 03-apu.md §1).
+> **No preserva** `es_auxiliar`/`apu_auxiliar_id`/`apuAuxiliarId` (no
+> existen por la decisión no-links). `generarCodigoUnico` ya implementado
+> en Plan 03 (I-05); ver [`03-apu.md`](03-apu.md) §1 y §4.
 
-### 2.4 `EspecificacionTecnicaService` (N04 §ESP — P-45 + N04-bis)
+### 2.4 `EspecificacionTecnicaService` (DONE — sección activa)
 
 ```
 void guardar(long apuId, long duenoId, String texto)        // PUT /apus/{id}/especificacion-tecnica
@@ -162,9 +181,10 @@ Validación: longitud ≤ 64 KB (RNF-09). Texto libre UTF-8 (sin validación
 de markup — el backend trata el contenido como texto plano; el frontend
 puede serializar desde TipTap/React-Quill a texto plano antes del PUT).
 
-`descargarWord` delega al módulo `documento/EspecificacionTecnicaWriter`
-(ver 04-export-sercop-spec.md §7). El documento Word incluye en la
-cabecera:
+`descargarWord` delega al módulo `documento/EspecificacionesTecnicasService`
+(ver [`docs/modulos/estado-actual.md`](estado-actual.md) §4 fila P-45).
+El documento Word se genera con **Apache POI** (`poi-ooxml`, ya en
+dependencias); **no** se usa docx4j. La cabecera incluye:
 
 - **Título 1:** `Proyecto.titulo_et_1` o, si override no-null en la
   request, el valor pasado como `titulo1Override`. Default: la cadena
@@ -175,70 +195,45 @@ cabecera:
 Los overrides son opcionales y por generación (no se guardan en BD; el
 proyecto mantiene su default).
 
-### 2.5 `RecalculoService` (N04 dossier §B.6 — write-through parámetros)
+### 2.5 `RecalculoService` (N04 dossier §B.6) — DEFERRED, NO IMPLEMENTAR
 
-```
-RecalculoResultado recalcular(AlcanceRecalculo alcance):
-  // alcance = { presupuestoId, [apuIds...], tipoCambio }
-  switch alcance.tipoCambio:
-    case PORCENTAJE_INDIRECTO_DEFAULT:
-      // Solo APUs con porcentaje_indirecto IS NULL (heredan)
-      // Para cada uno: Motor.calcularApu → write-through costo_directo/indirecto/total
-    case PORCENTAJE_HERRAMIENTA_MENOR:
-      // Recalcular TODOS los APUs de la versión (HM no tiene override por APU)
-    case DESCUENTO_GLOBAL:                    // N04 §A1 FORMA 1
-      // Para cada insumo del tipo afectado en base PROYECTO:
-      //   columna_reducida = columna_original * (1 - porcentaje)
-      //   persistir (mutación de columnas — N04 §A1)
-      // Luego recalcular todos los APUs de la versión que tengan filas
-      // que heredan (override NULL) de esos insumos.
-    case EDICION_ATOMICA_INSUMO:             // N04 §A1 FORMA 2 (N04-bis UX híbrida)
-      // Recalcular APUs que tengan filas con insumo_id = insumoEditado
-      // y override NULL. El backend responde con el nuevo costo total
-      // del proyecto (preview client-side ya muestra el efecto en vivo;
-      // el frontend hace debounced PUT cada ~500 ms tras la última edición;
-      // ver §3.5 — UX preview).
-    case CAMBIO_PLANTILLA:                   // N04 §B.4
-      // Sin recálculo masivo (la carga es por APU con fallback).
-    case CAMBIO_AUXILIAR:                    // N04 §A2 + P-25
-      // Recalcular APUs que referencian el auxiliar modificado (bloque O).
-  return RecalculoResultado(apusAfectados, totalGeneral, ...)
-```
+> **Bloque histórico — no aplicar.** La N04 original preveía un módulo
+> `recalculo` con `RecalculoService.recalcular(Alcance)` cubriendo los
+> tipos de cambio `PORCENTAJE_INDIRECTO_DEFAULT`,
+> `PORCENTAJE_HERRAMIENTA_MENOR`, `DESCUENTO_GLOBAL`,
+> `EDICION_ATOMICA_INSUMO`, `CAMBIO_PLANTILLA` y `CAMBIO_AUXILIAR`.
+> **Ese módulo queda DEFERRED** porque su introducción contradice el
+> alcance actual de no crear módulos nuevos de primer nivel
+> ([`estado-actual.md`](estado-actual.md) §1 y §7).
+>
+> **Lo que SÍ existe hoy (Plan 03 cerrado):** el write-through local por
+> APU lo realiza `apu.service.ApuCalculoService.recalcular(apu)`. Solo
+> persiste los derivados del propio APU (`costo_directo/indirecto/total`,
+> subtotales por sección, costo/costo_hora por fila). **No** propaga al
+> presupuesto ni dispara recálculo masivo. La enumeración histórica
+> `CAMBIO_AUXILIAR` ya no es un caso posible (decisión no-links).
 
-**Diseño:** `RecalculoService` es el mecanismo genérico "qué cambió →
-derivados persistidos" (RNF-02). Reutilizable por todas las mutaciones que
-afectan totales. Sin estado global. Sin I/O fuera de la BD (las mutaciones
-de columna en FORMA 1 se hacen en una transacción).
+### 2.6 `ApuCrudService` (03-apu) — estado actual
 
-**UX preview — FORMA 2 híbrida (N04-bis 19-08-2026):**
-El endpoint `PUT /insumos/{id}` (FORMA 2) se invoca con **debounce** desde
-el frontend:
-- El frontend mantiene preview client-side del nuevo costo total del
-  proyecto (conoce los APUs y filas que heredan del insumo editado).
-- El frontend hace `PUT /insumos/{id}` con **debounce de 500 ms** tras
-  la última edición (configurable; coalesce múltiples keystrokes en un
-  solo PUT → no satura el backend).
-- El backend persiste + recalcula en cada PUT y responde con el nuevo
-  `costo_total` del proyecto.
-- Indicador visual en UI: "Guardando..." (spinner/badge) durante el PUT
-  + "Guardado" / "Error al guardar" tras la respuesta. Sin botón
-  "Guardar" explícito.
-- Si la edición es masiva (muchos PUTs seguidos), el backend procesa
-  en orden; el frontend hace coalescing.
-
-### 2.6 `ApuCrudService` (03-apu) — ampliar
-
-- `actualizarPorcentajeIndirecto(apuId, duenoId, BigDecimal valor)` — null =
-  hereda (limpieza); valor = override (0–100 %; rango configurable).
-- `actualizarPorcentajeDescuento(apuId, duenoId, BigDecimal valor)` — null = 0;
-  rango 0–50 % (configurable).
-- `agregarDetalle(...)` — **invoca** `ApuValidacionService.validarFilaAuxiliar`
-  (N04 §A2) **y** el `RecalculoService.recalcular` para el APU afectado
-  (RNF-02 write-through).
+- `actualizarPorcentajeIndirecto(apuId, duenoId, BigDecimal valor)` — **DONE**
+  (Plan 03): null = hereda (limpieza); valor = override (rango configurable).
+  La propagación cuando cambia el default del proyecto sigue **DEFERRED**
+  (requeriría el módulo `recalculo` global; ver §2.5).
+- `actualizarPorcentajeDescuento(apuId, duenoId, BigDecimal valor)` — **DONE**
+  (Plan 03): null = 0; rango 0–50 % configurable.
+- `agregarDetalle(...)` — **no invoca** `ApuValidacionService` (no existe;
+  ver §2.1). El write-through es local por APU vía
+  `ApuCalculoService.recalcular(apu)`.
 - Al crear/eliminar fila: invalidar caché de `ApuCalculoResponse` (si se
   cachea).
 
-### 2.7 `PlantillaProyectoService` (N04 §A8 — P-46)
+### 2.7 `PlantillaProyectoService` (P-46) — MISSING, Plan 06
+
+> **Bloque histórico — no implementar todavía.** Se conserva la firma
+> prevista de N04 para auditoría. Implementación activa en
+> [planes-para-estar-al-dia/06](planes-para-estar-al-dia/06-plantillas-proyecto.md)
+> usando solo los paquetes existentes (`plantilla`, `proyecto`,
+> `presupuesto`, `apu`, `insumo`).
 
 ```
 PlantillaProyectoSnapshot snapshot(Proyecto origen)         // para guardar como plantilla
@@ -246,37 +241,53 @@ Proyecto cargarDesdePlantilla(long plantillaId, String nombreNuevo, long duenoId
 ```
 
 `cargarDesdePlantilla` aplica la misma lógica de `cargarPlantillaApu`
-(03-apu + P-26): deep copy de capítulos + rubros (sin cantidad) + APUs
+(Plan 04 P-26): deep copy de capítulos + rubros (sin cantidad) + APUs
 (snapshot sin precios); insumos con fallback (CENTRAL/PERSONAL → PROYECTO);
 APUs incompletos marcados con advertencia.
 
-### 2.8 `InsumoCrudService` (02-insumo) — ampliar para FORMA 2
+### 2.8 `InsumoCrudService` (02-insumo) — estado actual
 
-- `editar(baseId, iid, req)` ahora invoca `RecalculoService` con
-  `EDICION_ATOMICA_INSUMO` cuando cambia `precio_unitario` /
-  `tarifa_jornal` / `precio_unitario_tarifa` (N04 §A1 FORMA 2).
-- `BaseInsumosService` amplía enum `TipoBase` con `PERSONAL` (N04 §A9).
-  Nuevos métodos: `crearBasePersonal(usuarioId, nombre)`, `listarPersonales(usuarioId)`,
-  `compartirBasePersonal(baseId, destinoProyectoId)` (resuelve copia a base
-  PROYECTO del proyecto destino; ya soportado por `CopiaBaseService` con
-  `fuente = PERSONAL`).
+- `editar(baseId, iid, req)` — **no invoca** `RecalculoService` global
+  (módulo DEFERRED, §2.5). El cambio de precio en PROYECTO se persiste y
+  la siguiente mutación del APU afectado reflejará el nuevo precio vía
+  herencia COALESCE. La propagación automática al editar insumo
+  (`EDICION_ATOMICA_INSUMO`) queda **DEFERRED**.
+- `BaseInsumosService` con enum `TipoBase` y `PERSONAL` — **DONE**
+  (ya implementado). CRUD de personales propias está cubierto por
+  `BasesPersonalesService`; eliminar una base personal queda en
+  [planes-para-estar-al-dia/05](planes-para-estar-al-dia/05-administracion-bases.md).
 
-### 2.9 `ParametrosProyectoService` (01-proyecto) — ampliar
+### 2.9 `ParametrosProyectoService` (01-proyecto) — estado actual
 
-- `actualizar(proyectoId, req)` lee rangos desde `ParametrosSistema`
-  (default 0–20, 0–100, 0–50, 0–30) en vez de hardcoded (N04 §A6).
-- Tras actualizar `%HM`: invoca `RecalculoService.recalcular(
-  PORCENTAJE_HERRAMIENTA_MENOR, alcance=[versión])` — recalcula todos
-  los APUs (HM no tiene override).
-- Tras actualizar `%CI`: invoca `RecalculoService.recalcular(
-  PORCENTAJE_INDIRECTO_DEFAULT, alcance=[versión])` — recalcula solo
-  APUs con `porcentaje_indirecto IS NULL`.
+- `actualizar(usuarioId, proyectoId, req)` **DONE**: lee rangos desde
+  `ParametrosSistema` (default 0–20, 0–100, 0–50, 0–30) — ya implementado
+  y verificado por `ParametrosRangoDinamicoTest`.
+- Tras actualizar `%HM` o `%CI`: **no** invoca `RecalculoService` global
+  (módulo DEFERRED). El recurso devuelve solo
+  `ParametrosProyectoCambio.parametros()` y expone la costura
+  neutral para futura propagación; los flags internos
+  (`porcentajeHerramientaMenorCambio`, `porcentajeIndirectoCambio`) y el
+  `Long proyectoId` **no** se exponen por REST.
+- La migración de los paths a UUIDv7 (incluido
+  `ParametrosProyectoResponse`) está diferida a
+  [planes-para-estar-al-dia/07](planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md).
 
 ## 3. Motor — cambio de precisión (N04 §#7) + frontera APU→Rubro (N04-bis)
 
-### 3.1 Cálculo interno (N04 §#7 — HALF_UP a 3 dp)
+> **Bloque histórico — implementación pendiente.** La decisión funcional
+> de aplicar `CALC_PRECISION=3` y `DOWN` 2 dp en la frontera APU→Rubro
+> está **cerrada** ([`plans/006` está en DECISIÓN CERRADA](../../plans/README.md)),
+> pero el código del motor **no se ha modificado todavía**. La
+> implementación real corresponde a
+> [planes-para-estar-al-dia/02](planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)
+> y exige crear antes el plan obligatorio `plans/014-motor-precision-no-links.md`.
+>
+> Se conserva el rationale original (N04 §#7 + N04-bis) a continuación
+> como auditoría.
 
-- `Motor.calcularApu` redondea **cada operación aritmética** a
+### 3.1 Cálculo interno (N04 §#7 — HALF_UP a 3 dp) — MISSING, Plan 02
+
+- `Motor.calcularApu` debe redondear **cada operación aritmética** a
   `CALC_PRECISION` dp (default 3, configurable vía `CALC_PRECISION` env
   var / `ParametrosSistema`).
 - El resultado persistido se redondea también a `CALC_PRECISION` dp.
@@ -284,20 +295,20 @@ APUs incompletos marcados con advertencia.
 - El export aplica `DISPLAY_PRECISION` dp (default 2) en la capa de
   presentación; no recalcula.
 
-**Implementación:** helper `private static BigDecimal r(BigDecimal x) { ... }`
+**Implementación prevista:** helper `private static BigDecimal r(BigDecimal x) { ... }`
 que redondea con `HALF_UP` a la escala de `CALC_PRECISION`. Aplicado tras
 cada `multiply`/`add`/`subtract`.
 
-**Test:** nuevo `TC-DECIMALES-CALC3-DISP2`:
+**Test previsto:** `TC-DECIMALES-CALC3-DISP2`:
 - APU con cálculo `1.0 × 0.333333 × 0.333333 × 3.0 = 0.333332…` →
   motor da `0.333` (3 dp).
 - Export xlsx da `0.33` (2 dp).
 - BD persiste `0.333000000` (6 dp).
 
-### 3.2 Frontera APU→Rubro — `RoundingMode.DOWN` (N04-bis 2026-08-19)
+### 3.2 Frontera APU→Rubro — `RoundingMode.DOWN` (N04-bis 2026-08-19) — MISSING, Plan 02
 
 Para **cerrar GM-19/GM-20** (delta vs workbook IESS = $2.50 sobre
-presupuesto de 298 rubros), `internal/Consolidador.java` aplica
+presupuesto de 298 rubros), `internal/Consolidador.java` debe aplicar
 `RoundingMode.DOWN` al construir `RubroConPrecio` en la frontera
 APU→Rubro. Esta es la **única excepción** a la regla HALF_UP del motor.
 
@@ -326,59 +337,66 @@ de requerimientos funcionales N04-bis). Cambios futuros requieren
   (auditar).
 - 21/25 GMs previos siguen verdes (per-APU math intacta).
 
-## 4. REST resources (nuevos endpoints)
+## 4. REST resources (nuevos endpoints) — estado real
 
-**ApuResource** (ampliar el existente):
-- `PATCH /apus/{id}/porcentaje-indirecto` (P-23)
-- `PATCH /apus/{id}/porcentaje-descuento` (P-24)
-- `GET /apus/{id}/calculo` (P-27 — `ApuCalculoResponse`)
-- `POST /apus/{id}/duplicar` (dossier §B.7)
-- `PUT /apus/{id}/especificacion-tecnica` (P-45)
-- `GET /apus/{id}/especificacion-tecnica` (P-45)
+> Las rutas marcadas como **DONE** ya existen; las **MISSING/DEFERRED**
+> siguen en los planes 02–08 de
+> [`planes-para-estar-al-dia/`](planes-para-estar-al-dia/). **No** se
+> exponen campos `es_auxiliar`, `apu_auxiliar_id`, `apuAuxiliarId`,
+> `cdAuxiliar` ni `CAMBIO_AUXILIAR` en ningún DTO público.
 
-**DocumentoResource** (nuevo):
+**ApuResource** (ampliado en Plan 03):
+- `PATCH /apus/{id}/porcentaje-indirecto` (P-23) — **DONE**
+- `PATCH /apus/{id}/porcentaje-descuento` (P-24) — **DONE**
+- `GET /apus/{id}/calculo` (P-27 — `ApuCalculoResponse`) — **PARTIAL**
+  (falta aplicar `CALC_PRECISION` al response; Plan 03)
+- `POST /apus/{id}/duplicar` (dossier §B.7) — **DONE**
+- `PUT /apus/{id}/especificacion-tecnica` (P-45) — **DONE**
+- `GET /apus/{id}/especificacion-tecnica` (P-45) — **DONE**
+
+**DocumentoResource** (P-45):
 - `GET /documentos/especificaciones-tecnicas/{presupuestoId}?formato=docx&titulo1=&titulo2=`
-  (P-45 — exporte Word único por proyecto; `titulo1`/`titulo2` opcionales
-  overridean los defaults del proyecto — N04-bis)
+  (exporte Word único por proyecto; `titulo1`/`titulo2` opcionales
+  overridean los defaults del proyecto — N04-bis) — **DONE** (Apache POI).
 
-**PlantillaProyectoResource** (nuevo):
+**PlantillaProyectoResource** (P-46) — **MISSING**, Plan 06
+([planes-para-estar-al-dia/06](planes-para-estar-al-dia/06-plantillas-proyecto.md)):
 - `GET /plantillas-proyecto` — lista del usuario
 - `POST /plantillas-proyecto` — guardar snapshot desde proyecto actual
 - `POST /proyectos/{proyectoId}/desde-plantilla/{plantillaId}` — P-46
 - `DELETE /plantillas-proyecto/{id}` — eliminar (no afecta proyectos ya creados)
 
-**ParametrosSistemaResource** (nuevo o ampliar el existente):
-- `GET /parametros-sistema` — lectura (ya existe)
-- `PUT /parametros-sistema` — admin I-11 edita defaults (incluido rango de
-  parámetros, N04 §A6)
+**ParametrosSistemaResource** (DONE):
+- `GET /parametros-sistema` — lectura — **DONE**
+- `PUT /parametros-sistema` — admin edita defaults (incluido rango de
+  parámetros, N04 §A6) — **DONE**.
 
-**InsumoResource** (ampliar):
-- `GET /bases-personales` — lista del usuario
-- `POST /bases-personales` — crear
-- `DELETE /bases-personales/{id}`
+**InsumoResource / BasesPersonalesResource**:
+- `GET /bases-personales` — lista del usuario — **DONE**
+- `POST /bases-personales` — crear — **DONE**
+- `DELETE /bases-personales/{id}` — **DONE**
 
-## 5. Tests nuevos
+> **UUIDv7 en paths:** `proyectoId`, `presupuestoId`, `apuId` siguen como
+> `Long` en las rutas actuales; la migración a UUIDv7 público está
+> diferida a
+> [planes-para-estar-al-dia/07](planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md).
 
-| Test | Tipo | Verifica |
-|---|---|---|
-| `ApuCalculoServiceTest.porcentaje_indirecto_override_y_limpieza` | unit | P-23: set / limpiar override / recalcula solo este APU |
-| `ApuValidacionServiceTest.sin_anidamiento` | unit | P-25: auxiliar con `apu_auxiliar_id` set → `validacion` |
-| `ApuDuplicarServiceIT.duplicar_preserva_auxiliares_y_et` | @QuarkusTest | dossier §B.7 |
-| `ApuCalculoResponseMapperTest.shape_desglose` | unit | P-27: shape exacto del response |
-| `PlantillaProyectoServiceIT.cargar_con_fallback_advertencias` | @QuarkusTest | N04 §B.4: insumo inexistente → 200 con `advertencias[]` |
-| `RecalculoServiceTest.porcentaje_indirecto_default_recalcula_sin_override` | unit | N04 §B.6: solo APUs con NULL se recalculan |
-| `RecalculoServiceTest.porcentaje_HM_recalcula_todos` | unit | N04 §B.6 |
-| `RecalculoServiceTest.descuento_global_FORMA1_reduce_columnas_y_recalcula` | unit | N04 §A1 FORMA 1 |
-| `RecalculoServiceTest.edicion_atomica_FORMA2_recalcula_APUs_que_heredan` | unit | N04 §A1 FORMA 2 |
-| `EspecificacionTecnicaServiceIT.guardar_y_leer` | @QuarkusTest | P-45 |
-| `EspecificacionTecnicaWriterIT.exportarWord_estructura` | @QuarkusTest | N04 §7 export |
-| `MotorApuTest.CALC_PRECISION_3_aplicado_en_cada_operacion` | unit | N04 §#7 |
-| `MotorApuTest.DISPLAY_PRECISION_2_no_se_aplica_en_motor` | unit | N04 §#7 |
-| `ParametrosProyectoServiceTest.rangos_desde_ParametrosSistema` | unit | N04 §A6 |
-| `BaseInsumosServiceTest.PERSONAL_crud_y_compartir` | unit + IT | N04 §A9 |
-| `BaseInsumosResourceIT.archivar_y_borrar_sin_bloqueo` | @QuarkusTest | N04 §D-12 |
+## 5. Tests nuevos (N04 original — bloque histórico)
 
-## 6. Plantillas V004 — tolerancia o reseed (N04 §B.4)
+> **Bloque histórico — no aplicar.** La siguiente tabla enumera tests
+> previstos en el plan N04 original; varios están **obsoletos** (P-25) o
+> **diferidos** (`RecalculoService*`). El set de pruebas activas vive en
+> `plans/006`, en los planes 02–08 y en
+> [`estado-actual.md`](estado-actual.md) §4.
+
+## 6. Plantillas V004 — estado actual
+
+> **Bloque histórico — la decisión V005 ya está tomada.** Plan 04 / N04
+> §B.4.a eligió **opción a)** (reader tolera campos extra del seed V004);
+> **no** se crea `V005__reseed_plantillas_canonico.sql` en esta etapa.
+>
+> Los apartados siguientes reproducen el rationale N04-bis como
+> auditoría.
 
 V004 siembra 2 plantillas con `snapshot_secciones` conteniendo precios
 (`tarifaJornal`, `costo`). El reader actual no los usa (decisión N04
@@ -386,59 +404,41 @@ V004 siembra 2 plantillas con `snapshot_secciones` conteniendo precios
 `V005__seed_plantillas_canonico.sql` reescribe las 2 plantillas al JSON
 canónico.
 
-**Recomendación:** **opción a)** (reader tolera campos extra). Cero
+**Recomendación vigente:** **opción a)** (reader tolera campos extra). Cero
 migración; cero riesgo. Si en el futuro se quiere canonicalizar,
 `V005__reseed_plantillas_canonico.sql` es limpieza sin impacto funcional.
 
-**ET y títulos en los seeds (N04-bis 19-08-2026):** las nuevas
-columnas/campos deben aparecer en V004 (o en una migración V005 si se
-prefiere separar):
-- **Plantillas (`plantilla_apu`):** añadir columna
-  `especificacion_tecnica TEXT` (nullable) a las 2 plantillas sembradas.
-  Texto de referencia (orientativo, basado en la estructura del ejemplo
-  real `res/ESTANCIA-ACADEMICA/ESPECIFICACIONES TECNICAS TOTALES-signed.pdf`):
+**ET y títulos en los seeds (N04-bis 19-08-2026) — YA APLICADO en V001–V004:**
+las columnas `plantilla_apu.especificacion_tecnica`, `proyecto.titulo_et_1`
+y `proyecto.titulo_et_2` ya forman parte del esquema vigente. El texto
+de referencia y los títulos sembrados siguen la guía N04-bis (orientativo,
+sin hardcode de negocio):
+
+- **Plantillas (`plantilla_apu`):** texto de referencia (orientativo,
+  basado en `res/ESTANCIA-ACADEMICA/ESPECIFICACIONES TECNICAS TOTALES-signed.pdf`):
   - Plantilla 1 (SISTEMA «Hormigón f'c 210 kg/cm² (losa)»): descripción
     del proceso constructivo (dosificación, mezclado, vibrado, curado),
     calidad de materiales, equipo mínimo, normativa (NEC, ACI),
     garantías, mano de obra, medición y forma de pago (m³ ejecutado).
   - Plantilla 2 (PERSONAL del seed — id 2): texto equivalente
     simplificado.
-- **Proyectos:** añadir `titulo_et_1` y `titulo_et_2` a los 3 proyectos
-  del seed V004 (BORRADOR, EN_PROCESO, FINALIZADO):
+- **Proyectos (texto sembrado histórico, orientativo):**
   - `titulo_et_1`: `"ESPECIFICACIONES TÉCNICAS"` (idéntico en los 3).
   - `titulo_et_2`: `"CONSTRUCCIÓN DE ESTANCIA ACADÉMICA…"` para el
     FINALIZADO (basado en el ejemplo real); placeholder para los otros 2.
 
-> Si el lector de la siembra V004 no tolera columnas nuevas, **migración
-> V005**: `ALTER TABLE plantilla_apu ADD COLUMN especificacion_tecnica
-> TEXT` + `ALTER TABLE proyecto ADD COLUMN titulo_et_1 TEXT` + `titulo_et_2
-> TEXT` + `UPDATE` de las filas sembradas con los textos por defecto.
-> **Sin drop + recreate** en este caso (los datos sembrados importan para
-> los golden masters).
+## 7. Verificación (N04 original — bloque histórico)
 
-## 7. Verificación
+> **Bloque histórico — no aplicar.** Las rutas a `ec.uce.propuestas.recalculo`
+> **no existen** porque el módulo está DEFERRED. La verificación activa
+> figura en [`estado-actual.md`](estado-actual.md) §9 y en cada plan
+> 02–08 de [`planes-para-estar-al-dia/`](planes-para-estar-al-dia/).
 
-```bash
-# Unit tests del motor y servicios
-./gradlew test --tests 'ec.uce.propuestas.motor.*'
-./gradlew test --tests 'ec.uce.propuestas.apu.*'
-./gradlew test --tests 'ec.uce.propuestas.recalculo.*'
+## 8. Fuera de alcance (TODO) — vigente
 
-# IT (tests de integración)
-./gradlew test --tests 'ec.uce.propuestas.apu.*IT'
-./gradlew test --tests 'ec.uce.propuestas.documento.*IT'
-
-# Suite completa (sin regresión)
-./gradlew test
-```
-
-**Esperado:** suite verde (excepto GM-19/20 preexistentes — no tocar el
-motor). Total estimado: ~95 tests (77 actuales + ~18 nuevos).
-
-## 8. Fuera de alcance (TODO)
-
-- Edición/eliminación de bases CENTRALES por Super-Admin (P-39) → I-11.
-- Gantt visual con drag de períodos → I-09.
+- Edición/eliminación de bases CENTRALES por Super-Admin (P-39) →
+  [planes-para-estar-al-dia/05](planes-para-estar-al-dia/05-administracion-bases.md).
+- Gantt visual con drag de períodos → fuera del MVP.
 - Selección múltiple bulk en APU → fuera del MVP.
 - Plantillas SISTEMA de proyecto completo (sólo PERSONALES por ahora) →
   evaluar con uso real.
@@ -446,38 +446,37 @@ motor). Total estimado: ~95 tests (77 actuales + ~18 nuevos).
   verificar si ya emite eventos correctos en P-21 (I-05).
 - "Plantillas SISTEMA" para ET (texto precargado) → agenda A-ET.
 - Reordenamiento con drag-and-drop visual (la API ya lo soporta vía
-  `PATCH /apus/{id}/detalles/{detalleId} {orden: N}`) → I-09 si se quiere
-  UX enriquecida.
+  `PATCH /apus/{id}/detalles/{detalleId} {orden: N}`) → fuera del MVP.
 
-## 9. Decisiones operativas (N04 propagation)
+## 9. Decisiones operativas (N04 propagation) — estado actual
 
-| Decisión | Home canónico | Implementación |
+| Decisión | Home canónico | Implementación actual |
 |---|---|---|
-| Descuento FORMA 1 / FORMA 2 (A1) | DM §17 #11; procesos P-12 | `RecalculoService` + `InsumoCrudService.editar` |
-| Auxiliares sin anidamiento (A2) | DM §17 #12; procesos P-25 | `ApuValidacionService` |
-| HM primera + reordenable (A3) | DM §17 #9; procesos P-21 | motor ordena por `orden`; UI permite drag |
-| Rangos parametrizables (A6) | DM §11; procesos P-11 | `ParametrosSistema` con columnas de rango |
-| Bases SIEMPRE copia + PERSONAL (A9) | DM §17 #16, §10; procesos P-17, P-39 | `agregarDetalle` + `BaseInsumosService.PERSONAL` |
-| Archivar central sin bloqueo (D-12) | DM §10; procesos P-39 | `BaseInsumosResource.archivar` + `eliminar` (sin check de referencias) |
-| Decimales CALC=3, DISPLAY=2 (#7) | DM §0, §16, §17 #19 | motor: helper `r(x)`; export: capa de presentación |
-| Especificaciones Técnicas (ET) | DM §17 #18; procesos P-45 | `EspecificacionTecnicaService` + `EspecificacionTecnicaWriter` |
-| Plantilla de proyecto (A8) | DM §3, §10; procesos P-46 | `PlantillaProyectoService` |
+| Descuento FORMA 1 / FORMA 2 (A1) | DM §17 #11; procesos P-12 | **DEFERRED** — sin `RecalculoService` global; FORMA 2 persiste y hereda vía COALESCE en próxima mutación del APU |
+| Auxiliares sin anidamiento (A2) | DM §17 #12; procesos P-25 | **OBSOLETO/SUPERSEDED** — sin enlaces entre APUs (N04 temporal) |
+| HM primera + reordenable (A3) | DM §17 #9; procesos P-21 | **PARTIAL** — motor ordena por `orden`; PATCH de `orden` aún en Plan 03 |
+| Rangos parametrizables (A6) | DM §11; procesos P-11 | **DONE** — `ParametrosSistema` con columnas de rango + `ParametrosRangoDinamicoTest` |
+| Bases SIEMPRE copia + PERSONAL (A9) | DM §17 #16, §10; procesos P-17, P-39 | **DONE** — `ResolverInsumoProyectoService` + `BasesPersonalesService` |
+| Archivar central sin bloqueo (D-12) | DM §10; procesos P-39 | **MISSING** — Plan 05 ([planes-para-estar-al-dia/05](planes-para-estar-al-dia/05-administracion-bases.md)) |
+| Decimales CALC=3, DISPLAY=2 (#7) | DM §0, §16, §17 #19 | **MISSING** — Plan 02 ([planes-para-estar-al-dia/02](planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)) |
+| Especificaciones Técnicas (ET) | DM §17 #18; procesos P-45 | **DONE** — `EspecificacionesTecnicasService` con Apache POI |
+| Plantilla de proyecto (A8) | DM §3, §10; procesos P-46 | **MISSING** — Plan 06 ([planes-para-estar-al-dia/06](planes-para-estar-al-dia/06-plantillas-proyecto.md)) |
 
-## 10. Riesgos y deudas
+## 10. Riesgos y deudas — vigente
+
+> Riesgos heredados del N04 original con notas de vigencia:
 
 - **R1:** el helper de redondeo `r(x)` en el motor puede acumular
   desviaciones si se aplica a operaciones que originalmente son enteras
   (ej. `cantidad × tarifa` donde ambos son "limpios"). Mitigación: GM-22,
   GM-23, GM-25 deben seguir verdes tras el cambio. Si fallan, ajustar
-  helper.
-- **R2:** `EspecificacionTecnicaWriter` (Word) — librería docx4j tiene
-  curva de aprendizaje; riesgo de tiempo. Mitigación: implementar
-  layout simple (texto + secciones); validar con un APU de prueba.
-- **R3:** `RecalculoService` es un módulo nuevo y crítico — un bug
-  podría dejar totales desincronizados. Mitigación: suite exhaustiva
-  (5 tests dedicados) + verificación post-cambio que `Motor.calcularApu`
-  sigue dando el mismo resultado que el write-through manual.
+  helper. — **Aplica cuando se ejecute Plan 02.**
+- **R2:** `EspecificacionesTecnicasService` (Word) usa **Apache POI**, no
+  docx4j; curva de aprendizaje superada. — **Resuelto** (P-45 DONE).
+- **R3:** `RecalculoService` global queda **DEFERRED**; el write-through
+  local por APU lo realiza `ApuCalculoService.recalcular(apu)`. No
+  introducenir stubs ni imports ocultos que simulen el global.
 - **R4:** rangos parametrizables — si el Super-Admin edita los rangos
   en `ParametrosSistema`, los proyectos existentes **no se re-validan**
   (sus valores actuales quedan "fuera de rango" sin warning). Decisión:
-  documentar; si se quiere re-validación, abrir plan 014.
+  documentar; si se quiere re-validación, abrir plan 014. — **Vigente.**

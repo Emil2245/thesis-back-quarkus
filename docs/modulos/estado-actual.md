@@ -25,7 +25,7 @@ El backend ya tiene implementada una parte importante de I-06:
 
 Lo que todavía falta, limitado a los módulos existentes, se concentra en:
 
-1. cerrar el cambio pendiente de `ParametrosProyectoCambio`;
+1. el seam de `ParametrosProyectoCambio` está **commiteado/completo** en `main` como `feat(proyecto): expose parameter change seam`; el write-through global de parámetros hacia el frontend queda **diferido** (la costura neutral ya está expuesta para futura propagación);
 2. corregir documentación contradictoria sobre APUs auxiliares;
 3. aplicar precisión `CALC_PRECISION=3` y frontera APU→Rubro a 2 dp `DOWN`;
 4. completar reordenamiento y precisión de la respuesta de cálculo;
@@ -106,8 +106,17 @@ Los casos `TC-P25-*` ligados a referencias auxiliares deben marcarse como
 
 ## 3. Estado Git que debe resolverse primero
 
-En el corte auditado, `main` está limpio hasta `9ccb25c`, pero conserva un
-bloque sin commit:
+> **Actualización 2026-08-28:** el bloque descrito a continuación
+> (`ParametrosProyectoCambio` + ajustes en `01-proyecto.md`, `Resource` y
+> `Service`) ya está **commiteado en `main`** y constituye la costura
+> neutral de WU-06. Este §3 se conserva como checklist histórico;
+> mantenlo en este documento mientras siga siendo la lista de fuentes
+> pendientes de alinear.
+
+Histórico (corte auditado previo a la reconciliación):
+
+En el corte auditado, `main` estaba limpio hasta `9ccb25c`, pero conservaba
+un bloque sin commit:
 
 ```text
 M  docs/modulos/01-proyecto.md
@@ -127,20 +136,19 @@ ParametrosProyectoCambio(
     ParametrosProyectoResponse parametros)
 ```
 
-### Acción recomendada
+**Acción ejecutada:**
 
-**Conservarlo y terminarlo**, porque será la entrada futura del write-through.
-No exponer sus flags ni el `Long proyectoId` por REST; el resource devuelve
-únicamente `cambio.parametros()`.
+- Bloque commiteado como `feat(proyecto): expose parameter change seam`.
+- `ParametrosProyectoResource` devuelve únicamente `cambio.parametros()`
+  (`ParametrosProyectoResponse`); los flags internos y el `Long proyectoId`
+  **no** se exponen por REST.
+- La migración del `proyectoId` en path y de
+  `ParametrosProyectoResponse.id` a UUIDv7 está diferida a
+  [`planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md`](planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md).
 
-Commit sugerido:
-
-```text
-feat(proyecto): expose parameter change seam
-```
-
-Si se decide no conservarlo, hay que revertir exactamente esos cinco paths;
-no mezclar esa decisión con los bloques siguientes.
+Si en el futuro se decide revertir la costura, hay que revertir
+exactamente esos cinco paths; no mezclar esa decisión con los bloques
+siguientes.
 
 ---
 
@@ -166,7 +174,7 @@ no mezclar esa decisión con los bloques siguientes.
 | P-45 ET por APU | **DONE** | GET/PUT ET, `DocumentoResource`, `EspecificacionesTecnicasService` | solo sincronizar docs: usa Apache POI, no docx4j |
 | P-46 plantilla de proyecto | **MISSING** | `PlantillaProyecto` + repository | servicio/resource/carga usando paquetes `plantilla`, `proyecto`, `presupuesto` existentes |
 | A3 reordenamiento | **PARTIAL** | entidad tiene `orden`; cálculo ordena | aceptar `orden` en PATCH y persistirlo; prueba TC-P27-02 |
-| A6 rangos globales | **DONE** | columnas, GET/PUT admin, validación dinámica, `ParametrosRangoDinamicoTest` | cerrar/commitear `ParametrosProyectoCambio` |
+| A6 rangos globales | **DONE** | columnas, GET/PUT admin, validación dinámica, `ParametrosRangoDinamicoTest`, `ParametrosProyectoCambio` + test commitados | nada (la costura neutral ya está expuesta para futura propagación) |
 | A9 base PERSONAL | **DONE** | `BasesPersonalesService/Resource` | DELETE personal opcional indicado en Plan 04 |
 | A9 copia al usar | **DONE** | `ResolverInsumoProyectoService`, integración en `ApuCrudService` | nada para creación de filas; reutilizarlo desde plantillas |
 | D-12 central | **MISSING** | listado central activo solamente | CRUD admin, archivar y borrar sin bloqueo |
@@ -174,7 +182,7 @@ no mezclar esa decisión con los bloques siguientes.
 | Consolidación GM-19/20 | **MISSING** | `Consolidador` todavía no aplica 2dp DOWN en frontera | implementar plan 006 realmente |
 | UUIDv7 en APU | **DONE** | paths APU y detalle usan UUIDv7 | nada |
 | UUIDv7 resto de módulos | **PARTIAL** | entidades/repositories tienen `publicId` | varios resources actuales aún usan `Long` en paths/responses |
-| Write-through global | **DEFERRED** | costura `ParametrosProyectoCambio` pendiente | módulo profundo `recalculo`, excluido por alcance actual |
+| Write-through global | **DEFERRED** | costura `ParametrosProyectoCambio` ya commiteada y neutral | módulo profundo `recalculo`, excluido por alcance actual |
 
 ---
 
@@ -211,24 +219,25 @@ no mezclar esa decisión con los bloques siguientes.
 No se usan fases SDD. Cada bloque se aplica directamente a `main` y termina en
 un commit independiente. Las pruebas se acumulan y se ejecutan al final.
 
-### Bloque 0 — cerrar el estado sucio y corregir la fuente de verdad
+### Bloque 0 — línea base y fuente de verdad reconciliadas
 
-**Objetivo:** comenzar los cambios masivos desde un `main` sin trabajo flotante
-y evitar implementar requisitos auxiliares obsoletos.
+**Estado:** aplicado en el árbol de trabajo; pendiente de revisión y commit por el
+usuario.
 
-Acciones:
+Resultados:
 
-1. terminar y commitear `ParametrosProyectoCambio`;
-2. actualizar `docs/modulos/04-apu-avanzado.md`:
-   - eliminar P-25 auxiliar, `ApuValidacionService`, `CAMBIO_AUXILIAR`,
-     `es_auxiliar`, `apu_auxiliar_id` y `cdAuxiliar`;
-   - sustituir docx4j por Apache POI;
-   - marcar DONE lo ya implementado;
-   - marcar `recalculo` como diferido;
-3. sincronizar los documentos globales enumerados en §2.2;
-4. actualizar `plans/README.md`:
-   - Plan 013 pasa de TODO genérico a **PARTIAL**;
-   - Plan 006 queda “decisión cerrada, código aún pendiente” hasta aplicar DOWN.
+1. `ParametrosProyectoCambio` ya estaba terminado y commiteado antes de este
+   bloque; su seam permanece neutral y el write-through global está diferido;
+2. `docs/modulos/04-apu-avanzado.md` quedó reconciliado:
+   - P-25 auxiliar, `ApuValidacionService`, `CAMBIO_AUXILIAR`, `es_auxiliar`,
+     `apu_auxiliar_id` y `cdAuxiliar` están marcados como obsoletos/prohibidos;
+   - Apache POI sustituye cualquier instrucción previa de usar docx4j;
+   - lo implementado está marcado DONE y `recalculo` queda diferido;
+3. los documentos globales enumerados en §2.2 se sincronizaron con la nueva
+   versión acumulativa `v1.3-functional-requirements.md`;
+4. `plans/README.md` refleja:
+   - Plan 013 en estado **PARTIAL**;
+   - Plan 006 como “decisión cerrada, código aún pendiente” hasta aplicar DOWN.
 
 Commit sugerido:
 

@@ -1,8 +1,21 @@
 # 006 — Motor consolidación fix: GM-19 & GM-20, GM-21 allowlist audit, GM-24 real impl
 
-- **Status:** ✅ **RESUELTO (2026-08-19 — N04-bis Kevin Andrade, decisión funcional)**
-- **Resolución aplicada:** **Opción (a) — modificar `internal/Consolidador.java`** para redondear `RubroConPrecio.precioUnitario` y `precioTotal` a 2 dp en la frontera APU→Rubro. Rounding mode: `RoundingMode.DOWN` (match Excel ROUNDDOWN / TRUNCATE que usa el workbook IESS — **excepción documentada** a la regla general HALF_UP de CALC/DISPLAY).
-- **Iteration:** I-02 (roadmap/01, semana 4) — implementación ahora
+- **Status:** **DECISIÓN CERRADA (2026-08-19 — N04-bis Kevin Andrade)** —
+  la opción funcional está aprobada a nivel de diseño. La **implementación
+  del código en el motor queda pendiente** hasta ejecutar
+  [`../docs/modulos/planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md`](../docs/modulos/planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)
+  (Plan 02), que exige crear antes el plan obligatorio
+  `plans/014-motor-precision-no-links.md` y actualizar `CLAUDE.md` del
+  backend y de `thesis-docs`. Las pruebas, los allowlist y la
+  investigación previa a la decisión se conservan intactos debajo como
+  rastro histórico.
+- **Decisión funcional aprobada:** **Opción (a) — modificar
+  `internal/Consolidador.java`** para redondear `RubroConPrecio.precioUnitario`
+  y `precioTotal` a 2 dp en la frontera APU→Rubro. Rounding mode:
+  `RoundingMode.DOWN` (match Excel ROUNDDOWN / TRUNCATE que usa el workbook
+  IESS — **excepción documentada** a la regla general HALF_UP de
+  CALC/DISPLAY).
+- **Iteration:** I-02 (roadmap/01, semana 4) — implementación pendiente
 - **Depends on:** 005 (motor scaffold present in `2fe6c83`)
 - **Blocks:** the I-02 hito "GM api verdes" — with this fix, the thesis's `exactitud_calculo` variable IS defensible (0.00 deviation vs workbook IESS)
 - **CLAUDE.md override:** la regla "Do not touch `Motor.java` or `internal/Consolidador.java` until the director decides" se levanta **para esta decisión específica**, justificada por cambio de requerimientos funcionales (N04-bis 2026-08-19). Documentado en `thesis-back-quarkus/CLAUDE.md` y `thesis-docs/CLAUDE.md`.

@@ -93,7 +93,9 @@ ec/uce/propuestas/insumo/
   - `codigo` duplicado en base → `codigo-duplicado` (400)
   - set `updatedAt = now()`.
 - `editar(baseId, iid, InsumoEditarRequest)` — igual reglas; edición de precio es
-  punto de propagación (futuro `recalculo` RNF-02).
+  punto de propagación diferido (futuro `recalculo` RNF-02 — **DEFERRED**:
+  no se crea el módulo; el cambio se refleja vía herencia COALESCE en la
+  próxima mutación del APU).
 - `eliminar(baseId, iid)` — si `apu_detalle.insumo_id` referencia → 409
   `insumo-en-cuso` con `List<InsumoUsoResponse>`.
 - `uso(iid)` → `InsumoUsoResponse[]` (buscar `apu_detalle` por insumo).
@@ -201,11 +203,14 @@ copia-al-usar / materialización llega en el siguiente bloque.
 - **NUEVO I-06 (N04 §A1 FORMA 2):** edición atómica de columnas en la base
   PROYECTO dispara `RecalculoService.recalcular(EDICION_ATOMICA_INSUMO)` —
   propaga a APUs que heredan (override NULL). Detalle:
-  `04-apu-avanzado.md` §2.5.
+  `04-apu-avanzado.md` §2.5. — **DEFERRED**: el módulo `recalculo` no se
+  crea en esta etapa; la edición atómica persiste el nuevo precio y la
+  siguiente mutación del APU afectado lo refleja vía COALESCE.
 - **NUEVO I-06 (N04 §D-12):** archivar central (oculta del catálogo) y
   borrar central (sin bloqueo de referencias). Endpoint
   `PUT /bases-central/{baseId}/archivar` + `DELETE /bases-central/{baseId}`.
-- Recalculo de precios/APU (RNF propios) en edición → I-06 vía
-  `RecalculoService` (módulo nuevo).
+- Recalculo de precios/APU (RNF propios) en edición → **DEFERRED** (no
+  se crea el módulo `recalculo` en esta etapa; el write-through local por
+  APU lo realiza `apu.service.ApuCalculoService.recalcular(apu)`).
 - ETag/Cache-Control en bases centrales (economic, no prior).
 - Refactor de la app a nueva convención (limpieza separada).

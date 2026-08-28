@@ -23,7 +23,7 @@ En alcance (endpoints implementados en esta iteración):
 
 | Endpoint | Contrato | Errores (type) |
 |---|---|---|
-| `GET /presupuestos/{presupuestoId}/apus?q&soloAuxiliares&page&size` | P-19 | `no-encontrado` |
+| `GET /presupuestos/{presupuestoId}/apus?q&page&size` | P-19 | `no-encontrado` |
 | `POST /presupuestos/{presupuestoId}/apus` | P-20 | `validacion` · `codigo-duplicado` |
 | `GET /apus/{apuId}` | P-21 | `no-encontrado` |
 | `PATCH /apus/{apuId}` | P-21 (subset: codigo, descripcion, unidad) | `validacion` · `codigo-duplicado` |
@@ -33,21 +33,30 @@ En alcance (endpoints implementados en esta iteración):
 | `DELETE /apus/{apuId}/detalles/{detalleId}` | P-21 | `no-encontrado` · `fila-protegida` |
 
 Fuera de alcance (I-06 — [`04-apu-avanzado.md`](04-apu-avanzado.md), plan 013):
-`esAuxiliar`, `apuAuxiliarId` (P-25 — con validación sin anidamiento N04 §A2),
 `porcentajeIndirecto` override (P-23), `/apus/{id}/descuento` (P-24),
 plantillas (P-26 — con fallback N04 §B.4), `/apus/{id}/calculo` (desglose P-27),
 Especificaciones Técnicas (P-45 — N04 §ESP, NUEVA), plantilla de proyecto
-(P-46 — N04 §A8, NUEVA), `POST /apus/{id}/duplicar`, módulo `recalculo`,
+(P-46 — N04 §A8, NUEVA), `POST /apus/{id}/duplicar`, **módulo `recalculo`**,
 base PERSONAL (N04 §A9), rangos parametrizables (N04 §A6),
 `CALC_PRECISION`/`DISPLAY_PRECISION` (N04 §#7). La propagación a
 rubro/capítulo/presupuesto (RNF-02) es del módulo presupuesto (I-07): aquí se
 persiste write-through **a nivel APU** (sus propias columnas de costo).
 
+> **P-25 (auxiliares) — OBSOLETO/SUPERSEDED.** La entrevista N04 temporal
+> (`../thesis-docs/DOCUMENTOS/entrevistas/04/temporal/Respuesta_Entrevista_N04_TERMPORAL.md`
+> §2) elimina los enlaces entre APUs. Por tanto `esAuxiliar`,
+> `apuAuxiliarId`, `apu_auxiliar_id`, `cdAuxiliar`, `CAMBIO_AUXILIAR` y
+> `ApuValidacionService` **no** forman parte del alcance; un supuesto
+> "auxiliar" se modela como otro APU/rubro independiente. Ver
+> [`estado-actual.md`](estado-actual.md) §2.1.
+
 > **`POST /apus/{id}/duplicar` — en [`04-apu-avanzado.md`](04-apu-avanzado.md)
 > §2.3 (dossier §B.7 opción a).** Decisión 2026-08-12 + N04: copia cabecera +
-> 4 secciones + filas en la misma versión, preservando
-> auxiliar/%CI/descuento/ET, reusando la autogeneración `APU-{n}` de `crear`
-> (validando unicidad: count+1 puede colisionar con APUs borrados).
+> 4 secciones + filas en la misma versión, preservando `%CI`/descuento/ET,
+> reusando la autogeneración `APU-{n}` de `crear`
+> (validando unicidad: count+1 puede colisionar con APUs borrados). Sin
+> auxiliares: la copia **no** preserva ningún enlace entre APUs (decisión
+> no-links).
 
 **Decisiones propias del plan (documentadas):**
 
@@ -121,16 +130,19 @@ ec/uce/propuestas/apu/
 ## 3. Entidades (mapean V001 §2.10)
 
 **`Apu`**: `id` IDENTITY; `presupuestoId` (FK); `codigo` (unique por presupuesto);
-`descripcion`, `unidad`, `esAuxiliar` (default false, no expuesto en I-05);
+`descripcion`, `unidad`;
 `porcentajeIndirecto` (nullable — herencia), `porcentajeDescuento` (default 0);
 `costoDirecto`, `costoIndirecto`, `costoTotal` (write-through);
 `createdAt`, `updatedAt`. `@PrePersist/@PreUpdate` como `Insumo`.
 
+> **Sin `esAuxiliar`**: la columna no existe en el esquema vigente
+> (decisión no-links, N04 temporal). La entidad solo representa un APU
+> ordinario.
+
 **`ApuSeccion`**: `id`, `apuId`, `tipo` (`SeccionTipo` de `motor`), `subtotal`
 (write-through), `orden` (fijo EQUIPO=1…TRANSPORTE=4). UNIQUE `(apu_id, tipo)`.
 
-**`ApuDetalle`**: `id`, `seccionId`, `insumoId` (nullable), `apuAuxiliarId`
-(nullable — I-06), `descripcion` (copia del Insumo al crear fila),
+**`ApuDetalle`**: `id`, `seccionId`, `insumoId` (nullable), `descripcion` (copia del Insumo al crear fila),
 `orden` (dentro de la sección), `esHerramientaMenor`, `cantidad` (nullable),
 `tarifaJornal` (override E/MO), `costoHora` (write-through), `rendimiento`
 (nullable), `unidad` (copia del Insumo, M/T), `precioUnitarioTarifa` (override
@@ -195,8 +207,7 @@ padre, no por columna propia.
 
 **`PresupuestoApuResource`** `@Path("/presupuestos/{presupuestoId}/apus")`
 `@RolesAllowed({"USUARIO","SUPER_ADMIN"})`:
-- `GET ""` → `Page<ApuResumenResponse>` (`q`, `soloAuxiliares` — no-op en I-05
-  porque no hay auxiliares, `page`, `size`).
+- `GET ""` → `Page<ApuResumenResponse>` (`q`, `page`, `size`).
 - `POST ""` → 201 `ApuResponse`.
 - Resuelve `presupuestoId → proyectoId` (consulta nativa en `ApuRepository`),
   `proyectoService.validarPropietario(usuarioId, proyectoId)` (RNF-05),
@@ -299,11 +310,14 @@ Expected: nuevas suites verdes; baseline 63 tests (2 rojos GM-19/20 conocidos,
 2 skipped) sin cambios.
 
 ## 10. Fuera de alcance (TODO hacia I-06 — [`04-apu-avanzado.md`](04-apu-avanzado.md) plan 013)
-- Auxiliares (`esAuxiliar`, `apuAuxiliarId`, `flag-auxiliar-bloqueado`, D-08)
-  — con **validación sin anidamiento N04 §A2**.
+- **P-25 auxiliares — OBSOLETO/SUPERSEDED** (N04 temporal): `esAuxiliar`,
+  `apuAuxiliarId`, `apu_auxiliar_id`, `cdAuxiliar`, `CAMBIO_AUXILIAR`,
+  `flag-auxiliar-bloqueado`, D-08 y `ApuValidacionService` no forman
+  parte del alcance. Ver [`estado-actual.md`](estado-actual.md) §2.1.
 - %CI override + herencia proyecto→APU (P-23/D-05) — la infraestructura
-  (columna + `ParametrosCalculo`) queda lista; el write-through vía
-  `RecalculoService` se añade en I-06.
+  (columna + `ParametrosCalculo`) queda lista; el write-through **global**
+  vía `RecalculoService` queda **DEFERRED** (no se crea el módulo). La
+  mutación local de %CI por APU sí está cubierta (PATCH + recalcular(apu)).
 - descuento CD (P-12 FORMA 1 global, P-24 atajo legacy FORMA 2 atómica — N04 §A1).
 - plantillas (P-26 — con fallback N04 §B.4).
 - desglose (P-27).
@@ -316,6 +330,8 @@ Expected: nuevas suites verdes; baseline 63 tests (2 rojos GM-19/20 conocidos,
   operación a `CALC_PRECISION`; sin tocar `Motor.java` salvo el helper de
   redondeo).
 - **módulo `recalculo`** (N04 dossier §B.6 — write-through de parámetros,
-  edición atómica, descuento global).
+  edición atómica, descuento global) — **DEFERRED**: no se crea ningún
+  módulo nuevo de primer nivel en esta etapa. El write-through local por
+  APU lo realiza `ApuCalculoService.recalcular(apu)`.
 - **Archivar central sin bloqueo** (N04 §D-12).
 - propagación a rubro/capítulo/Total General (módulo presupuesto, I-07).
