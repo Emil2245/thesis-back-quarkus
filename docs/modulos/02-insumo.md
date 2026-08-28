@@ -43,7 +43,8 @@ ec/uce/propuestas/insumo/
 │   │   ├── CsvInsumoParser.java      (PRA puro: byte[] → List<Fila>)
 │   │   ├── FilaInsumo.java           (record)
 │   │   └── ImportacionInsumoService.java (aplicar, upsert D-06, transaccional)
-│   └── CopiaBaseService.java         (P-17, D-07)
+│   ├── CopiaBaseService.java         (P-17, D-07 — bulk)
+│   └── ResolverInsumoProyectoService.java (N04 §A9 — copia al usar, WU-02C)
 └── resource/
     ├── InsumoResource.java           (sub-path /proyectos/{id}/insumos)
     └── BaseInsumosResource.java       (/bases-centrales)
@@ -110,14 +111,39 @@ ec/uce/propuestas/insumo/
   si no existe → crear; si existe → actualizar precio/descripcion/unidad. Reporta
   `creados` / `actualizados` / `errores[]` (fila con `ErrorFila`).
 
-## 7. Copia de base (P-17)
+## 7. Copia al usar (N04 §A9) + copia masiva (P-17)
 
-**CopiaBaseService** `copiarAProyecto(proyectoId, CopiarBaseRequest)`:
+> **Decisión WU-02C — copia al usar:** toda fila de `apu_detalle.insumo_id`
+> apunta SIEMPRE a un insumo de la base PROYECTO del proyecto del APU.
+> Esto se garantiza en runtime con **`ResolverInsumoProyectoService`**,
+> invocado desde `ApuCrudService.agregarDetalle` antes de persistir.
+
+**`ResolverInsumoProyectoService.materializarOReusar(insumoId, proyectoId)`**
+(opera con BIGINTs internos; el seam de identidad externa vive en el resource):
+
+- **PROYECTO mismo proyecto** → reusa tal cual (no duplica).
+- **PROYECTO otro proyecto** → `404 no-encontrado` (sin filtrar existencia
+  ajena, RNF-05).
+- **CENTRAL** → materializa una copia independiente en la base PROYECTO del
+  proyecto. Campos copiados: `codigo, tipo, descripcion, unidad,
+  precioUnitario`; `baseId` se setea a la base destino; la BD genera un
+  `publicId` UUIDv7 fresco. Ediciones posteriores del CENTRAL NO se propagan.
+- **PERSONAL del dueño del proyecto** → igual que CENTRAL (copia).
+- **PERSONAL de otro dueño** → `404 no-encontrado`.
+- **Dedup estricto por `(base_id, codigo)`**: si ya existe una fila con el
+  mismo `codigo` en la base destino, se reusa y NO se crea una nueva
+  (preserva D-07).
+
+**`CopiaBaseService.copiar(CopiarBaseRequest)`** — copia masiva (bulk), P-17:
+
 - fuente = base CENTRAL (por `baseId`) o PROYECTO (por `proyectoId`).
-- obtiene base destino del proyecto ; copia insumos **independiente**
+- obtiene base destino del proyecto; copia insumos **independiente**
   (`createdAt/updatedAt = now`).
-- conflict (D-07): si `codigo` existe en destino → conserva existente, omite y
-  reporta en `omitidos[]`.
+- conflict (D-07): si `codigo` existe en destino → conserva existente, omite
+  y reporta en `omitidos[]` (nunca pisa).
+
+Las dos rutas coexisten: la masiva es opcional y reporta resultados; la
+"copia al usar" es obligatoria y transparente para el caller de APU.
 
 ## 8. Resources (RestResponse)
 

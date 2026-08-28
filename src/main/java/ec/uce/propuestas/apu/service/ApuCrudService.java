@@ -15,6 +15,7 @@ import ec.uce.propuestas.common.dto.Page;
 import ec.uce.propuestas.insumo.entity.Insumo;
 import ec.uce.propuestas.insumo.entity.TipoInsumo;
 import ec.uce.propuestas.insumo.repository.InsumoRepository;
+import ec.uce.propuestas.insumo.service.ResolverInsumoProyectoService;
 import ec.uce.propuestas.motor.SeccionTipo;
 import ec.uce.propuestas.proyecto.entity.ParametrosProyecto;
 import ec.uce.propuestas.proyecto.service.ParametrosProyectoService;
@@ -42,6 +43,9 @@ public class ApuCrudService {
 
     @Inject
     InsumoRepository insumoRepository;
+
+    @Inject
+    ResolverInsumoProyectoService resolverInsumoProyecto;
 
     @Inject
     ParametrosProyectoService parametrosService;
@@ -184,10 +188,11 @@ public class ApuCrudService {
                 .proyectoDePresupuesto(apu.presupuestoId)
                 .orElseThrow(() -> ProblemaException.noEncontrado("Presupuesto no encontrado"));
 
-        Insumo insumo = insumoRepository.findById(req.insumoId());
-        if (insumo == null) {
-            throw ProblemaException.noEncontrado("Insumo no encontrado");
-        }
+        // N04 §A9 — copia al usar: el insumo persistido en apu_detalle debe ser SIEMPRE
+        // PROYECTO del proyecto del APU. El resolver materializa una copia si la fuente es
+        // CENTRAL o PERSONAL (del dueño del proyecto), reusa si ya es PROYECTO del mismo
+        // proyecto, o devuelve 404 si la fuente es ajena o PERSONAL de otro dueño.
+        Insumo insumo = resolverInsumoProyecto.materializarOReusar(req.insumoId(), proyectoId);
         validarSeccionParaInsumo(req.seccionTipo(), insumo.tipo);
 
         ApuSeccion seccion = seccionRepository

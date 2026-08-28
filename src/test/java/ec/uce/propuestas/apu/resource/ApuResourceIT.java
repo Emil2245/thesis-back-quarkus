@@ -375,6 +375,114 @@ class ApuResourceIT {
                 .body("codigo", equalTo("no-encontrado"));
     }
 
+    /**
+     * WU-02C — N04 §A9 "copia al usar": cuando se agrega una fila de APU cuyo insumo
+     * fuente es CENTRAL, el {@code insumoId} persistido en {@code apu_detalle} debe
+     * apuntar a la copia PROYECTO del proyecto del APU, nunca al insumo CENTRAL
+     * original. Aquí se siembra un insumo CENTRAL por SQL (la API de Super-Admin
+     * para CRUD de centrales aún no existe), se llama al endpoint normal de
+     * {@code agregarDetalle}, y se verifica vía SQL que la fila persistida vive
+     * en la base PROYECTO del proyecto.
+     */
+    @Test
+    void TC_WU02C_agregarDetalle_persiste_copia_proyecto_nunca_central() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "wu02c@ex.com");
+        Long proyectoId = crearProyecto(token);
+        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String apuId = crearApu(token, presupuestoId, "WU02C-001");
+
+        // 1. sembrar base CENTRAL e insumo CENTRAL vía SQL (la API admin no existe aún)
+        long baseCentralId;
+        long insumoCentralId;
+        try (Connection con = ds.getConnection();
+                Statement st = con.createStatement()) {
+            st.execute("INSERT INTO base_insumos (nombre, tipo, archivada) "
+                    + "VALUES ('Central WU02C', 'CENTRAL', FALSE)");
+            try (ResultSet rs = st.executeQuery("SELECT id FROM base_insumos WHERE nombre = 'Central WU02C'")) {
+                rs.next();
+                baseCentralId = rs.getLong(1);
+            }
+        }
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement(
+                        "INSERT INTO insumo (base_id, codigo, tipo, descripcion, unidad, precio_unitario) "
+                                + "VALUES (?, 'WC-CENT-1', 'MATERIAL', 'Cemento CENTRAL', 'kg', 0.650000) RETURNING id")) {
+            ps.setLong(1, baseCentralId);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                insumoCentralId = rs.getLong(1);
+            }
+        }
+
+        // 2. POST /detalles con el insumo CENTRAL (origen)
+        String detalleId = given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("seccionTipo", "MATERIAL", "insumoId", insumoCentralId, "cantidad", 1.0))
+                .when()
+                .post("/api/v1/apus/" + apuId + "/detalles")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("secciones[2].detalles[0].id");
+
+        // 3. el insumoId reportado en el JSON NO es el CENTRAL
+        Number insumoIdReportado = given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/apus/" + apuId)
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath()
+                .get("secciones[2].detalles[0].insumoId");
+        org.junit.jupiter.api.Assertions.assertNotEquals(
+                insumoCentralId, insumoIdReportado.longValue(),
+                "el insumoId de la fila NO es el BIGINT del insumo CENTRAL");
+
+        // 4. verificar por SQL que la fila vive en una base PROYECTO del proyecto
+        long insumoEnDetalle;
+        long baseDeInsumo;
+        String tipoBase;
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement(
+                        "SELECT d.insumo_id, i.base_id, b.tipo "
+                                + "FROM apu_detalle d "
+                                + "JOIN insumo i ON i.id = d.insumo_id "
+                                + "JOIN base_insumos b ON b.id = i.base_id "
+                                + "WHERE d.public_id = ?")) {
+            ps.setObject(1, java.util.UUID.fromString(detalleId));
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                insumoEnDetalle = rs.getLong(1);
+                baseDeInsumo = rs.getLong(2);
+                tipoBase = rs.getString(3);
+            }
+        }
+        org.junit.jupiter.api.Assertions.assertNotEquals(
+                insumoCentralId, insumoEnDetalle,
+                "apu_detalle.insumo_id NO debe ser el CENTRAL original");
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "PROYECTO", tipoBase,
+                "la fila persistida vive en una base PROYECTO");
+        org.junit.jupiter.api.Assertions.assertNotEquals(
+                baseCentralId, baseDeInsumo,
+                "el base_id del insumo persistido NO es la base CENTRAL");
+
+        // 5. existe exactamente 1 insumo en la base PROYECTO del proyecto con codigo WC-CENT-1
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement(
+                        "SELECT count(*) FROM insumo i "
+                                + "JOIN base_insumos b ON b.id = i.base_id "
+                                + "WHERE b.proyecto_id = ? AND i.codigo = 'WC-CENT-1'")) {
+            ps.setLong(1, proyectoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                org.junit.jupiter.api.Assertions.assertEquals(
+                        1, rs.getLong(1),
+                        "la base PROYECTO del proyecto tiene exactamente 1 copia WC-CENT-1");
+            }
+        }
+    }
+
     private void insertarRubroVinculado(Long presupuestoId, Long apuId) throws Exception {
         try (Connection con = ds.getConnection();
                 Statement st = con.createStatement()) {
