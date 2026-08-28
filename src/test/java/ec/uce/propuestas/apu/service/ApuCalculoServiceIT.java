@@ -25,6 +25,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -134,12 +135,13 @@ class ApuCalculoServiceIT {
         Long insumoMat = crearInsumo(token, proyectoId, "MA-001", "MATERIAL", "Cemento", "kg", 1.5);
 
         ApuResponse apu = apuService.crear(presupuestoId, new ApuCrearRequest("APU-CALC", "Pozo de agua", "m³"));
+        Long apuId = internalId(apu.id());
 
         apu = apuService.agregarDetalle(
-                apu.id(),
+                apuId,
                 new ApuDetalleCrearRequest(SeccionTipo.MANO_OBRA, insumoMo, new BigDecimal("1"), new BigDecimal("1")));
         apu = apuService.agregarDetalle(
-                apu.id(), new ApuDetalleCrearRequest(SeccionTipo.MATERIAL, insumoMat, new BigDecimal("2"), null));
+                apuId, new ApuDetalleCrearRequest(SeccionTipo.MATERIAL, insumoMat, new BigDecimal("2"), null));
 
         // subtotalN = 1 × 8.99 × 1 = 8.99; HM = 0.05 × 8.99 = 0.4495
         assertEquals(
@@ -149,7 +151,7 @@ class ApuCalculoServiceIT {
         assertEquals(0, apu.costoTotal().compareTo(new BigDecimal("12.4395")));
 
         // write-through a BD
-        Apu persistido = apuRepository.findById(apu.id());
+        Apu persistido = apuRepository.findById(apuId);
         assertEquals(
                 0,
                 persistido.costoDirecto.compareTo(new BigDecimal("12.439500")),
@@ -157,7 +159,7 @@ class ApuCalculoServiceIT {
         assertEquals(0, persistido.costoTotal.compareTo(new BigDecimal("12.439500")));
 
         // subtotales por sección en BD
-        List<ApuSeccion> secciones = seccionRepository.listarDeApu(apu.id());
+        List<ApuSeccion> secciones = seccionRepository.listarDeApu(apuId);
         assertEquals(0, seccion(secciones, SeccionTipo.EQUIPO).subtotal.compareTo(new BigDecimal("0.449500")));
         assertEquals(0, seccion(secciones, SeccionTipo.MANO_OBRA).subtotal.compareTo(new BigDecimal("8.990000")));
         assertEquals(0, seccion(secciones, SeccionTipo.MATERIAL).subtotal.compareTo(new BigDecimal("3.000000")));
@@ -197,15 +199,33 @@ class ApuCalculoServiceIT {
         Long insumoMo = crearInsumo(token, proyectoId, "MO-002", "MANO_OBRA", "Maestro", "h", 4.0);
 
         ApuResponse apu = apuService.crear(presupuestoId, new ApuCrearRequest("APU-CALC-2", "Fila sistema", "u"));
+        Long apuId = internalId(apu.id());
         apu = apuService.agregarDetalle(
-                apu.id(),
+                apuId,
                 new ApuDetalleCrearRequest(
                         SeccionTipo.MANO_OBRA, insumoMo, new BigDecimal("2"), new BigDecimal("0.5")));
 
         // CD = HM(0.05 × 4.0) + N(2 × 4 × 0.5 = 4.0) = 0.2 + 4.0 = 4.2
         assertEquals(0, apu.costoTotal().compareTo(new BigDecimal("4.2")));
 
-        assertEquals(0, apuRepository.findById(apu.id()).costoTotal.compareTo(new BigDecimal("4.200000")));
+        assertEquals(0, apuRepository.findById(apuId).costoTotal.compareTo(new BigDecimal("4.200000")));
+    }
+
+    /**
+     * Resuelve el {@code BIGINT} interno de un APU a partir de su UUID público.
+     * Los services y repositorios consumen el id interno; el contrato expone
+     * {@code publicId} (OpenSpec WU-03). Solo se usa desde tests de integración
+     * para pasar de la respuesta pública a la API tipada en {@code Long}.
+     */
+    private Long internalId(UUID publicId) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT id FROM apu WHERE public_id = ?")) {
+            ps.setObject(1, publicId);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next(), "El APU público debe resolver a un id interno");
+                return rs.getLong(1);
+            }
+        }
     }
 
     private static ApuSeccion seccion(List<ApuSeccion> secciones, SeccionTipo tipo) {

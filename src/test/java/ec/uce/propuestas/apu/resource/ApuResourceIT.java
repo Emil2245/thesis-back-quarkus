@@ -103,17 +103,38 @@ class ApuResourceIT {
         }
     }
 
-    private Long crearApu(String token, Long presupuestoId, String codigo) {
-        return ((Number) given().contentType(JSON)
-                        .header("Authorization", "Bearer " + token)
-                        .body(Map.of("codigo", codigo, "descripcion", "Instalación", "unidad", "m"))
-                        .when()
-                        .post("/api/v1/presupuestos/" + presupuestoId + "/apus")
-                        .then()
-                        .statusCode(201)
-                        .extract()
-                        .path("id"))
-                .longValue();
+    private String crearApu(String token, Long presupuestoId, String codigo) {
+        return given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("codigo", codigo, "descripcion", "Instalación", "unidad", "m"))
+                .when()
+                .post("/api/v1/presupuestos/" + presupuestoId + "/apus")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
+    }
+
+    /** UUIDv7 inexistente pero bien formado — usado para verificar 404 de la capa de owner. */
+    private static final String UUID_INEXISTENTE_V7 = "0192f6c4-7c8a-7000-8000-000000000000";
+
+    /** UUIDv4 (no v7) bien formado — usado para verificar la frontera de validación 400. */
+    private static final String UUID_NO_V7 = "550e8400-e29b-41d4-a716-446655440000";
+
+    /**
+     * Resuelve el {@code BIGINT} interno de un APU a partir de su UUID público. Se usa
+     * exclusivamente para sembrar filas SQL (p. ej. {@code rubro.apu_id}) que requieren el id
+     * interno; los asserts de contrato y las URLs de los resources usan el UUID público.
+     */
+    private Long internalApuId(String publicId) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT id FROM apu WHERE public_id = ?")) {
+            ps.setObject(1, java.util.UUID.fromString(publicId));
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        }
     }
 
     @Test
@@ -173,7 +194,7 @@ class ApuResourceIT {
         Long presupuestoId = insertarPresupuesto(proyectoId);
         Long mo = crearInsumo(token, proyectoId, "MO-010", "MANO_OBRA", "Peón", "h", 4.0);
         Long mat = crearInsumo(token, proyectoId, "MA-010", "MATERIAL", "Tubo", "m", 2.0);
-        Long apuId = crearApu(token, presupuestoId, "TB-001");
+        String apuId = crearApu(token, presupuestoId, "TB-001");
 
         int numSec = 1;
         int matSec = 2;
@@ -207,9 +228,9 @@ class ApuResourceIT {
         String token = AuthSupport.registrarConToken(mailbox, "p21hm@ex.com");
         Long proyectoId = crearProyecto(token);
         Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long apuId = crearApu(token, presupuestoId, "HM-001");
+        String apuId = crearApu(token, presupuestoId, "HM-001");
 
-        Integer detalleId = given().header("Authorization", "Bearer " + token)
+        String detalleId = given().header("Authorization", "Bearer " + token)
                 .when()
                 .get("/api/v1/apus/" + apuId)
                 .then()
@@ -240,9 +261,9 @@ class ApuResourceIT {
         Long proyectoId = crearProyecto(token);
         Long presupuestoId = insertarPresupuesto(proyectoId);
         Long mo = crearInsumo(token, proyectoId, "MO-020", "MANO_OBRA", "Soldador", "h", 5.0);
-        Long apuId = crearApu(token, presupuestoId, "OV-001");
+        String apuId = crearApu(token, presupuestoId, "OV-001");
 
-        Integer detalleId = given().contentType(JSON)
+        String detalleId = given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(Map.of(
                         "seccionTipo", "MANO_OBRA", "insumoId", mo.intValue(), "cantidad", 1.0, "rendimiento", 1.0))
@@ -291,7 +312,7 @@ class ApuResourceIT {
         Long proyectoId = crearProyecto(token);
         Long presupuestoId = insertarPresupuesto(proyectoId);
         Long mat = crearInsumo(token, proyectoId, "MA-030", "MATERIAL", "Ángulo", "kg", 2.0);
-        Long apuId = crearApu(token, presupuestoId, "PR-001");
+        String apuId = crearApu(token, presupuestoId, "PR-001");
 
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
@@ -325,9 +346,10 @@ class ApuResourceIT {
         String token = AuthSupport.registrarConToken(mailbox, "del@ex.com");
         Long proyectoId = crearProyecto(token);
         Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long apuId = crearApu(token, presupuestoId, "VD-001");
+        String apuId = crearApu(token, presupuestoId, "VD-001");
 
-        insertarRubroVinculado(presupuestoId, apuId);
+        // SQL necesita el BIGINT interno; la URL del resource usa el UUID público.
+        insertarRubroVinculado(presupuestoId, internalApuId(apuId));
 
         given().header("Authorization", "Bearer " + token)
                 .when()
@@ -342,7 +364,7 @@ class ApuResourceIT {
         String dueno = AuthSupport.registrarConToken(mailbox, "dueno@ex.com");
         Long proyectoId = crearProyecto(dueno);
         Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long apuId = crearApu(dueno, presupuestoId, "AJ-001");
+        String apuId = crearApu(dueno, presupuestoId, "AJ-001");
 
         String intruso = AuthSupport.registrarConToken(mailbox, "intruso@ex.com");
         given().header("Authorization", "Bearer " + intruso)
@@ -383,7 +405,7 @@ class ApuResourceIT {
         String token = AuthSupport.registrarConToken(mailbox, "p23p24@ex.com");
         Long proyectoId = crearProyecto(token);
         Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long apuId = crearApu(token, presupuestoId, "PCT-001");
+        String apuId = crearApu(token, presupuestoId, "PCT-001");
 
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
@@ -427,7 +449,7 @@ class ApuResourceIT {
         String token = AuthSupport.registrarConToken(mailbox, "p45rt@ex.com");
         Long proyectoId = crearProyecto(token);
         Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long apuId = crearApu(token, presupuestoId, "ET-RT-001");
+        String apuId = crearApu(token, presupuestoId, "ET-RT-001");
 
         String texto = "Dosificación 1:2:3, vibrado mecánico, curado húmedo 7 días.\n"
                 + "Calidad: cemento Portland tipo I, Norma NEC-2015, ACI 318.";
@@ -446,7 +468,7 @@ class ApuResourceIT {
                 .get("/api/v1/apus/" + apuId + "/especificacion-tecnica")
                 .then()
                 .statusCode(200)
-                .body("apuId", equalTo(apuId.intValue()))
+                .body("apuId", equalTo(apuId))
                 .body("contenido", equalTo(texto));
     }
 
@@ -455,7 +477,7 @@ class ApuResourceIT {
         String token = AuthSupport.registrarConToken(mailbox, "p45clr@ex.com");
         Long proyectoId = crearProyecto(token);
         Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long apuId = crearApu(token, presupuestoId, "ET-CLR-001");
+        String apuId = crearApu(token, presupuestoId, "ET-CLR-001");
 
         // sembrar texto
         given().contentType(JSON)
@@ -480,7 +502,7 @@ class ApuResourceIT {
                 .get("/api/v1/apus/" + apuId + "/especificacion-tecnica")
                 .then()
                 .statusCode(200)
-                .body("apuId", equalTo(apuId.intValue()))
+                .body("apuId", equalTo(apuId))
                 .body("contenido", equalTo(null));
 
         // cadena vacía → contenido null en GET (limpieza)
@@ -513,7 +535,7 @@ class ApuResourceIT {
         String token = AuthSupport.registrarConToken(mailbox, "p45mb@ex.com");
         Long proyectoId = crearProyecto(token);
         Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long apuId = crearApu(token, presupuestoId, "ET-MB-001");
+        String apuId = crearApu(token, presupuestoId, "ET-MB-001");
 
         // "á" son 2 bytes UTF-8; 65 537 caracteres 'á' = 131 074 bytes > 65 536
         StringBuilder sb = new StringBuilder();
@@ -548,7 +570,7 @@ class ApuResourceIT {
         String token = AuthSupport.registrarConToken(mailbox, "p45bd@ex.com");
         Long proyectoId = crearProyecto(token);
         Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long apuId = crearApu(token, presupuestoId, "ET-BD-001");
+        String apuId = crearApu(token, presupuestoId, "ET-BD-001");
 
         // 'a' es 1 byte ASCII; 65 536 caracteres = exactamente el límite permitido
         StringBuilder sb = new StringBuilder();
@@ -578,7 +600,7 @@ class ApuResourceIT {
         String dueno = AuthSupport.registrarConToken(mailbox, "duenoet@ex.com");
         Long proyectoId = crearProyecto(dueno);
         Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long apuId = crearApu(dueno, presupuestoId, "ET-AJ-001");
+        String apuId = crearApu(dueno, presupuestoId, "ET-AJ-001");
 
         String intruso = AuthSupport.registrarConToken(mailbox, "intrusoet@ex.com");
 
@@ -614,7 +636,7 @@ class ApuResourceIT {
         Long presupuestoId = insertarPresupuesto(proyectoId);
         Long mo = crearInsumo(token, proyectoId, "MO-D-010", "MANO_OBRA", "Peón", "h", 4.0);
         Long mat = crearInsumo(token, proyectoId, "MA-D-010", "MATERIAL", "Tubo", "m", 2.5);
-        Long apuId = crearApu(token, presupuestoId, "DUP-SRC");
+        String apuId = crearApu(token, presupuestoId, "DUP-SRC");
 
         // fila MO con override para que la copia preserve el override (no heredar)
         given().contentType(JSON)
@@ -628,7 +650,7 @@ class ApuResourceIT {
                 .extract()
                 .path("secciones[1].detalles[0].id");
 
-        Integer moDetalleId = given().header("Authorization", "Bearer " + token)
+        String moDetalleId = given().header("Authorization", "Bearer " + token)
                 .when()
                 .get("/api/v1/apus/" + apuId)
                 .then()
@@ -656,7 +678,7 @@ class ApuResourceIT {
                 .statusCode(201);
 
         // duplicar
-        Integer copiaId = given().contentType(JSON)
+        String copiaId = given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(Map.of())
                 .when()
@@ -693,10 +715,10 @@ class ApuResourceIT {
                 .path("id");
 
         // código del duplicado NO debe coincidir con el del origen
-        org.junit.jupiter.api.Assertions.assertNotEquals(apuId.longValue(), copiaId.longValue());
+        org.junit.jupiter.api.Assertions.assertNotEquals(apuId, copiaId);
 
         // verificación de IDs de detalle distintos (deep copy, no compartidos)
-        java.util.List<java.util.List<Integer>> srcDetIdsNested = given().header("Authorization", "Bearer " + token)
+        java.util.List<java.util.List<String>> srcDetIdsNested = given().header("Authorization", "Bearer " + token)
                 .when()
                 .get("/api/v1/apus/" + apuId)
                 .then()
@@ -704,7 +726,7 @@ class ApuResourceIT {
                 .extract()
                 .jsonPath()
                 .get("secciones.detalles.id");
-        java.util.List<java.util.List<Integer>> copiaDetIdsNested = given().header("Authorization", "Bearer " + token)
+        java.util.List<java.util.List<String>> copiaDetIdsNested = given().header("Authorization", "Bearer " + token)
                 .when()
                 .get("/api/v1/apus/" + copiaId)
                 .then()
@@ -712,10 +734,10 @@ class ApuResourceIT {
                 .extract()
                 .jsonPath()
                 .get("secciones.detalles.id");
-        java.util.Set<Integer> srcDetIds = srcDetIdsNested.stream()
+        java.util.Set<String> srcDetIds = srcDetIdsNested.stream()
                 .flatMap(java.util.Collection::stream)
                 .collect(java.util.stream.Collectors.toSet());
-        java.util.Set<Integer> copiaDetIds = copiaDetIdsNested.stream()
+        java.util.Set<String> copiaDetIds = copiaDetIdsNested.stream()
                 .flatMap(java.util.Collection::stream)
                 .collect(java.util.stream.Collectors.toSet());
         org.junit.jupiter.api.Assertions.assertFalse(
@@ -728,7 +750,7 @@ class ApuResourceIT {
         String token = AuthSupport.registrarConToken(mailbox, "p46ettrue@ex.com");
         Long proyectoId = crearProyecto(token);
         Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long apuId = crearApu(token, presupuestoId, "ET-COPY-T-001");
+        String apuId = crearApu(token, presupuestoId, "ET-COPY-T-001");
 
         String et = "Dosificación 1:2:3, vibrado, curado 7 días.";
 
@@ -740,7 +762,7 @@ class ApuResourceIT {
                 .then()
                 .statusCode(200);
 
-        Integer copiaId = given().contentType(JSON)
+        String copiaId = given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(Map.of("copiarET", true))
                 .when()
@@ -764,7 +786,7 @@ class ApuResourceIT {
         String token = AuthSupport.registrarConToken(mailbox, "p46etfalse@ex.com");
         Long proyectoId = crearProyecto(token);
         Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long apuId = crearApu(token, presupuestoId, "ET-COPY-F-001");
+        String apuId = crearApu(token, presupuestoId, "ET-COPY-F-001");
 
         String et = "Texto que NO debe copiarse a ninguna de las dos copias.";
 
@@ -777,7 +799,7 @@ class ApuResourceIT {
                 .statusCode(200);
 
         // copiarET=false explícito
-        Integer copia1 = given().contentType(JSON)
+        String copia1 = given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(Map.of("copiarET", false))
                 .when()
@@ -788,7 +810,7 @@ class ApuResourceIT {
                 .path("id");
 
         // body ausente (null) → default false
-        Integer copia2 = given().contentType(JSON)
+        String copia2 = given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .when()
                 .post("/api/v1/apus/" + apuId + "/duplicar")
@@ -817,10 +839,10 @@ class ApuResourceIT {
         String token = AuthSupport.registrarConToken(mailbox, "p46uniq@ex.com");
         Long proyectoId = crearProyecto(token);
         Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long apuId = crearApu(token, presupuestoId, "APU-001");
+        String apuId = crearApu(token, presupuestoId, "APU-001");
 
         // 1ª copia → APU-002
-        Integer copia1 = given().contentType(JSON)
+        String copia1 = given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(Map.of())
                 .when()
@@ -832,7 +854,7 @@ class ApuResourceIT {
                 .path("id");
 
         // 2ª copia → APU-003
-        Integer copia2 = given().contentType(JSON)
+        String copia2 = given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(Map.of())
                 .when()
@@ -854,9 +876,9 @@ class ApuResourceIT {
                 .body("codigo", equalTo("APU-004"));
 
         // ninguna colisiona con el origen ni entre sí
-        org.junit.jupiter.api.Assertions.assertNotEquals(apuId.longValue(), copia1.longValue());
-        org.junit.jupiter.api.Assertions.assertNotEquals(apuId.longValue(), copia2.longValue());
-        org.junit.jupiter.api.Assertions.assertNotEquals(copia1.longValue(), copia2.longValue());
+        org.junit.jupiter.api.Assertions.assertNotEquals(apuId, copia1);
+        org.junit.jupiter.api.Assertions.assertNotEquals(apuId, copia2);
+        org.junit.jupiter.api.Assertions.assertNotEquals(copia1, copia2);
 
         // el presupuesto ahora tiene 4 APUs (origen + 3 copias)
         given().header("Authorization", "Bearer " + token)
@@ -872,7 +894,7 @@ class ApuResourceIT {
         String dueno = AuthSupport.registrarConToken(mailbox, "duenodup@ex.com");
         Long proyectoId = crearProyecto(dueno);
         Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long apuId = crearApu(dueno, presupuestoId, "AJ-DUP-001");
+        String apuId = crearApu(dueno, presupuestoId, "AJ-DUP-001");
 
         String intruso = AuthSupport.registrarConToken(mailbox, "intrusodup@ex.com");
 
@@ -900,7 +922,7 @@ class ApuResourceIT {
         Long proyectoId = crearProyecto(token);
         Long presupuestoId = insertarPresupuesto(proyectoId);
         Long mo = crearInsumo(token, proyectoId, "MO-IMM-010", "MANO_OBRA", "Peón", "h", 4.0);
-        Long apuId = crearApu(token, presupuestoId, "IMM-SRC");
+        String apuId = crearApu(token, presupuestoId, "IMM-SRC");
 
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
@@ -987,7 +1009,7 @@ class ApuResourceIT {
         Long presupuestoId = insertarPresupuesto(proyectoId);
         Long mo = crearInsumo(token, proyectoId, "MO-P27-1", "MANO_OBRA", "Peón", "h", 4.0);
         Long mat = crearInsumo(token, proyectoId, "MA-P27-1", "MATERIAL", "Tubo", "m", 2.0);
-        Long apuId = crearApu(token, presupuestoId, "P27-SHAPE");
+        String apuId = crearApu(token, presupuestoId, "P27-SHAPE");
 
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
@@ -1010,7 +1032,7 @@ class ApuResourceIT {
                 .get("/api/v1/apus/" + apuId + "/calculo")
                 .then()
                 .statusCode(200)
-                .body("apuId", equalTo(apuId.intValue()))
+                .body("apuId", equalTo(apuId))
                 .body("codigo", equalTo("P27-SHAPE"))
                 .body("parametros.hm", comparesTo(new BigDecimal("0.0500")))
                 .body("parametros.descuento", comparesTo(new BigDecimal("0.0000")))
@@ -1039,7 +1061,7 @@ class ApuResourceIT {
         Long presupuestoId = insertarPresupuesto(proyectoId);
         Long mo = crearInsumo(token, proyectoId, "MO-P27-2", "MANO_OBRA", "Soldador", "h", 5.0);
         Long mat = crearInsumo(token, proyectoId, "MA-P27-2", "MATERIAL", "Cemento", "kg", 1.5);
-        Long apuId = crearApu(token, presupuestoId, "P27-VALS");
+        String apuId = crearApu(token, presupuestoId, "P27-VALS");
 
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
@@ -1104,7 +1126,7 @@ class ApuResourceIT {
         Long proyectoId = crearProyecto(token);
         Long presupuestoId = insertarPresupuesto(proyectoId);
         Long mo = crearInsumo(token, proyectoId, "MO-P27-3", "MANO_OBRA", "Peón", "h", 4.0);
-        Long apuId = crearApu(token, presupuestoId, "P27-LEAK");
+        String apuId = crearApu(token, presupuestoId, "P27-LEAK");
 
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
@@ -1180,7 +1202,7 @@ class ApuResourceIT {
         String dueno = AuthSupport.registrarConToken(mailbox, "p27dueno@ex.com");
         Long proyectoId = crearProyecto(dueno);
         Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long apuId = crearApu(dueno, presupuestoId, "P27-AJ");
+        String apuId = crearApu(dueno, presupuestoId, "P27-AJ");
 
         String intruso = AuthSupport.registrarConToken(mailbox, "p27intruso@ex.com");
 
@@ -1191,9 +1213,102 @@ class ApuResourceIT {
                 .statusCode(404)
                 .body("codigo", equalTo("no-encontrado"));
 
+        // UUIDv7 bien formado pero inexistente → 404 (la frontera 400 validacion ya se cubrió
+        // arriba en el caso del intruso). Aquí ejercitamos la rama de "UUID válido pero
+        // ningún APU del dueño coincide".
         given().header("Authorization", "Bearer " + dueno)
                 .when()
-                .get("/api/v1/apus/9999999/calculo")
+                .get("/api/v1/apus/" + UUID_INEXISTENTE_V7 + "/calculo")
+                .then()
+                .statusCode(404)
+                .body("codigo", equalTo("no-encontrado"));
+    }
+
+    // =========================================================================
+    // WU-03 — frontera de validación de UUIDv7 en el path.
+    //
+    // El resource parsea el {apuId} con UuidV7.parse ANTES de tocar la BD
+    // (ver ApuResource#resolverApu). Una entrada malformada o no-v7 debe
+    // rechazarse con 400 validacion sin invocar al repositorio, de modo que
+    // la superficie pública quede protegida incluso antes del scope de owner.
+    // =========================================================================
+
+    @Test
+    void TC_WU03_01_path_uuid_v4_no_v7_devuelve_400_validacion_en_get() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "wu03v4@ex.com");
+        Long proyectoId = crearProyecto(token);
+        Long presupuestoId = insertarPresupuesto(proyectoId);
+
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/apus/" + UUID_NO_V7)
+                .then()
+                .statusCode(400)
+                .body("codigo", equalTo("validacion"));
+    }
+
+    @Test
+    void TC_WU03_02_path_uuid_malformado_devuelve_400_validacion_en_todos_los_verbos() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "wu03mal@ex.com");
+        Long proyectoId = crearProyecto(token);
+        Long presupuestoId = insertarPresupuesto(proyectoId);
+
+        // basura que no es ni siquiera un UUID → 400 validacion antes de la BD
+        String basura = "esto-no-es-un-uuid";
+
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/apus/" + basura)
+                .then()
+                .statusCode(400)
+                .body("codigo", equalTo("validacion"));
+
+        // la misma validación se aplica al PATCH del porcentaje indirecto
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body("0.1000")
+                .when()
+                .patch("/api/v1/apus/" + basura + "/porcentaje-indirecto")
+                .then()
+                .statusCode(400)
+                .body("codigo", equalTo("validacion"));
+
+        // DELETE sobre UUID basura también es 400 (no 404) — la validación precede al lookup
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .delete("/api/v1/apus/" + basura)
+                .then()
+                .statusCode(400)
+                .body("codigo", equalTo("validacion"));
+
+        // POST duplicar también — la frontera es uniforme
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of())
+                .when()
+                .post("/api/v1/apus/" + basura + "/duplicar")
+                .then()
+                .statusCode(400)
+                .body("codigo", equalTo("validacion"));
+    }
+
+    @Test
+    void TC_WU03_03_path_uuid_v7_inexistente_devuelve_404_no_encontrado() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "wu03nf@ex.com");
+        Long proyectoId = crearProyecto(token);
+        Long presupuestoId = insertarPresupuesto(proyectoId);
+
+        // UUIDv7 bien formado pero que no existe en BD → 404 (no 400)
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/apus/" + UUID_INEXISTENTE_V7)
+                .then()
+                .statusCode(404)
+                .body("codigo", equalTo("no-encontrado"));
+
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .delete("/api/v1/apus/" + UUID_INEXISTENTE_V7)
                 .then()
                 .statusCode(404)
                 .body("codigo", equalTo("no-encontrado"));

@@ -89,20 +89,19 @@ class DocumentoResourceIT {
         }
     }
 
-    private Long crearApu(String token, Long presupuestoId, String codigo, String descripcion, String unidad) {
-        return ((Number) given().contentType("application/json")
-                        .header("Authorization", "Bearer " + token)
-                        .body(java.util.Map.of("codigo", codigo, "descripcion", descripcion, "unidad", unidad))
-                        .when()
-                        .post("/api/v1/presupuestos/" + presupuestoId + "/apus")
-                        .then()
-                        .statusCode(201)
-                        .extract()
-                        .path("id"))
-                .longValue();
+    private String crearApu(String token, Long presupuestoId, String codigo, String descripcion, String unidad) {
+        return given().contentType("application/json")
+                .header("Authorization", "Bearer " + token)
+                .body(java.util.Map.of("codigo", codigo, "descripcion", descripcion, "unidad", unidad))
+                .when()
+                .post("/api/v1/presupuestos/" + presupuestoId + "/apus")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
     }
 
-    private void ponerEt(String token, Long apuId, String texto) {
+    private void ponerEt(String token, String apuId, String texto) {
         given().contentType("application/json")
                 .header("Authorization", "Bearer " + token)
                 .body(java.util.Map.of("texto", texto))
@@ -110,6 +109,22 @@ class DocumentoResourceIT {
                 .put("/api/v1/apus/" + apuId + "/especificacion-tecnica")
                 .then()
                 .statusCode(200);
+    }
+
+    /**
+     * Resuelve el {@code BIGINT} interno de un APU a partir de su UUID público. Se usa
+     * exclusivamente para sembrar filas SQL (UPDATE/DELETE por id interno) que requieren el
+     * {@code BIGINT}; los asserts de contrato y las URLs de los resources usan el UUID público.
+     */
+    private Long internalApuId(String publicId) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT id FROM apu WHERE public_id = ?")) {
+            ps.setObject(1, java.util.UUID.fromString(publicId));
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        }
     }
 
     private static String leerTexto(XWPFDocument doc) {
@@ -161,7 +176,7 @@ class DocumentoResourceIT {
             ps.executeUpdate();
         }
         Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long apuId = crearApu(token, presupuestoId, "PZ-001", "Pozo", "u");
+        String apuId = crearApu(token, presupuestoId, "PZ-001", "Pozo", "u");
         ponerEt(token, apuId, "Excavación manual, entibado, nivelación.");
 
         byte[] bytes = descargarDocx(
@@ -191,7 +206,7 @@ class DocumentoResourceIT {
         String token = AuthSupport.registrarConToken(mailbox, "p45t2@ex.com");
         Long proyectoId = crearProyecto(token, "Hospital Solanda", (short) 2027);
         Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long apuId = crearApu(token, presupuestoId, "HOS-001", "Losa", "m2");
+        String apuId = crearApu(token, presupuestoId, "HOS-001", "Losa", "m2");
         ponerEt(token, apuId, "Concreto fc=210 kg/cm2.");
 
         // escenario A: titulo_et_1/titulo_et_2 del proyecto definidos y sin overrides
@@ -244,9 +259,9 @@ class DocumentoResourceIT {
         Long proyectoId = crearProyecto(token, "Puente Norte", (short) 2026);
         Long presupuestoId = insertarPresupuesto(proyectoId);
 
-        Long conEt = crearApu(token, presupuestoId, "PN-001", "Con ET", "u");
-        Long sinEt = crearApu(token, presupuestoId, "PN-002", "Sin ET", "u");
-        Long conBlanco = crearApu(token, presupuestoId, "PN-003", "Con ET blanco", "u");
+        String conEt = crearApu(token, presupuestoId, "PN-001", "Con ET", "u");
+        String sinEt = crearApu(token, presupuestoId, "PN-002", "Sin ET", "u");
+        String conBlanco = crearApu(token, presupuestoId, "PN-003", "Con ET blanco", "u");
         ponerEt(token, conEt, "Especificación real del primer APU");
         ponerEt(token, conBlanco, "   \n   "); // solo whitespace, debe tratarse como vacío
 
@@ -267,14 +282,14 @@ class DocumentoResourceIT {
         try (Connection con = ds.getConnection();
                 PreparedStatement ps =
                         con.prepareStatement("UPDATE apu SET especificacion_tecnica = NULL WHERE id = ?")) {
-            ps.setLong(1, conEt);
+            ps.setLong(1, internalApuId(conEt));
             ps.executeUpdate();
         }
         // limpiamos también el "en blanco" para que el filtro de no-vacío los excluya
         try (Connection con = ds.getConnection();
                 PreparedStatement ps = con.prepareStatement("DELETE FROM apu WHERE id IN (?, ?)")) {
-            ps.setLong(1, sinEt);
-            ps.setLong(2, conBlanco);
+            ps.setLong(1, internalApuId(sinEt));
+            ps.setLong(2, internalApuId(conBlanco));
             ps.executeUpdate();
         }
         // borramos la fila HM para no dejar seccion sin filas (no estorba al export, pero dejamos limpio)
@@ -291,7 +306,7 @@ class DocumentoResourceIT {
         String token = AuthSupport.registrarConToken(mailbox, "p45t4@ex.com");
         Long proyectoId = crearProyecto(token, "Mercado Sur", (short) 2026);
         Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long apuId = crearApu(token, presupuestoId, "MS-001", "Pavimento", "m2");
+        String apuId = crearApu(token, presupuestoId, "MS-001", "Pavimento", "m2");
         // texto que deliberadamente contiene números que podrían confundirse con precios
         ponerEt(
                 token,
@@ -352,7 +367,7 @@ class DocumentoResourceIT {
         String titular = AuthSupport.registrarConToken(mailbox, "p45t5a@ex.com");
         Long proyectoId = crearProyecto(titular, "Solo titular", (short) 2026);
         Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long apuId = crearApu(titular, presupuestoId, "PR-001", "Privado", "u");
+        String apuId = crearApu(titular, presupuestoId, "PR-001", "Privado", "u");
         ponerEt(titular, apuId, "Contenido real, no debe exportarse a intruso");
 
         String intruso = AuthSupport.registrarConToken(mailbox, "p45t5b@ex.com");
@@ -376,7 +391,7 @@ class DocumentoResourceIT {
         String token = AuthSupport.registrarConToken(mailbox, "p45t6@ex.com");
         Long proyectoId = crearProyecto(token, "Solo docx", (short) 2026);
         Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long apuId = crearApu(token, presupuestoId, "FM-001", "Filtro formato", "u");
+        String apuId = crearApu(token, presupuestoId, "FM-001", "Filtro formato", "u");
         ponerEt(token, apuId, "Texto de prueba");
 
         given().header("Authorization", "Bearer " + token)
@@ -399,7 +414,7 @@ class DocumentoResourceIT {
         String token = AuthSupport.registrarConToken(mailbox, "p45t7@ex.com");
         Long proyectoId = crearProyecto(token, "Sanidad ZIP", (short) 2026);
         Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long apuId = crearApu(token, presupuestoId, "ZIP-001", "Cabecera", "u");
+        String apuId = crearApu(token, presupuestoId, "ZIP-001", "Cabecera", "u");
         ponerEt(token, apuId, "ET que valida la firma PK del contenedor OOXML.");
 
         Response r = given().header("Authorization", "Bearer " + token)
