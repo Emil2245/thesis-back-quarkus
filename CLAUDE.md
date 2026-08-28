@@ -128,25 +128,34 @@ retirada por deltas sistemáticos `GM19 = -$9.37` y `GM20 cap1 = -$3.09` vs
 workbook IESS (ver STOP conditions de `plans/014`). Display global
 configurable vía `app.display.precision` (default 2) y
 `app.display.precision-porcentaje` (default 4); endpoint público
-`GET /api/v1/config/display` queda **OPEN** (Plan 014 T3). Validación de
-entrada `@Digits` solo en los campos monetarios de DTO del catálogo
-cerrado del plan (nunca en campos de entidad como `tarifaJornal` /
-`precioUnitarioTarifa`, ni en cantidades, rendimientos o porcentajes) —
-queda **OPEN** (Plan 014 T4).
+`GET /api/v1/config/display` **IMPLEMENTADO** (Plan 014 T3, 2026-08-28 —
+`DisplayConfig` + `DisplayConfigResponse` + `DisplayConfigResource`,
+defaults 2/4 verificados por `DisplayConfigResourceTest` 1/1 +
+`DisplayConfigResourceOverrideTest` 1/1). Validación de entrada `@Digits`
+solo en los campos monetarios de DTO del catálogo cerrado del plan
+(`ApuDetallePatchRequest.precioOverride`, `InsumoCrearRequest.precioUnitario`,
+`InsumoEditarRequest.precioUnitario`; nunca en campos de entidad como
+`tarifaJornal` / `precioUnitarioTarifa`, ni en cantidades, rendimientos
+o porcentajes) — **IMPLEMENTADO** (Plan 014 T4, 2026-08-28, verificado
+por `DigitsValidationCatalogTest` 3/3).
 
-**Baseline post-implementación (cierre parcial 2026-08-28)**
+**Baseline post-implementación (2026-08-28 — Plan 014 IMPLEMENTATION COMPLETE,
+GM-21 cleanup DEFERRED)**
 `./gradlew test --tests 'ec.uce.propuestas.motor.*' --console=plain`:
 `MotorApuTest` 21/21 verde; `MotorPropiedadesTest` 5/5 verde;
-`ConsolidadorFronteraTest` 5/5 verde (T1 workbook-consistent, nuevo);
-GM-21 verde con allowlist auditado de **11 entradas ≤ 0.03 a nivel PU**
-(artefactos de redondeo manual del workbook IESS); **GM-19 y GM-20 RED**
-con residual aceptado — GM-19 actual `395108.37` vs esperado `395115.32`
-(delta `-$6.95`); GM-20 cap. 1 actual `158907.21` vs esperado `158908.05`
-(delta `-$0.84`). GM-24 y DIAG `@Disabled`. **No** se reabre el motor
-para cerrar este residual; workbook, golden expected values, tolerancias
-y fórmulas del motor quedan cerradas. Preferencia del usuario: este es
-**un example workbook único**; no se realizan auditorías exhaustivas
-per-rubro.
+`ConsolidadorFronteraTest` 5/5 verde (T1 workbook-consistent);
+`SnapshotSinAuxiliaresTest` 6/6 verde (T2 no-links estructural);
+`DisplayConfigResourceTest` 1/1 + `DisplayConfigResourceOverrideTest` 1/1
+verde (T3 display); `DigitsValidationCatalogTest` 3/3 verde (T4
+`@Digits`). GM-21 verde con allowlist de **11 entradas ≤ 0.03 a nivel
+PU** (artefactos de redondeo manual del workbook IESS); **GM-19 y GM-20
+RED** con residual aceptado — GM-19 actual `395108.37` vs esperado
+`395115.32` (delta `-$6.95`); GM-20 cap. 1 actual `158907.21` vs
+esperado `158908.05` (delta `-$0.84`). GM-24 `@Disabled` (fixture
+upstream). DIAG borrado. **No** se reabre el motor para cerrar este
+residual; workbook, golden expected values, tolerancias y fórmulas del
+motor quedan cerradas. Preferencia del usuario: este es **un example
+workbook único**; no se realizan auditorías exhaustivas per-rubro.
 
 **Regla de modificación del Motor (Plan 014, 2026-08-28):**
 - **`Motor.calcularApu()` y `internal/CalculadorFila.java`:** el guard "do

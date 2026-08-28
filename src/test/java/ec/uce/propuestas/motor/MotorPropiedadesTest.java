@@ -33,12 +33,12 @@ class MotorPropiedadesTest {
         return Combinators.combine(positiveDecimal, positiveDecimal, positiveDecimal)
                 .as((jornal, rend, matPrecio) -> {
                     FilaSnapshot mo =
-                            new FilaSnapshot(SeccionTipo.MANO_OBRA, false, BigDecimal.ONE, rend, jornal, null, null);
-                    FilaSnapshot hm =
-                            new FilaSnapshot(SeccionTipo.EQUIPO, true, new BigDecimal("5"), null, null, null, null);
+                            new FilaSnapshot(SeccionTipo.MANO_OBRA, false, BigDecimal.ONE, rend, jornal, null);
+                    FilaSnapshot hm = new FilaSnapshot(SeccionTipo.EQUIPO, true, new BigDecimal("5"), null, null, null);
                     FilaSnapshot mat =
-                            new FilaSnapshot(SeccionTipo.MATERIAL, false, BigDecimal.ONE, null, matPrecio, null, null);
-                    return new ApuSnapshot("PROP-TEST", false, List.of(hm, mo, mat));
+                            new FilaSnapshot(SeccionTipo.MATERIAL, false, BigDecimal.ONE, null, matPrecio, null);
+                    // Plan 014 no-links: porcentajeIndirecto=null so CI = default (18% in baseParams).
+                    return new ApuSnapshot("PROP-TEST", null, List.of(hm, mo, mat));
                 });
     }
 
@@ -51,15 +51,15 @@ class MotorPropiedadesTest {
                 .filter(d -> d.compareTo(BigDecimal.ZERO) > 0);
 
         return positiveDecimal.map(matPrecio -> {
-            FilaSnapshot mat =
-                    new FilaSnapshot(SeccionTipo.MATERIAL, false, BigDecimal.ONE, null, matPrecio, null, null);
-            return new ApuSnapshot("AUX-PROP", true, List.of(mat));
+            FilaSnapshot mat = new FilaSnapshot(SeccionTipo.MATERIAL, false, BigDecimal.ONE, null, matPrecio, null);
+            // Plan 014 no-links: CI override set to ZERO so CI = 0 regardless of default.
+            return new ApuSnapshot("AUX-PROP", BigDecimal.ZERO, List.of(mat));
         });
     }
 
     /** Generate a valid ParametrosCalculo with no per-apu override, no discount. */
     private ParametrosCalculo baseParams() {
-        return new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1800"), null, BigDecimal.ZERO);
+        return new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1800"), BigDecimal.ZERO);
     }
 
     // ── Properties ─────────────────────────────────────────────────────────
@@ -70,9 +70,8 @@ class MotorPropiedadesTest {
      */
     @Property(tries = 100)
     void descuento_no_cambia_CD(@ForAll("apuSnapshots") ApuSnapshot snap) {
-        var p0 = new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1800"), null, BigDecimal.ZERO);
-        var pDisc = new ParametrosCalculo(
-                new BigDecimal("0.0500"), new BigDecimal("0.1800"), null, new BigDecimal("0.1000"));
+        var p0 = new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1800"), BigDecimal.ZERO);
+        var pDisc = new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1800"), new BigDecimal("0.1000"));
 
         ApuCalculado r0 = Motor.calcularApu(snap, p0);
         ApuCalculado rD = Motor.calcularApu(snap, pDisc);
@@ -97,7 +96,6 @@ class MotorPropiedadesTest {
         var p = new ParametrosCalculo(
                 new BigDecimal("0.0500"),
                 BigDecimal.ZERO, // porcentajeIndirectoDefault = 0
-                null,
                 BigDecimal.ZERO);
 
         ApuCalculado r = Motor.calcularApu(snap, p);
@@ -120,7 +118,6 @@ class MotorPropiedadesTest {
         var p = new ParametrosCalculo(
                 new BigDecimal("0.0500"),
                 new BigDecimal("0.2000"), // 20% CI — should still be ignored for auxiliar
-                null,
                 BigDecimal.ZERO);
 
         ApuCalculado r = Motor.calcularApu(aux, p);

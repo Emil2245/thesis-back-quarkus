@@ -53,11 +53,15 @@ public final class CalculadorFila {
     }
 
     /**
-     * MATERIAL row: costoFila = cantidad × COALESCE(cdAuxiliar, overridePrecio, precioInsumo).
+     * MATERIAL row: costoFila = cantidad × COALESCE(overridePrecio, precioInsumo).
      * No costoHora for materials.
+     *
+     * <p>No-links (Plan 014): {@code cdAuxiliar} (a reference to another APU)
+     * is gone; the effective price is resolved strictly from
+     * {@link FilaSnapshot#overridePrecio()} and {@link FilaSnapshot#precioInsumo()}.
      */
     public static FilaCalculada calcularMaterial(FilaSnapshot f) {
-        BigDecimal precio = f.cdAuxiliar() != null ? f.cdAuxiliar() : effectivePrice(f);
+        BigDecimal precio = effectivePrice(f);
         BigDecimal costoFila = f.cantidad().multiply(precio, MC);
         return new FilaCalculada(SeccionTipo.MATERIAL, false, f.cantidad(), null, precio, null, costoFila);
     }

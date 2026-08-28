@@ -1,13 +1,38 @@
 # 014 — Motor de cálculo: precisión natural, no-links, display global
-
-- **Status (2026-08-28, cierre parcial USER-DECIDED):**
-  **OPEN / READY FOR REMAINING IMPLEMENTATION** — T1 (workbook-consistent),
-  fixtures ejecutados; T2 (no-links estructural), T3
-  (display config global + endpoint), T4 (`@Digits`) y borrado de DIAG
-  siguen **OPEN**. La política de redondeo del motor queda cerrada con
-  residual aceptado (GM-19 `-$6.95`, GM-20 cap. 1 `-$0.84`).
-  **T1 EXECUTED (verificación):** `internal/Consolidador.java` aplica
-  `precioUnitario DOWN 2dp` + `precioTotal = cantidad × PU_2dp` retenido
+- **Status (2026-08-28, cierre de implementación; cierre parcial GM-21):**
+  **PARTIAL — IMPLEMENTATION COMPLETE, GM-21 CLEANUP DEFERRED.**
+  T1 (workbook-consistent) + T2 (no-links estructural) + T3
+  (display config global + endpoint) + T4 (`@Digits`) + borrado de
+  DIAG **IMPLEMENTADOS** y verificados:
+  - **T1 EXECUTED:** `internal/Consolidador.java` aplica
+    `precioUnitario DOWN 2dp` + `precioTotal = cantidad × PU_2dp` retenido
+    a escala 6 `HALF_UP` + agregación consistente de capítulo y
+    `totalGeneral` desde esos `precioTotal`. `ConsolidadorFronteraTest`
+    5/5 verde vía `Motor.consolidar(VersionSnapshot)`. `MotorApuTest` 21/21
+    verde; `MotorPropiedadesTest` 5/5 verde.
+  - **T2 EXECUTED:** `ApuSnapshot` sin `esAuxiliar`, con
+    `porcentajeIndirecto` nullable; `ApuCalculado` sin `esAuxiliar`;
+    `FilaSnapshot` sin `cdAuxiliar`; `ParametrosCalculo` sin
+    `porcentajeIndirectoApu`. `Motor.java`/`CalculadorFila.java` edit
+    estructural mínima autorizada (override desde `in.porcentajeIndirecto()`
+    + rama auxiliar eliminada + fallback `cdAuxiliar` eliminado). Stub
+    fixtures conservan CI=0 vía `porcentajeIndirecto = BigDecimal.ZERO`.
+    `SnapshotSinAuxiliaresTest` 6/6 verde.
+  - **T3 EXECUTED:** `DisplayConfig` (`@ConfigMapping("app.display")`),
+    `DisplayConfigResponse`, `DisplayConfigResource` (`@PermitAll`,
+    `GET /api/v1/config/display`). `application.yml` con placeholders
+    `${DISPLAY_PRECISION:2}` y `${DISPLAY_PRECISION_PORCENTAJE:4}`.
+    `.env.example` documenta ambas variables. `DisplayConfigResourceTest`
+    1/1 + `DisplayConfigResourceOverrideTest` 1/1 verde.
+  - **T4 EXECUTED:** `@Digits(integer=8, fraction=2)` en los 3 campos
+    del catálogo cerrado (`ApuDetallePatchRequest.precioOverride`,
+    `InsumoCrearRequest.precioUnitario`, `InsumoEditarRequest.precioUnitario`).
+    `DigitsValidationCatalogTest` 3/3 verde.
+  - **DIAG borrado:** `MotorConsolidacionTest.DIAG_rubro_expected_vs_actual`
+    eliminado. GM-24 sigue `@Disabled` (fixture upstream).
+  - **GM-21 cleanup DEFERRED (preferencia del usuario):** el allowlist
+    de 11 entradas ≤ 0.03 se preserva; no se ejecuta auditoría exhaustiva
+    per-rubro.  `precioUnitario DOWN 2dp` + `precioTotal = cantidad × PU_2dp` retenido
   a escala 6 `HALF_UP` + agregación consistente de capítulo y `totalGeneral`
   desde esos `precioTotal` a escala 6. `ConsolidadorFronteraTest` 5/5
   verde vía `Motor.consolidar(VersionSnapshot)`. `MotorApuTest` 21/21

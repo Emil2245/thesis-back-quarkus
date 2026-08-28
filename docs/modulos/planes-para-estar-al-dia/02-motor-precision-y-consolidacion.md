@@ -18,15 +18,19 @@
 |---|---|---|
 | Precisión dentro del APU | **Natural `BigDecimal`** — el motor **no** aplica redondeo intermedio. | **IMPLEMENTADO**; 21 GMs per-APU y 5 propiedades verdes. |
 | Frontera APU → Rubro | `precioUnitario = costoTotal.setScale(2, DOWN)`; `precioTotal = cantidad × precioUnitario`, escala 6 `HALF_UP`; capítulos y `totalGeneral` agregan esos PT6. | **IMPLEMENTADO** con residual IESS documentado. |
-| Display dinero/porcentaje | Config global `app.display.precision=2` y `app.display.precision-porcentaje=4`. | **OPEN — Plan 014 T3**. No existe todavía `DisplayConfig`. |
-| Endpoint display | `GET /api/v1/config/display` público con `{precisionDinero, precisionPorcentaje}`. | **OPEN — Plan 014 T3**. |
-| Validación de entrada | `@Digits(integer=8, fraction=2)` solo en los tres campos monetarios del catálogo cerrado. | **OPEN — Plan 014 T4**. |
-| No-links entre APUs | Retirar `esAuxiliar`, `cdAuxiliar` y `porcentajeIndirectoApu`; usar `ApuSnapshot.porcentajeIndirecto` nullable. | **OPEN — Plan 014 T2**; los records actuales aún conservan esos campos. |
+| Display dinero/porcentaje | Config global `app.display.precision=2` y `app.display.precision-porcentaje=4`. | **IMPLEMENTADO** (Plan 014 T3, 2026-08-28). `DisplayConfig` (`@ConfigMapping("app.display")`) + placeholders `${DISPLAY_PRECISION:2}` / `${DISPLAY_PRECISION_PORCENTAJE:4}` en `application.yml`. |
+| Endpoint display | `GET /api/v1/config/display` público con `{precisionDinero, precisionPorcentaje}`. | **IMPLEMENTADO** (Plan 014 T3, 2026-08-28). `DisplayConfigResource` (`@PermitAll`). Verificado vía `DisplayConfigResourceTest` 1/1 + `DisplayConfigResourceOverrideTest` 1/1. |
+| Validación de entrada | `@Digits(integer=8, fraction=2)` solo en los tres campos monetarios del catálogo cerrado. | **IMPLEMENTADO** (Plan 014 T4, 2026-08-28). Anotación en `ApuDetallePatchRequest.precioOverride`, `InsumoCrearRequest.precioUnitario`, `InsumoEditarRequest.precioUnitario`. Verificado vía `DigitsValidationCatalogTest` 3/3. |
+| No-links entre APUs | Retirar `esAuxiliar`, `cdAuxiliar` y `porcentajeIndirectoApu`; usar `ApuSnapshot.porcentajeIndirecto` nullable. | **IMPLEMENTADO** (Plan 014 T2, 2026-08-28). `Motor.java`/`CalculadorFila.java` edit estructural mínimo autorizado; aritmética intacta. Verificado vía `SnapshotSinAuxiliaresTest` 6/6. Stub fixtures conservan CI=0 vía `porcentajeIndirecto = BigDecimal.ZERO`. |
 | Persistencia | `NUMERIC(14,6)` monetario y `NUMERIC(5,4)` porcentaje, sin cambios. | **IMPLEMENTADO/PRESERVADO**. |
 
 ## Resultado originalmente esperado
 
-El alcance completo incluía consolidación, no-links, display global y `@Digits`. Este Plan 02 cierra **PARTIAL**: solo la política matemática y la frontera workbook-consistent quedaron implementadas. T2–T4 permanecen explícitamente abiertos en Plan 014.
+El alcance completo incluía consolidación, no-links, display global y `@Digits`. Tras Plan 014 (2026-08-28), la **implementación está completa** salvo GM-21 cleanup (DEFERRED por preferencia del usuario):
+
+- **IMPLEMENTADO** (2026-08-28): la política matemática, la frontera workbook-consistent, T2 (no-links estructural), T3 (display config + endpoint), T4 (`@Digits`) y borrado de DIAG.
+- **Residual aceptado** (cierre parcial user-decided): GM-19/GM-20 quedan red con delta sub-céntimo (`-$6.95` / `-$0.84`) atribuido al example workbook IESS único. **No** se reabre el motor.
+- **DEFERRED**: GM-21 cleanup (no auditoría exhaustiva per-rubro); GM-24 sigue `@Disabled` (fixture upstream).
 
 > **Resultado efectivo (cierre parcial 2026-08-28):** la regla workbook-consistent queda aplicada y verificada a nivel de unidad (`ConsolidadorFronteraTest` 5/5 verde). **No** logra `delta 0.00` en GM-19/GM-20 sobre el presupuesto Cetro Médico Tulcán (ver §6); el autor acepta este residual como artefacto sub-céntimo del example workbook único y cierra este plan como **PARTIAL — CLOSED WITH DOCUMENTED IESS RESIDUAL**.
 

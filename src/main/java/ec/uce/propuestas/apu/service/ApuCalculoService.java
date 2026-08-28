@@ -77,12 +77,9 @@ public class ApuCalculoService {
         }
 
         ApuCalculado out = Motor.calcularApu(
-                new ApuSnapshot(apu.codigo, false, filas),
+                new ApuSnapshot(apu.codigo, apu.porcentajeIndirecto, filas),
                 new ParametrosCalculo(
-                        params.porcentajeHerramientaMenor,
-                        params.porcentajeIndirecto,
-                        apu.porcentajeIndirecto,
-                        apu.porcentajeDescuento));
+                        params.porcentajeHerramientaMenor, params.porcentajeIndirecto, apu.porcentajeDescuento));
 
         List<FilaCalculada> calc = out.filas();
         for (int i = 0; i < entidades.size(); i++) {
@@ -123,10 +120,10 @@ public class ApuCalculoService {
     static FilaSnapshot snapshotDeDetalle(ApuDetalle d, SeccionTipo tipo, Insumo insumo, BigDecimal porcentajeHm) {
         if (d.esHerramientaMenor) {
             return new FilaSnapshot(
-                    SeccionTipo.EQUIPO, true, porcentajeHm.multiply(BigDecimal.valueOf(100)), null, null, null, null);
+                    SeccionTipo.EQUIPO, true, porcentajeHm.multiply(BigDecimal.valueOf(100)), null, null, null);
         }
         BigDecimal precioInsumo = insumo == null ? null : insumo.precioUnitario;
-        return new FilaSnapshot(tipo, false, d.cantidad, d.rendimiento, precioInsumo, overrideDeDetalle(d, tipo), null);
+        return new FilaSnapshot(tipo, false, d.cantidad, d.rendimiento, precioInsumo, overrideDeDetalle(d, tipo));
     }
 
     static BigDecimal overrideDeDetalle(ApuDetalle d, SeccionTipo tipo) {
@@ -180,12 +177,9 @@ public class ApuCalculoService {
         }
 
         ApuCalculado out = Motor.calcularApu(
-                new ApuSnapshot(apu.codigo, false, filas),
+                new ApuSnapshot(apu.codigo, apu.porcentajeIndirecto, filas),
                 new ParametrosCalculo(
-                        params.porcentajeHerramientaMenor,
-                        params.porcentajeIndirecto,
-                        apu.porcentajeIndirecto,
-                        apu.porcentajeDescuento));
+                        params.porcentajeHerramientaMenor, params.porcentajeIndirecto, apu.porcentajeDescuento));
 
         return new ApuCalculoResponse(
                 apu.publicId,

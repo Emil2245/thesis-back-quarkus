@@ -106,21 +106,17 @@ public final class Motor {
         BigDecimal uno = BigDecimal.ONE.subtract(p.porcentajeDescuento(), MC);
         BigDecimal costoDirectoAjustado = costoDirecto.multiply(uno, MC);
 
+        // Plan 014 no-links: %CI override lives on ApuSnapshot (per-APU).
         BigDecimal pctCi;
-        if (p.porcentajeIndirectoApu() != null) {
-            pctCi = p.porcentajeIndirectoApu();
+        if (in.porcentajeIndirecto() != null) {
+            pctCi = in.porcentajeIndirecto();
         } else if (p.porcentajeIndirectoDefault() != null) {
             pctCi = p.porcentajeIndirectoDefault();
         } else {
             pctCi = BigDecimal.ZERO;
         }
 
-        BigDecimal costoIndirecto;
-        if (in.esAuxiliar()) {
-            costoIndirecto = BigDecimal.ZERO;
-        } else {
-            costoIndirecto = costoDirectoAjustado.multiply(pctCi, MC);
-        }
+        BigDecimal costoIndirecto = costoDirectoAjustado.multiply(pctCi, MC);
 
         BigDecimal costoTotal = costoDirectoAjustado.add(costoIndirecto);
 
@@ -133,7 +129,6 @@ public final class Motor {
 
         return new ApuCalculado(
                 in.codigo(),
-                in.esAuxiliar(),
                 todasFilas,
                 subtotalM,
                 subtotalN,

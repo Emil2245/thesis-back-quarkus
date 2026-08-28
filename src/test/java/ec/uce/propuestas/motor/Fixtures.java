@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.*;
 
 /**
@@ -39,7 +38,6 @@ import java.util.*;
  * {@code precioTotal / cantidad}: the workbook's typed {@code precioUnitario} is the
  * canonical input for the stub and {@code Motor.consolidar} derives the rest.
  */
-
 final class Fixtures {
 
     private static final ObjectMapper M = new ObjectMapper();
@@ -70,7 +68,8 @@ final class Fixtures {
      */
     static ApuSnapshot apuFromJson(JsonNode apuNode) {
         String codigo = apuNode.get("codigo").asText();
-        boolean esAuxiliar = false; // sample APUs all have CI applied (porcentajeIndirecto != null)
+        // Plan 014 no-links: sample APUs all have CI applied (porcentajeIndirecto != null).
+        BigDecimal porcentajeIndirecto = bigDecimalOrNull(apuNode, "porcentajeIndirecto");
 
         List<FilaSnapshot> filas = new ArrayList<>();
 
@@ -84,7 +83,7 @@ final class Fixtures {
             }
         }
 
-        return new ApuSnapshot(codigo, esAuxiliar, filas);
+        return new ApuSnapshot(codigo, porcentajeIndirecto, filas);
     }
 
     /**
@@ -96,9 +95,11 @@ final class Fixtures {
      * This matches the presupuesto's 2dp-rounded precioUnitario for every rubro.
      */
     static ApuSnapshot stubApuFromPrecioUnitario(String codigo, BigDecimal precioUnitario) {
-        FilaSnapshot mat =
-                new FilaSnapshot(SeccionTipo.MATERIAL, false, BigDecimal.ONE, null, precioUnitario, null, null);
-        return new ApuSnapshot(codigo, true, List.of(mat));
+        // Plan 014 fixture fidelity: stub sets porcentajeIndirecto=ZERO so the
+        // motor applies CI=0 → CT = CD_ajustado = CD = 1 × precioUnitario, exactly
+        // matching the workbook's typed 2dp precioUnitario per rubro.
+        FilaSnapshot mat = new FilaSnapshot(SeccionTipo.MATERIAL, false, BigDecimal.ONE, null, precioUnitario, null);
+        return new ApuSnapshot(codigo, BigDecimal.ZERO, List.of(mat));
     }
 
     /**
@@ -138,7 +139,7 @@ final class Fixtures {
         if (esHM) {
             // HM row: cantidad = percentage integer (e.g. 5), no precioInsumo, no rendimiento
             BigDecimal cantidad = bigDecimalOrNull(linea, "cantidad");
-            return new FilaSnapshot(SeccionTipo.EQUIPO, true, cantidad, null, null, null, null);
+            return new FilaSnapshot(SeccionTipo.EQUIPO, true, cantidad, null, null, null);
         }
 
         BigDecimal cantidad = bigDecimalOrNull(linea, "cantidad");
@@ -148,23 +149,23 @@ final class Fixtures {
                 // tarifa = precioInsumo, rendimiento = numeric rendimiento
                 BigDecimal tarifa = bigDecimalOrNull(linea, "tarifa");
                 BigDecimal rendimiento = bigDecimalOrNull(linea, "rendimiento");
-                return new FilaSnapshot(SeccionTipo.EQUIPO, false, cantidad, rendimiento, tarifa, null, null);
+                return new FilaSnapshot(SeccionTipo.EQUIPO, false, cantidad, rendimiento, tarifa, null);
             }
             case MANO_OBRA: {
                 // jornal = precioInsumo
                 BigDecimal jornal = bigDecimalOrNull(linea, "jornal");
                 BigDecimal rendimiento = bigDecimalOrNull(linea, "rendimiento");
-                return new FilaSnapshot(SeccionTipo.MANO_OBRA, false, cantidad, rendimiento, jornal, null, null);
+                return new FilaSnapshot(SeccionTipo.MANO_OBRA, false, cantidad, rendimiento, jornal, null);
             }
             case MATERIAL: {
                 // precioUnitario = precioInsumo, no rendimiento
                 BigDecimal precioUnitario = bigDecimalOrNull(linea, "precioUnitario");
-                return new FilaSnapshot(SeccionTipo.MATERIAL, false, cantidad, null, precioUnitario, null, null);
+                return new FilaSnapshot(SeccionTipo.MATERIAL, false, cantidad, null, precioUnitario, null);
             }
             case TRANSPORTE: {
                 // precioUnitario = precioInsumo, no rendimiento multiplication
                 BigDecimal precioUnitario = bigDecimalOrNull(linea, "precioUnitario");
-                return new FilaSnapshot(SeccionTipo.TRANSPORTE, false, cantidad, null, precioUnitario, null, null);
+                return new FilaSnapshot(SeccionTipo.TRANSPORTE, false, cantidad, null, precioUnitario, null);
             }
             default:
                 throw new IllegalStateException("Unknown tipo: " + tipo);

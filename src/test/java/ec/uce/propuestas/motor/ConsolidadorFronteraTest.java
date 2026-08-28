@@ -43,18 +43,13 @@ class ConsolidadorFronteraTest {
      * %CI=0 → CI=0 → CT = CD.
      */
     private static VersionSnapshot versionUnRubro(BigDecimal apuPrecioUnitario, BigDecimal cantidad) {
-        FilaSnapshot fila = new FilaSnapshot(
-                SeccionTipo.MATERIAL,
-                false,
-                BigDecimal.ONE,
-                null,
-                apuPrecioUnitario,
-                null,
-                null);
-        ApuSnapshot apu = new ApuSnapshot("T1", false, List.of(fila));
+        FilaSnapshot fila =
+                new FilaSnapshot(SeccionTipo.MATERIAL, false, BigDecimal.ONE, null, apuPrecioUnitario, null);
+        // Plan 014: porcentajeIndirecto=null → motor uses default (cero en este test).
+        ApuSnapshot apu = new ApuSnapshot("T1", null, List.of(fila));
         RubroSnapshot rubro = new RubroSnapshot("R-T1", cantidad, apu);
         CapituloSnapshot cap = new CapituloSnapshot("1", "Capitulo frontera", 1, List.of(), List.of(rubro));
-        ParametrosCalculo params = new ParametrosCalculo(HM, ZERO, null, ZERO);
+        ParametrosCalculo params = new ParametrosCalculo(HM, ZERO, ZERO);
         return new VersionSnapshot(params, List.of(cap), null);
     }
 
@@ -74,7 +69,10 @@ class ConsolidadorFronteraTest {
                 0,
                 new BigDecimal("5.53").compareTo(r.precioUnitario()),
                 "precioUnitario DOWN 2dp: 5.5352325 → 5.53, got " + r.precioUnitario());
-        assertEquals(2, r.precioUnitario().scale(), "precioUnitario scale == 2 (DOWN), got " + r.precioUnitario().scale());
+        assertEquals(
+                2,
+                r.precioUnitario().scale(),
+                "precioUnitario scale == 2 (DOWN), got " + r.precioUnitario().scale());
 
         // precioTotal = 10 × 5.53 = 55.30 → workbook-consistent: scale 6 HALF_UP = 55.300000
         assertEquals(
@@ -84,7 +82,8 @@ class ConsolidadorFronteraTest {
         assertEquals(
                 6,
                 r.precioTotal().scale(),
-                "precioTotal scale == 6 (workbook-consistent), got " + r.precioTotal().scale());
+                "precioTotal scale == 6 (workbook-consistent), got "
+                        + r.precioTotal().scale());
     }
 
     @Test
@@ -102,7 +101,10 @@ class ConsolidadorFronteraTest {
                 0,
                 new BigDecimal("0.00").compareTo(r.precioUnitario()),
                 "precioUnitario DOWN 2dp: 0.001 → 0.00, got " + r.precioUnitario());
-        assertEquals(2, r.precioUnitario().scale(), "precioUnitario scale == 2 (DOWN), got " + r.precioUnitario().scale());
+        assertEquals(
+                2,
+                r.precioUnitario().scale(),
+                "precioUnitario scale == 2 (DOWN), got " + r.precioUnitario().scale());
 
         // precioTotal = 1000 × 0.00 = 0.00 → scale 6 HALF_UP = 0.000000
         assertEquals(
@@ -112,7 +114,8 @@ class ConsolidadorFronteraTest {
         assertEquals(
                 6,
                 r.precioTotal().scale(),
-                "precioTotal scale == 6 (workbook-consistent), got " + r.precioTotal().scale());
+                "precioTotal scale == 6 (workbook-consistent), got "
+                        + r.precioTotal().scale());
     }
 
     @Test
@@ -130,7 +133,10 @@ class ConsolidadorFronteraTest {
                 0,
                 new BigDecimal("1.99").compareTo(r.precioUnitario()),
                 "precioUnitario DOWN 2dp: 1.999 → 1.99 (no 2.00), got " + r.precioUnitario());
-        assertEquals(2, r.precioUnitario().scale(), "precioUnitario scale == 2 (DOWN), got " + r.precioUnitario().scale());
+        assertEquals(
+                2,
+                r.precioUnitario().scale(),
+                "precioUnitario scale == 2 (DOWN), got " + r.precioUnitario().scale());
 
         // precioTotal = 1 × 1.99 = 1.99 → scale 6 HALF_UP = 1.990000
         assertEquals(
@@ -140,7 +146,8 @@ class ConsolidadorFronteraTest {
         assertEquals(
                 6,
                 r.precioTotal().scale(),
-                "precioTotal scale == 6 (workbook-consistent), got " + r.precioTotal().scale());
+                "precioTotal scale == 6 (workbook-consistent), got "
+                        + r.precioTotal().scale());
     }
 
     @Test
@@ -158,7 +165,10 @@ class ConsolidadorFronteraTest {
                 0,
                 new BigDecimal("5.53").compareTo(r.precioUnitario()),
                 "precioUnitario DOWN 2dp: 5.5352325 → 5.53, got " + r.precioUnitario());
-        assertEquals(2, r.precioUnitario().scale(), "precioUnitario scale == 2 (DOWN), got " + r.precioUnitario().scale());
+        assertEquals(
+                2,
+                r.precioUnitario().scale(),
+                "precioUnitario scale == 2 (DOWN), got " + r.precioUnitario().scale());
 
         // precioTotal = 1 × 5.53 = 5.53 → scale 6 HALF_UP = 5.530000
         assertEquals(
@@ -168,7 +178,8 @@ class ConsolidadorFronteraTest {
         assertEquals(
                 6,
                 r.precioTotal().scale(),
-                "precioTotal scale == 6 (workbook-consistent), got " + r.precioTotal().scale());
+                "precioTotal scale == 6 (workbook-consistent), got "
+                        + r.precioTotal().scale());
     }
 
     @Test
@@ -183,13 +194,13 @@ class ConsolidadorFronteraTest {
         BigDecimal cantB = BigDecimal.ONE; // 1 × 1.99 = 1.99 → 1.990000
         BigDecimal cantC = new BigDecimal("1000"); // 1000 × 0.00 = 0.00 → 0.000000
 
-        FilaSnapshot fA = new FilaSnapshot(SeccionTipo.MATERIAL, false, BigDecimal.ONE, null, puA, null, null);
-        FilaSnapshot fB = new FilaSnapshot(SeccionTipo.MATERIAL, false, BigDecimal.ONE, null, puB, null, null);
-        FilaSnapshot fC = new FilaSnapshot(SeccionTipo.MATERIAL, false, BigDecimal.ONE, null, puC, null, null);
+        FilaSnapshot fA = new FilaSnapshot(SeccionTipo.MATERIAL, false, BigDecimal.ONE, null, puA, null);
+        FilaSnapshot fB = new FilaSnapshot(SeccionTipo.MATERIAL, false, BigDecimal.ONE, null, puB, null);
+        FilaSnapshot fC = new FilaSnapshot(SeccionTipo.MATERIAL, false, BigDecimal.ONE, null, puC, null);
 
-        ApuSnapshot apuA = new ApuSnapshot("A", false, List.of(fA));
-        ApuSnapshot apuB = new ApuSnapshot("B", false, List.of(fB));
-        ApuSnapshot apuC = new ApuSnapshot("C", false, List.of(fC));
+        ApuSnapshot apuA = new ApuSnapshot("A", null, List.of(fA));
+        ApuSnapshot apuB = new ApuSnapshot("B", null, List.of(fB));
+        ApuSnapshot apuC = new ApuSnapshot("C", null, List.of(fC));
 
         RubroSnapshot rA = new RubroSnapshot("R-A", cantA, apuA);
         RubroSnapshot rB = new RubroSnapshot("R-B", cantB, apuB);
@@ -197,7 +208,7 @@ class ConsolidadorFronteraTest {
 
         CapituloSnapshot cap =
                 new CapituloSnapshot("1", "Cap agreg", 1, List.of(), new ArrayList<>(List.of(rA, rB, rC)));
-        ParametrosCalculo params = new ParametrosCalculo(HM, ZERO, null, ZERO);
+        ParametrosCalculo params = new ParametrosCalculo(HM, ZERO, ZERO);
         VersionSnapshot v = new VersionSnapshot(params, List.of(cap), null);
 
         VersionCalculada result = Motor.consolidar(v);
@@ -207,8 +218,8 @@ class ConsolidadorFronteraTest {
         assertEquals(
                 0,
                 esperadoCap.compareTo(result.capitulos().get(0).total()),
-                "capituloTotal (scale 6) = Σ PT scale 6, expected=" + esperadoCap
-                        + " got=" + result.capitulos().get(0).total());
+                "capituloTotal (scale 6) = Σ PT scale 6, expected=" + esperadoCap + " got="
+                        + result.capitulos().get(0).total());
         assertEquals(
                 6,
                 result.capitulos().get(0).total().scale(),

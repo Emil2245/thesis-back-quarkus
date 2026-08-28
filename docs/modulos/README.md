@@ -12,6 +12,16 @@ empaquetado de `documentos/01-ARQUITECTURA.md §5`.
 | [03-apu](03-apu.md) | `ec.uce.propuestas.apu` | P-19…P-22 | Implementado (lista/crea APUs, editor, filas M/N/O/P, fila HM protegida, override precio, write-through vía motor) · TODO: I-06 cubre P-23…P-27 |
 | [04-apu-avanzado](04-apu-avanzado.md) | `apu` (ampliar) + `recalculo` (nuevo) + `plantilla` (nuevo) + `documento` (extender) | P-23…P-27, P-45, P-46 | Pendiente — plan completo escrito (N04 18-08-2026); cubre las decisiones N04 (A1 descuento CD, A2 auxiliares sin anidamiento, A3 HM reordenable, A6 rangos parametrizables, A9 bases SIEMPRE copia + nuevo tipo PERSONAL, D-12 archivar sin bloqueo, #7 decimales, ET nueva feature) |
 
+> **Siguiente plan ejecutable (post Plan 014, 2026-08-28):** Plan 03 (módulo
+> `apu`) sigue siendo el módulo siguiente en el orden vertical (después de
+> los proyectos 01 e insumos 02). Su TODO remanente — cerrar P-23…P-27 vía
+> [Plan 013](../planes-para-estar-al-dia/../planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)
+> / [`plans/014-motor-precision-no-links.md`](../../plans/014-motor-precision-no-links.md)
+> ya está implementado en lo que toca a display/no-links/`@Digits`; los
+> huecos reales son **P-26 (plantillas APU)** y **P-46 (plantilla de
+> proyecto)**, con `display config global` ya cerrado por Plan 014 T3.
+> Plan 04 sigue pendiente y se aborda cuando se abra la siguiente iteración.
+
 **Decisiones de diseño compartidas** (resuelven las preguntas de arquitectura):
 
 | Tema | Decisión |

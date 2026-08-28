@@ -147,7 +147,8 @@ public final class Consolidador {
 
     /**
      * Recursively compute chapter total aggregating the SAME {@code precioTotal}
-     * (already DOWN-rounded to 2 dp) that was produced by the frontera in
+     * (derived from the DOWN-rounded unit price and retained at scale 6)
+     * that was produced by the frontera in
      * {@link #collectRubros}. This guarantees that {@code totalGeneral} = sum of
      * chapter totals = sum of rubro {@code precioTotal}, all at the same scale.
      *

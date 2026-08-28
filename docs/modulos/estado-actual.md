@@ -169,7 +169,7 @@ siguientes.
 | Descuento FORMA 2 | **PARTIAL** | `PUT` de insumos PROYECTO existente | recalcular APUs que heredan el precio; debounce pertenece al frontend |
 | P-25 enlaces auxiliares | **OBSOLETO** | schema/entities actuales correctamente no los tienen | eliminar referencias antiguas de docs y motor; no crear columnas/endpoints |
 | P-26 plantillas de APU | **MISSING** | solo `PlantillaApu` + repository | servicio, resource, DTOs, guardar snapshot, cargar con fallback |
-| P-27 desglose de cálculo | **PARTIAL** | DTOs, `ApuCalculoService.proyectar`, `GET /calculo` | aplicar `precisionDinero` / `precisionPorcentaje` en response desde config global (OPEN, Plan 014 T3) + cubrir shape/orden |
+| P-27 desglose de cálculo | **PARTIAL** | DTOs, `ApuCalculoService.proyectar`, `GET /calculo` | aplicar `precisionDinero` / `precisionPorcentaje` en response desde config global (`DisplayConfig` ya disponible vía [`plans/014`](../../plans/014-motor-precision-no-links.md) T3, 2026-08-28) + cubrir shape/orden |
 | Duplicar APU | **DONE** | `ApuDuplicarService`, `POST /duplicar` | comprobar que no reaparezca vocabulario auxiliar |
 | P-45 ET por APU | **DONE** | GET/PUT ET, `DocumentoResource`, `EspecificacionesTecnicasService` | solo sincronizar docs: usa Apache POI, no docx4j |
 | P-46 plantilla de proyecto | **MISSING** | `PlantillaProyecto` + repository | servicio/resource/carga usando paquetes `plantilla`, `proyecto`, `presupuesto` existentes |
@@ -179,7 +179,7 @@ siguientes.
 | A9 copia al usar | **DONE** | `ResolverInsumoProyectoService`, integración en `ApuCrudService` | nada para creación de filas; reutilizarlo desde plantillas |
 | D-12 central | **MISSING** | listado central activo solamente | CRUD admin, archivar y borrar sin bloqueo |
 | Precisión del motor | **MISSING** | motor aún usa `MathContext`/precisión histórica | CALC=3 por operación, remover ramas auxiliares, config explícita |
-| Consolidación GM-19/20 | **PARTIAL — CIERRE CON RESIDUO ACEPTADO (2026-08-28)** | regla workbook-consistent aplicada en `Consolidador.java` (`PU DOWN 2dp`; `PT = cantidad × PU_2dp` retenido a escala 6 `HALF_UP`); `ConsolidadorFronteraTest` 5/5 verde | residual aceptado: GM-19 `-$6.95`, GM-20 cap. 1 `-$0.84` (no se reabre el motor); T2–T4 de [`plans/014`](../../plans/014-motor-precision-no-links.md) siguen OPEN |
+| Consolidación GM-19/20 | **PARTIAL — CIERRE CON RESIDUO ACEPTADO (2026-08-28)** | regla workbook-consistent aplicada en `Consolidador.java` (`PU DOWN 2dp`; `PT = cantidad × PU_2dp` retenido a escala 6 `HALF_UP`); `ConsolidadorFronteraTest` 5/5 verde | residual aceptado: GM-19 `-$6.95`, GM-20 cap. 1 `-$0.84` (no se reabre el motor); T2–T4 de [`plans/014`](../../plans/014-motor-precision-no-links.md) **IMPLEMENTADOS** (2026-08-28): `SnapshotSinAuxiliaresTest` 6/6 + `DisplayConfigResourceTest` 1/1 + `DisplayConfigResourceOverrideTest` 1/1 + `DigitsValidationCatalogTest` 3/3; DIAG borrado. |
 | UUIDv7 en APU | **DONE** | paths APU y detalle usan UUIDv7 | nada |
 | UUIDv7 resto de módulos | **PARTIAL** | entidades/repositories tienen `publicId` | varios resources actuales aún usan `Long` en paths/responses |
 | Write-through global | **DEFERRED** | costura `ParametrosProyectoCambio` ya commiteada y neutral | módulo profundo `recalculo`, excluido por alcance actual |
