@@ -135,6 +135,21 @@ ec/uce/propuestas/insumo/
 - `GET ""` → `BaseInsumosResponse[]` (no archivadas)
 - `GET "/{baseId}/insumos?tipo&q&page"` → `Page<InsumoResponse>`
 
+**BasesPersonalesResource** `@Path("/bases-personales")` `@RolesAllowed({USUARIO,SUPER_ADMIN})`
+(WU-05, N04 §A9). Dueño, tipo y ausencia de proyecto padre se fijan siempre
+desde el JWT; el cliente nunca elige `usuarioId`, `tipo`, `proyectoId` ni
+`publicId`. Solo se exponen bases PERSONALES del caller; CENTRAL/PROYECTO
+nunca aparecen aquí. La identidad externa expuesta es el `publicId` UUIDv7
+bajo el nombre semántico `id` (nunca el BIGINT interno).
+- `GET ""` → `BasePersonalResponse[]` (solo PERSONALES del caller)
+- `POST ""` → 201 `BasePersonalResponse` (@Valid `BasePersonalCrearRequest{nombre}`)
+
+La seam de lookup por `publicId` con scope de dueño vive en
+`BasesPersonalesService.buscarPorPublicId(publicId, usuarioId)` y devuelve
+`Optional#empty()` para ajenos (incluidos CENTRAL/PROYECTO de otro dueño),
+mapeando a 404 — nunca 403, para no filtrar existencia. La operación de
+copia-al-usar / materialización llega en el siguiente bloque.
+
 ## 7. Tests
 
 - `ImportacionCsvTest` (PQREU): CSV válido → N filas; columna faltante →
