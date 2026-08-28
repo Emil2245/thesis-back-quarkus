@@ -63,16 +63,16 @@ INSERT INTO base_insumos (public_id, nombre, tipo, proyecto_id, archivada) VALUE
   ('0192f6c4-7c8a-7abc-8000-000000000011'::uuid, 'Base PROYECTO Adecuación de consultorio odontológico', 'PROYECTO',
    (SELECT id FROM proyecto WHERE nombre_proyecto = 'Adecuación de consultorio odontológico'), FALSE);
 
-INSERT INTO insumo (base_id, codigo, tipo, descripcion, unidad, precio_unitario)
-SELECT (SELECT id FROM base_insumos WHERE nombre = 'Base PROYECTO Adecuación de consultorio odontológico'),
-       v.codigo, v.tipo, v.descripcion, v.unidad, v.precio_unitario
-FROM (VALUES
-  ('MO-001', 'MANO_OBRA', 'Maestro mayor en ejecución de  obras civiles  (EO C1)', 'h', 4.75),
-  ('MO-002', 'MANO_OBRA', 'Peón (EO E2)', 'h', 4.23),
-  ('EQ-001', 'EQUIPO', 'Volqueta', 'h', 25.0),
-  ('MA-001', 'MATERIAL', 'Mortero adhesivo bicomponente', 'Kg', 0.59),
-  ('MA-004', 'MATERIAL', 'Porcelanato rectificado en pared (0.60x 0.30 m)', 'm2', 16.32)
-) AS v(codigo, tipo, descripcion, unidad, precio_unitario);
+INSERT INTO insumo (base_id, codigo, tipo, descripcion, unidad, precio_unitario, public_id)
+    SELECT (SELECT id FROM base_insumos WHERE nombre = 'Base PROYECTO Adecuación de consultorio odontológico'),
+           v.codigo, v.tipo, v.descripcion, v.unidad, v.precio_unitario, v.public_id
+    FROM (VALUES
+  ('MO-001', 'MANO_OBRA', 'Maestro mayor en ejecución de  obras civiles  (EO C1)', 'h', 4.75, '0192f6c4-7c8a-7abc-8000-000000006001'::uuid),
+  ('MO-002', 'MANO_OBRA', 'Peón (EO E2)', 'h', 4.23, '0192f6c4-7c8a-7abc-8000-000000006002'::uuid),
+  ('EQ-001', 'EQUIPO', 'Volqueta', 'h', 25.0, '0192f6c4-7c8a-7abc-8000-000000006003'::uuid),
+  ('MA-001', 'MATERIAL', 'Mortero adhesivo bicomponente', 'Kg', 0.59, '0192f6c4-7c8a-7abc-8000-000000006004'::uuid),
+  ('MA-004', 'MATERIAL', 'Porcelanato rectificado en pared (0.60x 0.30 m)', 'm2', 16.32, '0192f6c4-7c8a-7abc-8000-000000006005'::uuid)
+) AS v(codigo, tipo, descripcion, unidad, precio_unitario, public_id);
 
 -- ============================================================
 -- 6b. BASES PROYECTO + INSUMOS (Escenario B, EN_PROCESO)
@@ -81,15 +81,15 @@ INSERT INTO base_insumos (public_id, nombre, tipo, proyecto_id, archivada) VALUE
   ('0192f6c4-7c8a-7abc-8000-000000000012'::uuid, 'Base PROYECTO Rehabilitación de consultorios UCE', 'PROYECTO',
    (SELECT id FROM proyecto WHERE nombre_proyecto = 'Rehabilitación de consultorios UCE'), FALSE);
 
-INSERT INTO insumo (base_id, codigo, tipo, descripcion, unidad, precio_unitario)
-SELECT (SELECT id FROM base_insumos WHERE nombre = 'Base PROYECTO Rehabilitación de consultorios UCE'),
-       v.codigo, v.tipo, v.descripcion, v.unidad, v.precio_unitario
-FROM (VALUES
-  ('MO-001', 'MANO_OBRA', 'Maestro mayor en ejecución de  obras civiles  (EO C1)', 'h', 4.75),
-  ('MO-002', 'MANO_OBRA', 'Peón (EO E2)', 'h', 4.23),
-  ('MA-035', 'MATERIAL', 'Cemento portland', 'Kg', 0.16),
-  ('MA-036', 'MATERIAL', 'Arena puesta en obra', 'm3', 12.5)
-) AS v(codigo, tipo, descripcion, unidad, precio_unitario);
+INSERT INTO insumo (base_id, codigo, tipo, descripcion, unidad, precio_unitario, public_id)
+    SELECT (SELECT id FROM base_insumos WHERE nombre = 'Base PROYECTO Rehabilitación de consultorios UCE'),
+           v.codigo, v.tipo, v.descripcion, v.unidad, v.precio_unitario, v.public_id
+    FROM (VALUES
+  ('MO-001', 'MANO_OBRA', 'Maestro mayor en ejecución de  obras civiles  (EO C1)', 'h', 4.75, '0192f6c4-7c8a-7abc-8000-000000006101'::uuid),
+  ('MO-002', 'MANO_OBRA', 'Peón (EO E2)', 'h', 4.23, '0192f6c4-7c8a-7abc-8000-000000006102'::uuid),
+  ('MA-035', 'MATERIAL', 'Cemento portland', 'Kg', 0.16, '0192f6c4-7c8a-7abc-8000-000000006103'::uuid),
+  ('MA-036', 'MATERIAL', 'Arena puesta en obra', 'm3', 12.5, '0192f6c4-7c8a-7abc-8000-000000006104'::uuid)
+) AS v(codigo, tipo, descripcion, unidad, precio_unitario, public_id);
 
 -- ============================================================
 -- 6c. BASES PROYECTO + INSUMOS (Escenario C, FINALIZADO — 93 insumos copiados de la central IESS)
@@ -98,11 +98,113 @@ INSERT INTO base_insumos (public_id, nombre, tipo, proyecto_id, archivada) VALUE
   ('0192f6c4-7c8a-7abc-8000-000000000013'::uuid, 'Base PROYECTO Cetro Médico Tulcán', 'PROYECTO',
    (SELECT id FROM proyecto WHERE nombre_proyecto = 'Cetro Médico Tulcán'), FALSE);
 
-INSERT INTO insumo (base_id, codigo, tipo, descripcion, unidad, precio_unitario)
-SELECT (SELECT id FROM base_insumos WHERE nombre = 'Base PROYECTO Cetro Médico Tulcán'),
-       codigo, tipo, descripcion, unidad, precio_unitario
-FROM insumo
-WHERE base_id = (SELECT id FROM base_insumos WHERE nombre = 'Base IESS Cetro Médico Tulcán');
+INSERT INTO insumo (public_id, base_id, codigo, tipo, descripcion, unidad, precio_unitario)
+    WITH src AS (
+      SELECT codigo, tipo, descripcion, unidad, precio_unitario
+      FROM insumo
+      WHERE base_id = (SELECT id FROM base_insumos WHERE nombre = 'Base IESS Cetro Médico Tulcán')
+    ), ids AS (
+      SELECT * FROM (VALUES
+      ('0192f6c4-7c8a-7abc-8000-000000006201'::uuid, 'MO-001'),
+      ('0192f6c4-7c8a-7abc-8000-000000006202'::uuid, 'MO-002'),
+      ('0192f6c4-7c8a-7abc-8000-000000006203'::uuid, 'EQ-001'),
+      ('0192f6c4-7c8a-7abc-8000-000000006204'::uuid, 'EQ-002'),
+      ('0192f6c4-7c8a-7abc-8000-000000006205'::uuid, 'MO-003'),
+      ('0192f6c4-7c8a-7abc-8000-000000006206'::uuid, 'MO-004'),
+      ('0192f6c4-7c8a-7abc-8000-000000006207'::uuid, 'EQ-003'),
+      ('0192f6c4-7c8a-7abc-8000-000000006208'::uuid, 'EQ-004'),
+      ('0192f6c4-7c8a-7abc-8000-000000006209'::uuid, 'EQ-005'),
+      ('0192f6c4-7c8a-7abc-8000-000000006210'::uuid, 'MO-005'),
+      ('0192f6c4-7c8a-7abc-8000-000000006211'::uuid, 'MA-001'),
+      ('0192f6c4-7c8a-7abc-8000-000000006212'::uuid, 'MA-002'),
+      ('0192f6c4-7c8a-7abc-8000-000000006213'::uuid, 'MA-003'),
+      ('0192f6c4-7c8a-7abc-8000-000000006214'::uuid, 'MA-004'),
+      ('0192f6c4-7c8a-7abc-8000-000000006215'::uuid, 'EQ-006'),
+      ('0192f6c4-7c8a-7abc-8000-000000006216'::uuid, 'MO-006'),
+      ('0192f6c4-7c8a-7abc-8000-000000006217'::uuid, 'MA-005'),
+      ('0192f6c4-7c8a-7abc-8000-000000006218'::uuid, 'MA-006'),
+      ('0192f6c4-7c8a-7abc-8000-000000006219'::uuid, 'MA-007'),
+      ('0192f6c4-7c8a-7abc-8000-000000006220'::uuid, 'MA-008'),
+      ('0192f6c4-7c8a-7abc-8000-000000006221'::uuid, 'MA-009'),
+      ('0192f6c4-7c8a-7abc-8000-000000006222'::uuid, 'EQ-007'),
+      ('0192f6c4-7c8a-7abc-8000-000000006223'::uuid, 'MO-007'),
+      ('0192f6c4-7c8a-7abc-8000-000000006224'::uuid, 'MA-010'),
+      ('0192f6c4-7c8a-7abc-8000-000000006225'::uuid, 'MA-011'),
+      ('0192f6c4-7c8a-7abc-8000-000000006226'::uuid, 'MA-012'),
+      ('0192f6c4-7c8a-7abc-8000-000000006227'::uuid, 'MA-013'),
+      ('0192f6c4-7c8a-7abc-8000-000000006228'::uuid, 'MA-014'),
+      ('0192f6c4-7c8a-7abc-8000-000000006229'::uuid, 'MA-015'),
+      ('0192f6c4-7c8a-7abc-8000-000000006230'::uuid, 'MA-016'),
+      ('0192f6c4-7c8a-7abc-8000-000000006231'::uuid, 'MA-017'),
+      ('0192f6c4-7c8a-7abc-8000-000000006232'::uuid, 'EQ-008'),
+      ('0192f6c4-7c8a-7abc-8000-000000006233'::uuid, 'MA-018'),
+      ('0192f6c4-7c8a-7abc-8000-000000006234'::uuid, 'MA-019'),
+      ('0192f6c4-7c8a-7abc-8000-000000006235'::uuid, 'MA-020'),
+      ('0192f6c4-7c8a-7abc-8000-000000006236'::uuid, 'MO-008'),
+      ('0192f6c4-7c8a-7abc-8000-000000006237'::uuid, 'MO-009'),
+      ('0192f6c4-7c8a-7abc-8000-000000006238'::uuid, 'MO-010'),
+      ('0192f6c4-7c8a-7abc-8000-000000006239'::uuid, 'MA-021'),
+      ('0192f6c4-7c8a-7abc-8000-000000006240'::uuid, 'MA-022'),
+      ('0192f6c4-7c8a-7abc-8000-000000006241'::uuid, 'MA-023'),
+      ('0192f6c4-7c8a-7abc-8000-000000006242'::uuid, 'EQ-009'),
+      ('0192f6c4-7c8a-7abc-8000-000000006243'::uuid, 'MA-024'),
+      ('0192f6c4-7c8a-7abc-8000-000000006244'::uuid, 'MA-025'),
+      ('0192f6c4-7c8a-7abc-8000-000000006245'::uuid, 'MA-026'),
+      ('0192f6c4-7c8a-7abc-8000-000000006246'::uuid, 'MA-027'),
+      ('0192f6c4-7c8a-7abc-8000-000000006247'::uuid, 'MA-028'),
+      ('0192f6c4-7c8a-7abc-8000-000000006248'::uuid, 'MA-029'),
+      ('0192f6c4-7c8a-7abc-8000-000000006249'::uuid, 'MA-030'),
+      ('0192f6c4-7c8a-7abc-8000-000000006250'::uuid, 'MA-031'),
+      ('0192f6c4-7c8a-7abc-8000-000000006251'::uuid, 'MA-032'),
+      ('0192f6c4-7c8a-7abc-8000-000000006252'::uuid, 'MA-033'),
+      ('0192f6c4-7c8a-7abc-8000-000000006253'::uuid, 'EQ-010'),
+      ('0192f6c4-7c8a-7abc-8000-000000006254'::uuid, 'EQ-011'),
+      ('0192f6c4-7c8a-7abc-8000-000000006255'::uuid, 'MO-011'),
+      ('0192f6c4-7c8a-7abc-8000-000000006256'::uuid, 'MA-034'),
+      ('0192f6c4-7c8a-7abc-8000-000000006257'::uuid, 'MA-035'),
+      ('0192f6c4-7c8a-7abc-8000-000000006258'::uuid, 'MA-036'),
+      ('0192f6c4-7c8a-7abc-8000-000000006259'::uuid, 'MO-012'),
+      ('0192f6c4-7c8a-7abc-8000-000000006260'::uuid, 'MO-013'),
+      ('0192f6c4-7c8a-7abc-8000-000000006261'::uuid, 'MA-037'),
+      ('0192f6c4-7c8a-7abc-8000-000000006262'::uuid, 'MA-038'),
+      ('0192f6c4-7c8a-7abc-8000-000000006263'::uuid, 'MA-039'),
+      ('0192f6c4-7c8a-7abc-8000-000000006264'::uuid, 'MO-014'),
+      ('0192f6c4-7c8a-7abc-8000-000000006265'::uuid, 'MO-015'),
+      ('0192f6c4-7c8a-7abc-8000-000000006266'::uuid, 'MA-040'),
+      ('0192f6c4-7c8a-7abc-8000-000000006267'::uuid, 'MA-041'),
+      ('0192f6c4-7c8a-7abc-8000-000000006268'::uuid, 'MA-042'),
+      ('0192f6c4-7c8a-7abc-8000-000000006269'::uuid, 'MA-043'),
+      ('0192f6c4-7c8a-7abc-8000-000000006270'::uuid, 'MA-044'),
+      ('0192f6c4-7c8a-7abc-8000-000000006271'::uuid, 'MA-045'),
+      ('0192f6c4-7c8a-7abc-8000-000000006272'::uuid, 'MO-016'),
+      ('0192f6c4-7c8a-7abc-8000-000000006273'::uuid, 'MA-046'),
+      ('0192f6c4-7c8a-7abc-8000-000000006274'::uuid, 'MA-047'),
+      ('0192f6c4-7c8a-7abc-8000-000000006275'::uuid, 'MA-048'),
+      ('0192f6c4-7c8a-7abc-8000-000000006276'::uuid, 'MA-049'),
+      ('0192f6c4-7c8a-7abc-8000-000000006277'::uuid, 'MA-050'),
+      ('0192f6c4-7c8a-7abc-8000-000000006278'::uuid, 'MA-051'),
+      ('0192f6c4-7c8a-7abc-8000-000000006279'::uuid, 'MA-052'),
+      ('0192f6c4-7c8a-7abc-8000-000000006280'::uuid, 'MA-053'),
+      ('0192f6c4-7c8a-7abc-8000-000000006281'::uuid, 'MA-054'),
+      ('0192f6c4-7c8a-7abc-8000-000000006282'::uuid, 'MA-055'),
+      ('0192f6c4-7c8a-7abc-8000-000000006283'::uuid, 'MA-056'),
+      ('0192f6c4-7c8a-7abc-8000-000000006284'::uuid, 'MA-057'),
+      ('0192f6c4-7c8a-7abc-8000-000000006285'::uuid, 'MA-058'),
+      ('0192f6c4-7c8a-7abc-8000-000000006286'::uuid, 'MA-059'),
+      ('0192f6c4-7c8a-7abc-8000-000000006287'::uuid, 'MA-060'),
+      ('0192f6c4-7c8a-7abc-8000-000000006288'::uuid, 'MA-061'),
+      ('0192f6c4-7c8a-7abc-8000-000000006289'::uuid, 'MA-062'),
+      ('0192f6c4-7c8a-7abc-8000-000000006290'::uuid, 'MA-063'),
+      ('0192f6c4-7c8a-7abc-8000-000000006291'::uuid, 'MA-064'),
+      ('0192f6c4-7c8a-7abc-8000-000000006292'::uuid, 'MA-065'),
+      ('0192f6c4-7c8a-7abc-8000-000000006293'::uuid, 'MA-066')
+      ) AS m(public_id, codigo)
+    )
+    SELECT ids.public_id,
+           (SELECT id FROM base_insumos WHERE nombre = 'Base PROYECTO Cetro Médico Tulcán'),
+           src.codigo, src.tipo, src.descripcion, src.unidad, src.precio_unitario
+    FROM src JOIN ids ON ids.codigo = src.codigo
+    ORDER BY ids.public_id;
 -- ============================================================
 -- 7. PRESUPUESTOS (B: EN_PROCESO; C: FINALIZADO — total = workbook)
 -- ============================================================
