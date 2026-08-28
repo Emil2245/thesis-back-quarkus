@@ -55,9 +55,26 @@ Two roles only: `USUARIO`, `SUPER_ADMIN`. No third role. No middleware roles.
 - `NUMERIC(12,6)` — quantities
 - `NUMERIC(10,6)` — rendimiento (h/unit)
 - `NUMERIC(7,4)` — peso_ponderado (%)
-- **Rounding to 2 dp happens ONLY at export.** Never in the motor. Never
-  in the DB. If you find yourself calling `.setScale(2, ...)` in main code,
-  stop and ask why.
+- **El motor opera con la precisión natural de `BigDecimal`.** No aplica
+  redondeo intermedio a sus operaciones (la regla previa de
+  `CALC_PRECISION=3 HALF_UP` queda **retirada** por Plan 014, 2026-08-28;
+  ver [`plans/014-motor-precision-no-links.md`](plans/014-motor-precision-no-links.md)).
+- **La única rounding dentro del motor** es la frontera APU→Rubro en
+  `internal/Consolidador.java`, regla **workbook-consistent**
+  (corrección 2026-08-28): `precioUnitario = costoTotal.setScale(2,
+  RoundingMode.DOWN)`; `precioTotal = cantidad × precioUnitario`,
+  retenido a la escala de persistencia 6 (`NUMERIC(14,6)`) con
+  `setScale(6, RoundingMode.HALF_UP)`. **No** se trunca cada `precioTotal`
+  a 2 dp — la versión previa con `setScale(2, DOWN)` simétrico en PU y
+  PT producía deltas sistemáticos `GM19 = -$9.37` y `GM20 cap1 = -$3.09`
+  vs workbook IESS (ver STOP conditions de `plans/014`). Cualquier otro
+  `.setScale(...)` dentro de `motor/` es un bug — abrir STOP y reportar.
+- **Display config** se rige por la config global `app.display.precision`
+  (default 2, env `DISPLAY_PRECISION`) y `app.display.precision-porcentaje`
+  (default 4, env `DISPLAY_PRECISION_PORCENTAJE`); endpoint público
+  `GET /api/v1/config/display` → `{precisionDinero, precisionPorcentaje}`.
+  Aplicado únicamente en la capa de presentación/export. La BD nunca
+  redondea a 2 dp.
 
 BigDecimal only. `double` and `float` are banned in `motor/`:
 ```bash
@@ -93,22 +110,70 @@ Lives in `src/main/java/ec/uce/propuestas/motor/`. Contract:
 - **Golden Masters** (`GM-01`…`GM-25`) are the acceptance test. Any GM
   failing → real bug. Do NOT add tolerance, do NOT adjust expected values.
 
-**Current motor status** (2026-08-19): **GM-19/GM-20 RESUELTO** vía
-[`plans/006`](plans/006-motor-consolidacion-fix.md) opción (a) — modificar
-`internal/Consolidador.java` para redondear `RubroConPrecio.precioUnitario`
-y `precioTotal` a 2 dp (`RoundingMode.DOWN`) en la frontera APU→Rubro. Esto
-match el workbook IESS (que usa ROUNDDOWN o valores 2 dp tipeados).
-Expected post-cambio: 25/25 GMs verdes.
+**Current motor status** (cierre parcial USER-DECIDED 2026-08-28; ver
+[`plans/014-motor-precision-no-links.md`](plans/014-motor-precision-no-links.md)
+y [Plan 02](docs/modulos/planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)):
+el motor opera con la **precisión natural de `BigDecimal`**; el workbook
+IESS no aplica redondeo intermedio al APU (las 3 dp visibles son formato de
+display). La **única rounding del motor aplicada** es la frontera
+APU→Rubro en `internal/Consolidador.java` con la regla **workbook-consistent**:
+`precioUnitario = costoTotal.setScale(2, RoundingMode.DOWN)`;
+`precioTotal = cantidad × precioUnitario`, retenido a la escala de
+persistencia 6 (`NUMERIC(14,6)`) con `setScale(6, RoundingMode.HALF_UP)`;
+los totales de capítulo y `totalGeneral` se agregan desde esos `precioTotal`
+a escala 6; el display canónico a 2 dp ocurre solo en la capa de
+presentación/assertion. **No** se trunca cada `precioTotal` a 2 dp — la
+versión previa con `setScale(2, DOWN)` simétrico en PU y PT quedaba
+retirada por deltas sistemáticos `GM19 = -$9.37` y `GM20 cap1 = -$3.09` vs
+workbook IESS (ver STOP conditions de `plans/014`). Display global
+configurable vía `app.display.precision` (default 2) y
+`app.display.precision-porcentaje` (default 4); endpoint público
+`GET /api/v1/config/display` queda **OPEN** (Plan 014 T3). Validación de
+entrada `@Digits` solo en los campos monetarios de DTO del catálogo
+cerrado del plan (nunca en campos de entidad como `tarifaJornal` /
+`precioUnitarioTarifa`, ni en cantidades, rendimientos o porcentajes) —
+queda **OPEN** (Plan 014 T4).
 
-**Regla de modificación del Motor (N04-bis 2026-08-19):**
-- **`Motor.calcularApu()` y `internal/CalculadorFila.java`:** no se tocan
-  salvo cambio de requerimientos funcionales explícito, documentado en
-  el `plans/` correspondiente (no se ajustan tolerances ni se "mejoran"
-  fórmulas verdes).
+**Baseline post-implementación (cierre parcial 2026-08-28)**
+`./gradlew test --tests 'ec.uce.propuestas.motor.*' --console=plain`:
+`MotorApuTest` 21/21 verde; `MotorPropiedadesTest` 5/5 verde;
+`ConsolidadorFronteraTest` 5/5 verde (T1 workbook-consistent, nuevo);
+GM-21 verde con allowlist auditado de **11 entradas ≤ 0.03 a nivel PU**
+(artefactos de redondeo manual del workbook IESS); **GM-19 y GM-20 RED**
+con residual aceptado — GM-19 actual `395108.37` vs esperado `395115.32`
+(delta `-$6.95`); GM-20 cap. 1 actual `158907.21` vs esperado `158908.05`
+(delta `-$0.84`). GM-24 y DIAG `@Disabled`. **No** se reabre el motor
+para cerrar este residual; workbook, golden expected values, tolerancias
+y fórmulas del motor quedan cerradas. Preferencia del usuario: este es
+**un example workbook único**; no se realizan auditorías exhaustivas
+per-rubro.
+
+**Regla de modificación del Motor (Plan 014, 2026-08-28):**
+- **`Motor.calcularApu()` y `internal/CalculadorFila.java`:** el guard "do
+  not touch" se levanta **de forma acotada y solo para Plan 014**, para
+  **ediciones estructurales mínimas**: borrar las ramas obsoletas
+  `esAuxiliar`/`cdAuxiliar` y leer el `%CI` por APU desde
+  `ApuSnapshot.porcentajeIndirecto`. **Aritmética intacta:** fórmulas,
+  `MathContext`, orden de operaciones y precisión natural de `BigDecimal`
+  quedan semánticamente idénticos; **ningún redondeo intermedio** (la regla
+  anterior de `CALC_PRECISION=3 HALF_UP` por operación queda **retirada**).
+  Fuera de ese scope acotado el guard sigue vigente.
 - **`internal/Consolidador.java`:** se permite modificar **solo** para
-  cambios de requerimientos funcionales. El caso vigente que justificó
-  la excepción es GM-19/GM-20 (N04-bis). Cada nueva excepción debe
-  documentarse con su plan (`plans/NNN`) y referenciarse aquí.
+  aplicar la regla **workbook-consistent** de la frontera APU→Rubro
+  (corrección 2026-08-28): `RoundingMode.DOWN` 2 dp **solo** en
+  `precioUnitario`; `precioTotal = cantidad × PU_2dp` retenido a
+  escala 6 (`NUMERIC(14,6)`) con `HALF_UP`; agregar los totales de
+  capítulo y `totalGeneral` desde esos `precioTotal` a escala 6.
+  **No** reintroducir `setScale(2, DOWN)` por rubro total (causaba
+  deltas sistemáticos `GM19 = -$9.37` y `GM20 cap1 = -$3.09`).
+  Cada nueva excepción debe documentarse con su plan
+  (`plans/0NN`) y referenciarse aquí.
+- **Snapshots/resultados del motor:** `ApuSnapshot` y `ApuCalculado` sin
+  `esAuxiliar`; `FilaSnapshot` sin `cdAuxiliar`; `ParametrosCalculo` sin
+  `porcentajeIndirectoApu` (no-links N04 §2 confirmado por Plan 014).
+  `ApuSnapshot.porcentajeIndirecto` (nullable) es el único override
+  semántico por APU; `ParametrosCalculo` retiene solo el default del
+  proyecto.
 - **`Fixture.java`:** no tocar las assertions de los GMs; solo reparaciones
   justificadas (con STOP conditions documentadas).
 
@@ -131,10 +196,21 @@ siguiendo el patrón de `plans/006`. Cada cambio debe:
 ./gradlew build -Dquarkus.native.enabled=true -Dquarkus.native.container-build=true   # native (~10 min)
 ```
 
-Expected test count (as of 2026-07-24): **56 total, 2 red, 2 skipped**.
-The 2 red are GM-19 and GM-20 (see above). The 2 skipped are GM-24
-(`@Disabled`, upstream fixture bug) and `DIAG_rubro_expected_vs_actual`
-(temporary diagnostic method for the GM-19/20 investigation).
+Expected motor test count (post-cierre-parcial 2026-08-28): **36 tests
+totales** (21 `MotorApuTest` + 5 `MotorConsolidacionTest` + 5 `MotorPropiedadesTest`
++ 5 `ConsolidadorFronteraTest`); **2 red** (GM-19 `-$6.95`, GM-20 cap. 1
+`-$0.84` — **residual aceptado**, no se reabre el motor); **2 skipped**
+(GM-24 `@Disabled` por fixture EMELNORTE upstream; `DIAG_rubro_expected_vs_actual`
+`@Disabled` — pendiente de borrado en Plan 014). Conteo total de la suite
+se **reporta** desde los XML de `build/test-results/`, no se presupone.
+
+Do **not** hardcode a post-change total. After any run, report the real
+counts from the XML results instead of predicting them:
+
+```bash
+grep -ho 'tests="[0-9]*"\|failures="[0-9]*"\|errors="[0-9]*"\|skipped="[0-9]*"' \
+  build/test-results/test/TEST-*.xml
+```
 
 ## Repo conventions
 

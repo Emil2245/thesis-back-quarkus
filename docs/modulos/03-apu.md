@@ -38,9 +38,19 @@ plantillas (P-26 — con fallback N04 §B.4), `/apus/{id}/calculo` (desglose P-2
 Especificaciones Técnicas (P-45 — N04 §ESP, NUEVA), plantilla de proyecto
 (P-46 — N04 §A8, NUEVA), `POST /apus/{id}/duplicar`, **módulo `recalculo`**,
 base PERSONAL (N04 §A9), rangos parametrizables (N04 §A6),
-`CALC_PRECISION`/`DISPLAY_PRECISION` (N04 §#7). La propagación a
-rubro/capítulo/presupuesto (RNF-02) es del módulo presupuesto (I-07): aquí se
-persiste write-through **a nivel APU** (sus propias columnas de costo).
+**display config global** (`precisionDinero=2` / `precisionPorcentaje=4`,
+endpoint `GET /api/v1/config/display`) y la **única rounding del motor** en
+`internal/Consolidador.java` con la regla **workbook-consistent**
+(corrección 2026-08-28): `RoundingMode.DOWN` 2 dp **solo** en
+`precioUnitario`; `precioTotal = cantidad × PU_2dp` se retiene a la
+escala de persistencia 6 (`NUMERIC(14,6)`) con `HALF_UP` (sin truncar
+cada PT a 2 dp); capítulo y `totalGeneral` agregan esos `precioTotal` a
+escala 6; display/assertion canónico a 2 dp `HALF_UP` ocurre solo en
+presentación. Autorizada por
+[`plans/014-motor-precision-no-links.md`](../../plans/014-motor-precision-no-links.md).
+La propagación a rubro/capítulo/presupuesto (RNF-02) es del
+módulo presupuesto (I-07): aquí se persiste write-through **a nivel APU**
+(sus propias columnas de costo).
 
 > **P-25 (auxiliares) — OBSOLETO/SUPERSEDED.** La entrevista N04 temporal
 > (`../thesis-docs/DOCUMENTOS/entrevistas/04/temporal/Respuesta_Entrevista_N04_TERMPORAL.md`
@@ -326,9 +336,19 @@ Expected: nuevas suites verdes; baseline 63 tests (2 rojos GM-19/20 conocidos,
 - **Plantilla de proyecto completo** (P-46 — N04 §A8, NUEVA).
 - **base PERSONAL** (N04 §A9 — ampliación de `tipo_base`).
 - **rangos parametrizables globalmente** (N04 §A6).
-- **`CALC_PRECISION=3`/`DISPLAY_PRECISION=2`** (N04 §#7 — motor redondea cada
-  operación a `CALC_PRECISION`; sin tocar `Motor.java` salvo el helper de
-  redondeo).
+- **`CALC_PRECISION=3`/`DISPLAY_PRECISION=2`** (N04 §#7 — **WITHDRAWN 2026-08-28**:
+  el motor opera con la precisión natural de `BigDecimal`; ya no aplica
+  `HALF_UP` por operación. La única rounding del motor vive en
+  `internal/Consolidador.java` con la regla **workbook-consistent**
+  (corrección 2026-08-28): `RoundingMode.DOWN` 2 dp **solo** en
+  `precioUnitario`; `precioTotal = cantidad × PU_2dp` se retiene a la
+  escala de persistencia 6 (`NUMERIC(14,6)`) con `HALF_UP` (sin truncar
+  cada PT a 2 dp); capítulo y `totalGeneral` agregan esos `precioTotal`
+  a escala 6; display/assertion canónico a 2 dp `HALF_UP` ocurre solo
+  en la capa de presentación. El display se rige por la config global
+  `precisionDinero=2` / `precisionPorcentaje=4` vía `app.display.*` y
+  `GET /api/v1/config/display`. Ver [`plans/014`](../../plans/014-motor-precision-no-links.md)
+  y [`docs/modulos/planes-para-estar-al-dia/02`](planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)).
 - **módulo `recalculo`** (N04 dossier §B.6 — write-through de parámetros,
   edición atómica, descuento global) — **DEFERRED**: no se crea ningún
   módulo nuevo de primer nivel en esta etapa. El write-through local por

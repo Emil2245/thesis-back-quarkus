@@ -27,7 +27,7 @@ Lo que todavía falta, limitado a los módulos existentes, se concentra en:
 
 1. el seam de `ParametrosProyectoCambio` está **commiteado/completo** en `main` como `feat(proyecto): expose parameter change seam`; el write-through global de parámetros hacia el frontend queda **diferido** (la costura neutral ya está expuesta para futura propagación);
 2. corregir documentación contradictoria sobre APUs auxiliares;
-3. aplicar precisión `CALC_PRECISION=3` y frontera APU→Rubro a 2 dp `DOWN`;
+3. (Plan 014 supersede — **cierre parcial 2026-08-28**) display global `precisionDinero=2` / `precisionPorcentaje=4` vía `app.display.*` + `GET /api/v1/config/display` queda **OPEN** (T3 Plan 014); la **única rounding del motor aplicada** es la frontera APU→Rubro 2 dp `DOWN` (`internal/Consolidador.java`, regla workbook-consistent: `precioUnitario DOWN 2dp`; `precioTotal = cantidad × PU_2dp` retenido a escala 6 `HALF_UP`; totales de capítulo y `totalGeneral` agregados desde esos valores); motor opera con `BigDecimal` natural (`CALC_PRECISION=3 HALF_UP` retirado). Residual aceptado en GM-19 (`-$6.95`) y GM-20 cap. 1 (`-$0.84`) — no se reabre el motor;
 4. completar reordenamiento y precisión de la respuesta de cálculo;
 5. implementar plantillas de APU;
 6. completar administración de bases centrales y bases personales;
@@ -93,7 +93,7 @@ Los casos `TC-P25-*` ligados a referencias auxiliares deben marcarse como
 
 | Tema | Decisión vigente | Fuente principal |
 |---|---|---|
-| Precisión de cálculo | `CALC_PRECISION=3`, `HALF_UP`, tras cada operación | `thesis-docs/CLAUDE.md`, `plan/domain/02-data-model.md` §0/§16/§17 #19 |
+| Precisión del motor | **`BigDecimal` natural** (Plan 014 supersede 2026-08-28; `CALC_PRECISION=3 HALF_UP` retirado) | `plans/014-motor-precision-no-links.md`, `thesis-docs/CLAUDE.md`, `plan/domain/02-data-model.md` §0/§16/§17 #19 |
 | Consolidación APU→Rubro | precio unitario y total a 2 dp con `DOWN` | `plan/design/07-decisiones-i06-pendientes.md` N04-bis; backend `plans/006` |
 | Presentación | `DISPLAY_PRECISION=2`, solo UI/export | `plan/domain/02-data-model.md`; `plan/design/04-export-sercop-spec.md` |
 | Persistencia | `NUMERIC(14,6)` | `plan/architecture/06-database-schema.md` |
@@ -169,7 +169,7 @@ siguientes.
 | Descuento FORMA 2 | **PARTIAL** | `PUT` de insumos PROYECTO existente | recalcular APUs que heredan el precio; debounce pertenece al frontend |
 | P-25 enlaces auxiliares | **OBSOLETO** | schema/entities actuales correctamente no los tienen | eliminar referencias antiguas de docs y motor; no crear columnas/endpoints |
 | P-26 plantillas de APU | **MISSING** | solo `PlantillaApu` + repository | servicio, resource, DTOs, guardar snapshot, cargar con fallback |
-| P-27 desglose de cálculo | **PARTIAL** | DTOs, `ApuCalculoService.proyectar`, `GET /calculo` | aplicar CALC_PRECISION en response y cubrir shape/orden |
+| P-27 desglose de cálculo | **PARTIAL** | DTOs, `ApuCalculoService.proyectar`, `GET /calculo` | aplicar `precisionDinero` / `precisionPorcentaje` en response desde config global (OPEN, Plan 014 T3) + cubrir shape/orden |
 | Duplicar APU | **DONE** | `ApuDuplicarService`, `POST /duplicar` | comprobar que no reaparezca vocabulario auxiliar |
 | P-45 ET por APU | **DONE** | GET/PUT ET, `DocumentoResource`, `EspecificacionesTecnicasService` | solo sincronizar docs: usa Apache POI, no docx4j |
 | P-46 plantilla de proyecto | **MISSING** | `PlantillaProyecto` + repository | servicio/resource/carga usando paquetes `plantilla`, `proyecto`, `presupuesto` existentes |
@@ -179,7 +179,7 @@ siguientes.
 | A9 copia al usar | **DONE** | `ResolverInsumoProyectoService`, integración en `ApuCrudService` | nada para creación de filas; reutilizarlo desde plantillas |
 | D-12 central | **MISSING** | listado central activo solamente | CRUD admin, archivar y borrar sin bloqueo |
 | Precisión del motor | **MISSING** | motor aún usa `MathContext`/precisión histórica | CALC=3 por operación, remover ramas auxiliares, config explícita |
-| Consolidación GM-19/20 | **MISSING** | `Consolidador` todavía no aplica 2dp DOWN en frontera | implementar plan 006 realmente |
+| Consolidación GM-19/20 | **PARTIAL — CIERRE CON RESIDUO ACEPTADO (2026-08-28)** | regla workbook-consistent aplicada en `Consolidador.java` (`PU DOWN 2dp`; `PT = cantidad × PU_2dp` retenido a escala 6 `HALF_UP`); `ConsolidadorFronteraTest` 5/5 verde | residual aceptado: GM-19 `-$6.95`, GM-20 cap. 1 `-$0.84` (no se reabre el motor); T2–T4 de [`plans/014`](../../plans/014-motor-precision-no-links.md) siguen OPEN |
 | UUIDv7 en APU | **DONE** | paths APU y detalle usan UUIDv7 | nada |
 | UUIDv7 resto de módulos | **PARTIAL** | entidades/repositories tienen `publicId` | varios resources actuales aún usan `Long` en paths/responses |
 | Write-through global | **DEFERRED** | costura `ParametrosProyectoCambio` ya commiteada y neutral | módulo profundo `recalculo`, excluido por alcance actual |
@@ -262,40 +262,74 @@ Antes de editar, crear el plan obligatorio:
 plans/014-motor-precision-no-links.md
 ```
 
+> **Estado (cierre parcial 2026-08-28):** items 8 (regla workbook-consistent en `internal/Consolidador.java`) y 11 parcial (auditoría GM-21, fixtures) ejecutados; residual aceptado: GM-19 `-$6.95`, GM-20 cap. 1 `-$0.84`. Items 1–7 (config display, no-links estructural en `Motor.java`/`CalculadorFila.java`), 9 (call sites de no-links), 10 (`@Digits`) y borrado de DIAG siguen **OPEN** en [`plans/014`](../../plans/014-motor-precision-no-links.md) (T2–T4). El motor **no** se reabre para cerrar el residual.
+
 Actualizar también:
 
 - `CLAUDE.md` del backend;
 - `../thesis-docs/CLAUDE.md`.
 
-Cambios:
+Cambios (Plan 014, 2026-08-28 — supersede N04 §#7):
 
-1. `common/config/PrecisionConfig.java`:
-   - `calcPrecision` default 3;
-   - `displayPrecision` default 2;
-   - configuración vía MicroProfile/env;
-2. `motor/ParametrosCalculo.java`:
-   - agregar precisión inmutable;
-   - conservar constructor compatible;
-3. `motor/Motor.java`:
-   - helper privado `r(BigDecimal, int)` con `HALF_UP`;
-   - redondear productos, porcentajes, sumas, restas y acumulaciones;
-   - eliminar `in.esAuxiliar()`;
-4. `motor/ApuSnapshot.java` y `ApuCalculado.java`:
-   - eliminar `esAuxiliar`;
+1. `common/config/DisplayConfig.java` *(nuevo)*:
+   - `@ConfigMapping(prefix = "app.display")`;
+   - `precision` default 2 (env `DISPLAY_PRECISION`);
+   - `precision-porcentaje` default 4 (env `DISPLAY_PRECISION_PORCENTAJE`);
+   - vive en `common/config/`, **nunca** en `motor/`;
+2. `common/config/DisplayConfigResponse.java` *(nuevo)* y
+   `common/config/DisplayConfigResource.java` *(nuevo)*:
+   - `GET /api/v1/config/display` (`@PermitAll`) → `{precisionDinero, precisionPorcentaje}`;
+3. `application.yml` + `.env.example`:
+   - bloque `app.display.precision` / `app.display.precision-porcentaje`;
+   - variables `DISPLAY_PRECISION=2` y `DISPLAY_PRECISION_PORCENTAJE=4`;
+4. `motor/ParametrosCalculo.java`:
+   - quitar `porcentajeIndirectoApu`;
+   - retiene solo `porcentajeIndirectoDefault` (default del proyecto);
+   - el override por APU vive en `ApuSnapshot.porcentajeIndirecto` (nullable);
+5. `motor/ApuSnapshot.java` y `ApuCalculado.java`:
+   - quitar `esAuxiliar`;
    - representar solamente un APU ordinario;
-   - si hace falta override de CI por APU, usar un campo semántico de
-     `porcentajeIndirecto`, nunca un booleano auxiliar;
-5. `motor/FilaSnapshot.java`:
-   - eliminar `cdAuxiliar`;
-6. `motor/internal/CalculadorFila.java`:
-   - modificar únicamente lo autorizado por el cambio funcional explícito;
-   - no agregar tolerancias ni aproximaciones;
-7. `motor/internal/Consolidador.java`:
-   - `precioUnitario = costoTotal.setScale(2, DOWN)`;
-   - `precioTotal = cantidad × precioUnitario`, luego `setScale(2, DOWN)`;
-8. adaptar fixtures/propiedades que todavía describen auxiliares, sin modificar
-   tolerancias de golden masters;
-9. aplicar `DISPLAY_PRECISION` solamente en response/export, no dentro del motor.
+   - `ApuSnapshot.porcentajeIndirecto` queda nullable (override semántico por APU; null = hereda);
+6. `motor/FilaSnapshot.java`:
+   - quitar `cdAuxiliar`;
+7. `motor/Motor.java` y `motor/internal/CalculadorFila.java`:
+   - **edición estructural mínima autorizada** (Plan 014): quitar la rama
+     `esAuxiliar`, leer el `%CI` desde `ApuSnapshot.porcentajeIndirecto`,
+     ajustar el constructor de `ApuCalculado`, y quitar el fallback
+     `cdAuxiliar` en `calcularMaterial`;
+   - **sin cambio aritmético**: fórmulas, `MathContext`, orden de
+     operaciones y precisión natural de `BigDecimal` intactos;
+8. `motor/internal/Consolidador.java` (regla **workbook-consistent**,
+   corrección 2026-08-28):
+   - `precioUnitario = costoTotal.setScale(2, DOWN)` (única aplicación
+     de `DOWN`; reproduce el workbook IESS);
+   - `precioTotal = cantidad × precioUnitario, setScale(6, HALF_UP)`
+     (retenido a la escala de persistencia 6 `NUMERIC(14,6)` con
+     `HALF_UP` **únicamente** en esa frontera de resultado; **no** se
+     trunca cada `precioTotal` a 2 dp — la versión previa con
+     `setScale(2, DOWN)` simétrico quedaba retirada por deltas
+     sistemáticos `GM19 = -$9.37` y `GM20 cap1 = -$3.09` vs workbook
+     IESS);
+   - totales de capítulo y `totalGeneral` agregados desde esos
+     `precioTotal` a escala 6;
+   - display/assertion canónico a 2 dp `HALF_UP` ocurre solo en la
+     capa de presentación;
+   - **única rounding del motor**;
+9. `apu/service/ApuCalculoService.java` y los fixtures/tests del motor:
+   - ajuste de call sites para compilar; **sin tocar assertions ni expected values**;
+10. DTOs monetarios de entrada existentes en `HEAD`
+    (`ApuDetallePatchRequest.precioOverride`, `InsumoCrearRequest.precioUnitario`,
+    `InsumoEditarRequest.precioUnitario`):
+    - `@Digits(integer=8, fraction=2)` solo en estos campos (`integer=8` por
+      `NUMERIC(14,6)`);
+    - nunca en cantidades, rendimientos, porcentajes, resultados calculados
+      ni campos de entidad (`tarifaJornal`, `precioUnitarioTarifa`);
+    - `ApuDetalleCrearRequest.precioOverride` **no existe** en `HEAD`; no se
+      crea (STOP condition de `plans/014`);
+11. borrar `DIAG_rubro_expected_vs_actual` del `MotorConsolidacionTest`;
+    auditar GM-21 y borrar entradas del allowlist donde `delta == 0.00`
+    (cero entradas restantes es válido);
+    GM-24 sigue `@Disabled` por la rotura upstream del fixture EMELNORTE.
 
 Commit sugerido:
 
@@ -315,8 +349,8 @@ Cambios:
    - persistir el nuevo orden;
    - mantener la fila HM protegida contra borrado, pero permitir reordenarla;
 3. `ApuCalculoService`:
-   - resultados monetarios a CALC_PRECISION;
-   - operandos de `operacion` a 6 dp;
+   - resultados monetarios proyectados a `precisionDinero` (display 2 dp) desde config global;
+   - operandos de `operacion` a precisión completa;
    - respetar orden persistido;
 4. revisar `ApuCalculoResponse`, `ApuCalculoLinea` y `ApuCalculoResumen` para no
    exponer BIGINT ni valores auxiliares;
@@ -535,7 +569,7 @@ exista, permanecen incompletos:
 | Bloque | Resultado observable |
 |---|---|
 | 0 | `main` sin cambios flotantes; docs ya no ordenan enlaces auxiliares |
-| 1 | motor calcula a 3 dp; APU→Rubro usa DOWN 2 dp; no hay ramas auxiliares |
+| 1 | **PARCIAL — CIERRE CON RESIDUO ACEPTADO (2026-08-28)**: motor opera con `BigDecimal` natural; APU→Rubro usa `PU DOWN 2dp` + `PT = cantidad × PU_2dp` retenido a escala 6 `HALF_UP` (regla workbook-consistent). `ConsolidadorFronteraTest` 5/5 verde. **GM-19 (`-$6.95`) y GM-20 cap. 1 (`-$0.84`) con residual aceptado — no se reabre el motor.** T2 (no-links estructural), T3 (display config global) y T4 (`@Digits`) siguen OPEN en Plan 014. |
 | 2 | PATCH orden funciona; cálculo respeta orden y precisión |
 | 3 | plantilla PERSONAL se guarda/carga; fallback produce advertencias |
 | 4 | central archivada desaparece; borrado no afecta copias PROYECTO |

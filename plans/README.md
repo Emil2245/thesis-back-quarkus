@@ -27,14 +27,15 @@ iteration I-01 in full plus the I-02 hito (motor de cálculo puro).
 | 002 | [CI: GitHub Actions (JVM + native)](./002-ci-github-actions.md) | I-01 | **DONE** (2026-07-24, reviewer-verified; needs first push-to-GitHub to prove workflows actually run) |
 | 003 | [Postgres schema baseline (V001–V003 migrations)](./003-schema-baseline.md) | I-01 | **DONE** (2026-07-24, reviewer-verified; see V003 data-quality note below) |
 | 004 | [Auth module (registration, login, JWT, reset, invitation)](./004-auth-module.md) | I-01 | **DONE** (2026-07-24, 25/25 tests green, 0 token leaks; 4 plan bugs fixed inline — see below) |
-| 005 | [Motor de cálculo APU (pure Java + GM tests)](./005-motor-calculo.md) | I-02 | **BLOCKED** (2026-07-24, scaffold present in `2fe6c83` but 2/25 GM tests fail — see below) |
-| 006 | [Motor consolidación fix (GM-19/GM-20, GM-21 audit, GM-24 real)](./006-motor-consolidacion-fix.md) | I-02 | **DECISIÓN CERRADA (2026-08-19 — N04-bis)** — opción (a) funcionalmente aprobada (modificar `internal/Consolidador.java` para redondear a 2 dp `RoundingMode.DOWN` en la frontera APU→Rubro, match workbook IESS). **Implementación de código pendiente** hasta ejecutar [`docs/modulos/planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md`](../docs/modulos/planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md) (Plan 02), que exige el plan obligatorio `plans/014-motor-precision-no-links.md`. Detalle histórico de investigación abajo. |
+| 005 | [Motor de cálculo APU (pure Java + GM tests)](./005-motor-calculo.md) | I-02 | **DONE** (scaffold + 21 per-APU GMs + 5 propiedades verdes; consolidación cerrada por Plan 02/006 con residual aceptado — ver abajo) |
+| 006 | [Motor consolidación fix (GM-19/GM-20, GM-21 audit, GM-24 real)](./006-motor-consolidacion-fix.md) | I-02 | **IMPLEMENTACIÓN APLICADA workbook-consistent (2026-08-28) — PARTIAL — CLOSED WITH DOCUMENTED IESS RESIDUAL.** Regla workbook-consistent aplicada en `internal/Consolidador.java` (`precioUnitario DOWN 2dp`; `precioTotal = cantidad × PU_2dp` retenido a escala 6 `HALF_UP`; agregación de totales de capítulo y `totalGeneral` desde esos `precioTotal` a escala 6; display canónico a 2 dp `HALF_UP` solo en presentación/assertion). `ConsolidadorFronteraTest` 5/5 verde; `MotorApuTest` 21/21 verde; `MotorPropiedadesTest` 5/5 verde. **Residual aceptado:** GM-19 actual `395108.37` vs esperado `395115.32` (delta `-$6.95`); GM-20 cap. 1 actual `158907.21` vs esperado `158908.05` (delta `-$0.84`). GM-21 verde con allowlist auditado de 11 entradas ≤ 0.03 a nivel PU (atribuido a artefactos de redondeo manual del workbook IESS; **no** se realizan auditorías exhaustivas per-rubro — preferencia del usuario). **No** se reabre el motor: workbook, golden expected values, tolerancias y fórmulas del motor quedan cerrados. |
 | 007 | [Migración Maven → Gradle](../docs/007-migracion-gradle.md) | build tooling | **DONE** (2026-08-01; build/tests/dev-mode verified; CI/CD deferred — plan 002 debt stays open; refinements modernos en §008 del mismo doc) |
 | 009 | [Módulos `proyecto` + `insumo`](../docs/modulos/README.md) | I-03 | **DONE** (2026-08-02; ver §009 post-execution notes) |
 | 010 | [Seed de escenarios reales (V004)](../docs/04-SEED-ESCENARIOS.md) | I-04 | **DONE** (2026-08-02; 3 proyectos uno por estado, FINALIZADO = workbook CMT; verificado en Postgres limpio + suite sin regresión) |
 | 011 | [Módulo APU núcleo (P-19…P-22)](../docs/modulos/03-apu.md) | I-05 | **DONE** (2026-08-11; P-19…P-22, editor APU, filas M/N/O/P, fila HM protegida, override precio + `JsonNullable` write-through vía `Motor.calcularApu`; 10 tests verdes, colección Bruno `api/bruno/08-apu/`) |
 | 012 | [Formatter + lint (Spotless/Palantir + -Xlint:all)](../docs/012-format-lint.md) | tooling | **DONE** (2026-08-11; 142 archivos formateados, 0 warnings lint, sin regresión; ver nota post-ejecución) |
-| 013 | [Módulo APU avanzado (P-23…P-27, P-45, P-46 + decisiones N04)](../docs/modulos/04-apu-avanzado.md) | I-06 | **PARTIAL** (reconciliado 2026-08-28 tras N04 temporal). P-25 marcado **OBSOLETO/SUPERSEDED**; `ApuValidacionService`, `CAMBIO_AUXILIAR`, `es_auxiliar`, `apu_auxiliar_id`, `cdAuxiliar` y la creación del módulo `recalculo` **no se implementan**. **DONE:** P-24 descuento legacy, duplicar APU, ET (Apache POI), rangos parametrizables, bases PERSONALES, copia al usar, seam `ParametrosProyectoCambio`. **PARTIAL:** P-23 %CI por APU (sin propagación global), P-27 desglose (sin `CALC_PRECISION` aún). **MISSING:** P-26 plantillas APU, P-46 plantilla de proyecto, `CALC_PRECISION=3` / `DOWN` 2 dp (Plan 02), UUIDv7 en módulos actuales (Plan 07). **DEFERRED:** write-through global (`recalculo`), descuento global FORMA 1, recálculo atómico FORMA 2. |
+| 013 | [Módulo APU avanzado (P-23…P-27, P-45, P-46 + decisiones N04)](../docs/modulos/04-apu-avanzado.md) | I-06 | **PARTIAL** (reconciliado 2026-08-28 tras N04 temporal). P-25 marcado **OBSOLETO/SUPERSEDED**; `ApuValidacionService`, `CAMBIO_AUXILIAR`, `es_auxiliar`, `apu_auxiliar_id`, `cdAuxiliar` y la creación del módulo `recalculo` **no se implementan**. **DONE:** P-24 descuento legacy, duplicar APU, ET (Apache POI), rangos parametrizables, bases PERSONALES, copia al usar, seam `ParametrosProyectoCambio`. **PARTIAL:** P-23 %CI por APU (sin propagación global), P-27 desglose (sin redondeo intermedio del motor — ahora natural `BigDecimal` vía Plan 14). **MISSING:** P-26 plantillas APU, P-46 plantilla de proyecto, display config global + frontera APU→Rubro 2 dp `DOWN` (Plan 14), UUIDv7 en módulos actuales (Plan 07). **DEFERRED:** write-through global (`recalculo`), descuento global FORMA 1, recálculo atómico FORMA 2. |
+| 014 | [Motor de cálculo: precisión natural, no-links, display global](./014-motor-precision-no-links.md) | I-02 + I-06 | **PARTIAL EXECUTED (2026-08-28)** — T1 workbook-consistent + fixtures + auditoría GM-21 ejecutados (ver Plan 02/006 para residual aceptado: GM-19 `-$6.95`, GM-20 cap. 1 `-$0.84`); T2 (no-links estructural), T3 (display config global) y T4 (`@Digits`) quedan **OPEN / READY FOR REMAINING IMPLEMENTATION**. Regla workbook-consistent vigente: `precioUnitario DOWN 2dp`; `precioTotal = cantidad × PU_2dp` retenido a escala 6 `HALF_UP`; capítulo y `totalGeneral` agregan esos `precioTotal` a escala 6; display canónico a 2 dp `HALF_UP` solo en presentación/assertion. Línea base del motor: **24 GMs habilitados = 22 verdes + 2 rojos** (GM-19/20). Estado post-T1: **`ConsolidadorFronteraTest` 5/5 + `MotorApuTest` 21/21 + `MotorPropiedadesTest` 5/5 + GM-21 verde con allowlist 11 ≤ 0.03 + GM-19/GM-20 rojos con residual aceptado** (cierre parcial user-decided). El plan **no** exige GM-19/20 verdes para considerar T1 ejecutado; el resto (T2–T4 + borrar DIAG) queda abierto y sin reclamar como aplicado. |
 
 Plans for I-07 through I-12 (presupuesto, cronograma, export, admin,
 validación final) are not yet written — they
@@ -80,8 +81,8 @@ están en [`../docs/modulos/planes-para-estar-al-dia/`](../docs/modulos/planes-p
 | A3 reordenamiento filas | **PARTIAL** |
 | A9 copia al usar | **DONE** |
 | D-12 archivar/borrar central | **MISSING** — Plan 05 ([planes-para-estar-al-dia/05](../docs/modulos/planes-para-estar-al-dia/05-administracion-bases.md)) |
-| `CALC_PRECISION`/`DISPLAY_PRECISION` | **MISSING** — Plan 02 ([planes-para-estar-al-dia/02](../docs/modulos/planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)) |
-| Consolidación APU→Rubro `DOWN` 2 dp | **MISSING** — Plan 02 ([planes-para-estar-al-dia/02](../docs/modulos/planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)) |
+| `CALC_PRECISION`/`DISPLAY_PRECISION` | **WITHDRAWN / SUPERSEDED** — Plan 014 retira `CALC_PRECISION` del motor (precisión natural `BigDecimal`). Display global `precisionDinero=2` / `precisionPorcentaje=4` vía `app.display.*` (`application.yml`/env `DISPLAY_PRECISION`, `DISPLAY_PRECISION_PORCENTAJE`) + `GET /api/v1/config/display`. Plan 02 activo lo cubre ahora ([planes-para-estar-al-dia/02](../docs/modulos/planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)). |
+| Consolidación APU→Rubro `DOWN` 2 dp | **PARTIAL — CIERRE CON RESIDUO ACEPTADO** — Plan 02 ([planes-para-estar-al-dia/02](../docs/modulos/planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)). Regla workbook-consistent aplicada; GM-19 / GM-20 cap. 1 con residual sub-céntimo aceptado por el autor (no se reabre el motor). |
 | UUIDv7 en módulos actuales | **PARTIAL** — Plan 07 ([planes-para-estar-al-dia/07](../docs/modulos/planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md)) |
 | Write-through global (`recalculo`) | **DEFERRED** |
 
@@ -334,15 +335,23 @@ is exported. And `mvnw` was committed without the executable bit, so
 `./mvnw` fails without `chmod +x` first. Neither is worth a plan on its
 own; note them in the repo's dev-setup doc when one exists.
 
-### 006 — executed partially, STOPPED per plan protocol (raised 2026-07-24, decision closed 2026-08-19 N04-bis)
+### 006 — executed, cierre parcial USER-DECIDED (raised 2026-07-24, decision closed 2026-08-19 N04-bis, workbook-consistent 2026-08-28, partial closure 2026-08-28)
 
-**Status actual (2026-08-28):** **DECISIÓN CERRADA**, código de motor
-**pendiente** de implementar vía
-[`../docs/modulos/planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md`](../docs/modulos/planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)
-(Plan 02). La opción (a) de N04-bis (modificar `internal/Consolidador.java`
-para `RoundingMode.DOWN` 2 dp en frontera APU→Rubro) está aprobada a nivel
-funcional pero **no se ha aplicado al código** todavía. El bloque
-siguiente conserva la historia de investigación para auditoría.
+**Status actual (2026-08-28):** **IMPLEMENTACIÓN APLICADA workbook-consistent — PARTIAL — CLOSED WITH DOCUMENTED IESS RESIDUAL.** La regla workbook-consistent quedó aplicada en `internal/Consolidador.java`: `RoundingMode.DOWN` 2 dp **solo** a `Rubro.precioUnitario = APU.costoTotal.setScale(2, DOWN)`; `Rubro.precioTotal = cantidad × PU_2dp` se retiene a la escala de persistencia 6 (`NUMERIC(14,6)`) con `HALF_UP` aplicado **únicamente** en esa frontera de resultado (sin truncar cada PT a 2 dp); capítulo y `totalGeneral` agregan esos `precioTotal` a escala 6; display/assertion canónico a 2 dp `HALF_UP` ocurre solo en la capa de presentación. `ConsolidadorFronteraTest` 5/5 verde (T1 workbook-consistent); `MotorApuTest` 21/21 verde; `MotorPropiedadesTest` 5/5 verde; GM-21 verde con allowlist auditado de 11 entradas ≤ 0.03 a nivel PU.
+
+**Residual aceptado por el autor (cierre parcial user-decided 2026-08-28):** GM-19 actual `395108.37` vs workbook esperado `395115.32` (delta `-$6.95`); GM-20 cap. 1 actual `158907.21` vs esperado `158908.05` (delta `-$0.84`). Atribuido a artefactos de redondeo manual dispersos en el example workbook IESS (one example workbook, no exhaustive per-rubro audit — preferencia del usuario). **No** se reabre el motor: workbook, golden expected values, tolerancias ni fórmulas del motor se modifican para cerrar este residual.
+
+El plan
+[`02-motor-precision-y-consolidacion.md`](../docs/modulos/planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)
+(Plan 02) refleja el cierre parcial (mismo residual; §6 explícita).
+[`plans/014-motor-precision-no-links.md`](./014-motor-precision-no-links.md)
+sigue **OPEN / READY FOR REMAINING IMPLEMENTATION** con T1 marcado
+EXECUTED y T2 (no-links estructural), T3 (display config global),
+T4 (`@Digits`) y borrado de DIAG abiertos. Línea base del motor
+post-implementación: `MotorApuTest` 21/21, `MotorPropiedadesTest` 5/5,
+`ConsolidadorFronteraTest` 5/5, GM-21 verde (allowlist 11 ≤ 0.03),
+GM-19/GM-20 rojos con residual aceptado, GM-24 y DIAG `@Disabled`.
+El bloque siguiente conserva la historia de investigación para auditoría.
 
 **What landed cleanly** (safe to keep, not merged yet — uncommitted in the
 working tree):

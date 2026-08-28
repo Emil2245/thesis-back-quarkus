@@ -29,8 +29,10 @@
 > (Apache POI) → DONE; rangos configurables → DONE; bases PERSONALES +
 > copia al usar → DONE; desglose de cálculo → PARTIAL; plantillas APU →
 > MISSING (Plan 04); plantilla de proyecto → MISSING (Plan 06);
-> consolidación APU→Rubro a 2 dp `DOWN` → MISSING (Plan 02); UUIDv7 en
-> módulos actuales → PARTIAL (Plan 07); write-through global → DEFERRED.
+> consolidación APU→Rubro **workbook-consistent** (regla aplicada) →
+> **PARTIAL — CIERRE CON RESIDUO ACEPTADO (2026-08-28)** (Plan 02; GM-19
+> `-$6.95` y GM-20 cap. 1 `-$0.84`); UUIDv7 en módulos actuales →
+> PARTIAL (Plan 07); write-through global → DEFERRED.
 >
 > ---
 >
@@ -60,7 +62,7 @@
 | `POST /apus/{id}/duplicar` | Decisión dossier §B.7 (opción a) | **DONE** |
 | Módulo `recalculo` | Decisión dossier §B.6 (write-through al cambiar parámetros) | **DEFERRED** — no se crea módulo nuevo en esta etapa |
 | Rangos parametrizables | Decisión N04 §A6 | **DONE** |
-| `CALC_PRECISION` / `DISPLAY_PRECISION` | Decisión N04 §#7 | **MISSING** — Plan 02 ([planes-para-estar-al-dia/02](planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)) |
+| `CALC_PRECISION` / `DISPLAY_PRECISION` | Decisión N04 §#7 | **WITHDRAWN 2026-08-28** — Plan 014 retira `CALC_PRECISION` del motor (precisión natural `BigDecimal`); display global `precisionDinero=2` / `precisionPorcentaje=4` vía `app.display.*` + `GET /api/v1/config/display`. **Corrección workbook-consistent 2026-08-28:** frontera APU→Rubro aplica `RoundingMode.DOWN` 2 dp **solo** a `precioUnitario`; `precioTotal = cantidad × PU_2dp` se retiene a la escala de persistencia 6 (`NUMERIC(14,6)`) con `HALF_UP` (sin truncar cada PT a 2 dp); capítulo y `totalGeneral` agregan esos `precioTotal` a escala 6. Plan 02 activo lo cubre ahora ([planes-para-estar-al-dia/02](planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)). |
 | Base `PERSONAL` | Decisión N04 §A9 | **DONE** |
 | Reordenamiento filas/secciones | Decisión N04 §A3 | **PARTIAL** — Plan 03 |
 
@@ -143,9 +145,19 @@ legible: `"0.500000 × 4.750000 × 0.500000"`) y `resultado` (BigDecimal a 6 dp)
 El cálculo reutiliza `Motor.calcularApu` (puro, sin I/O) — el servicio
 **no** recalcula; solo proyecta el resultado a la estructura del response.
 
-**Precisión:** la aplicación de `CALC_PRECISION` (default 3) sobre los
-`resultado` del response está **pendiente** y la consolidan
-[planes-para-estar-al-dia/02](planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md).
+**Precisión:** la aplicación de `precisionDinero=2` / `precisionPorcentaje=4`
+sobre los `resultado` del response (display/export) se rige por la config
+global `app.display.*` y el endpoint `GET /api/v1/config/display`.
+El motor **no** aplica redondeo intermedio: usa la precisión natural de
+`BigDecimal`. La frontera APU→Rubro (`internal/Consolidador.java`,
+autorizada por [`plans/014`](../../plans/014-motor-precision-no-links.md)
+2026-08-28; corrección workbook-consistent) aplica `RoundingMode.DOWN`
+2 dp **solo** a `precioUnitario`; `precioTotal = cantidad × PU_2dp` se
+retiene a la escala de persistencia 6 (`NUMERIC(14,6)`) con `HALF_UP`
+en esa frontera de resultado (sin truncar cada PT a 2 dp); capítulo y
+`totalGeneral` agregan esos `precioTotal` a escala 6; el display
+canónico a 2 dp `HALF_UP` ocurre solo en la capa de presentación/
+assertion.
 El estado actual del desglose es **PARTIAL** (ver
 [`estado-actual.md`](estado-actual.md) §4).
 
@@ -275,67 +287,101 @@ APUs incompletos marcados con advertencia.
 ## 3. Motor — cambio de precisión (N04 §#7) + frontera APU→Rubro (N04-bis)
 
 > **Bloque histórico — implementación pendiente.** La decisión funcional
-> de aplicar `CALC_PRECISION=3` y `DOWN` 2 dp en la frontera APU→Rubro
-> está **cerrada** ([`plans/006` está en DECISIÓN CERRADA](../../plans/README.md)),
+> de aplicar `RoundingMode.DOWN` 2 dp en la frontera APU→Rubro está
+> **cerrada** ([`plans/006` está en DECISIÓN CERRADA](../../plans/README.md);
+> [`plans/014` es READY FOR IMPLEMENTATION](../../plans/014-motor-precision-no-links.md)),
 > pero el código del motor **no se ha modificado todavía**. La
 > implementación real corresponde a
 > [planes-para-estar-al-dia/02](planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)
-> y exige crear antes el plan obligatorio `plans/014-motor-precision-no-links.md`.
+> y exige el plan [`plans/014`](../../plans/014-motor-precision-no-links.md).
+> Post-Plan 014: el motor opera con la precisión natural de `BigDecimal`;
+> la única rounding del motor es la frontera APU→Rubro `DOWN` 2 dp; el
+> display se rige por la config global `precisionDinero=2` /
+> `precisionPorcentaje=4` vía `app.display.*` + `GET /api/v1/config/display`.
 >
 > Se conserva el rationale original (N04 §#7 + N04-bis) a continuación
-> como auditoría.
+> como auditoría; los apartados 3.1 (motor) y 3.2 (frontera) anotan el
+> cambio de política 2026-08-28 al inicio.
 
-### 3.1 Cálculo interno (N04 §#7 — HALF_UP a 3 dp) — MISSING, Plan 02
+### 3.1 Cálculo interno — WITHDRAWN, Plan 02 (supersede 2026-08-28)
 
-- `Motor.calcularApu` debe redondear **cada operación aritmética** a
-  `CALC_PRECISION` dp (default 3, configurable vía `CALC_PRECISION` env
-  var / `ParametrosSistema`).
-- El resultado persistido se redondea también a `CALC_PRECISION` dp.
-- La BD persiste `NUMERIC(14,6)` sin pérdida (rendimiento total).
-- El export aplica `DISPLAY_PRECISION` dp (default 2) en la capa de
-  presentación; no recalcula.
-
-**Implementación prevista:** helper `private static BigDecimal r(BigDecimal x) { ... }`
-que redondea con `HALF_UP` a la escala de `CALC_PRECISION`. Aplicado tras
-cada `multiply`/`add`/`subtract`.
-
-**Test previsto:** `TC-DECIMALES-CALC3-DISP2`:
-- APU con cálculo `1.0 × 0.333333 × 0.333333 × 3.0 = 0.333332…` →
-  motor da `0.333` (3 dp).
-- Export xlsx da `0.33` (2 dp).
-- BD persiste `0.333000000` (6 dp).
+> **Bloque histórico — no aplicar.** La decisión N04 §#7 de redondear cada
+> operación a `CALC_PRECISION=3` con `HALF_UP` queda **retirada** por el
+> [`plans/014`](../../plans/014-motor-precision-no-links.md) (2026-08-28):
+> el workbook IESS no aplica redondeo intermedio al APU; las 3 dp
+> visibles son formato de display, no cómputo. Los 21 GMs per-APU verdes
+> y las 5 propiedades verdes prueban que la aritmética natural de
+> `BigDecimal` ya es correcta.
+>
+> Por tanto: **no** se introduce helper `r(x)` en `Motor.calcularApu` ni
+> en `internal/CalculadorFila.java`; **no** se redondea cada
+> `multiply`/`add`/`subtract`. Plan 014 solo autoriza en esos dos archivos
+> ediciones **estructurales** mínimas (borrar las ramas
+> `esAuxiliar`/`cdAuxiliar`), nunca aritméticas. La BD persiste
+> `NUMERIC(14,6)` sin pérdida porque no hay redondeo intermedio que altere
+> la magnitud. El export aplica `precisionDinero` (default 2) en la capa de
+> presentación; no recalcula.
+>
+> El test previsto `TC-DECIMALES-CALC3-DISP2` queda **redocumentado**:
+> el motor devuelve la precisión completa (`0.333332…`); export xlsx da
+> `0.33` (2 dp desde config global); BD persiste la magnitud completa.
 
 ### 3.2 Frontera APU→Rubro — `RoundingMode.DOWN` (N04-bis 2026-08-19) — MISSING, Plan 02
 
+> **Bloque histórico — implementación pendiente.** La frontera
+> APU→Rubro en `internal/Consolidador.java` es la **única rounding del
+> motor** (post-Plan 014 ya no hay regla HALF_UP general a la que sea
+> excepción). Autorizada por
+> [`plans/014`](../../plans/014-motor-precision-no-links.md) y por
+> `plans/006`.
+
 Para **cerrar GM-19/GM-20** (delta vs workbook IESS = $2.50 sobre
-presupuesto de 298 rubros), `internal/Consolidador.java` debe aplicar
-`RoundingMode.DOWN` al construir `RubroConPrecio` en la frontera
-APU→Rubro. Esta es la **única excepción** a la regla HALF_UP del motor.
+presupuesto de 298 rubros en la línea base; corrección workbook-consistent
+2026-08-28), `internal/Consolidador.java` aplica la regla
+**workbook-consistent** al construir `RubroConPrecio` en la frontera
+APU→Rubro. Es la **única** rounding del motor (post-Plan 014).
 
 ```java
 // En Consolidador.java, al construir RubroConPrecio:
+// precioUnitario: única aplicación de DOWN (reproduce workbook IESS).
 rubro.precioUnitario = apu.costoTotal.setScale(2, RoundingMode.DOWN);
+// precioTotal: cantidad × PU_2dp, retenido a la escala de persistencia
+// 6 (`NUMERIC(14,6)`) con HALF_UP únicamente en esa frontera de resultado.
+// NO se trunca cada precioTotal a 2 dp — el workbook IESS multiplica
+// a precisión completa y suma antes de presentar a 2 dp HALF_UP.
 rubro.precioTotal    = cantidad.multiply(rubro.precioUnitario)
-                         .setScale(2, RoundingMode.DOWN);
+                         .setScale(6, RoundingMode.HALF_UP);
+// capítulo y totalGeneral agregan esos precioTotal a escala 6.
+// El display canónico a 2 dp HALF_UP vive en la capa de presentación.
 ```
 
-**Rationale:** el workbook IESS usa `ROUNDDOWN` (o tipea 2 dp directamente)
-para `precioUnitario` antes de multiplicar por `cantidad`. Para match
-exact y cerrar el golden master, el motor debe usar `DOWN` en esta
-frontera.
+**Rationale (workbook-consistent 2026-08-28):** el workbook IESS usa
+`ROUNDDOWN` (o tipea 2 dp directamente) para `precioUnitario` antes de
+multiplicar por `cantidad`, pero **no** trunca el `precioTotal` resultante
+a 2 dp — multiplica y suma a precisión completa antes de presentar a 2
+dp. La versión previa con `setScale(2, DOWN)` simétrico en PU y PT
+producía deltas sistemáticos `GM19 = -$9.37` y `GM20 cap1 = -$3.09` vs
+workbook IESS y queda retirada (STOP conditions de Plan 014).
 
 **Regla relajada del CLAUDE.md backend:** "Do not touch Motor.java or
 Consolidador.java" se levanta para esta decisión específica (cambio
-de requerimientos funcionales N04-bis). Cambios futuros requieren
+de requerimientos funcionales N04-bis; corrección workbook-consistent
+2026-08-28). Plan 014 (2026-08-28) precisa el
+alcance: `internal/Consolidador.java` se modifica para la única rounding
+del motor con la **regla workbook-consistent** (ver bloque de código
+arriba), y `Motor.java` / `internal/CalculadorFila.java` reciben **solo
+ediciones estructurales mínimas** (borrar ramas `esAuxiliar`/`cdAuxiliar`,
+leer el `%CI` desde `ApuSnapshot.porcentajeIndirecto`) **sin cambio
+aritmético**. Cambios futuros requieren
 `plans/0NN-motor-fix.md` con justificación funcional + nota en ambos
 `CLAUDE.md`.
 
-**Tests esperados verdes tras §3.2:**
-- `MotorConsolidacionTest.GM_19_total_general_tulcan` → `totalGeneral == 395115.32`.
-- `MotorConsolidacionTest.GM_20_totales_capitulos_raiz_tulcan` → 0.00 delta.
-- `MotorConsolidacionTest.GM_21_*` → allowlist probablemente se cierra a 0
-  (auditar).
-- 21/25 GMs previos siguen verdes (per-APU math intacta).
+**Estado real tras la implementación workbook-consistent (cierre parcial 2026-08-28):**
+- `MotorConsolidacionTest.GM_19_total_general_tulcan` → actual `395108.37` vs workbook `395115.32` (**delta `-$6.95`**). **Residual aceptado** por el autor; el motor **no** se modifica más.
+- `MotorConsolidacionTest.GM_20_totales_capitulos_raiz_tulcan` → 6/7 capítulos raíz a delta 0.00; cap. 1 actual `158907.21` vs `158908.05` (**delta `-$0.84`**). **Residual aceptado**.
+- `MotorConsolidacionTest.GM_21_*` → verde con allowlist auditado de **11 entradas** ≤ 0.03 a nivel PU, atribuidas a artefactos de redondeo manual del workbook IESS (one example workbook, no exhaustive per-rubro audit — preferencia del usuario).
+- Los 21 GMs per-APU siguen verdes (per-APU math intacta).
+- `ConsolidadorFronteraTest` 5/5 verde (nuevo, T1 workbook-consistent).
 
 ## 4. REST resources (nuevos endpoints) — estado real
 
@@ -349,7 +395,7 @@ de requerimientos funcionales N04-bis). Cambios futuros requieren
 - `PATCH /apus/{id}/porcentaje-indirecto` (P-23) — **DONE**
 - `PATCH /apus/{id}/porcentaje-descuento` (P-24) — **DONE**
 - `GET /apus/{id}/calculo` (P-27 — `ApuCalculoResponse`) — **PARTIAL**
-  (falta aplicar `CALC_PRECISION` al response; Plan 03)
+  (falta aplicar `precisionDinero` / `precisionPorcentaje` al response desde `app.display.*` + `GET /api/v1/config/display`; Plan 03)
 - `POST /apus/{id}/duplicar` (dossier §B.7) — **DONE**
 - `PUT /apus/{id}/especificacion-tecnica` (P-45) — **DONE**
 - `GET /apus/{id}/especificacion-tecnica` (P-45) — **DONE**
@@ -458,7 +504,7 @@ sin hardcode de negocio):
 | Rangos parametrizables (A6) | DM §11; procesos P-11 | **DONE** — `ParametrosSistema` con columnas de rango + `ParametrosRangoDinamicoTest` |
 | Bases SIEMPRE copia + PERSONAL (A9) | DM §17 #16, §10; procesos P-17, P-39 | **DONE** — `ResolverInsumoProyectoService` + `BasesPersonalesService` |
 | Archivar central sin bloqueo (D-12) | DM §10; procesos P-39 | **MISSING** — Plan 05 ([planes-para-estar-al-dia/05](planes-para-estar-al-dia/05-administracion-bases.md)) |
-| Decimales CALC=3, DISPLAY=2 (#7) | DM §0, §16, §17 #19 | **MISSING** — Plan 02 ([planes-para-estar-al-dia/02](planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)) |
+| Decimales: motor natural `BigDecimal`, display global 2/4, frontera APU→Rubro **workbook-consistent** (Plan 014 supersede #7; corrección 2026-08-28) | DM §0, §16, §17 #19 | **PARTIAL — CIERRE CON RESIDUO ACEPTADO (2026-08-28)** — Plan 02 ([planes-para-estar-al-dia/02](planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)) + Plan 014 ([plans/014](../../plans/014-motor-precision-no-links.md)). Regla workbook-consistent aplicada en `Consolidador`: `precioUnitario DOWN 2dp`; `precioTotal = cantidad × PU_2dp` retenido a escala 6 `HALF_UP`; capítulo y `totalGeneral` agregan esos `precioTotal` a escala 6. Display global `precisionDinero=2` / `precisionPorcentaje=4` vía `app.display.*` + `GET /api/v1/config/display` queda OPEN (T3 Plan 014). GM-19 (`-$6.95`) y GM-20 cap. 1 (`-$0.84`) con residual aceptado — **no** se reabre el motor. **No** reintroducir `setScale(2, DOWN)` por rubro total (causaba deltas sistemáticos `GM19 = -$9.37` y `GM20 cap1 = -$3.09` vs workbook IESS — STOP conditions de Plan 014). |
 | Especificaciones Técnicas (ET) | DM §17 #18; procesos P-45 | **DONE** — `EspecificacionesTecnicasService` con Apache POI |
 | Plantilla de proyecto (A8) | DM §3, §10; procesos P-46 | **MISSING** — Plan 06 ([planes-para-estar-al-dia/06](planes-para-estar-al-dia/06-plantillas-proyecto.md)) |
 
