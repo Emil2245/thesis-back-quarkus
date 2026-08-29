@@ -81,8 +81,26 @@ public class BasesPersonalesService {
      * copia-al-usar construirá sin reabrir el seam aquí.
      */
     public Optional<BaseInsumos> buscarPorPublicId(UUID publicId, Long usuarioId) {
-        return baseInsumosRepository.findByPublicIdAndOwnerScope(publicId, usuarioId)
+        return baseInsumosRepository
+                .findByPublicIdAndOwnerScope(publicId, usuarioId)
                 .filter(b -> b.tipo == TipoBase.PERSONAL && usuarioId.equals(b.usuarioId));
+    }
+
+    /**
+     * Plan 05 — Borrado físico con owner-to-404. Solo aplica a bases PERSONALES
+     * del {@code usuarioId} del caller: una fila ajena, una CENTRAL o una
+     * PROYECTO devuelven {@link Optional#empty()} → 404 (nunca 403, RNF-05).
+     * Los insumos asociados se eliminan por la FK
+     * {@code insumo.base_id → base_insumos(id) ON DELETE CASCADE} de V001.
+     */
+    @Transactional
+    public boolean borrar(UUID publicId, Long usuarioId) {
+        Optional<BaseInsumos> encontrada = buscarPorPublicId(publicId, usuarioId);
+        if (encontrada.isEmpty()) {
+            return false;
+        }
+        baseInsumosRepository.delete(encontrada.get());
+        return true;
     }
 
     private BasePersonalResponse toResponse(BaseInsumos b) {

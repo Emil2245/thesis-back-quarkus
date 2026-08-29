@@ -10,13 +10,16 @@ import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * WU-05 — Bases PERSONALES del usuario autenticado (N04 §A9).
@@ -57,6 +60,22 @@ public class BasesPersonalesResource {
     public Response crear(@Valid BasePersonalCrearRequest req) {
         BasePersonalResponse body = basesPersonalesService.crear(usuarioId(), req);
         return Response.status(Response.Status.CREATED).entity(body).build();
+    }
+
+    /**
+     * Plan 05 — Borrado físico con owner-to-404. Devuelve 204 si la base
+     * existe y pertenece al caller; 404 en cualquier otro caso (base
+     * ajena, CENTRAL o PROYECTO — nunca 403, RNF-05). Los insumos asociados
+     * se eliminan por la FK CASCADE de V001.
+     */
+    @DELETE
+    @Path("/{id}")
+    public Response borrar(@PathParam("id") UUID publicId) {
+        boolean borrada = basesPersonalesService.borrar(publicId, usuarioId());
+        if (!borrada) {
+            throw ProblemaException.noEncontrado("Base personal no encontrada");
+        }
+        return Response.noContent().build();
     }
 
     private Long usuarioId() {

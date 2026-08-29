@@ -20,6 +20,39 @@ public class BaseInsumosRepository implements PanacheRepositoryBase<BaseInsumos,
     }
 
     /**
+     * Plan 05 — Listado administrativo de bases CENTRALES. Cuando
+     * {@code incluirArchivadas = false} (default para el catálogo normal de
+     * usuarios) oculta las archivadas; cuando es {@code true} las expone para
+     * que el administrador mantenga la visibilidad del catálogo completo.
+     */
+    public List<BaseInsumos> listarCentralesAdmin(boolean incluirArchivadas) {
+        if (incluirArchivadas) {
+            return find("tipo = ?1 order by nombre", TipoBase.CENTRAL).list();
+        }
+        return find("tipo = ?1 and archivada = false order by nombre", TipoBase.CENTRAL)
+                .list();
+    }
+
+    /**
+     * Plan 05 — Resolución administrativa por {@code public_id} (UUIDv7). No
+     * aplica scope de owner: el caller ya pasó el guard
+     * {@code @RolesAllowed("SUPER_ADMIN")}. Una fila que no existe o no es
+     * CENTRAL devuelve {@link Optional#empty()} (mapeo a 404).
+     */
+    public Optional<BaseInsumos> findCentralByPublicId(UUID publicId) {
+        return find("publicId = ?1 and tipo = ?2", publicId, TipoBase.CENTRAL).firstResultOptional();
+    }
+
+    /**
+     * Plan 05 — Unicidad lógica del nombre dentro del segmento CENTRAL. Las
+     * bases CENTRALES comparten el namespace global (no hay dueño), por lo que
+     * dos activas con el mismo nombre no se permiten.
+     */
+    public long contarCentralPorNombre(String nombre) {
+        return count("tipo = ?1 and nombre = ?2", TipoBase.CENTRAL, nombre);
+    }
+
+    /**
      * WU-05 — Bases PERSONALES de un usuario, sin incluir CENTRAL ni
      * PROYECTO. Orden estable por nombre para el catálogo del titular.
      */

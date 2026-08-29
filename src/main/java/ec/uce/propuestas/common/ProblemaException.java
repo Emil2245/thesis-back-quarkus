@@ -47,4 +47,9 @@ public class ProblemaException extends WebApplicationException {
     public static ProblemaException filaProtegida(String mensaje) {
         return new ProblemaException(409, "fila-protegida", mensaje);
     }
+
+    /** 409 conflicto de estado (p. ej. base no archivada antes de borrar — D-12). */
+    public static ProblemaException conflicto(String codigo, String mensaje) {
+        return new ProblemaException(409, codigo, mensaje);
+    }
 }
