@@ -2,6 +2,8 @@ package ec.uce.propuestas.proyecto.service;
 
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.common.dto.Page;
+import ec.uce.propuestas.presupuesto.entity.Presupuesto;
+import ec.uce.propuestas.presupuesto.repository.PresupuestoRepository;
 import ec.uce.propuestas.proyecto.dto.ProyectoCrearRequest;
 import ec.uce.propuestas.proyecto.dto.ProyectoEditarRequest;
 import ec.uce.propuestas.proyecto.dto.ProyectoResponse;
@@ -13,6 +15,7 @@ import ec.uce.propuestas.proyecto.repository.ProyectoRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.math.BigDecimal;
 import java.util.List;
 
 @ApplicationScoped
@@ -20,6 +23,9 @@ public class ProyectoService {
 
     @Inject
     ProyectoRepository proyectoRepository;
+
+    @Inject
+    PresupuestoRepository presupuestoRepository;
 
     /** Lista los proyectos del usuario autenticado (propietario), paginado. */
     public Page<ProyectoResponse> listarDeUsuario(
@@ -53,6 +59,14 @@ public class ProyectoService {
         p.subdireccionInstitucional = req.subdireccionInstitucional();
         p.estado = EstadoProyecto.BORRADOR;
         proyectoRepository.persist(p);
+
+        Presupuesto v1 = new Presupuesto();
+        v1.proyectoId = p.id;
+        v1.version = (short) 1;
+        v1.esVigente = true;
+        v1.total = BigDecimal.ZERO;
+        presupuestoRepository.persist(v1);
+
         return ProyectoMapper.toResponse(p);
     }
 

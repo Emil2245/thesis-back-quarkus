@@ -8,7 +8,6 @@ public record ApuResumenResponse(
         String codigo,
         String descripcion,
         String unidad,
-        boolean esAuxiliar,
         BigDecimal costoDirecto,
         BigDecimal costoTotal,
         boolean vinculado) {}

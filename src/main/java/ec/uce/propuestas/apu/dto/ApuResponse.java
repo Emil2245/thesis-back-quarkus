@@ -9,7 +9,6 @@ public record ApuResponse(
         String codigo,
         String descripcion,
         String unidad,
-        boolean esAuxiliar,
         BigDecimal costoDirecto,
         BigDecimal costoIndirecto,
         BigDecimal costoTotal,

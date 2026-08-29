@@ -330,7 +330,6 @@ class MotorApuTest {
         // APU snapshot — NOT auxiliar
         ApuSnapshot snap = new ApuSnapshot(
                 "501062",
-                false,
                 java.util.List.of(hmFila, moInstalador, moPeon, moMaestro, matVinil, matCordon, matPegamento));
 
         ParametrosCalculo p =

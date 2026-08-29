@@ -38,4 +38,9 @@ public class ProblemaException extends WebApplicationException {
     public static ProblemaException filaProtegida(String mensaje) {
         return new ProblemaException(409, "fila-protegida", mensaje);
     }
+
+    /** 409 version-vigente-protegida */
+    public static ProblemaException versionVigenteProtegida(String mensaje) {
+        return new ProblemaException(409, "version-vigente-protegida", mensaje);
+    }
 }

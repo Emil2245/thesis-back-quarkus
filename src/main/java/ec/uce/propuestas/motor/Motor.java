@@ -115,12 +115,7 @@ public final class Motor {
             pctCi = BigDecimal.ZERO;
         }
 
-        BigDecimal costoIndirecto;
-        if (in.esAuxiliar()) {
-            costoIndirecto = BigDecimal.ZERO;
-        } else {
-            costoIndirecto = costoDirectoAjustado.multiply(pctCi, MC);
-        }
+        BigDecimal costoIndirecto = costoDirectoAjustado.multiply(pctCi, MC);
 
         BigDecimal costoTotal = costoDirectoAjustado.add(costoIndirecto);
 
@@ -133,7 +128,6 @@ public final class Motor {
 
         return new ApuCalculado(
                 in.codigo(),
-                in.esAuxiliar(),
                 todasFilas,
                 subtotalM,
                 subtotalN,

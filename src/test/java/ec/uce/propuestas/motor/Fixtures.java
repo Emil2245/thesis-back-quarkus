@@ -63,7 +63,6 @@ final class Fixtures {
      */
     static ApuSnapshot apuFromJson(JsonNode apuNode) {
         String codigo = apuNode.get("codigo").asText();
-        boolean esAuxiliar = false; // sample APUs all have CI applied (porcentajeIndirecto != null)
 
         List<FilaSnapshot> filas = new ArrayList<>();
 
@@ -77,21 +76,17 @@ final class Fixtures {
             }
         }
 
-        return new ApuSnapshot(codigo, esAuxiliar, filas);
+        return new ApuSnapshot(codigo, filas);
     }
 
     /**
      * Create a stub ApuSnapshot whose Motor.calcularApu result has costoTotal = precioUnitario.
      * Used for rubros not in the APU sample file.
-     *
-     * Strategy: single MATERIAL line with precioInsumo=precioUnitario, cantidad=1, esAuxiliar=true.
-     * With esAuxiliar=true and descuento=0: CT = CD_ajustado = CD = 1 × precioUnitario.
-     * This matches the presupuesto's 2dp-rounded precioUnitario for every rubro.
      */
     static ApuSnapshot stubApuFromPrecioUnitario(String codigo, BigDecimal precioUnitario) {
         FilaSnapshot mat =
                 new FilaSnapshot(SeccionTipo.MATERIAL, false, BigDecimal.ONE, null, precioUnitario, null, null);
-        return new ApuSnapshot(codigo, true, List.of(mat));
+        return new ApuSnapshot(codigo, List.of(mat));
     }
 
     /**

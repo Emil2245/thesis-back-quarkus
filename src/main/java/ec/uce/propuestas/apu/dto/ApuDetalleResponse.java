@@ -9,7 +9,6 @@ public record ApuDetalleResponse(
         String descripcion,
         boolean esHerramientaMenor,
         Long insumoId,
-        Long apuAuxiliarId,
         BigDecimal cantidad,
         BigDecimal rendimiento,
         String unidad,

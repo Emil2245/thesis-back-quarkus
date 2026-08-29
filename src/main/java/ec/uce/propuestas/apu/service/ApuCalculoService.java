@@ -71,7 +71,7 @@ public class ApuCalculoService {
         }
 
         ApuCalculado out = Motor.calcularApu(
-                new ApuSnapshot(apu.codigo, apu.esAuxiliar, filas),
+                new ApuSnapshot(apu.codigo, filas),
                 new ParametrosCalculo(
                         params.porcentajeHerramientaMenor,
                         params.porcentajeIndirecto,

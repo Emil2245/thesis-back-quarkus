@@ -46,3 +46,7 @@ nb-configuration.xml
 *.pem
 
 .github/
+
+# AI agent dirs
+.agents/
+.claude/

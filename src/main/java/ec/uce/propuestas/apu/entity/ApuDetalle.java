@@ -18,9 +18,6 @@ public class ApuDetalle extends PanacheEntityBase {
     @Column(name = "insumo_id")
     public Long insumoId;
 
-    @Column(name = "apu_auxiliar_id")
-    public Long apuAuxiliarId;
-
     @Column(nullable = false)
     public String descripcion;
 

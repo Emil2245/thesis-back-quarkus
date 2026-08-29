@@ -35,10 +35,26 @@ iteration I-01 in full plus the I-02 hito (motor de cálculo puro).
 | 011 | [Módulo APU núcleo (P-19…P-22)](../docs/modulos/03-apu.md) | I-05 | **DONE** (2026-08-11; P-19…P-22, editor APU, filas M/N/O/P, fila HM protegida, override precio + `JsonNullable` write-through vía `Motor.calcularApu`; 10 tests verdes, colección Bruno `api/bruno/08-apu/`) |
 | 012 | [Formatter + lint (Spotless/Palantir + -Xlint:all)](../docs/012-format-lint.md) | tooling | **DONE** (2026-08-11; 142 archivos formateados, 0 warnings lint, sin regresión; ver nota post-ejecución) |
 
-Plans for I-06 through I-12 (APU completo, presupuesto, cronograma, export,
-admin, validación final) are not yet written — they
-will be authored in later planning sessions once each preceding iteration's
-plans are DONE and CI-green.
+### v1.3 backend plans (013-020)
+
+Written 2026-08-29 against `97280ab`. These cover every remaining API gap between
+the frontend (fully built) and the backend.
+
+| # | Plan | Priority | Effort | Depends on | Status |
+|---|---|---|---|---|---|
+| 013 | [Remove esAuxiliar / no-links](./013-remove-es-auxiliar.md) | P0 | S-M | — | **DONE** (2026-08-29; V005 migration, motor & entities cleaned, 76 tests green) |
+| 014 | [Presupuesto, capitulos, rubros, versiones](./014-presupuesto-versiones.md) | P0 | L | 013 | TODO |
+| 015 | [Cronograma module](./015-cronograma.md) | P1 | M | 014 | TODO |
+| 016 | [Document export + config/display](./016-document-export.md) | P2 | L | 014, 015 | TODO |
+| 017 | [APU advanced operations + plantillas APU](./017-apu-advanced.md) | P1 | M | 013, 014 | TODO |
+| 018 | [Project operations + plantilla proyecto](./018-project-operations.md) | P2 | M | 014 | TODO |
+| 019 | [Super-admin module](./019-admin-module.md) | P2 | L | 013, 014 | TODO |
+| 020 | [Bases personales](./020-bases-personales.md) | P3 | S | 013 | TODO |
+
+**Recommended execution order:** 013 first (unblocks everything), then 014 (highest
+leverage), then 015+017 in parallel, then 016+018+019, finally 020.
+
+**Migrations introduced:** V005 (013), V006 (016), V007 (017), V008 (018), V009 (019), V010 (020).
 
 ## Dependency graph
 
@@ -49,20 +65,29 @@ plans are DONE and CI-green.
                 │        └── 004 auth ──────────┤   ← end of I-01
                 │                               │
                 └── 005 motor de cálculo ───────┘   ← I-02 hito (semana 4)
-                                                     (parallelizable with 003/004:
-                                                      pure Java, no DB, no auth)
+
+v1.3 plans:
+
+013 remove esAuxiliar ──┬── 014 presupuesto ──┬── 015 cronograma ──┐
+                        │                     │                     ├── 016 export
+                        │                     ├── 017 APU advanced  │
+                        │                     ├── 018 project ops   │
+                        │                     └── 019 admin ────────┘
+                        └── 020 bases personales
 ```
 
-**Key ordering notes:**
-- **002 does not block anything** but is the earliest ROI: it turns
-  every push into a regression check. Recommended second.
-- **003 blocks 004** (auth needs `usuario` / `refresh_token` /
-  `token_usuario` tables) — but only technically. If you want to build
-  auth entities first for offline development, that's fine as long as
-  the schema plan lands before merging auth.
-- **005 has no runtime deps** and can be built anytime after 001. In
-  practice, roadmap I-02 slots it in weeks 3–4 (after auth). It is
-  written to be executable standalone.
+**Key ordering notes (v1.3):**
+- **013 blocks everything** — the `esAuxiliar` removal is the foundation.
+  Every entity, DTO, and the Motor itself change.
+- **014 is the highest-leverage single plan** — without it the frontend
+  can't reach APUs, chapters, or rubros. Recommend executing immediately
+  after 013.
+- **015 and 017 can run in parallel** after 014 — cronograma and APU
+  advanced have no mutual dependency.
+- **016 (export) waits on both 014+015** — needs presupuesto tree and
+  cronograma data to generate documents.
+- **020 is the smallest and most independent** — only needs 013's clean
+  model. Can be done anytime.
 
 ## Conventions for every plan in this directory
 
@@ -76,6 +101,11 @@ plans are DONE and CI-green.
   wastes downstream work.
 - **Never invent domain terms.** Use the Spanish domain vocabulary from
   `thesis-docs/plan/domain/03-glosario.md` verbatim.
+- **Ponytail mode required.** Before writing any code, the executor agent MUST
+  activate `/ponytail:ponytail` (full level). Shortest working diff wins. No
+  unrequested abstractions, no scaffolding "for later", no boilerplate. Stdlib
+  and platform features first. Deletion over addition. If a one-liner solves it,
+  write the one-liner. See the ponytail skill for the full ladder and rules.
 
 ## Post-execution notes
 

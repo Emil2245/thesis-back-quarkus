@@ -38,23 +38,8 @@ class MotorPropiedadesTest {
                             new FilaSnapshot(SeccionTipo.EQUIPO, true, new BigDecimal("5"), null, null, null, null);
                     FilaSnapshot mat =
                             new FilaSnapshot(SeccionTipo.MATERIAL, false, BigDecimal.ONE, null, matPrecio, null, null);
-                    return new ApuSnapshot("PROP-TEST", false, List.of(hm, mo, mat));
+                    return new ApuSnapshot("PROP-TEST", List.of(hm, mo, mat));
                 });
-    }
-
-    /** Generate auxiliar APUs (esAuxiliar=true). */
-    @Provide
-    Arbitrary<ApuSnapshot> apuSnapshotsAuxiliares() {
-        Arbitrary<BigDecimal> positiveDecimal = Arbitraries.bigDecimals()
-                .between(new BigDecimal("0.01"), new BigDecimal("500.00"))
-                .ofScale(2)
-                .filter(d -> d.compareTo(BigDecimal.ZERO) > 0);
-
-        return positiveDecimal.map(matPrecio -> {
-            FilaSnapshot mat =
-                    new FilaSnapshot(SeccionTipo.MATERIAL, false, BigDecimal.ONE, null, matPrecio, null, null);
-            return new ApuSnapshot("AUX-PROP", true, List.of(mat));
-        });
     }
 
     /** Generate a valid ParametrosCalculo with no per-apu override, no discount. */
@@ -110,25 +95,6 @@ class MotorPropiedadesTest {
                 0,
                 r.costoDirectoAjustado().compareTo(r.costoTotal()),
                 "costoTotal must equal costoDirectoAjustado when CI=0");
-    }
-
-    /**
-     * For auxiliar APUs: costoIndirecto == 0 always, regardless of %CI.
-     */
-    @Property(tries = 100)
-    void auxiliar_tiene_CI_cero(@ForAll("apuSnapshotsAuxiliares") ApuSnapshot aux) {
-        var p = new ParametrosCalculo(
-                new BigDecimal("0.0500"),
-                new BigDecimal("0.2000"), // 20% CI — should still be ignored for auxiliar
-                null,
-                BigDecimal.ZERO);
-
-        ApuCalculado r = Motor.calcularApu(aux, p);
-
-        assertEquals(
-                0,
-                BigDecimal.ZERO.setScale(6, RoundingMode.HALF_UP).compareTo(r.costoIndirecto()),
-                "auxiliar APU must always have costoIndirecto = 0");
     }
 
     /**
