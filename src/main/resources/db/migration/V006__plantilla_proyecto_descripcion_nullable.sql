@@ -1,0 +1,21 @@
+-- V006__plantilla_proyecto_descripcion_nullable.sql
+-- Plan 06 (P-46, N04 §A8) — Plantillas de proyecto completas.
+-- Relaja la columna `plantilla_proyecto.nombre` para permitir una `descripcion`
+-- opcional del autor (P-46, dossier §A9). El snapshot JSONB sigue siendo
+-- estructural y price-free (sin IDs, sin precios, sin cantidades de obra —
+-- Plan 04 §1 / Plan 06 §1). La `descripcion` es metadato libre del autor y
+-- nunca se replica al aplicar la plantilla.
+--
+-- Antes:
+--   plantilla_proyecto.nombre TEXT NOT NULL
+--   (sin columna descripcion)
+-- Después:
+--   plantilla_proyecto.nombre TEXT NOT NULL
+--   plantilla_proyecto.descripcion TEXT NULL
+--
+-- Solo afecta la fila de la tabla; no toca el `snapshot_estructura` ni
+-- los FKs hacia `usuario(id)` o `proyecto(id).plantilla_proyecto_origen_id`.
+-- El estado actual del seed V004 (1 fila de plantilla_proyecto sin
+-- `descripcion`) sigue siendo válido: la columna es NULL por default.
+
+ALTER TABLE plantilla_proyecto ADD COLUMN descripcion TEXT NULL;

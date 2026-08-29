@@ -168,11 +168,11 @@ siguientes.
 | Descuento FORMA 1 global | **DEFERRED** | tablas estructurales de snapshot presentes | servicio de presupuesto + recálculo transaccional |
 | Descuento FORMA 2 | **PARTIAL** | `PUT` de insumos PROYECTO existente | recalcular APUs que heredan el precio; debounce pertenece al frontend |
 | P-25 enlaces auxiliares | **OBSOLETO** | schema/entities actuales correctamente no los tienen | eliminar referencias antiguas de docs y motor; no crear columnas/endpoints |
-| P-26 plantillas de APU | **DONE 2026-08-29 (Plan 04)** | `PlantillaApuService`, `PlantillaApuResource`, `PlantillaApuGuardarResource`, DTOs, `SnapshotApuMapper` (price-free writer + lenient reader), `ResolverInsumoPlantillaService` (PROYECTO→CENTRAL→PERSONAL→pendiente), integración en `ApuCrudService.crear` (`plantillaId` opcional), `V005__allow_zero_pending_apu_detail_prices.sql` (relax estructural `>= 0`, no reseed). Tests verdes: `ec.uce.propuestas.plantilla.*` **34/34** (SnapshotApuMapperTest 5/5 + PlantillaApuResourceIT 12/12 + ApuCalculoServiceNullableInsumoTest 1/1 + PlantillaApuServiceTest 16/16). Regresión dirigida adyacente **47/47** verde (ApuResourceIT 36/36 + ApuCalculoServiceIT 2/2 + ResolverInsumoProyectoTest 9/9). HTTP 201 sin advertencias / 200 con `advertencias[]` no vacío. Snapshot nunca persiste precios efectivos, IDs de insumo ni links al APU origen; fila pendiente se distingue de insumo real con `precio_unitario = 0` por `insumo_id IS NULL` + `advertencias[]`. **No** se reporta suite completa. | P-46 (plantilla de proyecto) sigue pendiente (Plan 06). |
+| P-26 plantillas de APU | **DONE 2026-08-29 (Plan 04)** | `PlantillaApuService`, `PlantillaApuResource`, `PlantillaApuGuardarResource`, DTOs, `SnapshotApuMapper` (price-free writer + lenient reader), `ResolverInsumoPlantillaService` (PROYECTO→CENTRAL→PERSONAL→pendiente), integración en `ApuCrudService.crear` (`plantillaId` opcional), `V005__allow_zero_pending_apu_detail_prices.sql` (relax estructural `>= 0`, no reseed). Tests verdes: `ec.uce.propuestas.plantilla.*` **34/34** (SnapshotApuMapperTest 5/5 + PlantillaApuResourceIT 12/12 + ApuCalculoServiceNullableInsumoTest 1/1 + PlantillaApuServiceTest 16/16). Regresión dirigida adyacente **47/47** verde (ApuResourceIT 36/36 + ApuCalculoServiceIT 2/2 + ResolverInsumoProyectoTest 9/9). HTTP 201 sin advertencias / 200 con `advertencias[]` no vacío. Snapshot nunca persiste precios efectivos, IDs de insumo ni links al APU origen; fila pendiente se distingue de insumo real con `precio_unitario = 0` por `insumo_id IS NULL` + `advertencias[]`. **No** se reporta suite completa. | P-46 quedó cerrado por Plan 06; nada pendiente para P-26. |
 | P-27 desglose de cálculo | **DONE** (Plan 03, 2026-08-28) | DTOs, `ApuCalculoService.proyectar`, `GET /calculo` con lineas ordenadas por `orden` (sin HM-primero) y resultado a 6 dp; TC-P27-01..04 verdes | display layer aplica `precisionDinero` / `precisionPorcentaje` desde config global — presentación, no motor |
 | Duplicar APU | **DONE** | `ApuDuplicarService`, `POST /duplicar` | comprobar que no reaparezca vocabulario auxiliar |
 | P-45 ET por APU | **DONE** | GET/PUT ET, `DocumentoResource`, `EspecificacionesTecnicasService` | solo sincronizar docs: usa Apache POI, no docx4j |
-| P-46 plantilla de proyecto | **MISSING** | `PlantillaProyecto` + repository | servicio/resource/carga usando paquetes `plantilla`, `proyecto`, `presupuesto` existentes |
+| P-46 plantilla de proyecto | **DONE (Plan 06, 2026-08-29)** | `PlantillaProyectoService` + `SnapshotProyectoMapper` (writer price-free/structural + reader tolerante V004) + `SnapshotCabecera` reutilizable; recursos `GET/DELETE /plantillas-proyecto`, `POST /proyectos/{proyectoId}/guardar-plantilla`, `POST /proyectos/desde-plantilla/{plantillaId}`; defaults de `ParametrosSistema`; V006/V007. Verificación principal 83/83 verde, build verde y diff limpio; regresiones APU 41/41, insumo 45/45, identifier 10/10. | nada dentro de Plan 06; suite completa no ejecutada y Spotless global conserva 31 violaciones preexistentes ajenas |
 | A3 reordenamiento | **DONE** (Plan 03, 2026-08-28) | `ApuDetallePatchRequest.orden`, `ApuCrudService.reordenarEnSeccion` (MOVE atómico), HM order-only, `ApuCalculoService.buildSecciones` ordena por `orden` ascendente | nada; ver `planes-para-estar-al-dia/03-contrato-apu-actual.md` |
 | A6 rangos globales | **DONE** | columnas, GET/PUT admin, validación dinámica, `ParametrosRangoDinamicoTest`, `ParametrosProyectoCambio` + test commitados | nada (la costura neutral ya está expuesta para futura propagación) |
 | A9 base PERSONAL | **DONE** | `BasesPersonalesService/Resource` | DELETE personal opcional indicado en Plan 04 |
@@ -236,7 +236,7 @@ Resultados:
 3. los documentos globales enumerados en §2.2 se sincronizaron con la nueva
    versión acumulativa `v1.3-functional-requirements.md`;
 4. `plans/README.md` refleja:
-   - Plan 013 en estado **PARTIAL** (P-26 cerrado 2026-08-29 dentro del Plan 04; P-46, write-through global, FORMA 1, FORMA 2, UUIDv7 resto de módulos siguen pendientes);
+   - Plan 013 en estado **PARTIAL** (P-26 y P-46 cerrados 2026-08-29 por Planes 04 y 06; write-through global, FORMA 1, FORMA 2 y UUIDv7 del resto de módulos siguen pendientes);
    - Plan 006 como “decisión cerrada, código aún pendiente” hasta aplicar DOWN.
 
 Commit sugerido:
@@ -474,13 +474,14 @@ Endpoints:
 
 ```text
 GET    /plantillas-proyecto
-POST   /plantillas-proyecto
+GET    /plantillas-proyecto/{id}
 DELETE /plantillas-proyecto/{id}
-POST   /proyectos/{proyectoId}/desde-plantilla/{plantillaId}
+POST   /proyectos/{proyectoId}/guardar-plantilla
+POST   /proyectos/desde-plantilla/{plantillaId}
 ```
 
-> Este bloque permanece dentro de módulos ya existentes, pero debe ejecutarse
-> después de P-26 porque comparte parser y fallback.
+> **DONE 2026-08-29 (Plan 06).** Ejecutado dentro de módulos existentes y
+> reutilizando el parser/fallback de P-26; verificación principal 83/83 verde.
 
 Commit sugerido:
 

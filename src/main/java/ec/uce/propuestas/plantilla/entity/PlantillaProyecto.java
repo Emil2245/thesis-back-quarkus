@@ -14,6 +14,10 @@ import org.hibernate.type.SqlTypes;
  * identidad externa inmutable {@code publicId} UUIDv7 generada por la
  * columna {@code public_id}. El {@code snapshot_estructura} se persiste como
  * JSONB con la forma canónica de capítulos + estructura.
+ *
+ * <p><b>Plan 06 (P-46, N04 §A8):</b> la {@code descripcion} (V006) es un
+ * metadato libre del autor; opcional. Nunca se replica al aplicar la
+ * plantilla — el nuevo proyecto arranca limpio, con su propio {@code nombre}.
  */
 @Entity
 @Table(name = "plantilla_proyecto")
@@ -33,6 +37,10 @@ public class PlantillaProyecto extends PanacheEntityBase {
 
     @Column(nullable = false)
     public String nombre;
+
+    /** Plan 06 (P-46, V006) — metadato libre del autor; opcional, nunca se replica al aplicar. */
+    @Column(name = "descripcion")
+    public String descripcion;
 
     @Column(name = "fecha_creacion", nullable = false, updatable = false)
     public Instant fechaCreacion;

@@ -4,6 +4,7 @@ import ec.uce.propuestas.plantilla.entity.PlantillaProyecto;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,5 +21,16 @@ public class PlantillaProyectoRepository implements PanacheRepositoryBase<Planti
                         "publicId = :publicId and usuarioId = :caller",
                         Parameters.with("publicId", publicId).and("caller", callerUsuarioId))
                 .firstResultOptional();
+    }
+
+    /**
+     * Plan 06 (P-46, N04 §A8) — Listado owner-scoped de plantillas PERSONALES
+     * del caller. Orden estable (más recientes primero). No hay SISTEMA en este
+     * módulo — el contrato solo expone plantillas del usuario (P-46, sin rol
+     * Super-Admin expuesto en el MVP).
+     */
+    public List<PlantillaProyecto> listarDeOwner(Long callerUsuarioId) {
+        return find("usuarioId = :caller order by fechaCreacion desc", Parameters.with("caller", callerUsuarioId))
+                .list();
     }
 }

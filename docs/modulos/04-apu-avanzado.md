@@ -58,7 +58,7 @@
 | P-26 | Plantillas personales + carga con fallback | **MISSING** — Plan 04 ([planes-para-estar-al-dia/04](planes-para-estar-al-dia/04-plantillas-apu.md)) |
 | P-27 | Desglose de cálculo (`ApuCalculoResponse`) | **PARTIAL** — Plan 03 |
 | P-45 | **NUEVO** — Especificaciones Técnicas por APU | **DONE** (Apache POI) |
-| P-46 | **NUEVO** — Plantilla de proyecto completo | **MISSING** — Plan 06 ([planes-para-estar-al-dia/06](planes-para-estar-al-dia/06-plantillas-proyecto.md)) |
+| P-46 | **NUEVO** — Plantilla de proyecto completo | **DONE 2026-08-29** — Plan 06 ([planes-para-estar-al-dia/06](planes-para-estar-al-dia/06-plantillas-proyecto.md)), verificación principal 83/83 verde |
 | `POST /apus/{id}/duplicar` | Decisión dossier §B.7 (opción a) | **DONE** |
 | Módulo `recalculo` | Decisión dossier §B.6 (write-through al cambiar parámetros) | **DEFERRED** — no se crea módulo nuevo en esta etapa |
 | Rangos parametrizables | Decisión N04 §A6 | **DONE** |
@@ -92,7 +92,7 @@ ec/uce/propuestas/
 │   ├── service/  (ApuCalculoService local + ApuDuplicarService + ET via documento)
 │   └── resource/
 ├── plantilla/                    (extender sin crear submódulos profundos)
-│   └── entity/PlantillaProyecto.java  (P-46 — MISSING, Plan 06)
+│   └── entity/PlantillaProyecto.java  (P-46 — DONE, Plan 06)
 └── documento/                    (extender para ET Word — Apache POI, no docx4j)
     └── service/
         └── EspecificacionesTecnicasService.java    (genera .docx por proyecto)
@@ -239,10 +239,10 @@ proyecto mantiene su default).
 - Al crear/eliminar fila: invalidar caché de `ApuCalculoResponse` (si se
   cachea).
 
-### 2.7 `PlantillaProyectoService` (P-46) — MISSING, Plan 06
+### 2.7 `PlantillaProyectoService` (P-46) — DONE, Plan 06
 
-> **Bloque histórico — no implementar todavía.** Se conserva la firma
-> prevista de N04 para auditoría. Implementación activa en
+> **Bloque histórico — no reutilizar como contrato.** Se conserva la firma
+> prevista de N04 para auditoría. La implementación canónica vive en
 > [planes-para-estar-al-dia/06](planes-para-estar-al-dia/06-plantillas-proyecto.md)
 > usando solo los paquetes existentes (`plantilla`, `proyecto`,
 > `presupuesto`, `apu`, `insumo`).
@@ -405,11 +405,12 @@ aritmético**. Cambios futuros requieren
   (exporte Word único por proyecto; `titulo1`/`titulo2` opcionales
   overridean los defaults del proyecto — N04-bis) — **DONE** (Apache POI).
 
-**PlantillaProyectoResource** (P-46) — **MISSING**, Plan 06
+**PlantillaProyectoResource** (P-46) — **DONE**, Plan 06
 ([planes-para-estar-al-dia/06](planes-para-estar-al-dia/06-plantillas-proyecto.md)):
 - `GET /plantillas-proyecto` — lista del usuario
-- `POST /plantillas-proyecto` — guardar snapshot desde proyecto actual
-- `POST /proyectos/{proyectoId}/desde-plantilla/{plantillaId}` — P-46
+- `GET /plantillas-proyecto/{id}` — detalle propio
+- `POST /proyectos/{proyectoId}/guardar-plantilla` — guardar snapshot backend-authored
+- `POST /proyectos/desde-plantilla/{plantillaId}` — crear proyecto NUEVO BORRADOR
 - `DELETE /plantillas-proyecto/{id}` — eliminar (no afecta proyectos ya creados)
 
 **ParametrosSistemaResource** (DONE):
@@ -506,7 +507,7 @@ sin hardcode de negocio):
 | Archivar central sin bloqueo (D-12) | DM §10; procesos P-39 | **MISSING** — Plan 05 ([planes-para-estar-al-dia/05](planes-para-estar-al-dia/05-administracion-bases.md)) |
 | Decimales: motor natural `BigDecimal`, display global 2/4, frontera APU→Rubro **workbook-consistent** (Plan 014 supersede #7; corrección 2026-08-28) | DM §0, §16, §17 #19 | **PARTIAL — CIERRE CON RESIDUO ACEPTADO (2026-08-28)** — Plan 02 ([planes-para-estar-al-dia/02](planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)) + Plan 014 ([plans/014](../../plans/014-motor-precision-no-links.md)). Regla workbook-consistent aplicada en `Consolidador`: `precioUnitario DOWN 2dp`; `precioTotal = cantidad × PU_2dp` retenido a escala 6 `HALF_UP`; capítulo y `totalGeneral` agregan esos `precioTotal` a escala 6. Display global `precisionDinero=2` / `precisionPorcentaje=4` vía `app.display.*` + `GET /api/v1/config/display` queda OPEN (T3 Plan 014). GM-19 (`-$6.95`) y GM-20 cap. 1 (`-$0.84`) con residual aceptado — **no** se reabre el motor. **No** reintroducir `setScale(2, DOWN)` por rubro total (causaba deltas sistemáticos `GM19 = -$9.37` y `GM20 cap1 = -$3.09` vs workbook IESS — STOP conditions de Plan 014). |
 | Especificaciones Técnicas (ET) | DM §17 #18; procesos P-45 | **DONE** — `EspecificacionesTecnicasService` con Apache POI |
-| Plantilla de proyecto (A8) | DM §3, §10; procesos P-46 | **MISSING** — Plan 06 ([planes-para-estar-al-dia/06](planes-para-estar-al-dia/06-plantillas-proyecto.md)) |
+| Plantilla de proyecto (A8) | DM §3, §10; procesos P-46 | **DONE 2026-08-29** — Plan 06 ([planes-para-estar-al-dia/06](planes-para-estar-al-dia/06-plantillas-proyecto.md)); verificación principal 83/83 verde |
 
 ## 10. Riesgos y deudas — vigente
 

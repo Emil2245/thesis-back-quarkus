@@ -66,6 +66,14 @@ public class Proyecto extends PanacheEntityBase {
     @Column(name = "titulo_et_2")
     public String tituloEt2;
 
+    /**
+     * Plan 06 (P-46, N04 §A8) — FK opcional hacia {@code plantilla_proyecto(id)};
+     * {@code ON DELETE SET NULL} (V001) — borrar la plantilla deja el proyecto
+     * intacto. Línea de auditoría de lineage; no se replica nunca al aplicar.
+     */
+    @Column(name = "plantilla_proyecto_origen_id")
+    public Long plantillaProyectoOrigenId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     public Instant createdAt;
 
