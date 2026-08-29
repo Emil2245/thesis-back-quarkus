@@ -24,7 +24,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Write-through del cálculo de un APU (RNF-02, a nivel APU). Construye el
@@ -65,10 +68,6 @@ public class ApuCalculoService {
 
         for (ApuSeccion seccion : secciones) {
             List<ApuDetalle> detalles = detalleRepository.listarDeSeccion(seccion.id);
-            if (seccion.tipo == SeccionTipo.EQUIPO) {
-                detalles.sort(Comparator.comparingInt((ApuDetalle d) -> d.esHerramientaMenor ? 0 : 1)
-                        .thenComparing(d -> d.orden));
-            }
             for (ApuDetalle d : detalles) {
                 Insumo insumo = d.insumoId == null ? null : insumoRepository.findById(d.insumoId);
                 filas.add(snapshotDeDetalle(d, seccion.tipo, insumo, params.porcentajeHerramientaMenor));
@@ -165,10 +164,6 @@ public class ApuCalculoService {
         List<ApuDetalle> entidades = new ArrayList<>();
         for (ApuSeccion seccion : secciones) {
             List<ApuDetalle> detalles = detalleRepository.listarDeSeccion(seccion.id);
-            if (seccion.tipo == SeccionTipo.EQUIPO) {
-                detalles.sort(Comparator.comparingInt((ApuDetalle d) -> d.esHerramientaMenor ? 0 : 1)
-                        .thenComparing(d -> d.orden));
-            }
             for (ApuDetalle d : detalles) {
                 Insumo insumo = d.insumoId == null ? null : insumoRepository.findById(d.insumoId);
                 filas.add(snapshotDeDetalle(d, seccion.tipo, insumo, params.porcentajeHerramientaMenor));
@@ -201,28 +196,60 @@ public class ApuCalculoService {
     private List<ApuCalculoSeccion> buildSecciones(
             List<ApuSeccion> secciones, List<ApuDetalle> entidades, ApuCalculado out) {
         // ApuCalculado.todasFilas está en orden M (HM primero, luego resto de Equipo), N, O, P.
-        // entidades mantiene el mismo orden que las filas (mismo recorrido en proyectar() y recalcular()).
-        List<FilaCalculada> calc = out.filas();
-        List<List<ApuCalculoLinea>> porSeccion = new ArrayList<>();
-        for (int i = 0; i < secciones.size(); i++) {
-            porSeccion.add(new ArrayList<>());
+        // entidades está en orden persistido (orden ascendente dentro de sección).
+        // Hay que casar cada entidad con su FilaCalculada por sección/posición/HM;
+        // NO se asume que el índice i de entidades coincide con el de calc.
+        Map<Long, ApuSeccion> seccionById = new HashMap<>();
+        for (ApuSeccion s : secciones) seccionById.put(s.id, s);
+
+        // Layout de todasFilas = [M, N, O, P]. En M, el HM ocupa el primer slot
+        // y el resto de EQUIPO conserva el orden persistido.
+        Map<SeccionTipo, Integer> totalByTipo = new EnumMap<>(SeccionTipo.class);
+        for (SeccionTipo t : SeccionTipo.values()) totalByTipo.put(t, 0);
+        for (ApuDetalle e : entidades) {
+            SeccionTipo t = seccionById.get(e.seccionId).tipo;
+            totalByTipo.merge(t, 1, Integer::sum);
         }
-        for (int i = 0; i < entidades.size(); i++) {
-            ApuDetalle d = entidades.get(i);
-            FilaCalculada fc = calc.get(i);
-            ApuSeccion seccion = secciones.stream()
-                    .filter(s -> s.id.equals(d.seccionId))
-                    .findFirst()
-                    .orElseThrow();
-            int idx = secciones.indexOf(seccion);
-            porSeccion.get(idx).add(buildLinea(d, fc, out));
+        int mStart = 0;
+        int nStart = mStart + totalByTipo.get(SeccionTipo.EQUIPO);
+        int oStart = nStart + totalByTipo.get(SeccionTipo.MANO_OBRA);
+        int pStart = oStart + totalByTipo.get(SeccionTipo.MATERIAL);
+
+        Map<Long, Integer> calcIdxByDetalleId = new HashMap<>();
+        int mNonHmCursor = mStart + 1; // salta el slot HM
+        int nCursor = nStart;
+        int oCursor = oStart;
+        int pCursor = pStart;
+        for (ApuDetalle e : entidades) {
+            SeccionTipo t = seccionById.get(e.seccionId).tipo;
+            if (t == SeccionTipo.EQUIPO) {
+                calcIdxByDetalleId.put(e.id, e.esHerramientaMenor ? mStart : mNonHmCursor++);
+            } else if (t == SeccionTipo.MANO_OBRA) {
+                calcIdxByDetalleId.put(e.id, nCursor++);
+            } else if (t == SeccionTipo.MATERIAL) {
+                calcIdxByDetalleId.put(e.id, oCursor++);
+            } else {
+                calcIdxByDetalleId.put(e.id, pCursor++);
+            }
+        }
+
+        List<FilaCalculada> calc = out.filas();
+        Map<SeccionTipo, List<ApuCalculoLinea>> porSeccion = new EnumMap<>(SeccionTipo.class);
+        for (SeccionTipo t : SeccionTipo.values()) porSeccion.put(t, new ArrayList<>());
+        for (ApuDetalle d : entidades) {
+            ApuSeccion seccion = seccionById.get(d.seccionId);
+            FilaCalculada fc = calc.get(calcIdxByDetalleId.get(d.id));
+            porSeccion.get(seccion.tipo).add(buildLinea(d, fc, out));
+        }
+        // Plan 03 — el response sale en orden persistido (orden ascendente), nunca HM-primero.
+        for (List<ApuCalculoLinea> ls : porSeccion.values()) {
+            ls.sort(Comparator.comparingInt(ApuCalculoLinea::orden));
         }
 
         List<ApuCalculoSeccion> result = new ArrayList<>();
-        for (int i = 0; i < secciones.size(); i++) {
-            ApuSeccion s = secciones.get(i);
+        for (ApuSeccion s : secciones) {
             BigDecimal subtotal = subtotalDeSeccion(out, s.tipo);
-            List<ApuCalculoLinea> lineas = porSeccion.get(i);
+            List<ApuCalculoLinea> lineas = porSeccion.get(s.tipo);
             String operacion = operacionSeccion(lineas);
             result.add(new ApuCalculoSeccion(s.tipo, escala6(subtotal), operacion, escala6(subtotal), lineas));
         }

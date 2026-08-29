@@ -17,8 +17,16 @@ import org.openapitools.jackson.nullable.JsonNullable;
  * {@code jackson-databind-nullable} registra un {@code ValueExtractor}
  * Jakarta marcado {@code @UnwrapByDefault}, por lo que Bean Validation
  * valida el {@link BigDecimal} presente sin alterar omit/null.
+ *
+ * <p>Plan 03 — {@code orden} (JsonNullable Integer) ejecuta un MOVE atómico
+ * dentro de la misma sección: new < old incrementa los hermanos en [new, old);
+ * new > old decrementa los hermanos en (old, new]; new == old es no-op.
+ * El campo está acotado a {@code [1, count]} (count = filas actuales de la
+ * sección). La fila HM acepta SOLO cambios de {@code orden}; cualquier otro
+ * campo editable en HM devuelve 409 {@code fila-protegida}.
  */
 public record ApuDetallePatchRequest(
         JsonNullable<BigDecimal> cantidad,
         JsonNullable<BigDecimal> rendimiento,
-        @Digits(integer = 8, fraction = 2) JsonNullable<BigDecimal> precioOverride) {}
+        @Digits(integer = 8, fraction = 2) JsonNullable<BigDecimal> precioOverride,
+        JsonNullable<Integer> orden) {}

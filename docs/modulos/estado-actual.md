@@ -28,7 +28,7 @@ Lo que todavía falta, limitado a los módulos existentes, se concentra en:
 1. el seam de `ParametrosProyectoCambio` está **commiteado/completo** en `main` como `feat(proyecto): expose parameter change seam`; el write-through global de parámetros hacia el frontend queda **diferido** (la costura neutral ya está expuesta para futura propagación);
 2. corregir documentación contradictoria sobre APUs auxiliares;
 3. (Plan 014 supersede — **cierre parcial 2026-08-28**) display global `precisionDinero=2` / `precisionPorcentaje=4` vía `app.display.*` + `GET /api/v1/config/display` queda **OPEN** (T3 Plan 014); la **única rounding del motor aplicada** es la frontera APU→Rubro 2 dp `DOWN` (`internal/Consolidador.java`, regla workbook-consistent: `precioUnitario DOWN 2dp`; `precioTotal = cantidad × PU_2dp` retenido a escala 6 `HALF_UP`; totales de capítulo y `totalGeneral` agregados desde esos valores); motor opera con `BigDecimal` natural (`CALC_PRECISION=3 HALF_UP` retirado). Residual aceptado en GM-19 (`-$6.95`) y GM-20 cap. 1 (`-$0.84`) — no se reabre el motor;
-4. completar reordenamiento y precisión de la respuesta de cálculo;
+4. ~~completar reordenamiento y precisión de la respuesta de cálculo~~ — **DONE 2026-08-28 (Plan 03)**;
 5. implementar plantillas de APU;
 6. completar administración de bases centrales y bases personales;
 7. completar plantillas de proyecto usando los paquetes existentes;
@@ -169,11 +169,11 @@ siguientes.
 | Descuento FORMA 2 | **PARTIAL** | `PUT` de insumos PROYECTO existente | recalcular APUs que heredan el precio; debounce pertenece al frontend |
 | P-25 enlaces auxiliares | **OBSOLETO** | schema/entities actuales correctamente no los tienen | eliminar referencias antiguas de docs y motor; no crear columnas/endpoints |
 | P-26 plantillas de APU | **MISSING** | solo `PlantillaApu` + repository | servicio, resource, DTOs, guardar snapshot, cargar con fallback |
-| P-27 desglose de cálculo | **PARTIAL** | DTOs, `ApuCalculoService.proyectar`, `GET /calculo` | aplicar `precisionDinero` / `precisionPorcentaje` en response desde config global (`DisplayConfig` ya disponible vía [`plans/014`](../../plans/014-motor-precision-no-links.md) T3, 2026-08-28) + cubrir shape/orden |
+| P-27 desglose de cálculo | **DONE** (Plan 03, 2026-08-28) | DTOs, `ApuCalculoService.proyectar`, `GET /calculo` con lineas ordenadas por `orden` (sin HM-primero) y resultado a 6 dp; TC-P27-01..04 verdes | display layer aplica `precisionDinero` / `precisionPorcentaje` desde config global — presentación, no motor |
 | Duplicar APU | **DONE** | `ApuDuplicarService`, `POST /duplicar` | comprobar que no reaparezca vocabulario auxiliar |
 | P-45 ET por APU | **DONE** | GET/PUT ET, `DocumentoResource`, `EspecificacionesTecnicasService` | solo sincronizar docs: usa Apache POI, no docx4j |
 | P-46 plantilla de proyecto | **MISSING** | `PlantillaProyecto` + repository | servicio/resource/carga usando paquetes `plantilla`, `proyecto`, `presupuesto` existentes |
-| A3 reordenamiento | **PARTIAL** | entidad tiene `orden`; cálculo ordena | aceptar `orden` en PATCH y persistirlo; prueba TC-P27-02 |
+| A3 reordenamiento | **DONE** (Plan 03, 2026-08-28) | `ApuDetallePatchRequest.orden`, `ApuCrudService.reordenarEnSeccion` (MOVE atómico), HM order-only, `ApuCalculoService.buildSecciones` ordena por `orden` ascendente | nada; ver `planes-para-estar-al-dia/03-contrato-apu-actual.md` |
 | A6 rangos globales | **DONE** | columnas, GET/PUT admin, validación dinámica, `ParametrosRangoDinamicoTest`, `ParametrosProyectoCambio` + test commitados | nada (la costura neutral ya está expuesta para futura propagación) |
 | A9 base PERSONAL | **DONE** | `BasesPersonalesService/Resource` | DELETE personal opcional indicado en Plan 04 |
 | A9 copia al usar | **DONE** | `ResolverInsumoProyectoService`, integración en `ApuCrudService` | nada para creación de filas; reutilizarlo desde plantillas |

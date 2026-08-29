@@ -14,10 +14,13 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.List;
 import java.util.Map;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * Flujo REST del agregado {@code apu} (P-19…P-22). Patrón {@code InsumoResourceIT}.
@@ -435,7 +438,8 @@ class ApuResourceIT {
                 .jsonPath()
                 .get("secciones[2].detalles[0].insumoId");
         org.junit.jupiter.api.Assertions.assertNotEquals(
-                insumoCentralId, insumoIdReportado.longValue(),
+                insumoCentralId,
+                insumoIdReportado.longValue(),
                 "el insumoId de la fila NO es el BIGINT del insumo CENTRAL");
 
         // 4. verificar por SQL que la fila vive en una base PROYECTO del proyecto
@@ -443,12 +447,11 @@ class ApuResourceIT {
         long baseDeInsumo;
         String tipoBase;
         try (Connection con = ds.getConnection();
-                PreparedStatement ps = con.prepareStatement(
-                        "SELECT d.insumo_id, i.base_id, b.tipo "
-                                + "FROM apu_detalle d "
-                                + "JOIN insumo i ON i.id = d.insumo_id "
-                                + "JOIN base_insumos b ON b.id = i.base_id "
-                                + "WHERE d.public_id = ?")) {
+                PreparedStatement ps = con.prepareStatement("SELECT d.insumo_id, i.base_id, b.tipo "
+                        + "FROM apu_detalle d "
+                        + "JOIN insumo i ON i.id = d.insumo_id "
+                        + "JOIN base_insumos b ON b.id = i.base_id "
+                        + "WHERE d.public_id = ?")) {
             ps.setObject(1, java.util.UUID.fromString(detalleId));
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();
@@ -458,27 +461,22 @@ class ApuResourceIT {
             }
         }
         org.junit.jupiter.api.Assertions.assertNotEquals(
-                insumoCentralId, insumoEnDetalle,
-                "apu_detalle.insumo_id NO debe ser el CENTRAL original");
+                insumoCentralId, insumoEnDetalle, "apu_detalle.insumo_id NO debe ser el CENTRAL original");
         org.junit.jupiter.api.Assertions.assertEquals(
-                "PROYECTO", tipoBase,
-                "la fila persistida vive en una base PROYECTO");
+                "PROYECTO", tipoBase, "la fila persistida vive en una base PROYECTO");
         org.junit.jupiter.api.Assertions.assertNotEquals(
-                baseCentralId, baseDeInsumo,
-                "el base_id del insumo persistido NO es la base CENTRAL");
+                baseCentralId, baseDeInsumo, "el base_id del insumo persistido NO es la base CENTRAL");
 
         // 5. existe exactamente 1 insumo en la base PROYECTO del proyecto con codigo WC-CENT-1
         try (Connection con = ds.getConnection();
-                PreparedStatement ps = con.prepareStatement(
-                        "SELECT count(*) FROM insumo i "
-                                + "JOIN base_insumos b ON b.id = i.base_id "
-                                + "WHERE b.proyecto_id = ? AND i.codigo = 'WC-CENT-1'")) {
+                PreparedStatement ps = con.prepareStatement("SELECT count(*) FROM insumo i "
+                        + "JOIN base_insumos b ON b.id = i.base_id "
+                        + "WHERE b.proyecto_id = ? AND i.codigo = 'WC-CENT-1'")) {
             ps.setLong(1, proyectoId);
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();
                 org.junit.jupiter.api.Assertions.assertEquals(
-                        1, rs.getLong(1),
-                        "la base PROYECTO del proyecto tiene exactamente 1 copia WC-CENT-1");
+                        1, rs.getLong(1), "la base PROYECTO del proyecto tiene exactamente 1 copia WC-CENT-1");
             }
         }
     }
@@ -1420,5 +1418,305 @@ class ApuResourceIT {
                 .then()
                 .statusCode(404)
                 .body("codigo", equalTo("no-encontrado"));
+    }
+
+    // =========================================================================
+    // Plan 03 — Cerrar el contrato APU actual (P-21 reordenamiento atómico).
+    //
+    // El PATCH de detalle acepta `orden` (JsonNullable<Integer>). La semántica
+    // es MOVE atómico dentro de la sección: los hermanos entre old→new se
+    // desplazan ±1 para preservar contigüidad 1..count. Validar el orden
+    // omitido no produce cambios; orden fuera de [1..count] devuelve 400;
+    // editar campos no-orden sobre HM sigue protegido (409 fila-protegida);
+    // borrar HM sigue 409.
+    // =========================================================================
+
+    private List<String> agregarFilasMoSecuenciales(String token, String apuId, Long proyectoId, int cantidad)
+            throws Exception {
+        List<String> ids = new java.util.ArrayList<>();
+        for (int i = 0; i < cantidad; i++) {
+            String codigo = String.format("MO-RNG-%02d", i);
+            Long insumoId = crearInsumo(token, proyectoId, codigo, "MANO_OBRA", "Peón " + codigo, "h", 4.0);
+            String id = given().contentType(JSON)
+                    .header("Authorization", "Bearer " + token)
+                    .body(Map.of(
+                            "seccionTipo",
+                            "MANO_OBRA",
+                            "insumoId",
+                            insumoId.intValue(),
+                            "cantidad",
+                            1.0,
+                            "rendimiento",
+                            1.0))
+                    .when()
+                    .post("/api/v1/apus/" + apuId + "/detalles")
+                    .then()
+                    .statusCode(201)
+                    .extract()
+                    .path("secciones[1].detalles[" + i + "].id");
+            ids.add(id);
+        }
+        return ids;
+    }
+
+    private static List<Integer> ordenSeccion(String token, String apuId, int idx) {
+        return given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/apus/" + apuId)
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath()
+                .getList("secciones[" + idx + "].detalles.orden", Integer.class);
+    }
+
+    private static List<String> idSeccion(String token, String apuId, int idx) {
+        return given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/apus/" + apuId)
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath()
+                .getList("secciones[" + idx + "].detalles.id");
+    }
+
+    /**
+     * a) `orden` omitido no cambia nada. PATCH con solo `cantidad` deja el
+     * orden de la sección intacto (validación de la semántica 3-state de
+     * {@code JsonNullable}: omitido ≠ null explícito).
+     */
+    @Test
+    void TC_P21_03_orden_omitido_no_cambia_orden_de_la_seccion() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p21omit@ex.com");
+        Long proyectoId = crearProyecto(token);
+        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String apuId = crearApu(token, presupuestoId, "RNG-OMIT");
+        List<String> ids = agregarFilasMoSecuenciales(token, apuId, proyectoId, 3);
+
+        org.junit.jupiter.api.Assertions.assertEquals(List.of(1, 2, 3), ordenSeccion(token, apuId, 1));
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("cantidad", 2.5))
+                .when()
+                .patch("/api/v1/apus/" + apuId + "/detalles/" + ids.get(1))
+                .then()
+                .statusCode(200);
+
+        org.junit.jupiter.api.Assertions.assertEquals(List.of(1, 2, 3), ordenSeccion(token, apuId, 1));
+    }
+
+    /**
+     * b) MOVE atómico al subir (new < old): los hermanos con orden en
+     * [new, old) incrementan en 1. Verifica el shape en {@code GET /calculo}.
+     */
+    @Test
+    void TC_P21_04_orden_sube_desplaza_rango_y_calculo_respeta_orden() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p21up@ex.com");
+        Long proyectoId = crearProyecto(token);
+        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String apuId = crearApu(token, presupuestoId, "RNG-UP");
+        List<String> ids = agregarFilasMoSecuenciales(token, apuId, proyectoId, 4);
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("orden", 1))
+                .when()
+                .patch("/api/v1/apus/" + apuId + "/detalles/" + ids.get(3))
+                .then()
+                .statusCode(200);
+
+        List<String> ordenadosPorId = idSeccion(token, apuId, 1);
+        org.junit.jupiter.api.Assertions.assertEquals(
+                List.of(ids.get(3), ids.get(0), ids.get(1), ids.get(2)), ordenadosPorId, "rango desplazado al subir");
+        org.junit.jupiter.api.Assertions.assertEquals(
+                List.of(1, 2, 3, 4), ordenSeccion(token, apuId, 1), "contiguo 1..4");
+
+        List<Integer> ordenCalculo = given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/apus/" + apuId + "/calculo")
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath()
+                .getList("secciones[1].lineas.orden", Integer.class);
+        org.junit.jupiter.api.Assertions.assertEquals(
+                List.of(1, 2, 3, 4), ordenCalculo, "/calculo respeta el orden persistido");
+
+        String detalleIdOrden1 = given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/apus/" + apuId + "/calculo")
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath()
+                .getString("secciones[1].lineas.find { it.orden == 1 }.detalleId");
+        org.junit.jupiter.api.Assertions.assertEquals(ids.get(3), detalleIdOrden1);
+    }
+
+    /**
+     * Variante simétrica: MOVE atómico al bajar (new > old): los hermanos
+     * con orden en (old, new] decrementan en 1.
+     */
+    @Test
+    void TC_P21_05_orden_baja_desplaza_rango_inverso() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p21down@ex.com");
+        Long proyectoId = crearProyecto(token);
+        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String apuId = crearApu(token, presupuestoId, "RNG-DOWN");
+        List<String> ids = agregarFilasMoSecuenciales(token, apuId, proyectoId, 4);
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("orden", 4))
+                .when()
+                .patch("/api/v1/apus/" + apuId + "/detalles/" + ids.get(0))
+                .then()
+                .statusCode(200);
+
+        List<String> ordenadosPorId = idSeccion(token, apuId, 1);
+        org.junit.jupiter.api.Assertions.assertEquals(
+                List.of(ids.get(1), ids.get(2), ids.get(3), ids.get(0)), ordenadosPorId, "rango desplazado al bajar");
+        org.junit.jupiter.api.Assertions.assertEquals(List.of(1, 2, 3, 4), ordenSeccion(token, apuId, 1));
+    }
+
+    /** MOVE a la misma posición es no-op (idempotente). */
+    @Test
+    void TC_P21_06_orden_igual_a_actual_es_noop() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p21noop@ex.com");
+        Long proyectoId = crearProyecto(token);
+        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String apuId = crearApu(token, presupuestoId, "RNG-NOOP");
+        List<String> ids = agregarFilasMoSecuenciales(token, apuId, proyectoId, 3);
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("orden", 2))
+                .when()
+                .patch("/api/v1/apus/" + apuId + "/detalles/" + ids.get(1))
+                .then()
+                .statusCode(200);
+
+        org.junit.jupiter.api.Assertions.assertEquals(
+                List.of(ids.get(0), ids.get(1), ids.get(2)), idSeccion(token, apuId, 1));
+        org.junit.jupiter.api.Assertions.assertEquals(List.of(1, 2, 3), ordenSeccion(token, apuId, 1));
+    }
+
+    /**
+     * c) HM: moverla por `orden` SÍ se permite (Plan 03 / N04 §A3). Pero
+     * PATCH con campos editables no-orden sigue siendo 409 fila-protegida,
+     * y DELETE sigue siendo 409 fila-protegida. Tras el MOVE, el cálculo
+     * respeta la nueva posición.
+     */
+    @Test
+    void TC_P21_07_hm_reordenable_pero_protegida_contra_editar_y_borrar() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p21hmord@ex.com");
+        Long proyectoId = crearProyecto(token);
+        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String apuId = crearApu(token, presupuestoId, "HM-ORD");
+
+        Long eq1 = crearInsumo(token, proyectoId, "EQ-RNG-1", "EQUIPO", "Compactador", "h", 5.0);
+        Long eq2 = crearInsumo(token, proyectoId, "EQ-RNG-2", "EQUIPO", "Vibrador", "h", 6.0);
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("seccionTipo", "EQUIPO", "insumoId", eq1.intValue(), "cantidad", 1.0, "rendimiento", 1.0))
+                .when()
+                .post("/api/v1/apus/" + apuId + "/detalles")
+                .then()
+                .statusCode(201);
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("seccionTipo", "EQUIPO", "insumoId", eq2.intValue(), "cantidad", 1.0, "rendimiento", 1.0))
+                .when()
+                .post("/api/v1/apus/" + apuId + "/detalles")
+                .then()
+                .statusCode(201);
+
+        String hmId = idSeccion(token, apuId, 0).get(0);
+        org.junit.jupiter.api.Assertions.assertEquals(List.of(1, 2, 3), ordenSeccion(token, apuId, 0));
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("orden", 3))
+                .when()
+                .patch("/api/v1/apus/" + apuId + "/detalles/" + hmId)
+                .then()
+                .statusCode(200);
+
+        org.junit.jupiter.api.Assertions.assertEquals(List.of(1, 2, 3), ordenSeccion(token, apuId, 0));
+        String hmTras = given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/apus/" + apuId)
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath()
+                .getString("secciones[0].detalles.find { it.orden == 3 }.id");
+        org.junit.jupiter.api.Assertions.assertEquals(hmId, hmTras);
+
+        List<Integer> ordenCalculoEq = given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/apus/" + apuId + "/calculo")
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath()
+                .getList("secciones[0].lineas.orden", Integer.class);
+        org.junit.jupiter.api.Assertions.assertEquals(List.of(1, 2, 3), ordenCalculoEq);
+        org.junit.jupiter.api.Assertions.assertTrue(given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/apus/" + apuId + "/calculo")
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath()
+                .getBoolean("secciones[0].lineas.find { it.orden == 3 }.esHerramientaMenor"));
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("cantidad", 2.0))
+                .when()
+                .patch("/api/v1/apus/" + apuId + "/detalles/" + hmId)
+                .then()
+                .statusCode(409)
+                .body("codigo", equalTo("fila-protegida"));
+
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .delete("/api/v1/apus/" + apuId + "/detalles/" + hmId)
+                .then()
+                .statusCode(409)
+                .body("codigo", equalTo("fila-protegida"));
+    }
+
+    /**
+     * d) Fronteras de validación del `orden`: null, 0 o > count → 400 validacion.
+     * Cobertura parametrizada para que ningún cambio futuro del rango válido
+     * pase silenciosamente.
+     */
+    @ParameterizedTest(name = "orden inválido: {0}")
+    @ValueSource(ints = {0, -1, 99})
+    void TC_P21_08_orden_fuera_de_rango_rechaza_400(int nuevoOrden) throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p21rng" + nuevoOrden + "@ex.com");
+        Long proyectoId = crearProyecto(token);
+        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String apuId = crearApu(token, presupuestoId, "RNG-BAD");
+        List<String> ids = agregarFilasMoSecuenciales(token, apuId, proyectoId, 3);
+
+        // `nuevoOrden == 0` modela `{"orden": null}` explícito.
+        String body = nuevoOrden == 0
+                ? "{\"orden\": null}"
+                : "{\"orden\":" + nuevoOrden + "}";
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(body)
+                .when()
+                .patch("/api/v1/apus/" + apuId + "/detalles/" + ids.get(0))
+                .then()
+                .statusCode(400)
+                .body("codigo", equalTo("validacion"));
+
+        org.junit.jupiter.api.Assertions.assertEquals(List.of(1, 2, 3), ordenSeccion(token, apuId, 1));
     }
 }

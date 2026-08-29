@@ -9,18 +9,15 @@ empaquetado de `documentos/01-ARQUITECTURA.md §5`.
 |---|---|---|---|
 | [01-proyecto](01-proyecto.md) | `ec.uce.propuestas.proyecto` | P-05…P-11 | Implementado (crud núcleo) · TODO: logo, detalle |
 | [02-insumo](02-insumo.md) | `ec.uce.propuestas.insumo` | P-13…P-18 | Implementado (crud, catálogo, selector, copia) · TODO: uso en APU (P-18) |
-| [03-apu](03-apu.md) | `ec.uce.propuestas.apu` | P-19…P-22 | Implementado (lista/crea APUs, editor, filas M/N/O/P, fila HM protegida, override precio, write-through vía motor) · TODO: I-06 cubre P-23…P-27 |
-| [04-apu-avanzado](04-apu-avanzado.md) | `apu` (ampliar) + `recalculo` (nuevo) + `plantilla` (nuevo) + `documento` (extender) | P-23…P-27, P-45, P-46 | Pendiente — plan completo escrito (N04 18-08-2026); cubre las decisiones N04 (A1 descuento CD, A2 auxiliares sin anidamiento, A3 HM reordenable, A6 rangos parametrizables, A9 bases SIEMPRE copia + nuevo tipo PERSONAL, D-12 archivar sin bloqueo, #7 decimales, ET nueva feature) |
+| [03-apu](03-apu.md) | `ec.uce.propuestas.apu` | P-19…P-22, P-27 | **Implementado (DONE 2026-08-28)** — Plan 03 cierra reordenamiento atómico + HM order-only; ver `planes-para-estar-al-dia/03-contrato-apu-actual.md` |
+| [04-apu-avanzado](04-apu-avanzado.md) | `apu` (ampliar) + `plantilla` (nuevo) + `documento` (extender) | P-23, P-26, P-46 + cierre I-06 | **Siguiente plan ejecutable** — cubre plantillas APU (P-26), plantilla proyecto (P-46), descuento CD (P-12/P-24), y cierre del display global residual del Plan 014 |
 
-> **Siguiente plan ejecutable (post Plan 014, 2026-08-28):** Plan 03 (módulo
-> `apu`) sigue siendo el módulo siguiente en el orden vertical (después de
-> los proyectos 01 e insumos 02). Su TODO remanente — cerrar P-23…P-27 vía
-> [Plan 013](../planes-para-estar-al-dia/../planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)
-> / [`plans/014-motor-precision-no-links.md`](../../plans/014-motor-precision-no-links.md)
-> ya está implementado en lo que toca a display/no-links/`@Digits`; los
-> huecos reales son **P-26 (plantillas APU)** y **P-46 (plantilla de
-> proyecto)**, con `display config global` ya cerrado por Plan 014 T3.
-> Plan 04 sigue pendiente y se aborda cuando se abra la siguiente iteración.
+> **Plan 03 cerrado 2026-08-28.** El siguiente plan ejecutable es el
+> [Plan 04 — plantillas APU](04-apu-avanzado.md) (`P-26` + `P-46`), que
+> sigue el orden vertical del módulo `apu` después de cerrar reordenamiento
+> atómico + HM order-only. Los huecos residuales de P-23/P-27 ya quedaron
+> cubiertos por este Plan 03 (reordenamiento, shape de `/calculo`,
+> precisión natural de `BigDecimal` per Plan 014 T3).
 
 **Decisiones de diseño compartidas** (resuelven las preguntas de arquitectura):
 

@@ -29,14 +29,17 @@ En alcance (endpoints implementados en esta iteración):
 | `PATCH /apus/{apuId}` | P-21 (subset: codigo, descripcion, unidad) | `validacion` · `codigo-duplicado` |
 | `DELETE /apus/{apuId}` | P-19 | `no-encontrado` · `apu-referenciado` |
 | `POST /apus/{apuId}/detalles` | P-21 | `validacion` · `no-encontrado` |
-| `PATCH /apus/{apuId}/detalles/{detalleId}` | P-21/P-22 | `validacion` · `no-encontrado` · `fila-protegida` |
+| `PATCH /apus/{apuId}/detalles/{detalleId}` | P-21/P-22 + Plan 03 (`orden`) | `validacion` (incluye `orden` fuera de `[1,count]` o null explícito) · `no-encontrado` · `fila-protegida` (HM acepta solo `orden`; otros campos siguen 409) |
 | `DELETE /apus/{apuId}/detalles/{detalleId}` | P-21 | `no-encontrado` · `fila-protegida` |
 
 Fuera de alcance (I-06 — [`04-apu-avanzado.md`](04-apu-avanzado.md), plan 013):
 `porcentajeIndirecto` override (P-23), `/apus/{id}/descuento` (P-24),
-plantillas (P-26 — con fallback N04 §B.4), `/apus/{id}/calculo` (desglose P-27),
-Especificaciones Técnicas (P-45 — N04 §ESP, NUEVA), plantilla de proyecto
+plantillas (P-26 — con fallback N04 §B.4), plantilla de proyecto
 (P-46 — N04 §A8, NUEVA), `POST /apus/{id}/duplicar`, **módulo `recalculo`**,
+`/apus/{id}/calculo` (desglose P-27) **cerrado por Plan 03 2026-08-28** (orden
+persistido, lineas en orden `orden` ascendente, sin HM-primero; display a
+`precisionDinero` desde config global), Especificaciones Técnicas (P-45 —
+N04 §ESP, NUEVA),
 base PERSONAL (N04 §A9), rangos parametrizables (N04 §A6),
 **display config global** (`precisionDinero=2` / `precisionPorcentaje=4`,
 endpoint `GET /api/v1/config/display`) y la **única rounding del motor** en

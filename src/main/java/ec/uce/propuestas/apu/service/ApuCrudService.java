@@ -221,10 +221,23 @@ public class ApuCrudService {
     public ApuResponse editarDetalle(Long apuId, Long detalleId, ApuDetallePatchRequest req) {
         Apu apu = _validar(apuId);
         ApuDetalle d = resolverDetalle(apuId, detalleId);
-        if (d.esHerramientaMenor) {
+        SeccionTipo tipo = tipoDeDetalle(apuId, d.seccionId);
+
+        // Plan 03 — HM acepta SOLO `orden`. Cualquier otro campo editable
+        // (cantidad/rendimiento/precioOverride) sigue 409 fila-protegida.
+        if (d.esHerramientaMenor && tieneOtroCampoEditable(req)) {
             throw ProblemaException.filaProtegida("La fila de Herramienta Menor no es editable");
         }
-        SeccionTipo tipo = tipoDeDetalle(apuId, d.seccionId);
+
+        // Plan 03 — MOVE atómico dentro de la sección. `orden` solo se procesa
+        // si viene explícitamente en el body (JsonNullable isPresent()).
+        if (req.orden() != null && req.orden().isPresent()) {
+            Integer nuevoOrden = req.orden().get();
+            if (nuevoOrden == null) {
+                throw ProblemaException.validacion("orden debe estar entre 1 y el número de filas de la sección");
+            }
+            reordenarEnSeccion(d, nuevoOrden);
+        }
 
         if (req.cantidad() != null
                 && req.cantidad().isPresent()
@@ -258,6 +271,60 @@ public class ApuCrudService {
 
         calculoService.recalcular(apu);
         return respuestaCompleta(apu);
+    }
+
+    /** HM: detecta si el request trae cualquier campo editable distinto de {@code orden}. */
+    private static boolean tieneOtroCampoEditable(ApuDetallePatchRequest req) {
+        return (req.cantidad() != null && req.cantidad().isPresent())
+                || (req.rendimiento() != null && req.rendimiento().isPresent())
+                || (req.precioOverride() != null && req.precioOverride().isPresent());
+    }
+
+    /**
+     * MOVE atómico dentro de la sección de la fila {@code d}.
+     *
+     * <p>Semántica (Plan 03, N04 §A3):
+     * <ul>
+     *   <li>{@code new == old}: no-op.</li>
+     *   <li>{@code new < old}: los hermanos con {@code orden} en {@code [new, old)}
+     *       incrementan en 1; la fila movida toma {@code new}.</li>
+     *   <li>{@code new > old}: los hermanos con {@code orden} en {@code (old, new]}
+     *       decrementan en 1; la fila movida toma {@code new}.</li>
+     * </ul>
+     *
+     * <p>El destino se valida contra {@code [1, count]} (count = filas
+     * actuales de la sección); un valor fuera de rango devuelve 400
+     * {@code validacion}. El MOVE es transaccional dentro del mismo
+     * {@code @Transactional editarDetalle}.
+     */
+    private void reordenarEnSeccion(ApuDetalle d, Integer nuevoOrden) {
+        List<ApuDetalle> hermanos = new ArrayList<>(detalleRepository.listarDeSeccion(d.seccionId));
+        int count = hermanos.size();
+        if (nuevoOrden < 1 || nuevoOrden > count) {
+            throw ProblemaException.validacion("orden debe estar entre 1 y " + count);
+        }
+        short oldOrden = d.orden;
+        if (nuevoOrden == oldOrden) {
+            return; // no-op
+        }
+        if (nuevoOrden < oldOrden) {
+            for (ApuDetalle h : hermanos) {
+                if (h.id.equals(d.id)) continue;
+                if (h.orden >= nuevoOrden && h.orden < oldOrden) {
+                    h.orden = (short) (h.orden + 1);
+                    detalleRepository.persist(h);
+                }
+            }
+        } else {
+            for (ApuDetalle h : hermanos) {
+                if (h.id.equals(d.id)) continue;
+                if (h.orden > oldOrden && h.orden <= nuevoOrden) {
+                    h.orden = (short) (h.orden - 1);
+                    detalleRepository.persist(h);
+                }
+            }
+        }
+        d.orden = nuevoOrden.shortValue();
     }
 
     @Transactional
