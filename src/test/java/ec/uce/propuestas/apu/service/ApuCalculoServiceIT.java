@@ -134,7 +134,7 @@ class ApuCalculoServiceIT {
         Long insumoMo = crearInsumo(token, proyectoId, "MO-001", "MANO_OBRA", "Armador", "h", 8.99);
         Long insumoMat = crearInsumo(token, proyectoId, "MA-001", "MATERIAL", "Cemento", "kg", 1.5);
 
-        ApuResponse apu = apuService.crear(presupuestoId, new ApuCrearRequest("APU-CALC", "Pozo de agua", "m³"));
+        ApuResponse apu = apuService.crearComoRespuesta(presupuestoId, new ApuCrearRequest("APU-CALC", "Pozo de agua", "m³"));
         Long apuId = internalId(apu.id());
 
         apu = apuService.agregarDetalle(
@@ -198,7 +198,7 @@ class ApuCalculoServiceIT {
         Long presupuestoId = insertarPresupuesto(proyectoId);
         Long insumoMo = crearInsumo(token, proyectoId, "MO-002", "MANO_OBRA", "Maestro", "h", 4.0);
 
-        ApuResponse apu = apuService.crear(presupuestoId, new ApuCrearRequest("APU-CALC-2", "Fila sistema", "u"));
+        ApuResponse apu = apuService.crearComoRespuesta(presupuestoId, new ApuCrearRequest("APU-CALC-2", "Fila sistema", "u"));
         Long apuId = internalId(apu.id());
         apu = apuService.agregarDetalle(
                 apuId,

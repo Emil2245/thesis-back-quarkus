@@ -26,6 +26,7 @@ public final class ApuMapper {
                 e.porcentajeIndirecto,
                 porcentajeIndirectoEfectivo,
                 e.porcentajeDescuento,
-                secciones);
+                secciones,
+                null);
     }
 }

@@ -81,9 +81,14 @@ public class ApuCalculoService {
                         params.porcentajeHerramientaMenor, params.porcentajeIndirecto, apu.porcentajeDescuento));
 
         List<FilaCalculada> calc = out.filas();
-        for (int i = 0; i < entidades.size(); i++) {
-            ApuDetalle d = entidades.get(i);
-            FilaCalculada fc = calc.get(i);
+        // Layout de out.filas() = [M (HM primero si existe), N, O, P]. Las
+        // entidades vienen en orden persistido (orden ascendente por sección,
+        // HM puede estar en cualquier posición dentro de M). Usamos el mapa
+        // compartido para NO asumir índices paralelos — sin esto, mover el HM
+        // a un orden no primero mezclaría su costo con el de las filas no-HM.
+        Map<Long, Integer> calcIdx = mapearDetallesACalc(entidades, secciones);
+        for (ApuDetalle d : entidades) {
+            FilaCalculada fc = calc.get(calcIdx.get(d.id));
             d.costo = fc.costoFila();
             if (fc.costoHora() != null) d.costoHora = fc.costoHora();
             if (d.esHerramientaMenor) {
@@ -116,13 +121,30 @@ public class ApuCalculoService {
         return override != null ? override : (insumo == null ? null : insumo.precioUnitario);
     }
 
+    /**
+     * Construye la fila snapshot que alimenta al motor. Plan 04 (P-26):
+     * si la fila es una "pendiente" (sin insumo resuelto desde la carga de
+     * plantilla) y no trae override manual, se fuerza {@code overridePrecio
+     * = 0} en la columna de override de la sección — esto permite que el
+     * motor calcule 0 sin NPE y mantiene {@code precioInsumo} coherente con
+     * la realidad (no se inventa un precio). Para filas HM se sigue el
+     * camino habitual (cantidad = %HM, precioInsumo/overridePrecio null).
+     */
     static FilaSnapshot snapshotDeDetalle(ApuDetalle d, SeccionTipo tipo, Insumo insumo, BigDecimal porcentajeHm) {
         if (d.esHerramientaMenor) {
             return new FilaSnapshot(
                     SeccionTipo.EQUIPO, true, porcentajeHm.multiply(BigDecimal.valueOf(100)), null, null, null);
         }
         BigDecimal precioInsumo = insumo == null ? null : insumo.precioUnitario;
-        return new FilaSnapshot(tipo, false, d.cantidad, d.rendimiento, precioInsumo, overrideDeDetalle(d, tipo));
+        BigDecimal override = overrideDeDetalle(d, tipo);
+        // Pendiente (Plan 04 §4.4): sin insumo y sin override → escribimos
+        // override = 0 en la columna de la sección para que el motor no NPEe
+        // al multiplicar por null. Las filas reales (con insumoId set) no
+        // entran aquí.
+        if (insumo == null && override == null) {
+            override = BigDecimal.ZERO;
+        }
+        return new FilaSnapshot(tipo, false, d.cantidad, d.rendimiento, precioInsumo, override);
     }
 
     static BigDecimal overrideDeDetalle(ApuDetalle d, SeccionTipo tipo) {
@@ -198,40 +220,12 @@ public class ApuCalculoService {
         // ApuCalculado.todasFilas está en orden M (HM primero, luego resto de Equipo), N, O, P.
         // entidades está en orden persistido (orden ascendente dentro de sección).
         // Hay que casar cada entidad con su FilaCalculada por sección/posición/HM;
-        // NO se asume que el índice i de entidades coincide con el de calc.
+        // NO se asume que el índice i de entidades coincide con el de calc. El
+        // helper compartido se reutiliza desde recalcular para evitar drift.
         Map<Long, ApuSeccion> seccionById = new HashMap<>();
         for (ApuSeccion s : secciones) seccionById.put(s.id, s);
 
-        // Layout de todasFilas = [M, N, O, P]. En M, el HM ocupa el primer slot
-        // y el resto de EQUIPO conserva el orden persistido.
-        Map<SeccionTipo, Integer> totalByTipo = new EnumMap<>(SeccionTipo.class);
-        for (SeccionTipo t : SeccionTipo.values()) totalByTipo.put(t, 0);
-        for (ApuDetalle e : entidades) {
-            SeccionTipo t = seccionById.get(e.seccionId).tipo;
-            totalByTipo.merge(t, 1, Integer::sum);
-        }
-        int mStart = 0;
-        int nStart = mStart + totalByTipo.get(SeccionTipo.EQUIPO);
-        int oStart = nStart + totalByTipo.get(SeccionTipo.MANO_OBRA);
-        int pStart = oStart + totalByTipo.get(SeccionTipo.MATERIAL);
-
-        Map<Long, Integer> calcIdxByDetalleId = new HashMap<>();
-        int mNonHmCursor = mStart + 1; // salta el slot HM
-        int nCursor = nStart;
-        int oCursor = oStart;
-        int pCursor = pStart;
-        for (ApuDetalle e : entidades) {
-            SeccionTipo t = seccionById.get(e.seccionId).tipo;
-            if (t == SeccionTipo.EQUIPO) {
-                calcIdxByDetalleId.put(e.id, e.esHerramientaMenor ? mStart : mNonHmCursor++);
-            } else if (t == SeccionTipo.MANO_OBRA) {
-                calcIdxByDetalleId.put(e.id, nCursor++);
-            } else if (t == SeccionTipo.MATERIAL) {
-                calcIdxByDetalleId.put(e.id, oCursor++);
-            } else {
-                calcIdxByDetalleId.put(e.id, pCursor++);
-            }
-        }
+        Map<Long, Integer> calcIdxByDetalleId = mapearDetallesACalc(entidades, secciones);
 
         List<FilaCalculada> calc = out.filas();
         Map<SeccionTipo, List<ApuCalculoLinea>> porSeccion = new EnumMap<>(SeccionTipo.class);
@@ -254,6 +248,55 @@ public class ApuCalculoService {
             result.add(new ApuCalculoSeccion(s.tipo, escala6(subtotal), operacion, escala6(subtotal), lineas));
         }
         return result;
+    }
+
+    /**
+     * Construye el mapa {@code entidad.id → índice en out.filas()} que
+     * reproduce el layout del motor (M con HM primero si existe, N, O, P).
+     * Se comparte entre el write-through de {@link #recalcular} y el armado
+     * del response en {@link #proyectar} para que ambos casen cada
+     * {@link ApuDetalle} con su {@link FilaCalculada} correctamente. Sin
+     * este helper, un HM movido a un orden distinto de 1 mezclaba su
+     * costo/costoHora con las filas no-HM (Plan 03 + Plan 04 §3 fix).
+     */
+    static Map<Long, Integer> mapearDetallesACalc(
+            List<ApuDetalle> entidades, List<ApuSeccion> secciones) {
+        Map<Long, SeccionTipo> tipoPorSeccion = new HashMap<>();
+        for (ApuSeccion s : secciones) tipoPorSeccion.put(s.id, s.tipo);
+
+        Map<SeccionTipo, Integer> totalByTipo = new EnumMap<>(SeccionTipo.class);
+        for (SeccionTipo t : SeccionTipo.values()) totalByTipo.put(t, 0);
+        for (ApuDetalle e : entidades) {
+            SeccionTipo t = tipoPorSeccion.get(e.seccionId);
+            if (t == null) {
+                throw ProblemaException.validacion("Sección no encontrada para fila " + e.id);
+            }
+            totalByTipo.merge(t, 1, Integer::sum);
+        }
+
+        int mStart = 0;
+        int nStart = mStart + totalByTipo.get(SeccionTipo.EQUIPO);
+        int oStart = nStart + totalByTipo.get(SeccionTipo.MANO_OBRA);
+        int pStart = oStart + totalByTipo.get(SeccionTipo.MATERIAL);
+
+        Map<Long, Integer> out = new HashMap<>();
+        int mNonHmCursor = mStart + 1; // salta el slot HM
+        int nCursor = nStart;
+        int oCursor = oStart;
+        int pCursor = pStart;
+        for (ApuDetalle e : entidades) {
+            SeccionTipo t = tipoPorSeccion.get(e.seccionId);
+            if (t == SeccionTipo.EQUIPO) {
+                out.put(e.id, e.esHerramientaMenor ? mStart : mNonHmCursor++);
+            } else if (t == SeccionTipo.MANO_OBRA) {
+                out.put(e.id, nCursor++);
+            } else if (t == SeccionTipo.MATERIAL) {
+                out.put(e.id, oCursor++);
+            } else {
+                out.put(e.id, pCursor++);
+            }
+        }
+        return out;
     }
 
     private ApuCalculoLinea buildLinea(ApuDetalle d, FilaCalculada fc, ApuCalculado out) {

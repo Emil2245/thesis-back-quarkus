@@ -4,15 +4,12 @@ import ec.uce.propuestas.plantilla.entity.PlantillaApu;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @ApplicationScoped
 public class PlantillaApuRepository implements PanacheRepositoryBase<PlantillaApu, Long> {
-
-    public Optional<PlantillaApu> findByCodigo(String codigo) {
-        return find("codigo = :codigo", Parameters.with("codigo", codigo)).firstResultOptional();
-    }
 
     /**
      * WU-03 — Resolución por {@code public_id} (UUIDv7) con scope de owner. Reglas de
@@ -38,5 +35,23 @@ public class PlantillaApuRepository implements PanacheRepositoryBase<PlantillaAp
                 .getResultList()
                 .stream()
                 .findFirst();
+    }
+
+    /**
+     * Plan 04 (P-26) — Listado de plantillas por tipo, orden estable por nombre.
+     */
+    public List<PlantillaApu> listarPorTipo(PlantillaApu.Tipo tipo) {
+        return find("tipo = :tipo order by nombre", Parameters.with("tipo", tipo)).list();
+    }
+
+    /**
+     * Plan 04 (P-26) — Listado de plantillas PERSONAL del caller, orden estable
+     * por nombre.
+     */
+    public List<PlantillaApu> listarPorTipoYDuenno(PlantillaApu.Tipo tipo, Long usuarioId) {
+        return find(
+                        "tipo = :tipo and usuarioId = :uid order by nombre",
+                        Parameters.with("tipo", tipo).and("uid", usuarioId))
+                .list();
     }
 }

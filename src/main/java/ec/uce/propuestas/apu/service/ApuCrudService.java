@@ -17,6 +17,9 @@ import ec.uce.propuestas.insumo.entity.TipoInsumo;
 import ec.uce.propuestas.insumo.repository.InsumoRepository;
 import ec.uce.propuestas.insumo.service.ResolverInsumoProyectoService;
 import ec.uce.propuestas.motor.SeccionTipo;
+import ec.uce.propuestas.plantilla.dto.AdvertenciaPlantillaResponse;
+import ec.uce.propuestas.plantilla.entity.PlantillaApu;
+import ec.uce.propuestas.plantilla.service.PlantillaApuService;
 import ec.uce.propuestas.proyecto.entity.ParametrosProyecto;
 import ec.uce.propuestas.proyecto.service.ParametrosProyectoService;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -53,8 +56,21 @@ public class ApuCrudService {
     @Inject
     ApuCalculoService calculoService;
 
+    @Inject
+    PlantillaApuService plantillaApuService;
+
+    /**
+     * Plan 04 (P-26) — Crea un APU. Variante principal: si
+     * {@code req.plantillaId()} viene, delega la materialización a
+     * {@link PlantillaApuService#aplicarPlantilla} y devuelve el par
+     * (response + advertencias) para que el resource decida el código HTTP
+     * final. Sin plantillaId, el comportamiento es el de la versión previa.
+     *
+     * <p>Si viene {@code plantillaId} pero el caller no la ve (404), este
+     * método propaga el 404 vía el seam {@link PlantillaApuService#cargarPorOwner}.
+     */
     @Transactional
-    public ApuResponse crear(Long presupuestoId, ApuCrearRequest req) {
+    public ResultadoCrear crear(Long presupuestoId, ApuCrearRequest req, Long callerUsuarioId) {
         if (req.codigo() != null
                 && !req.codigo().isBlank()
                 && apuRepository
@@ -73,8 +89,29 @@ public class ApuCrudService {
         crearSecciones(apu);
         apuRepository.persist(apu);
 
+        List<AdvertenciaPlantillaResponse> advertencias = List.of();
+        if (req.tienePlantilla()) {
+            // Resolver la plantilla aquí (con autorización del caller) y
+            // delegar la materialización de filas al seam de PlantillaApuService.
+            PlantillaApu plantilla = plantillaApuService.cargarPorOwner(req.plantillaId(), callerUsuarioId);
+            advertencias = plantillaApuService.aplicarPlantilla(apu, plantilla);
+        }
+
         calculoService.recalcular(apu);
-        return respuestaCompleta(apu);
+        return new ResultadoCrear(respuestaCompleta(apu), advertencias);
+    }
+
+    /** Variante de compatibilidad: cuando no hay plantillaId, no necesita caller. */
+    public ApuResponse crearComoRespuesta(Long presupuestoId, ApuCrearRequest req) {
+        return crear(presupuestoId, req, null).apu();
+    }
+
+    /** Holder del resultado de crear — advertencias para que el resource decida el HTTP status. */
+    public record ResultadoCrear(ApuResponse apu, List<AdvertenciaPlantillaResponse> advertencias) {
+
+        public boolean tieneAdvertencias() {
+            return advertencias != null && !advertencias.isEmpty();
+        }
     }
 
     public Page<ApuResumenResponse> listar(Long presupuestoId, String q, int page, int size) {

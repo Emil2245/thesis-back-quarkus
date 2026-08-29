@@ -168,7 +168,7 @@ siguientes.
 | Descuento FORMA 1 global | **DEFERRED** | tablas estructurales de snapshot presentes | servicio de presupuesto + recálculo transaccional |
 | Descuento FORMA 2 | **PARTIAL** | `PUT` de insumos PROYECTO existente | recalcular APUs que heredan el precio; debounce pertenece al frontend |
 | P-25 enlaces auxiliares | **OBSOLETO** | schema/entities actuales correctamente no los tienen | eliminar referencias antiguas de docs y motor; no crear columnas/endpoints |
-| P-26 plantillas de APU | **MISSING** | solo `PlantillaApu` + repository | servicio, resource, DTOs, guardar snapshot, cargar con fallback |
+| P-26 plantillas de APU | **DONE 2026-08-29 (Plan 04)** | `PlantillaApuService`, `PlantillaApuResource`, `PlantillaApuGuardarResource`, DTOs, `SnapshotApuMapper` (price-free writer + lenient reader), `ResolverInsumoPlantillaService` (PROYECTO→CENTRAL→PERSONAL→pendiente), integración en `ApuCrudService.crear` (`plantillaId` opcional), `V005__allow_zero_pending_apu_detail_prices.sql` (relax estructural `>= 0`, no reseed). Tests verdes: `ec.uce.propuestas.plantilla.*` **34/34** (SnapshotApuMapperTest 5/5 + PlantillaApuResourceIT 12/12 + ApuCalculoServiceNullableInsumoTest 1/1 + PlantillaApuServiceTest 16/16). Regresión dirigida adyacente **47/47** verde (ApuResourceIT 36/36 + ApuCalculoServiceIT 2/2 + ResolverInsumoProyectoTest 9/9). HTTP 201 sin advertencias / 200 con `advertencias[]` no vacío. Snapshot nunca persiste precios efectivos, IDs de insumo ni links al APU origen; fila pendiente se distingue de insumo real con `precio_unitario = 0` por `insumo_id IS NULL` + `advertencias[]`. **No** se reporta suite completa. | P-46 (plantilla de proyecto) sigue pendiente (Plan 06). |
 | P-27 desglose de cálculo | **DONE** (Plan 03, 2026-08-28) | DTOs, `ApuCalculoService.proyectar`, `GET /calculo` con lineas ordenadas por `orden` (sin HM-primero) y resultado a 6 dp; TC-P27-01..04 verdes | display layer aplica `precisionDinero` / `precisionPorcentaje` desde config global — presentación, no motor |
 | Duplicar APU | **DONE** | `ApuDuplicarService`, `POST /duplicar` | comprobar que no reaparezca vocabulario auxiliar |
 | P-45 ET por APU | **DONE** | GET/PUT ET, `DocumentoResource`, `EspecificacionesTecnicasService` | solo sincronizar docs: usa Apache POI, no docx4j |
@@ -236,7 +236,7 @@ Resultados:
 3. los documentos globales enumerados en §2.2 se sincronizaron con la nueva
    versión acumulativa `v1.3-functional-requirements.md`;
 4. `plans/README.md` refleja:
-   - Plan 013 en estado **PARTIAL**;
+   - Plan 013 en estado **PARTIAL** (P-26 cerrado 2026-08-29 dentro del Plan 04; P-46, write-through global, FORMA 1, FORMA 2, UUIDv7 resto de módulos siguen pendientes);
    - Plan 006 como “decisión cerrada, código aún pendiente” hasta aplicar DOWN.
 
 Commit sugerido:
@@ -366,7 +366,7 @@ Commit sugerido:
 feat(apu): finish calculation response and row ordering
 ```
 
-### Bloque 3 — plantillas de APU P-26
+### Bloque 3 — plantillas de APU P-26 (DONE 2026-08-29)
 
 **Objetivo:** convertir `plantilla` de una costura estructural a una capacidad
 usable, sin crear otro módulo.
@@ -386,14 +386,25 @@ Comportamiento:
 1. listar SISTEMA + PERSONALES propias;
 2. obtener, renombrar y eliminar una PERSONAL propia;
 3. guardar un APU como plantilla PERSONAL;
-4. snapshot JSONB sin precios: códigos, cantidades, rendimientos, HM y override
-   explícito cuando corresponda;
+4. snapshot JSONB **totalmente price-free**: sólo códigos (`insumoCodigo`),
+   cantidades, rendimientos y fila HM. El writer **nunca** emite precios
+   efectivos ni overrides explícitos del APU origen; el reader **tolera**
+   silenciosamente los campos extra del seed V004 (`tarifaJornal`, `costo`,
+   `orden`, `descripcion`, `seccionTipo`, `tipoInsumo`, `publicId`);
 5. cargar plantilla al crear APU;
 6. resolver cada código:
    - existe en PROYECTO → reutilizar;
-   - existe en CENTRAL/PERSONAL visible → copiar a PROYECTO;
-   - no existe → fila con precio 0 + `advertencias[]`;
-7. tolerar los campos extra de las plantillas V004; no crear reseed V005.
+   - existe en CENTRAL/PERSONAL visible (no archivada, tipo compatible) →
+     copiar a PROYECTO vía `ResolverInsumoProyectoService`;
+   - no existe → **fila pendiente** con `insumo_id = NULL` + override `0`
+     explícito en la columna de la sección (EQUIPO/MANO_OBRA →
+     `tarifaJornal`; MATERIAL/TRANSPORTE → `precioUnitarioTarifa`) +
+     `advertencias[]` en respuesta HTTP `200`. El caso se distingue del
+     insumo real con `precio_unitario = 0` (catálogo-backed, `insumo_id`
+     poblado, HTTP `201` sin advertencias);
+7. tolerar los campos extra del seed V004; **V005 es estructural** (relaja
+   `CHECK (> 0)` → `CHECK (>= 0)` en `apu_detalle.tarifa_jornal` y
+   `apu_detalle.precio_unitario_tarifa`), **no** un reseed del JSONB.
 
 Endpoints:
 
@@ -535,6 +546,18 @@ Commit sugerido:
 docs(i06): reconcile backend modules and API examples
 ```
 
+> **Cierre de Plan 04 (2026-08-29):** `docs/modulos/planes-para-estar-al-dia/04-plantillas-apu.md`,
+> `docs/modulos/README.md`, `docs/modulos/estado-actual.md` (este doc) y
+> `plans/README.md` quedaron alineados al comportamiento implementado
+> (snapshot totalmente price-free; fila pendiente con `insumo_id = NULL` +
+> override `0`; distinción pendiente vs insumo real con `precio_unitario = 0`;
+> V005 estructural — no reseed; `ec.uce.propuestas.plantilla.*` 34/34 +
+> regresión dirigida 47/47). Los canónicos activos de `thesis-docs` (06-schema,
+> 07-API, 02-data-model, 03-procesos-detalle, 02-catalogo-pruebas) se
+> actualizaron en la misma pasada. Plan 013 sigue PARTIAL en su conjunto
+> (P-46 / write-through global / FORMA 1 / FORMA 2 / UUIDv7 resto de módulos
+> permanecen pendientes).
+
 ---
 
 ## 7. Trabajo explícitamente diferido
@@ -571,7 +594,7 @@ exista, permanecen incompletos:
 | 0 | `main` sin cambios flotantes; docs ya no ordenan enlaces auxiliares |
 | 1 | **PARCIAL — CIERRE CON RESIDUO ACEPTADO (2026-08-28)**: motor opera con `BigDecimal` natural; APU→Rubro usa `PU DOWN 2dp` + `PT = cantidad × PU_2dp` retenido a escala 6 `HALF_UP` (regla workbook-consistent). `ConsolidadorFronteraTest` 5/5 verde. **GM-19 (`-$6.95`) y GM-20 cap. 1 (`-$0.84`) con residual aceptado — no se reabre el motor.** T2 (no-links estructural), T3 (display config global) y T4 (`@Digits`) siguen OPEN en Plan 014. |
 | 2 | PATCH orden funciona; cálculo respeta orden y precisión |
-| 3 | plantilla PERSONAL se guarda/carga; fallback produce advertencias |
+| 3 | plantilla PERSONAL se guarda/carga; fallback produce advertencias; fila pendiente con `insumo_id = NULL` + override `0` (V005 estructural) |
 | 4 | central archivada desaparece; borrado no afecta copias PROYECTO |
 | 5 | proyecto se crea desde snapshot sin enlazar datos originales |
 | 6 | APIs actuales no filtran BIGINT internos |

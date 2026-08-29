@@ -23,6 +23,18 @@ public class InsumoRepository implements PanacheRepositoryBase<Insumo, Long> {
                 .firstResultOptional();
     }
 
+    /**
+     * Variante con filtro adicional de tipo de insumo (compatible con la
+     * sección destino del APU). Usada por la carga de plantillas APU para
+     * garantizar que un código MO no se reutilice como EQUIPO, etc.
+     */
+    public Optional<Insumo> findByBaseYcodigoYTipo(Long baseId, String codigo, TipoInsumo tipo) {
+        return find(
+                        "baseId = :baseId and codigo = :codigo and tipo = :tipo",
+                        Parameters.with("baseId", baseId).and("codigo", codigo).and("tipo", tipo))
+                .firstResultOptional();
+    }
+
     public Optional<Insumo> findByIdYBase(Long id, Long baseId) {
         return find("id = :id and baseId = :baseId", Parameters.with("id", id).and("baseId", baseId))
                 .firstResultOptional();
