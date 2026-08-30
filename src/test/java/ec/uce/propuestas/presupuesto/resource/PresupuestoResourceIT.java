@@ -3,15 +3,17 @@ package ec.uce.propuestas.presupuesto.resource;
 import static io.restassured.RestAssured.given;
 import static io.restassured.http.ContentType.JSON;
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.*;
 
 import ec.uce.propuestas.support.AuthSupport;
 import ec.uce.propuestas.usuario.auth.RecordingEnviadorCorreo;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Map;
+import java.util.UUID;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,97 +38,137 @@ class PresupuestoResourceIT {
         }
     }
 
-    private Long crearProyecto(String token) {
-        return ((Number) given().contentType(JSON)
-                        .header("Authorization", "Bearer " + token)
-                        .body(Map.of(
-                                "nombreProyecto", "Construcción UCE",
-                                "anio", (short) 2026,
-                                "plazoEjecucion", (short) 6,
-                                "plazoUnidad", "MES",
-                                "direccionInstitucional", "Quito"))
-                        .when()
-                        .post("/api/v1/proyectos")
-                        .then()
-                        .statusCode(201)
-                        .extract()
-                        .path("id"))
-                .longValue();
+    private String crearProyecto(String token) {
+        return given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of(
+                        "nombreProyecto", "Construcción UCE",
+                        "anio", (short) 2026,
+                        "plazoEjecucion", (short) 6,
+                        "plazoUnidad", "MES",
+                        "direccionInstitucional", "Quito"))
+                .when()
+                .post("/api/v1/proyectos")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
     }
 
-    private Long crearInsumo(
-            String token, Long proyectoId, String codigo, String tipo, String desc, String unidad, double precio) {
-        return ((Number) given().contentType(JSON)
-                        .header("Authorization", "Bearer " + token)
-                        .body(Map.of(
-                                "codigo", codigo,
-                                "tipo", tipo,
-                                "descripcion", desc,
-                                "unidad", unidad,
-                                "precioUnitario", precio))
-                        .when()
-                        .post("/api/v1/proyectos/" + proyectoId + "/insumos")
-                        .then()
-                        .statusCode(201)
-                        .extract()
-                        .path("id"))
-                .longValue();
+    private Long internalId(String table, String publicId) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT id FROM " + table + " WHERE public_id = ?")) {
+            ps.setObject(1, UUID.fromString(publicId));
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        }
     }
 
-    private Long crearApu(String token, Long presupuestoId, String codigo, String desc, String unidad) {
-        return ((Number) given().contentType(JSON)
-                        .header("Authorization", "Bearer " + token)
-                        .body(Map.of(
-                                "codigo", codigo,
-                                "descripcion", desc,
-                                "unidad", unidad))
-                        .when()
-                        .post("/api/v1/presupuestos/" + presupuestoId + "/apus")
-                        .then()
-                        .statusCode(201)
-                        .extract()
-                        .path("id"))
-                .longValue();
+    private Long insertarPresupuesto(String proyectoPublicId) throws Exception {
+        Long proyectoId = internalId("proyecto", proyectoPublicId);
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement(
+                        "INSERT INTO presupuesto (proyecto_id, version, es_vigente) VALUES (?, 1, TRUE) RETURNING id")) {
+            ps.setLong(1, proyectoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        }
     }
 
-    private void agregarDetalleApu(String token, Long apuId, String tipo, Long insumoId, double cantidad, Double rend) {
+    private String presupuestoPublicId(Long presupuestoId) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT public_id FROM presupuesto WHERE id = ?")) {
+            ps.setLong(1, presupuestoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getString(1);
+            }
+        }
+    }
+
+    private String crearInsumo(
+            String token,
+            String proyectoPublicId,
+            String codigo,
+            String tipo,
+            String desc,
+            String unidad,
+            double precio) {
+        return given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of(
+                        "codigo", codigo,
+                        "tipo", tipo,
+                        "descripcion", desc,
+                        "unidad", unidad,
+                        "precioUnitario", precio))
+                .when()
+                .post("/api/v1/proyectos/" + proyectoPublicId + "/insumos")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
+    }
+
+    private String crearApu(String token, String presupuestoPublicId, String codigo, String desc, String unidad) {
+        return given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of(
+                        "codigo", codigo,
+                        "descripcion", desc,
+                        "unidad", unidad))
+                .when()
+                .post("/api/v1/presupuestos/" + presupuestoPublicId + "/apus")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
+    }
+
+    private void agregarDetalleApu(
+            String token, String apuPublicId, String tipo, String insumoPublicId, double cantidad, Double rend) {
         Map<String, Object> body = rend != null
-                ? Map.of("seccionTipo", tipo, "insumoId", insumoId, "cantidad", cantidad, "rendimiento", rend)
-                : Map.of("seccionTipo", tipo, "insumoId", insumoId, "cantidad", cantidad);
+                ? Map.of("seccionTipo", tipo, "insumoId", insumoPublicId, "cantidad", cantidad, "rendimiento", rend)
+                : Map.of("seccionTipo", tipo, "insumoId", insumoPublicId, "cantidad", cantidad);
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(body)
                 .when()
-                .post("/api/v1/apus/" + apuId + "/detalles")
+                .post("/api/v1/apus/" + apuPublicId + "/detalles")
                 .then()
                 .statusCode(201);
     }
 
     @Test
-    void testFlujoCompletoPresupuesto() {
+    void testFlujoCompletoPresupuesto() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "presupuesto-user@uce.edu.ec");
-        Long proyectoId = crearProyecto(token);
+        String proyectoPublicId = crearProyecto(token);
+        Long proyectoId = internalId("proyecto", proyectoPublicId);
 
-        // 1. Listar versiones iniciales (al crear proyecto, se crea versión 1 vigente)
-        Number pIdNum = given().header("Authorization", "Bearer " + token)
+        // 1. Insert presupuesto v1 via SQL (no auto-creation)
+        Long pres1Id = insertarPresupuesto(proyectoPublicId);
+        String pres1PublicId = presupuestoPublicId(pres1Id);
+
+        given().header("Authorization", "Bearer " + token)
                 .when()
                 .get("/api/v1/proyectos/" + proyectoId + "/presupuestos")
                 .then()
                 .statusCode(200)
                 .body("size()", is(1))
                 .body("[0].version", is(1))
-                .body("[0].esVigente", is(true))
-                .extract()
-                .path("[0].presupuestoId");
-        Long pres1Id = pIdNum.longValue();
+                .body("[0].esVigente", is(true));
 
-        // 2. Crear insumos y APU
-        Long matId = crearInsumo(token, proyectoId, "MAT-01", "MATERIAL", "Cemento", "saco", 7.50);
-        Long apuId = crearApu(token, pres1Id, "APU-01", "Hormigón simple", "m3");
-        agregarDetalleApu(token, apuId, "MATERIAL", matId, 4.0, null); // 4 * 7.50 = 30.00 CD
+        // 2. Crear insumos y APU (UUIDv7 endpoints)
+        String matId = crearInsumo(token, proyectoPublicId, "MAT-01", "MATERIAL", "Cemento", "saco", 7.50);
+        String apuPublicId = crearApu(token, pres1PublicId, "APU-01", "Hormigón simple", "m3");
+        agregarDetalleApu(token, apuPublicId, "MATERIAL", matId, 4.0, null);
+        Long apuInternalId = internalId("apu", apuPublicId);
 
-        // 3. Crear Estructura de Capítulos
-        // Root: "1" Preliminares
+        // 3. Crear Estructura de Capítulos (Long presupuesto endpoints)
         Number cap1Num = given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(Map.of("descripcion", "Preliminares"))
@@ -141,7 +183,6 @@ class PresupuestoResourceIT {
                 .path("capitulos[0].id");
         Long cap1Id = cap1Num.longValue();
 
-        // Subcapítulo: "1.1" Obras de inicio
         Number subcapNum = given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(Map.of("descripcion", "Obras de inicio", "parentId", cap1Id))
@@ -155,10 +196,10 @@ class PresupuestoResourceIT {
                 .path("capitulos[0].subcapitulos[0].id");
         Long subcap1Id = subcapNum.longValue();
 
-        // 4. Agregar Rubro al subcapítulo
+        // 4. Agregar Rubro (Long apuId in body)
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
-                .body(Map.of("apuId", apuId, "cantidad", 10.0))
+                .body(Map.of("apuId", apuInternalId, "cantidad", 10.0))
                 .when()
                 .post("/api/v1/presupuestos/" + pres1Id + "/capitulos/" + subcap1Id + "/rubros")
                 .then()

@@ -11,8 +11,11 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import java.io.ByteArrayInputStream;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Map;
+import java.util.UUID;
 import javax.sql.DataSource;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
@@ -39,73 +42,95 @@ class DocumentoResourceIT {
         }
     }
 
-    private Long crearProyecto(String token) {
-        return ((Number) given().contentType(JSON)
-                        .header("Authorization", "Bearer " + token)
-                        .body(Map.of(
-                                "nombreProyecto", "Proyecto Export",
-                                "anio", (short) 2026,
-                                "plazoEjecucion", (short) 6,
-                                "plazoUnidad", "MES",
-                                "direccionInstitucional", "Quito"))
-                        .when()
-                        .post("/api/v1/proyectos")
-                        .then()
-                        .statusCode(201)
-                        .extract()
-                        .path("id"))
-                .longValue();
+    private String crearProyecto(String token) {
+        return given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of(
+                        "nombreProyecto", "Proyecto Export",
+                        "anio", (short) 2026,
+                        "plazoEjecucion", (short) 6,
+                        "plazoUnidad", "MES",
+                        "direccionInstitucional", "Quito"))
+                .when()
+                .post("/api/v1/proyectos")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
     }
 
-    private Long obtenerPresupuestoVigente(String token, Long proyectoId) {
-        return ((Number) given().header("Authorization", "Bearer " + token)
-                        .when()
-                        .get("/api/v1/proyectos/" + proyectoId + "/presupuestos")
-                        .then()
-                        .statusCode(200)
-                        .body("size()", greaterThan(0))
-                        .extract()
-                        .path("[0].presupuestoId"))
-                .longValue();
+    private Long internalId(String table, String publicId) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT id FROM " + table + " WHERE public_id = ?")) {
+            ps.setObject(1, UUID.fromString(publicId));
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        }
     }
 
-    private Long crearInsumo(String token, Long proyectoId, String codigo, String tipo, String desc, double precio) {
-        return ((Number) given().contentType(JSON)
-                        .header("Authorization", "Bearer " + token)
-                        .body(Map.of(
-                                "codigo", codigo,
-                                "tipo", tipo,
-                                "descripcion", desc,
-                                "unidad", "u",
-                                "precioUnitario", precio))
-                        .when()
-                        .post("/api/v1/proyectos/" + proyectoId + "/insumos")
-                        .then()
-                        .statusCode(201)
-                        .extract()
-                        .path("id"))
-                .longValue();
+    private Long insertarPresupuesto(String proyectoPublicId) throws Exception {
+        Long proyectoId = internalId("proyecto", proyectoPublicId);
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement(
+                        "INSERT INTO presupuesto (proyecto_id, version, es_vigente) VALUES (?, 1, TRUE) RETURNING id")) {
+            ps.setLong(1, proyectoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        }
     }
 
-    private Long crearApu(String token, Long presupuestoId, String codigo, String desc) {
-        return ((Number) given().contentType(JSON)
-                        .header("Authorization", "Bearer " + token)
-                        .body(Map.of("codigo", codigo, "descripcion", desc, "unidad", "u"))
-                        .when()
-                        .post("/api/v1/presupuestos/" + presupuestoId + "/apus")
-                        .then()
-                        .statusCode(201)
-                        .extract()
-                        .path("id"))
-                .longValue();
+    private String presupuestoPublicId(Long presupuestoId) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT public_id FROM presupuesto WHERE id = ?")) {
+            ps.setLong(1, presupuestoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getString(1);
+            }
+        }
     }
 
-    private void agregarDetalleApu(String token, Long apuId, String tipo, Long insumoId, double cantidad) {
+    private String crearInsumo(
+            String token, String proyectoPublicId, String codigo, String tipo, String desc, double precio) {
+        return given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of(
+                        "codigo", codigo,
+                        "tipo", tipo,
+                        "descripcion", desc,
+                        "unidad", "u",
+                        "precioUnitario", precio))
+                .when()
+                .post("/api/v1/proyectos/" + proyectoPublicId + "/insumos")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
+    }
+
+    private String crearApu(String token, String presupuestoPublicId, String codigo, String desc) {
+        return given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("codigo", codigo, "descripcion", desc, "unidad", "u"))
+                .when()
+                .post("/api/v1/presupuestos/" + presupuestoPublicId + "/apus")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
+    }
+
+    private void agregarDetalleApu(
+            String token, String apuPublicId, String tipo, String insumoPublicId, double cantidad) {
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
-                .body(Map.of("seccionTipo", tipo, "insumoId", insumoId, "cantidad", cantidad))
+                .body(Map.of("seccionTipo", tipo, "insumoId", insumoPublicId, "cantidad", cantidad))
                 .when()
-                .post("/api/v1/apus/" + apuId + "/detalles")
+                .post("/api/v1/apus/" + apuPublicId + "/detalles")
                 .then()
                 .statusCode(201);
     }
@@ -123,29 +148,36 @@ class DocumentoResourceIT {
                 .longValue();
     }
 
-    private void crearRubro(String token, Long presupuestoId, Long capituloId, Long apuId, double cantidad) {
+    private void crearRubro(String token, Long presupuestoId, Long capituloId, Long apuInternalId, double cantidad) {
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
-                .body(Map.of("apuId", apuId, "cantidad", cantidad))
+                .body(Map.of("apuId", apuInternalId, "cantidad", cantidad))
                 .when()
                 .post("/api/v1/presupuestos/" + presupuestoId + "/capitulos/" + capituloId + "/rubros")
                 .then()
                 .statusCode(201);
     }
 
-    /** Setup: register user, create project with 1 APU+rubro so presupuesto is exportable. */
-    private record Scenario(String token, Long proyectoId, Long presupuestoId, Long apuId) {}
+    private record Scenario(
+            String token,
+            String proyectoPublicId,
+            Long presupuestoId,
+            String presupuestoPublicId,
+            String apuPublicId,
+            Long apuInternalId) {}
 
-    private Scenario setupExportable() {
+    private Scenario setupExportable() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "doc-export@uce.edu.ec");
-        Long proyectoId = crearProyecto(token);
-        Long presId = obtenerPresupuestoVigente(token, proyectoId);
-        Long matId = crearInsumo(token, proyectoId, "MAT-D1", "MATERIAL", "Cemento", 10.0);
-        Long apuId = crearApu(token, presId, "APU-D1", "Hormigón");
-        agregarDetalleApu(token, apuId, "MATERIAL", matId, 2.0);
+        String proyectoPublicId = crearProyecto(token);
+        Long presId = insertarPresupuesto(proyectoPublicId);
+        String presPublicId = presupuestoPublicId(presId);
+        String matId = crearInsumo(token, proyectoPublicId, "MAT-D1", "MATERIAL", "Cemento", 10.0);
+        String apuPublicId = crearApu(token, presPublicId, "APU-D1", "Hormigón");
+        agregarDetalleApu(token, apuPublicId, "MATERIAL", matId, 2.0);
+        Long apuInternalId = internalId("apu", apuPublicId);
         Long capId = crearCapitulo(token, presId, "Obras");
-        crearRubro(token, presId, capId, apuId, 5.0);
-        return new Scenario(token, proyectoId, presId, apuId);
+        crearRubro(token, presId, capId, apuInternalId, 5.0);
+        return new Scenario(token, proyectoPublicId, presId, presPublicId, apuPublicId, apuInternalId);
     }
 
     @Test
@@ -154,7 +186,7 @@ class DocumentoResourceIT {
 
         byte[] data = given().header("Authorization", "Bearer " + s.token)
                 .when()
-                .get("/api/v1/documentos/apu/" + s.apuId)
+                .get("/api/v1/documentos/apu/" + s.apuInternalId)
                 .then()
                 .statusCode(200)
                 .header("Content-Disposition", containsString("attachment"))
@@ -171,18 +203,17 @@ class DocumentoResourceIT {
     void export_especificaciones_docx_returns_valid_document() throws Exception {
         Scenario s = setupExportable();
 
-        // Set especificacion tecnica on the APU
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + s.token)
                 .body(Map.of("texto", "Requisitos de calidad para hormigón."))
                 .when()
-                .put("/api/v1/apus/" + s.apuId + "/especificacion-tecnica")
+                .put("/api/v1/apus/" + s.apuPublicId + "/especificacion-tecnica")
                 .then()
                 .statusCode(200);
 
         byte[] data = given().header("Authorization", "Bearer " + s.token)
                 .when()
-                .get("/api/v1/documentos/especificaciones-tecnicas/" + s.presupuestoId)
+                .get("/api/v1/documentos/especificaciones-tecnicas/" + s.presupuestoPublicId)
                 .then()
                 .statusCode(200)
                 .header("Content-Disposition", containsString("attachment"))

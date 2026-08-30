@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.*;
 
 /**
@@ -28,10 +27,16 @@ import java.util.*;
  *   kind = "capitulo" | "subcapitulo" | "rubro"
  *
  * Note on stub APUs for consolidation tests: when an APU's full definition is not in the
- * sample file, we create a stub APU with a single MATERIAL line using precioUnitario from
- * the presupuesto (the workbook's 2dp-rounded CT), marked as auxiliar so Motor assigns
- * CI=0 and CT=precioUnitario. This lets Motor.consolidar compute the correct rubro totals
- * that match the workbook's presupuesto sum.
+ * sample file, we create a stub APU whose {@code Motor.calcularApu} result has
+ * {@code costoTotal = presupuesto.precioUnitario}. The stub is a single MATERIAL line
+ * with {@code precioInsumo = precioUnitario}, {@code cantidad = 1},
+ * {@code esAuxiliar = true} (so {@code CI = 0}); therefore
+ * {@code CT = CD_ajustado = CD = 1 × precioUnitario}.
+ * This is a <b>test-fixture fidelity decision</b> (the workbook is one example and may
+ * contain per-row errors; we do not overfit per-row/manual audits) and <b>not</b>
+ * production motor logic. We deliberately do <b>not</b> reconstruct {@code stubCT} from
+ * {@code precioTotal / cantidad}: the workbook's typed {@code precioUnitario} is the
+ * canonical input for the stub and {@code Motor.consolidar} derives the rest.
  */
 final class Fixtures {
 
@@ -63,6 +68,8 @@ final class Fixtures {
      */
     static ApuSnapshot apuFromJson(JsonNode apuNode) {
         String codigo = apuNode.get("codigo").asText();
+        // Plan 014 no-links: sample APUs all have CI applied (porcentajeIndirecto != null).
+        BigDecimal porcentajeIndirecto = bigDecimalOrNull(apuNode, "porcentajeIndirecto");
 
         List<FilaSnapshot> filas = new ArrayList<>();
 
@@ -76,17 +83,23 @@ final class Fixtures {
             }
         }
 
-        return new ApuSnapshot(codigo, filas);
+        return new ApuSnapshot(codigo, porcentajeIndirecto, filas);
     }
 
     /**
      * Create a stub ApuSnapshot whose Motor.calcularApu result has costoTotal = precioUnitario.
      * Used for rubros not in the APU sample file.
+     *
+     * Strategy: single MATERIAL line with precioInsumo=precioUnitario, cantidad=1, esAuxiliar=true.
+     * With esAuxiliar=true and descuento=0: CT = CD_ajustado = CD = 1 × precioUnitario.
+     * This matches the presupuesto's 2dp-rounded precioUnitario for every rubro.
      */
     static ApuSnapshot stubApuFromPrecioUnitario(String codigo, BigDecimal precioUnitario) {
-        FilaSnapshot mat =
-                new FilaSnapshot(SeccionTipo.MATERIAL, false, BigDecimal.ONE, null, precioUnitario, null, null);
-        return new ApuSnapshot(codigo, List.of(mat));
+        // Plan 014 fixture fidelity: stub sets porcentajeIndirecto=ZERO so the
+        // motor applies CI=0 → CT = CD_ajustado = CD = 1 × precioUnitario, exactly
+        // matching the workbook's typed 2dp precioUnitario per rubro.
+        FilaSnapshot mat = new FilaSnapshot(SeccionTipo.MATERIAL, false, BigDecimal.ONE, null, precioUnitario, null);
+        return new ApuSnapshot(codigo, BigDecimal.ZERO, List.of(mat));
     }
 
     /**
@@ -126,7 +139,7 @@ final class Fixtures {
         if (esHM) {
             // HM row: cantidad = percentage integer (e.g. 5), no precioInsumo, no rendimiento
             BigDecimal cantidad = bigDecimalOrNull(linea, "cantidad");
-            return new FilaSnapshot(SeccionTipo.EQUIPO, true, cantidad, null, null, null, null);
+            return new FilaSnapshot(SeccionTipo.EQUIPO, true, cantidad, null, null, null);
         }
 
         BigDecimal cantidad = bigDecimalOrNull(linea, "cantidad");
@@ -136,23 +149,23 @@ final class Fixtures {
                 // tarifa = precioInsumo, rendimiento = numeric rendimiento
                 BigDecimal tarifa = bigDecimalOrNull(linea, "tarifa");
                 BigDecimal rendimiento = bigDecimalOrNull(linea, "rendimiento");
-                return new FilaSnapshot(SeccionTipo.EQUIPO, false, cantidad, rendimiento, tarifa, null, null);
+                return new FilaSnapshot(SeccionTipo.EQUIPO, false, cantidad, rendimiento, tarifa, null);
             }
             case MANO_OBRA: {
                 // jornal = precioInsumo
                 BigDecimal jornal = bigDecimalOrNull(linea, "jornal");
                 BigDecimal rendimiento = bigDecimalOrNull(linea, "rendimiento");
-                return new FilaSnapshot(SeccionTipo.MANO_OBRA, false, cantidad, rendimiento, jornal, null, null);
+                return new FilaSnapshot(SeccionTipo.MANO_OBRA, false, cantidad, rendimiento, jornal, null);
             }
             case MATERIAL: {
                 // precioUnitario = precioInsumo, no rendimiento
                 BigDecimal precioUnitario = bigDecimalOrNull(linea, "precioUnitario");
-                return new FilaSnapshot(SeccionTipo.MATERIAL, false, cantidad, null, precioUnitario, null, null);
+                return new FilaSnapshot(SeccionTipo.MATERIAL, false, cantidad, null, precioUnitario, null);
             }
             case TRANSPORTE: {
                 // precioUnitario = precioInsumo, no rendimiento multiplication
                 BigDecimal precioUnitario = bigDecimalOrNull(linea, "precioUnitario");
-                return new FilaSnapshot(SeccionTipo.TRANSPORTE, false, cantidad, null, precioUnitario, null, null);
+                return new FilaSnapshot(SeccionTipo.TRANSPORTE, false, cantidad, null, precioUnitario, null);
             }
             default:
                 throw new IllegalStateException("Unknown tipo: " + tipo);
@@ -205,16 +218,12 @@ final class Fixtures {
                 if (apuNode != null) {
                     apu = apuFromJson(apuNode);
                 } else {
-                    // Prefer the fixture's precioTotal (full precision) over the 2dp precioUnitario
-                    // so the stub APU's CT reproduces the workbook's row total exactly.
-                    BigDecimal precioTotal = bigDecimalOrNull(row, "precioTotal");
-                    BigDecimal stubCT;
-                    if (precioTotal != null && cantidad.compareTo(BigDecimal.ZERO) != 0) {
-                        stubCT = precioTotal.divide(cantidad, 6, RoundingMode.HALF_UP);
-                    } else {
-                        stubCT = precioUnitario;
-                    }
-                    apu = stubApuFromPrecioUnitario(codigo, stubCT);
+                    // Plan 014 stub strategy (test-fixture fidelity, 2026-08-28):
+                    // use the workbook's typed precioUnitario directly as the stub
+                    // APU's CT. Do NOT reconstruct from precioTotal / cantidad —
+                    // the workbook is one example and may contain per-row errors;
+                    // the typed PU is the canonical input.
+                    apu = stubApuFromPrecioUnitario(codigo, precioUnitario);
                 }
 
                 RubroSnapshot rubro = new RubroSnapshot(codigo, cantidad, apu);

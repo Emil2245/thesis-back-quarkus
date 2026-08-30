@@ -1,16 +1,9 @@
 package ec.uce.propuestas.insumo.service;
 
-import ec.uce.propuestas.apu.entity.Apu;
-import ec.uce.propuestas.apu.entity.ApuDetalle;
-import ec.uce.propuestas.apu.entity.ApuSeccion;
-import ec.uce.propuestas.apu.repository.ApuDetalleRepository;
-import ec.uce.propuestas.apu.repository.ApuRepository;
-import ec.uce.propuestas.apu.repository.ApuSeccionRepository;
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.insumo.dto.InsumoCrearRequest;
 import ec.uce.propuestas.insumo.dto.InsumoEditarRequest;
 import ec.uce.propuestas.insumo.dto.InsumoResponse;
-import ec.uce.propuestas.insumo.dto.InsumoUsoResponse;
 import ec.uce.propuestas.insumo.entity.Insumo;
 import ec.uce.propuestas.insumo.entity.TipoInsumo;
 import ec.uce.propuestas.insumo.mapper.InsumoMapper;
@@ -18,28 +11,23 @@ import ec.uce.propuestas.insumo.repository.InsumoRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.UUID;
 
 /**
  * CRUD de insumo con reglas D-06 (unidad fija 'h' para MO/Equipo y restricciones
  * de edición de unidad), D-08 (no eliminar si está referenciado) y unicidad de
  * (base, codigo). Fallos -> {@link ProblemaException}.
+ *
+ * <p>Plan 07 — el {@code insumoId} de los métodos públicos es el {@code publicId}
+ * UUIDv7 (identidad externa inmutable). El seam resuelve UUID → BIGINT interno
+ * vía {@link InsumoRepository#findByPublicIdAndBase} dentro de la base indicada.
+ * El resto del flujo opera con BIGINTs internos.</p>
  */
 @ApplicationScoped
 public class InsumoCrudService {
 
     @Inject
     InsumoRepository insumoRepository;
-
-    @Inject
-    ApuDetalleRepository apuDetalleRepository;
-
-    @Inject
-    ApuSeccionRepository apuSeccionRepository;
-
-    @Inject
-    ApuRepository apuRepository;
 
     @Transactional
     public InsumoResponse crear(Long baseId, InsumoCrearRequest req) {
@@ -57,9 +45,14 @@ public class InsumoCrudService {
         return InsumoMapper.toResponse(e);
     }
 
+    /**
+     * Plan 07 — el caller pasa el {@code publicId} UUIDv7 del insumo y la base
+     * (ya validada por owner en la capa de resource). El seam resuelve UUID →
+     * BIGINT interno antes de mutar.
+     */
     @Transactional
-    public InsumoResponse actualizar(Long baseId, Long id, InsumoEditarRequest req) {
-        Insumo e = validarExistencia(baseId, id);
+    public InsumoResponse actualizar(Long baseId, UUID insumoPublicId, InsumoEditarRequest req) {
+        Insumo e = validarExistencia(baseId, insumoPublicId);
         e.descripcion = req.descripcion();
         aplicarUnidad(e, e.tipo, req.unidad());
         e.precioUnitario = req.precioUnitario();
@@ -69,8 +62,8 @@ public class InsumoCrudService {
 
     /** D-08: no permite borrar si el insumo está vinculado a un APU. */
     @Transactional
-    public void eliminar(Long baseId, Long id) {
-        Insumo e = validarExistencia(baseId, id);
+    public void eliminar(Long baseId, UUID insumoPublicId) {
+        Insumo e = validarExistencia(baseId, insumoPublicId);
         long usos = conteoUsosApu(e.id);
         if (usos > 0) {
             throw ProblemaException.validacion(
@@ -79,27 +72,14 @@ public class InsumoCrudService {
         insumoRepository.delete(e);
     }
 
+    /** stub: 0 hasta el módulo APU (P-18). */
     private long conteoUsosApu(Long insumoId) {
-        return apuDetalleRepository.countByInsumoId(insumoId);
+        return 0L;
     }
 
-    public List<InsumoUsoResponse> listarUsos(Long insumoId) {
-        List<ApuDetalle> detalles = apuDetalleRepository.findByInsumoId(insumoId);
-        List<InsumoUsoResponse> result = new ArrayList<>();
-        for (ApuDetalle d : detalles) {
-            ApuSeccion sec = apuSeccionRepository.findByIdOptional(d.seccionId).orElse(null);
-            if (sec == null) continue;
-            Apu apu = apuRepository.findByIdOptional(sec.apuId).orElse(null);
-            if (apu == null) continue;
-            result.add(new InsumoUsoResponse(
-                    apu.id, apu.codigo, apu.descripcion, sec.tipo.name(), d.precioUnitarioTarifa != null));
-        }
-        return result;
-    }
-
-    private Insumo validarExistencia(Long baseId, Long id) {
+    private Insumo validarExistencia(Long baseId, UUID insumoPublicId) {
         return insumoRepository
-                .findByIdYBase(id, baseId)
+                .findByPublicIdAndBase(insumoPublicId, baseId)
                 .orElseThrow(() -> ProblemaException.noEncontrado("Insumo no encontrado en esta base"));
     }
 

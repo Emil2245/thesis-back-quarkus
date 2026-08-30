@@ -105,7 +105,6 @@ public class DescuentoGlobalService {
                                 params.porcentajeHerramientaMenor.multiply(BigDecimal.valueOf(100)),
                                 null,
                                 null,
-                                null,
                                 null));
                     } else {
                         BigDecimal precioInsumo = d.insumoId == null ? null : preciosSimulados.get(d.insumoId);
@@ -115,18 +114,15 @@ public class DescuentoGlobalService {
                                     case MATERIAL, TRANSPORTE -> d.precioUnitarioTarifa;
                                 };
                         filas.add(new FilaSnapshot(
-                                seccion.tipo, false, d.cantidad, d.rendimiento, precioInsumo, override, null));
+                                seccion.tipo, false, d.cantidad, d.rendimiento, precioInsumo, override));
                     }
                 }
             }
 
             ApuCalculado out = Motor.calcularApu(
-                    new ApuSnapshot(apu.codigo, filas),
+                    new ApuSnapshot(apu.codigo, apu.porcentajeIndirecto, filas),
                     new ParametrosCalculo(
-                            params.porcentajeHerramientaMenor,
-                            params.porcentajeIndirecto,
-                            apu.porcentajeIndirecto,
-                            apu.porcentajeDescuento));
+                            params.porcentajeHerramientaMenor, params.porcentajeIndirecto, apu.porcentajeDescuento));
 
             calculadosSimulados.put(apu.id, out);
             porApu.add(new DescuentoGlobalPreviewResponse.DescuentoApuPreview(

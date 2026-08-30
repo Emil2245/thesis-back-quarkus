@@ -106,9 +106,10 @@ public final class Motor {
         BigDecimal uno = BigDecimal.ONE.subtract(p.porcentajeDescuento(), MC);
         BigDecimal costoDirectoAjustado = costoDirecto.multiply(uno, MC);
 
+        // Plan 014 no-links: %CI override lives on ApuSnapshot (per-APU).
         BigDecimal pctCi;
-        if (p.porcentajeIndirectoApu() != null) {
-            pctCi = p.porcentajeIndirectoApu();
+        if (in.porcentajeIndirecto() != null) {
+            pctCi = in.porcentajeIndirecto();
         } else if (p.porcentajeIndirectoDefault() != null) {
             pctCi = p.porcentajeIndirectoDefault();
         } else {

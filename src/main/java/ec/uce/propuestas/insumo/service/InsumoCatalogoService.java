@@ -37,7 +37,7 @@ public class InsumoCatalogoService {
             bases.add(baseInsumosService.asegurarBaseProyecto(proyectoId));
         }
         if (!soloCentrales && usuarioId != null) {
-            bases.addAll(baseInsumosRepository.listarPersonales(usuarioId));
+            bases.addAll(baseInsumosRepository.listarPersonalesDeUsuario(usuarioId));
         }
         if (bases.isEmpty()) {
             return Page.of(List.of(), 0, pageIndex, pageSize);
@@ -59,7 +59,7 @@ public class InsumoCatalogoService {
                 .map(i -> {
                     TipoBase tb = baseTipo.get(i.baseId);
                     return new InsumoBusquedaResponse(
-                            i.id,
+                            i.publicId,
                             i.codigo,
                             i.tipo,
                             i.descripcion,

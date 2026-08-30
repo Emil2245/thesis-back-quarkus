@@ -4,7 +4,6 @@ import ec.uce.propuestas.apu.repository.ApuRepository;
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.documento.service.ExportApuService;
 import ec.uce.propuestas.documento.service.ExportCronogramaService;
-import ec.uce.propuestas.documento.service.ExportEspecificacionesService;
 import ec.uce.propuestas.documento.service.ExportPresupuestoService;
 import ec.uce.propuestas.presupuesto.dto.ValidacionPresupuestoResponse;
 import ec.uce.propuestas.presupuesto.entity.Presupuesto;
@@ -37,9 +36,6 @@ public class DocumentoResource {
     ExportCronogramaService exportCronogramaService;
 
     @Inject
-    ExportEspecificacionesService exportEspecificacionesService;
-
-    @Inject
     PresupuestoService presupuestoService;
 
     @Inject
@@ -51,7 +47,7 @@ public class DocumentoResource {
     @Inject
     UsuarioRepository usuarioRepository;
 
-    @ConfigProperty(name = "app.display.precision-dinero", defaultValue = "2")
+    @ConfigProperty(name = "app.display.precision", defaultValue = "2")
     int precisionDinero;
 
     private Long usuarioId() {
@@ -146,27 +142,6 @@ public class DocumentoResource {
                     .header(
                             HttpHeaders.CONTENT_DISPOSITION,
                             "attachment; filename=\"Cronograma-" + presupuestoId + ".xlsx\"")
-                    .build();
-        } catch (IOException e) {
-            throw new WebApplicationException("Error generando documento", Response.Status.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    @GET
-    @Path("/especificaciones-tecnicas/{presupuestoId}")
-    @Produces("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-    public Response exportarEspecificaciones(
-            @PathParam("presupuestoId") Long presupuestoId,
-            @QueryParam("titulo1") String titulo1,
-            @QueryParam("titulo2") String titulo2) {
-        validarAccesoPresupuesto(presupuestoId);
-
-        try {
-            byte[] data = exportEspecificacionesService.generarDocx(presupuestoId, titulo1, titulo2);
-            return Response.ok(data)
-                    .header(
-                            HttpHeaders.CONTENT_DISPOSITION,
-                            "attachment; filename=\"EspecificacionesTecnicas-" + presupuestoId + ".docx\"")
                     .build();
         } catch (IOException e) {
             throw new WebApplicationException("Error generando documento", Response.Status.INTERNAL_SERVER_ERROR);

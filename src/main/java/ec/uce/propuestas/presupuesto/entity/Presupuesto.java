@@ -4,6 +4,9 @@ import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.UUID;
+import org.hibernate.annotations.Generated;
+import org.hibernate.generator.EventType;
 
 @Entity
 @Table(name = "presupuesto")
@@ -12,6 +15,10 @@ public class Presupuesto extends PanacheEntityBase {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     public Long id;
+
+    @Generated(event = EventType.INSERT)
+    @Column(name = "public_id", insertable = false, updatable = false)
+    public UUID publicId;
 
     @Column(name = "proyecto_id", nullable = false)
     public Long proyectoId;

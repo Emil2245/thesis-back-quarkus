@@ -3,7 +3,7 @@ quarkus:
     name: propuestas-api
 
   http:
-    port: 8080
+    port: ${QUARKUS_HTTP_PORT:8080}
     auth:
       # Lazy auth: permite que los fallos de seguridad (401/403) pasen por los
       # ExceptionMapper de JAX-RS y devuelvan el payload contract (ErrorPayload).
@@ -78,6 +78,10 @@ app:
     refresh-ttl-recordado: P30D
     refresh-ttl-sesion: PT12H     # generous session upper bound; client discards on close
     reenvio-cooldown: PT60S
+  display:
+    # Plan 014 T3 — display global (decimales de dinero / porcentaje). Override por env.
+    precision: ${DISPLAY_PRECISION:2}
+    precision-porcentaje: ${DISPLAY_PRECISION_PORCENTAJE:4}
 
 "%dev":
   quarkus:

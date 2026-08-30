@@ -51,10 +51,16 @@ the frontend (fully built) and the backend.
 | 019 | [Super-admin module](./019-admin-module.md) | P2 | L | 013, 014 | **DONE** (2026-08-29; V009 migration for range fields; AdminUsuarioResource, AdminBasesCentralesResource, AdminParametrosSistemaResource, AdminLogResource; LogService + LogActividad entity; 86 tests, 2 red GM-19/20, 2 skipped) |
 | 020 | [Bases personales](./020-bases-personales.md) | P3 | S | 013 | **DONE** (2026-08-29; V010 migration, BasePersonalResource, InsumoCatalogoService multi-source, 2 IT tests green) |
 
-**Recommended execution order:** 013 first (unblocks everything), then 014 (highest
-leverage), then 015+017 in parallel, then 016+018+019, finally 020.
+| 021 | [Merge UUIDv7 branch](./021-merge-uuidv7-branch.md) | — | — | all | **DONE** (2026-08-30; merged teammate's UUIDv7 branch, resolved 15 compilation errors, deleted 17 duplicate files/migrations, enforced D-12, migrated tests Long→UUID; 318 tests, 2 red GM-19/20, 1 skipped GM-24) |
 
-**Migrations introduced:** V005 (013), V006 (016), V007 (017), V008 (018), V009 (019), V010 (020).
+**Recommended execution order:** 013 first (unblocks everything), then 014 (highest
+leverage), then 015+017 in parallel, then 016+018+019, finally 020. Plan 021 is
+the merge that unified both branches — read it before touching any resource or test.
+
+**Migrations introduced (post-merge):** V001 is the unified baseline (UUIDv7).
+Teammate's incrementals: V005 (allow zero prices), V006 (plantilla nullable),
+V007 (rubro cantidad zero). Old V005-V010 from our branch were deleted
+(subsumed by V001).
 
 ## Dependency graph
 

@@ -1,6 +1,7 @@
 package ec.uce.propuestas.insumo.dto;
 
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -10,4 +11,6 @@ import java.math.BigDecimal;
 public record InsumoEditarRequest(
         @NotBlank String descripcion,
         @Size(max = 10) String unidad,
-        @NotNull @DecimalMin(value = "0.000001") BigDecimal precioUnitario) {}
+
+        @NotNull @DecimalMin(value = "0.000001") @Digits(integer = 8, fraction = 2)
+        BigDecimal precioUnitario) {}

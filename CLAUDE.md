@@ -55,9 +55,26 @@ Two roles only: `USUARIO`, `SUPER_ADMIN`. No third role. No middleware roles.
 - `NUMERIC(12,6)` — quantities
 - `NUMERIC(10,6)` — rendimiento (h/unit)
 - `NUMERIC(7,4)` — peso_ponderado (%)
-- **Rounding to 2 dp happens ONLY at export.** Never in the motor. Never
-  in the DB. If you find yourself calling `.setScale(2, ...)` in main code,
-  stop and ask why.
+- **El motor opera con la precisión natural de `BigDecimal`.** No aplica
+  redondeo intermedio a sus operaciones (la regla previa de
+  `CALC_PRECISION=3 HALF_UP` queda **retirada** por Plan 014, 2026-08-28;
+  ver [`plans/014-motor-precision-no-links.md`](plans/014-motor-precision-no-links.md)).
+- **La única rounding dentro del motor** es la frontera APU→Rubro en
+  `internal/Consolidador.java`, regla **workbook-consistent**
+  (corrección 2026-08-28): `precioUnitario = costoTotal.setScale(2,
+  RoundingMode.DOWN)`; `precioTotal = cantidad × precioUnitario`,
+  retenido a la escala de persistencia 6 (`NUMERIC(14,6)`) con
+  `setScale(6, RoundingMode.HALF_UP)`. **No** se trunca cada `precioTotal`
+  a 2 dp — la versión previa con `setScale(2, DOWN)` simétrico en PU y
+  PT producía deltas sistemáticos `GM19 = -$9.37` y `GM20 cap1 = -$3.09`
+  vs workbook IESS (ver STOP conditions de `plans/014`). Cualquier otro
+  `.setScale(...)` dentro de `motor/` es un bug — abrir STOP y reportar.
+- **Display config** se rige por la config global `app.display.precision`
+  (default 2, env `DISPLAY_PRECISION`) y `app.display.precision-porcentaje`
+  (default 4, env `DISPLAY_PRECISION_PORCENTAJE`); endpoint público
+  `GET /api/v1/config/display` → `{precisionDinero, precisionPorcentaje}`.
+  Aplicado únicamente en la capa de presentación/export. La BD nunca
+  redondea a 2 dp.
 
 BigDecimal only. `double` and `float` are banned in `motor/`:
 ```bash
@@ -93,14 +110,89 @@ Lives in `src/main/java/ec/uce/propuestas/motor/`. Contract:
 - **Golden Masters** (`GM-01`…`GM-25`) are the acceptance test. Any GM
   failing → real bug. Do NOT add tolerance, do NOT adjust expected values.
 
-**Current motor status** (2026-07-24): 21/25 GMs green. **GM-19 and GM-20
-are RED**, escalated to the director. The failing tests reflect a
-semantic tension between motor arithmetic (6-dp full precision) and
-workbook fixtures (2-dp precioUnitario rounding). See
-[`plans/README.md`](plans/README.md) §"006" for details.
-**Do not touch `Motor.java` or `internal/Consolidador.java`** until the
-director decides. The current answer to "why are GM-19/20 red" is not
-"a Motor bug"; it's a documented open question.
+**Current motor status** (cierre parcial USER-DECIDED 2026-08-28; ver
+[`plans/014-motor-precision-no-links.md`](plans/014-motor-precision-no-links.md)
+y [Plan 02](docs/modulos/planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)):
+el motor opera con la **precisión natural de `BigDecimal`**; el workbook
+IESS no aplica redondeo intermedio al APU (las 3 dp visibles son formato de
+display). La **única rounding del motor aplicada** es la frontera
+APU→Rubro en `internal/Consolidador.java` con la regla **workbook-consistent**:
+`precioUnitario = costoTotal.setScale(2, RoundingMode.DOWN)`;
+`precioTotal = cantidad × precioUnitario`, retenido a la escala de
+persistencia 6 (`NUMERIC(14,6)`) con `setScale(6, RoundingMode.HALF_UP)`;
+los totales de capítulo y `totalGeneral` se agregan desde esos `precioTotal`
+a escala 6; el display canónico a 2 dp ocurre solo en la capa de
+presentación/assertion. **No** se trunca cada `precioTotal` a 2 dp — la
+versión previa con `setScale(2, DOWN)` simétrico en PU y PT quedaba
+retirada por deltas sistemáticos `GM19 = -$9.37` y `GM20 cap1 = -$3.09` vs
+workbook IESS (ver STOP conditions de `plans/014`). Display global
+configurable vía `app.display.precision` (default 2) y
+`app.display.precision-porcentaje` (default 4); endpoint público
+`GET /api/v1/config/display` **IMPLEMENTADO** (Plan 014 T3, 2026-08-28 —
+`DisplayConfig` + `DisplayConfigResponse` + `DisplayConfigResource`,
+defaults 2/4 verificados por `DisplayConfigResourceTest` 1/1 +
+`DisplayConfigResourceOverrideTest` 1/1). Validación de entrada `@Digits`
+solo en los campos monetarios de DTO del catálogo cerrado del plan
+(`ApuDetallePatchRequest.precioOverride`, `InsumoCrearRequest.precioUnitario`,
+`InsumoEditarRequest.precioUnitario`; nunca en campos de entidad como
+`tarifaJornal` / `precioUnitarioTarifa`, ni en cantidades, rendimientos
+o porcentajes) — **IMPLEMENTADO** (Plan 014 T4, 2026-08-28, verificado
+por `DigitsValidationCatalogTest` 3/3).
+
+**Baseline post-implementación (2026-08-28 — Plan 014 IMPLEMENTATION COMPLETE,
+GM-21 cleanup DEFERRED)**
+`./gradlew test --tests 'ec.uce.propuestas.motor.*' --console=plain`:
+`MotorApuTest` 21/21 verde; `MotorPropiedadesTest` 5/5 verde;
+`ConsolidadorFronteraTest` 5/5 verde (T1 workbook-consistent);
+`SnapshotSinAuxiliaresTest` 6/6 verde (T2 no-links estructural);
+`DisplayConfigResourceTest` 1/1 + `DisplayConfigResourceOverrideTest` 1/1
+verde (T3 display); `DigitsValidationCatalogTest` 3/3 verde (T4
+`@Digits`). GM-21 verde con allowlist de **11 entradas ≤ 0.03 a nivel
+PU** (artefactos de redondeo manual del workbook IESS); **GM-19 y GM-20
+RED** con residual aceptado — GM-19 actual `395108.37` vs esperado
+`395115.32` (delta `-$6.95`); GM-20 cap. 1 actual `158907.21` vs
+esperado `158908.05` (delta `-$0.84`). GM-24 `@Disabled` (fixture
+upstream). DIAG borrado. **No** se reabre el motor para cerrar este
+residual; workbook, golden expected values, tolerancias y fórmulas del
+motor quedan cerradas. Preferencia del usuario: este es **un example
+workbook único**; no se realizan auditorías exhaustivas per-rubro.
+
+**Regla de modificación del Motor (Plan 014, 2026-08-28):**
+- **`Motor.calcularApu()` y `internal/CalculadorFila.java`:** el guard "do
+  not touch" se levanta **de forma acotada y solo para Plan 014**, para
+  **ediciones estructurales mínimas**: borrar las ramas obsoletas
+  `esAuxiliar`/`cdAuxiliar` y leer el `%CI` por APU desde
+  `ApuSnapshot.porcentajeIndirecto`. **Aritmética intacta:** fórmulas,
+  `MathContext`, orden de operaciones y precisión natural de `BigDecimal`
+  quedan semánticamente idénticos; **ningún redondeo intermedio** (la regla
+  anterior de `CALC_PRECISION=3 HALF_UP` por operación queda **retirada**).
+  Fuera de ese scope acotado el guard sigue vigente.
+- **`internal/Consolidador.java`:** se permite modificar **solo** para
+  aplicar la regla **workbook-consistent** de la frontera APU→Rubro
+  (corrección 2026-08-28): `RoundingMode.DOWN` 2 dp **solo** en
+  `precioUnitario`; `precioTotal = cantidad × PU_2dp` retenido a
+  escala 6 (`NUMERIC(14,6)`) con `HALF_UP`; agregar los totales de
+  capítulo y `totalGeneral` desde esos `precioTotal` a escala 6.
+  **No** reintroducir `setScale(2, DOWN)` por rubro total (causaba
+  deltas sistemáticos `GM19 = -$9.37` y `GM20 cap1 = -$3.09`).
+  Cada nueva excepción debe documentarse con su plan
+  (`plans/0NN`) y referenciarse aquí.
+- **Snapshots/resultados del motor:** `ApuSnapshot` y `ApuCalculado` sin
+  `esAuxiliar`; `FilaSnapshot` sin `cdAuxiliar`; `ParametrosCalculo` sin
+  `porcentajeIndirectoApu` (no-links N04 §2 confirmado por Plan 014).
+  `ApuSnapshot.porcentajeIndirecto` (nullable) es el único override
+  semántico por APU; `ParametrosCalculo` retiene solo el default del
+  proyecto.
+- **`Fixture.java`:** no tocar las assertions de los GMs; solo reparaciones
+  justificadas (con STOP conditions documentadas).
+
+**Para cambios futuros al motor:** abrir `plans/0NN-motor-fix.md`
+siguiendo el patrón de `plans/006`. Cada cambio debe:
+1. Justificar el cambio por un cambio de requerimientos funcionales.
+2. Actualizar `CLAUDE.md` y `thesis-docs/CLAUDE.md` con la nota
+   correspondiente.
+3. NO tocar tolerances de GMs existentes.
+4. Re-correr `./gradlew test` completo y reportar baseline + delta.
 
 ## Verification commands (memorize)
 
@@ -113,16 +205,52 @@ director decides. The current answer to "why are GM-19/20 red" is not
 ./gradlew build -Dquarkus.native.enabled=true -Dquarkus.native.container-build=true   # native (~10 min)
 ```
 
-Expected test count (as of 2026-07-24): **56 total, 2 red, 2 skipped**.
-The 2 red are GM-19 and GM-20 (see above). The 2 skipped are GM-24
-(`@Disabled`, upstream fixture bug) and `DIAG_rubro_expected_vs_actual`
-(temporary diagnostic method for the GM-19/20 investigation).
+Expected motor test count (post-cierre-parcial 2026-08-28): **36 tests
+totales** (21 `MotorApuTest` + 5 `MotorConsolidacionTest` + 5 `MotorPropiedadesTest`
++ 5 `ConsolidadorFronteraTest`); **2 red** (GM-19 `-$6.95`, GM-20 cap. 1
+`-$0.84` — **residual aceptado**, no se reabre el motor); **2 skipped**
+(GM-24 `@Disabled` por fixture EMELNORTE upstream; `DIAG_rubro_expected_vs_actual`
+`@Disabled` — pendiente de borrado en Plan 014). Conteo total de la suite
+se **reporta** desde los XML de `build/test-results/`, no se presupone.
+
+Do **not** hardcode a post-change total. After any run, report the real
+counts from the XML results instead of predicting them:
+
+```bash
+grep -ho 'tests="[0-9]*"\|failures="[0-9]*"\|errors="[0-9]*"\|skipped="[0-9]*"' \
+  build/test-results/test/TEST-*.xml
+```
+
+## UUIDv7 merge (2026-08-30) — read before touching any resource or test
+
+**WARNING:** The codebase was merged with a teammate's UUIDv7 branch on
+2026-08-30. This merge changed the entire REST API surface from `Long`
+internal IDs to `UUID` public IDs, rewrote V001 from scratch, and
+reorganized several modules. **17 files were deleted** (duplicate resources,
+old migrations, old entities). All details in
+[`plans/021-merge-uuidv7-branch.md`](plans/021-merge-uuidv7-branch.md).
+
+Key post-merge facts:
+- **All REST endpoints use UUIDv7 public IDs**, not Long. Path params are
+  `UUID`, not `Long`. Invalid UUIDs return 400 (not 404).
+- **V001 is the single baseline** — includes `public_id UUID` columns,
+  `uuidv7()` function, immutability triggers. No incremental V005-V010
+  from the old branch exist. New migrations start at V005 (teammate's).
+- **`plantilla/` is its own module** — not under `proyecto/`. The old
+  `proyecto/entity/PlantillaProyecto.java` was deleted.
+- **`DisplayConfigResource` lives at `common/config/`** — config property
+  is `app.display.precision` (not `app.display.precision-dinero`).
+- **No DELETE endpoint for central bases** (D-12 enforced).
+- **No auto-creation of presupuesto v1** on project creation — tests
+  manage presupuestos explicitly.
+- **Motor record signatures changed** — see §8 of plan 021 for the
+  canonical 6/3/3-param constructors.
 
 ## Repo conventions
 
 - **Package structure**: vertical slices per module (`usuario/`, `motor/`,
-  `common/`, and future `insumo/`, `apu/`, `presupuesto/`, `cronograma/`,
-  `documento/`). See `08-codebase-design.md §1`.
+  `common/`, `insumo/`, `apu/`, `presupuesto/`, `cronograma/`,
+  `documento/`, `plantilla/`, `admin/`). See `08-codebase-design.md §1`.
 - **Deep modules only get `Service` + `Repository`**: motor, recalculo,
   versionado, documento, importacion, invitacion-tokens, correo. Plain
   CRUD is `Resource → Panache` direct. Don't invent `UsuarioService` for

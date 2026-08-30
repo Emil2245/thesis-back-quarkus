@@ -1,6 +1,7 @@
 package ec.uce.propuestas.insumo.repository;
 
 import ec.uce.propuestas.insumo.entity.Insumo;
+import ec.uce.propuestas.insumo.entity.TipoBase;
 import ec.uce.propuestas.insumo.entity.TipoInsumo;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import io.quarkus.panache.common.Page;
@@ -9,6 +10,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /** Acceso a {@code insumo}. Reglas de negocio en los services. */
 @ApplicationScoped
@@ -21,8 +23,32 @@ public class InsumoRepository implements PanacheRepositoryBase<Insumo, Long> {
                 .firstResultOptional();
     }
 
+    /**
+     * Variante con filtro adicional de tipo de insumo (compatible con la
+     * sección destino del APU). Usada por la carga de plantillas APU para
+     * garantizar que un código MO no se reutilice como EQUIPO, etc.
+     */
+    public Optional<Insumo> findByBaseYcodigoYTipo(Long baseId, String codigo, TipoInsumo tipo) {
+        return find(
+                        "baseId = :baseId and codigo = :codigo and tipo = :tipo",
+                        Parameters.with("baseId", baseId).and("codigo", codigo).and("tipo", tipo))
+                .firstResultOptional();
+    }
+
     public Optional<Insumo> findByIdYBase(Long id, Long baseId) {
         return find("id = :id and baseId = :baseId", Parameters.with("id", id).and("baseId", baseId))
+                .firstResultOptional();
+    }
+
+    /**
+     * Plan 07 — lookup de insumo por {@code publicId} UUIDv7 dentro de una base
+     * especificada por su {@code BIGINT} interno. La autorización (owner-to-404)
+     * se cierra en la capa superior (resource o {@code BaseInsumosService}).
+     */
+    public Optional<Insumo> findByPublicIdAndBase(UUID publicId, Long baseId) {
+        return find(
+                        "publicId = :publicId and baseId = :baseId",
+                        Parameters.with("publicId", publicId).and("baseId", baseId))
                 .firstResultOptional();
     }
 
@@ -74,6 +100,45 @@ public class InsumoRepository implements PanacheRepositoryBase<Insumo, Long> {
             params = params.and("q", "%" + q.toLowerCase() + "%");
         }
         return count(ql.toString(), params);
+    }
+
+    /**
+     * WU-03 — Resolución por {@code public_id} (UUIDv7) con scope de owner. Travesía owner:
+     * Insumo → BaseInsumos → caller (PERSONAL o dueño del proyecto PROYECTO). Bases CENTRALES
+     * quedan fuera de este seam de USUARIO; una fila de otro dueño devuelve
+     * {@link Optional#empty()} (mapeo a 404). El {@code public_id} nunca se usa como FK ni
+     * como grant de autorización.
+     */
+    public Optional<Insumo> findByPublicIdAndOwnerScope(UUID publicId, Long callerUsuarioId) {
+        return getEntityManager()
+                .createQuery(
+                        "select i from Insumo i, BaseInsumos b, Proyecto p "
+                                + "where i.publicId = :publicId and i.baseId = b.id "
+                                + "and ((b.tipo = :tipoPersonal and b.usuarioId = :caller) "
+                                + "  or (b.tipo = :tipoProyecto "
+                                + "      and b.proyectoId = p.id and p.usuarioId = :caller))",
+                        Insumo.class)
+                .setParameter("publicId", publicId)
+                .setParameter("caller", callerUsuarioId)
+                .setParameter("tipoPersonal", TipoBase.PERSONAL)
+                .setParameter("tipoProyecto", TipoBase.PROYECTO)
+                .getResultList()
+                .stream()
+                .findFirst();
+    }
+
+    /** Resuelve por UUID público únicamente cuando el insumo pertenece a una base CENTRAL. */
+    public Optional<Insumo> findCentralByPublicId(UUID publicId) {
+        return getEntityManager()
+                .createQuery(
+                        "select i from Insumo i, BaseInsumos b "
+                                + "where i.publicId = :publicId and i.baseId = b.id and b.tipo = :tipoCentral",
+                        Insumo.class)
+                .setParameter("publicId", publicId)
+                .setParameter("tipoCentral", TipoBase.CENTRAL)
+                .getResultList()
+                .stream()
+                .findFirst();
     }
 
     private record Filtros(String sql, Parameters params) {}

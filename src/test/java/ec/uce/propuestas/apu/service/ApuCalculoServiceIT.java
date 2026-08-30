@@ -25,6 +25,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -65,60 +66,80 @@ class ApuCalculoServiceIT {
         }
     }
 
-    private Long crearProyecto(String token) {
-        return ((Number) given().contentType(JSON)
-                        .header("Authorization", "Bearer " + token)
-                        .body(Map.of(
-                                "nombreProyecto", "Pozo APU",
-                                "anio", (short) 2026,
-                                "plazoEjecucion", (short) 4,
-                                "plazoUnidad", "MES",
-                                "direccionInstitucional", "GAD"))
-                        .when()
-                        .post("/api/v1/proyectos")
-                        .then()
-                        .statusCode(201)
-                        .extract()
-                        .path("id"))
-                .longValue();
+    private String crearProyecto(String token) {
+        return given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of(
+                        "nombreProyecto", "Pozo APU",
+                        "anio", (short) 2026,
+                        "plazoEjecucion", (short) 4,
+                        "plazoUnidad", "MES",
+                        "direccionInstitucional", "GAD"))
+                .when()
+                .post("/api/v1/proyectos")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
     }
 
-    private Long crearInsumo(
+    private String crearInsumo(
             String token,
-            Long proyectoId,
+            String proyectoId,
             String codigo,
             String tipo,
             String descripcion,
             String unidad,
             double precio) {
-        return ((Number) given().contentType(JSON)
-                        .header("Authorization", "Bearer " + token)
-                        .body(Map.of(
-                                "codigo",
-                                codigo,
-                                "tipo",
-                                tipo,
-                                "descripcion",
-                                descripcion,
-                                "unidad",
-                                unidad,
-                                "precioUnitario",
-                                precio))
-                        .when()
-                        .post("/api/v1/proyectos/" + proyectoId + "/insumos")
-                        .then()
-                        .statusCode(201)
-                        .extract()
-                        .path("id"))
-                .longValue();
+        return given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of(
+                        "codigo", codigo,
+                        "tipo", tipo,
+                        "descripcion", descripcion,
+                        "unidad", unidad,
+                        "precioUnitario", precio))
+                .when()
+                .post("/api/v1/proyectos/" + proyectoId + "/insumos")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
     }
 
-    private Long insertarPresupuesto(Long proyectoId) throws Exception {
+    private Long internalProyectoId(String publicId) throws Exception {
         try (Connection con = ds.getConnection();
-                PreparedStatement ps =
-                        con.prepareStatement("SELECT id FROM presupuesto WHERE proyecto_id = ? AND version = 1")) {
-            ps.setLong(1, proyectoId);
+                PreparedStatement ps = con.prepareStatement("SELECT id FROM proyecto WHERE public_id = ?")) {
+            ps.setObject(1, UUID.fromString(publicId));
             try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                return rs.getLong(1);
+            }
+        }
+    }
+
+    private Long insertarPresupuesto(String proyectoId) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement(
+                        "INSERT INTO presupuesto (proyecto_id, version, es_vigente) VALUES (?, 1, TRUE) RETURNING id")) {
+            ps.setLong(1, internalProyectoId(proyectoId));
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        }
+    }
+
+    /** Resuelve el {@code usuarioId} interno del caller (único usuario recién registrado). */
+    private Long callerUsuarioId(String token) throws Exception {
+        // AuthSupport.registrarConToken ya validó email; aquí miramos directamente la BD.
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT id FROM usuario WHERE email = ?")) {
+            // El primer usuario en este test es el recién registrado: el email se deriva del token
+            // no es accesible, pero como el test registra exactamente un usuario al inicio, basta
+            // con ordenar por id desc y tomar el primero.
+            try (PreparedStatement ps2 = con.prepareStatement("SELECT id FROM usuario ORDER BY id DESC LIMIT 1");
+                    ResultSet rs = ps2.executeQuery()) {
                 rs.next();
                 return rs.getLong(1);
             }
@@ -128,18 +149,24 @@ class ApuCalculoServiceIT {
     @Test
     void writeThrough_hm5pct_por_subtotalN_y_ci_heredado() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "apu-calc@ex.com");
-        Long proyectoId = crearProyecto(token);
+        String proyectoId = crearProyecto(token);
         Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long insumoMo = crearInsumo(token, proyectoId, "MO-001", "MANO_OBRA", "Armador", "h", 8.99);
-        Long insumoMat = crearInsumo(token, proyectoId, "MA-001", "MATERIAL", "Cemento", "kg", 1.5);
+        String insumoMo = crearInsumo(token, proyectoId, "MO-001", "MANO_OBRA", "Armador", "h", 8.99);
+        String insumoMat = crearInsumo(token, proyectoId, "MA-001", "MATERIAL", "Cemento", "kg", 1.5);
 
-        ApuResponse apu = apuService.crear(presupuestoId, new ApuCrearRequest("APU-CALC", "Pozo de agua", "m³"));
+        ApuResponse apu =
+                apuService.crearComoRespuesta(presupuestoId, new ApuCrearRequest("APU-CALC", "Pozo de agua", "m³"));
+        Long apuId = internalId(apu.id());
 
         apu = apuService.agregarDetalle(
-                apu.id(),
-                new ApuDetalleCrearRequest(SeccionTipo.MANO_OBRA, insumoMo, new BigDecimal("1"), new BigDecimal("1")));
+                apuId,
+                new ApuDetalleCrearRequest(
+                        SeccionTipo.MANO_OBRA, UUID.fromString(insumoMo), new BigDecimal("1"), new BigDecimal("1")),
+                callerUsuarioId(token));
         apu = apuService.agregarDetalle(
-                apu.id(), new ApuDetalleCrearRequest(SeccionTipo.MATERIAL, insumoMat, new BigDecimal("2"), null));
+                apuId,
+                new ApuDetalleCrearRequest(SeccionTipo.MATERIAL, UUID.fromString(insumoMat), new BigDecimal("2"), null),
+                callerUsuarioId(token));
 
         // subtotalN = 1 × 8.99 × 1 = 8.99; HM = 0.05 × 8.99 = 0.4495
         assertEquals(
@@ -149,7 +176,7 @@ class ApuCalculoServiceIT {
         assertEquals(0, apu.costoTotal().compareTo(new BigDecimal("12.4395")));
 
         // write-through a BD
-        Apu persistido = apuRepository.findById(apu.id());
+        Apu persistido = apuRepository.findById(apuId);
         assertEquals(
                 0,
                 persistido.costoDirecto.compareTo(new BigDecimal("12.439500")),
@@ -157,7 +184,7 @@ class ApuCalculoServiceIT {
         assertEquals(0, persistido.costoTotal.compareTo(new BigDecimal("12.439500")));
 
         // subtotales por sección en BD
-        List<ApuSeccion> secciones = seccionRepository.listarDeApu(apu.id());
+        List<ApuSeccion> secciones = seccionRepository.listarDeApu(apuId);
         assertEquals(0, seccion(secciones, SeccionTipo.EQUIPO).subtotal.compareTo(new BigDecimal("0.449500")));
         assertEquals(0, seccion(secciones, SeccionTipo.MANO_OBRA).subtotal.compareTo(new BigDecimal("8.990000")));
         assertEquals(0, seccion(secciones, SeccionTipo.MATERIAL).subtotal.compareTo(new BigDecimal("3.000000")));
@@ -192,20 +219,40 @@ class ApuCalculoServiceIT {
     @Test
     void writeThrough_mutar_cantidad_actualiza_total_y_persiste() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "apu-calc2@ex.com");
-        Long proyectoId = crearProyecto(token);
+        String proyectoId = crearProyecto(token);
         Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long insumoMo = crearInsumo(token, proyectoId, "MO-002", "MANO_OBRA", "Maestro", "h", 4.0);
+        String insumoMo = crearInsumo(token, proyectoId, "MO-002", "MANO_OBRA", "Maestro", "h", 4.0);
 
-        ApuResponse apu = apuService.crear(presupuestoId, new ApuCrearRequest("APU-CALC-2", "Fila sistema", "u"));
+        ApuResponse apu =
+                apuService.crearComoRespuesta(presupuestoId, new ApuCrearRequest("APU-CALC-2", "Fila sistema", "u"));
+        Long apuId = internalId(apu.id());
         apu = apuService.agregarDetalle(
-                apu.id(),
+                apuId,
                 new ApuDetalleCrearRequest(
-                        SeccionTipo.MANO_OBRA, insumoMo, new BigDecimal("2"), new BigDecimal("0.5")));
+                        SeccionTipo.MANO_OBRA, UUID.fromString(insumoMo), new BigDecimal("2"), new BigDecimal("0.5")),
+                callerUsuarioId(token));
 
         // CD = HM(0.05 × 4.0) + N(2 × 4 × 0.5 = 4.0) = 0.2 + 4.0 = 4.2
         assertEquals(0, apu.costoTotal().compareTo(new BigDecimal("4.2")));
 
-        assertEquals(0, apuRepository.findById(apu.id()).costoTotal.compareTo(new BigDecimal("4.200000")));
+        assertEquals(0, apuRepository.findById(apuId).costoTotal.compareTo(new BigDecimal("4.200000")));
+    }
+
+    /**
+     * Resuelve el {@code BIGINT} interno de un APU a partir de su UUID público.
+     * Los services y repositorios consumen el id interno; el contrato expone
+     * {@code publicId} (OpenSpec WU-03). Solo se usa desde tests de integración
+     * para pasar de la respuesta pública a la API tipada en {@code Long}.
+     */
+    private Long internalId(UUID publicId) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT id FROM apu WHERE public_id = ?")) {
+            ps.setObject(1, publicId);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next(), "El APU público debe resolver a un id interno");
+                return rs.getLong(1);
+            }
+        }
     }
 
     private static ApuSeccion seccion(List<ApuSeccion> secciones, SeccionTipo tipo) {

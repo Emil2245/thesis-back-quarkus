@@ -76,8 +76,7 @@ class ErrorContractIT {
                 .when()
                 .get("/api/v1/proyectos/empty/insumos")
                 .then()
-                .statusCode(404)
-                .body("codigo", equalTo("no-encontrado"))
-                .body("mensaje", equalTo("Recurso no encontrado"));
+                .statusCode(400)
+                .body("codigo", equalTo("validacion"));
     }
 }

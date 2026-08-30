@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 class MotorApuTest {
 
     private static final ParametrosCalculo P_TULCAN =
-            new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1800"), null, BigDecimal.ZERO);
+            new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1800"), BigDecimal.ZERO);
 
     private static final String TULCAN_FILE = "apus-sample-apus-cetro-medico-tulcan.json";
 
@@ -293,7 +293,6 @@ class MotorApuTest {
                 new BigDecimal("1.00"),
                 new BigDecimal("1.00000"),
                 new BigDecimal("4.28"),
-                null,
                 null);
         FilaSnapshot moPeon = new FilaSnapshot(
                 SeccionTipo.MANO_OBRA,
@@ -301,7 +300,6 @@ class MotorApuTest {
                 new BigDecimal("1.00"),
                 new BigDecimal("1.00000"),
                 new BigDecimal("4.23"),
-                null,
                 null);
         // Maestro: Annex shows costo=0.48 (= 0.10×4.75 displayed at 2dp).
         // Using price=0.48, cantidad=1, rend=1.0 to exactly match the Annex's subtotalN=8.99.
@@ -311,29 +309,29 @@ class MotorApuTest {
                 new BigDecimal("1.00"),
                 new BigDecimal("1.00000"),
                 new BigDecimal("0.48"),
-                null,
                 null);
 
         // EQUIPO: HM row only (5% of MO)
-        FilaSnapshot hmFila = new FilaSnapshot(SeccionTipo.EQUIPO, true, new BigDecimal("5"), null, null, null, null);
+        FilaSnapshot hmFila = new FilaSnapshot(SeccionTipo.EQUIPO, true, new BigDecimal("5"), null, null, null);
 
         // MATERIAL rows: using Annex costo-column values as price, cantidad=1
         FilaSnapshot matVinil = new FilaSnapshot(
-                SeccionTipo.MATERIAL, false, new BigDecimal("1.00"), null, new BigDecimal("45.60"), null, null);
+                SeccionTipo.MATERIAL, false, new BigDecimal("1.00"), null, new BigDecimal("45.60"), null);
         // Cordón: Annex shows costo=0.51; using price=0.51 to get subtotalO=51.95
         FilaSnapshot matCordon = new FilaSnapshot(
-                SeccionTipo.MATERIAL, false, new BigDecimal("1.00"), null, new BigDecimal("0.51"), null, null);
+                SeccionTipo.MATERIAL, false, new BigDecimal("1.00"), null, new BigDecimal("0.51"), null);
         // Pegamento: Annex shows costo=5.84 (inconsistent with 0.10×61.49=6.149)
         FilaSnapshot matPegamento = new FilaSnapshot(
-                SeccionTipo.MATERIAL, false, new BigDecimal("1.00"), null, new BigDecimal("5.84"), null, null);
+                SeccionTipo.MATERIAL, false, new BigDecimal("1.00"), null, new BigDecimal("5.84"), null);
 
-        // APU snapshot — NOT auxiliar
+        // APU snapshot — NOT auxiliar (Plan 014: porcentajeIndirecto=null → inherit default).
         ApuSnapshot snap = new ApuSnapshot(
                 "501062",
+                null,
                 java.util.List.of(hmFila, moInstalador, moPeon, moMaestro, matVinil, matCordon, matPegamento));
 
         ParametrosCalculo p =
-                new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1800"), null, BigDecimal.ZERO);
+                new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1800"), BigDecimal.ZERO);
 
         ApuCalculado out = Motor.calcularApu(snap, p);
 

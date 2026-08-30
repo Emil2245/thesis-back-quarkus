@@ -9,8 +9,11 @@ import ec.uce.propuestas.usuario.auth.RecordingEnviadorCorreo;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Map;
+import java.util.UUID;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,73 +38,95 @@ class CronogramaResourceIT {
         }
     }
 
-    private Long crearProyecto(String token) {
-        return ((Number) given().contentType(JSON)
-                        .header("Authorization", "Bearer " + token)
-                        .body(Map.of(
-                                "nombreProyecto", "Proyecto Cronograma",
-                                "anio", (short) 2026,
-                                "plazoEjecucion", (short) 6,
-                                "plazoUnidad", "MES",
-                                "direccionInstitucional", "Quito"))
-                        .when()
-                        .post("/api/v1/proyectos")
-                        .then()
-                        .statusCode(201)
-                        .extract()
-                        .path("id"))
-                .longValue();
+    private String crearProyecto(String token) {
+        return given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of(
+                        "nombreProyecto", "Proyecto Cronograma",
+                        "anio", (short) 2026,
+                        "plazoEjecucion", (short) 6,
+                        "plazoUnidad", "MES",
+                        "direccionInstitucional", "Quito"))
+                .when()
+                .post("/api/v1/proyectos")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
     }
 
-    private Long obtenerPresupuestoVigente(String token, Long proyectoId) {
-        return ((Number) given().header("Authorization", "Bearer " + token)
-                        .when()
-                        .get("/api/v1/proyectos/" + proyectoId + "/presupuestos")
-                        .then()
-                        .statusCode(200)
-                        .body("size()", greaterThan(0))
-                        .extract()
-                        .path("[0].presupuestoId"))
-                .longValue();
+    private Long internalId(String table, String publicId) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT id FROM " + table + " WHERE public_id = ?")) {
+            ps.setObject(1, UUID.fromString(publicId));
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        }
     }
 
-    private Long crearInsumo(String token, Long proyectoId, String codigo, String tipo, String desc, double precio) {
-        return ((Number) given().contentType(JSON)
-                        .header("Authorization", "Bearer " + token)
-                        .body(Map.of(
-                                "codigo", codigo,
-                                "tipo", tipo,
-                                "descripcion", desc,
-                                "unidad", "u",
-                                "precioUnitario", precio))
-                        .when()
-                        .post("/api/v1/proyectos/" + proyectoId + "/insumos")
-                        .then()
-                        .statusCode(201)
-                        .extract()
-                        .path("id"))
-                .longValue();
+    private Long insertarPresupuesto(String proyectoPublicId) throws Exception {
+        Long proyectoId = internalId("proyecto", proyectoPublicId);
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement(
+                        "INSERT INTO presupuesto (proyecto_id, version, es_vigente) VALUES (?, 1, TRUE) RETURNING id")) {
+            ps.setLong(1, proyectoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        }
     }
 
-    private Long crearApu(String token, Long presupuestoId, String codigo, String desc) {
-        return ((Number) given().contentType(JSON)
-                        .header("Authorization", "Bearer " + token)
-                        .body(Map.of("codigo", codigo, "descripcion", desc, "unidad", "u"))
-                        .when()
-                        .post("/api/v1/presupuestos/" + presupuestoId + "/apus")
-                        .then()
-                        .statusCode(201)
-                        .extract()
-                        .path("id"))
-                .longValue();
+    private String presupuestoPublicId(Long presupuestoId) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT public_id FROM presupuesto WHERE id = ?")) {
+            ps.setLong(1, presupuestoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getString(1);
+            }
+        }
     }
 
-    private void agregarDetalleApu(String token, Long apuId, String tipo, Long insumoId, double cantidad) {
+    private String crearInsumo(
+            String token, String proyectoPublicId, String codigo, String tipo, String desc, double precio) {
+        return given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of(
+                        "codigo", codigo,
+                        "tipo", tipo,
+                        "descripcion", desc,
+                        "unidad", "u",
+                        "precioUnitario", precio))
+                .when()
+                .post("/api/v1/proyectos/" + proyectoPublicId + "/insumos")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
+    }
+
+    private String crearApu(String token, String presupuestoPublicId, String codigo, String desc) {
+        return given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("codigo", codigo, "descripcion", desc, "unidad", "u"))
+                .when()
+                .post("/api/v1/presupuestos/" + presupuestoPublicId + "/apus")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
+    }
+
+    private void agregarDetalleApu(
+            String token, String apuPublicId, String tipo, String insumoPublicId, double cantidad) {
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
-                .body(Map.of("seccionTipo", tipo, "insumoId", insumoId, "cantidad", cantidad))
+                .body(Map.of("seccionTipo", tipo, "insumoId", insumoPublicId, "cantidad", cantidad))
                 .when()
-                .post("/api/v1/apus/" + apuId + "/detalles")
+                .post("/api/v1/apus/" + apuPublicId + "/detalles")
                 .then()
                 .statusCode(201);
     }
@@ -119,10 +144,10 @@ class CronogramaResourceIT {
                 .longValue();
     }
 
-    private void crearRubro(String token, Long presupuestoId, Long capituloId, Long apuId, double cantidad) {
+    private void crearRubro(String token, Long presupuestoId, Long capituloId, Long apuInternalId, double cantidad) {
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
-                .body(Map.of("apuId", apuId, "cantidad", cantidad))
+                .body(Map.of("apuId", apuInternalId, "cantidad", cantidad))
                 .when()
                 .post("/api/v1/presupuestos/" + presupuestoId + "/capitulos/" + capituloId + "/rubros")
                 .then()
@@ -130,18 +155,19 @@ class CronogramaResourceIT {
     }
 
     @Test
-    void crear_cronograma_auto_importa_actividades() {
+    void crear_cronograma_auto_importa_actividades() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "crono-user@uce.edu.ec");
-        Long proyectoId = crearProyecto(token);
-        Long presId = obtenerPresupuestoVigente(token, proyectoId);
+        String proyectoPublicId = crearProyecto(token);
+        Long presId = insertarPresupuesto(proyectoPublicId);
+        String presPublicId = presupuestoPublicId(presId);
 
-        Long matId = crearInsumo(token, proyectoId, "MAT-C1", "MATERIAL", "Cemento", 10.0);
-        Long apuId = crearApu(token, presId, "APU-C1", "Hormigón");
-        agregarDetalleApu(token, apuId, "MATERIAL", matId, 2.0);
+        String matId = crearInsumo(token, proyectoPublicId, "MAT-C1", "MATERIAL", "Cemento", 10.0);
+        String apuPublicId = crearApu(token, presPublicId, "APU-C1", "Hormigón");
+        agregarDetalleApu(token, apuPublicId, "MATERIAL", matId, 2.0);
+        Long apuInternalId = internalId("apu", apuPublicId);
         Long capId = crearCapitulo(token, presId, "Obras");
-        crearRubro(token, presId, capId, apuId, 5.0);
+        crearRubro(token, presId, capId, apuInternalId, 5.0);
 
-        // Create cronograma -> actividades auto-imported
         Number cronogramaId = given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(Map.of("unidadTiempo", "MES", "numeroPeriodos", 6))
@@ -157,7 +183,6 @@ class CronogramaResourceIT {
                 .extract()
                 .path("id");
 
-        // GET should return the same
         given().header("Authorization", "Bearer " + token)
                 .when()
                 .get("/api/v1/presupuestos/" + presId + "/cronograma")
@@ -166,7 +191,6 @@ class CronogramaResourceIT {
                 .body("id", is(cronogramaId.intValue()))
                 .body("actividades.size()", is(1));
 
-        // Duplicate creation -> 409
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(Map.of("unidadTiempo", "SEMANA", "numeroPeriodos", 12))
@@ -177,18 +201,19 @@ class CronogramaResourceIT {
     }
 
     @Test
-    void actualizar_avance_y_configurar_periodos() {
+    void actualizar_avance_y_configurar_periodos() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "crono-avance@uce.edu.ec");
-        Long proyectoId = crearProyecto(token);
-        Long presId = obtenerPresupuestoVigente(token, proyectoId);
+        String proyectoPublicId = crearProyecto(token);
+        Long presId = insertarPresupuesto(proyectoPublicId);
+        String presPublicId = presupuestoPublicId(presId);
 
-        Long matId = crearInsumo(token, proyectoId, "MAT-A1", "MATERIAL", "Varilla", 5.0);
-        Long apuId = crearApu(token, presId, "APU-A1", "Estructura");
-        agregarDetalleApu(token, apuId, "MATERIAL", matId, 3.0);
+        String matId = crearInsumo(token, proyectoPublicId, "MAT-A1", "MATERIAL", "Varilla", 5.0);
+        String apuPublicId = crearApu(token, presPublicId, "APU-A1", "Estructura");
+        agregarDetalleApu(token, apuPublicId, "MATERIAL", matId, 3.0);
+        Long apuInternalId = internalId("apu", apuPublicId);
         Long capId = crearCapitulo(token, presId, "Estructuras");
-        crearRubro(token, presId, capId, apuId, 10.0);
+        crearRubro(token, presId, capId, apuInternalId, 10.0);
 
-        // Create cronograma with 4 periods
         var resp = given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(Map.of("unidadTiempo", "MES", "numeroPeriodos", 4))
@@ -200,7 +225,6 @@ class CronogramaResourceIT {
         Long cronogramaId = ((Number) resp.path("id")).longValue();
         Long actividadId = ((Number) resp.path("actividades[0].id")).longValue();
 
-        // Update avance for periods 1-4
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(Map.of("avancePorPeriodo", Map.of("1", 0.25, "2", 0.25, "3", 0.25, "4", 0.25)))
@@ -213,7 +237,6 @@ class CronogramaResourceIT {
                 .body("avancePorPeriodo.size()", is(4))
                 .body("avanceAcumulado.size()", is(4));
 
-        // Invalid period key -> 400
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(Map.of("avancePorPeriodo", Map.of("5", 0.10)))
@@ -222,7 +245,6 @@ class CronogramaResourceIT {
                 .then()
                 .statusCode(400);
 
-        // Reduce periods from 4 to 2 without confirmar -> 409 (data in periods 3,4)
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(Map.of("numeroPeriodos", 2))
@@ -231,7 +253,6 @@ class CronogramaResourceIT {
                 .then()
                 .statusCode(409);
 
-        // Reduce periods with confirmarPerdida -> 200
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(Map.of("numeroPeriodos", 2, "confirmarPerdida", true))
@@ -244,12 +265,12 @@ class CronogramaResourceIT {
     }
 
     @Test
-    void marcar_revisado_y_desactualizado() {
+    void marcar_revisado_y_desactualizado() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "crono-rev@uce.edu.ec");
-        Long proyectoId = crearProyecto(token);
-        Long presId = obtenerPresupuestoVigente(token, proyectoId);
+        String proyectoPublicId = crearProyecto(token);
+        Long presId = insertarPresupuesto(proyectoPublicId);
+        String presPublicId = presupuestoPublicId(presId);
 
-        // Create cronograma on empty presupuesto
         Number cronogramaId = given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(Map.of("unidadTiempo", "SEMANA", "numeroPeriodos", 8))
@@ -261,7 +282,6 @@ class CronogramaResourceIT {
                 .extract()
                 .path("id");
 
-        // Mark revisado
         given().header("Authorization", "Bearer " + token)
                 .when()
                 .post("/api/v1/cronogramas/" + cronogramaId + "/revisado")
@@ -271,14 +291,13 @@ class CronogramaResourceIT {
                 .body("fechaRevision", notNullValue())
                 .body("desactualizado", is(false));
 
-        // Add a rubro to change presupuesto total
-        Long matId = crearInsumo(token, proyectoId, "MAT-R1", "MATERIAL", "Arena", 8.0);
-        Long apuId = crearApu(token, presId, "APU-R1", "Relleno");
-        agregarDetalleApu(token, apuId, "MATERIAL", matId, 1.0);
+        String matId = crearInsumo(token, proyectoPublicId, "MAT-R1", "MATERIAL", "Arena", 8.0);
+        String apuPublicId = crearApu(token, presPublicId, "APU-R1", "Relleno");
+        agregarDetalleApu(token, apuPublicId, "MATERIAL", matId, 1.0);
+        Long apuInternalId = internalId("apu", apuPublicId);
         Long capId = crearCapitulo(token, presId, "Rellenos");
-        crearRubro(token, presId, capId, apuId, 10.0);
+        crearRubro(token, presId, capId, apuInternalId, 10.0);
 
-        // Now cronograma should be desactualizado (total changed)
         given().header("Authorization", "Bearer " + token)
                 .when()
                 .get("/api/v1/presupuestos/" + presId + "/cronograma")

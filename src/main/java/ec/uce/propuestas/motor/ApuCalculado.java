@@ -6,6 +6,11 @@ import java.util.Objects;
 
 /**
  * Fully computed result for one APU. All monetary values at scale 6.
+ *
+ * <p>No-links (Plan 014): no {@code esAuxiliar} flag — APUs are ordinary,
+ * independent analyses. {@code costoIndirecto} is always derived from
+ * {@code costoDirectoAjustado × %CI efectivo} using the cascading default
+ * ({@link ApuSnapshot#porcentajeIndirecto()} → project default → 0).
  */
 public record ApuCalculado(
         String codigo,

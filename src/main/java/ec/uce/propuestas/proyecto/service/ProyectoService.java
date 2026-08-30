@@ -2,8 +2,6 @@ package ec.uce.propuestas.proyecto.service;
 
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.common.dto.Page;
-import ec.uce.propuestas.presupuesto.entity.Presupuesto;
-import ec.uce.propuestas.presupuesto.repository.PresupuestoRepository;
 import ec.uce.propuestas.proyecto.dto.ProyectoCrearRequest;
 import ec.uce.propuestas.proyecto.dto.ProyectoEditarRequest;
 import ec.uce.propuestas.proyecto.dto.ProyectoResponse;
@@ -15,17 +13,14 @@ import ec.uce.propuestas.proyecto.repository.ProyectoRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 @ApplicationScoped
 public class ProyectoService {
 
     @Inject
     ProyectoRepository proyectoRepository;
-
-    @Inject
-    PresupuestoRepository presupuestoRepository;
 
     /** Lista los proyectos del usuario autenticado (propietario), paginado. */
     public Page<ProyectoResponse> listarDeUsuario(
@@ -59,20 +54,17 @@ public class ProyectoService {
         p.subdireccionInstitucional = req.subdireccionInstitucional();
         p.estado = EstadoProyecto.BORRADOR;
         proyectoRepository.persist(p);
-
-        Presupuesto v1 = new Presupuesto();
-        v1.proyectoId = p.id;
-        v1.version = (short) 1;
-        v1.esVigente = true;
-        v1.total = BigDecimal.ZERO;
-        presupuestoRepository.persist(v1);
-
         return ProyectoMapper.toResponse(p);
     }
 
+    /**
+     * Plan 07 — edición vía identidad externa (UUIDv7). Resuelve por
+     * {@code publicId + owner} a BIGINT interno antes de mutar. Una entrada
+     * ajena o inexistente lanza 404 (RNF-05).
+     */
     @Transactional
-    public ProyectoResponse actualizar(Long usuarioId, Long id, ProyectoEditarRequest req) {
-        Proyecto p = validarPropietario(usuarioId, id);
+    public ProyectoResponse actualizar(Long usuarioId, UUID publicId, ProyectoEditarRequest req) {
+        Proyecto p = validarPropietario(usuarioId, publicId);
         p.nombreProyecto = req.nombreProyecto();
         p.codigo = req.codigo();
         p.descripcion = req.descripcion();
@@ -89,8 +81,8 @@ public class ProyectoService {
     }
 
     @Transactional
-    public void eliminar(Long usuarioId, Long id) {
-        Proyecto p = validarPropietario(usuarioId, id);
+    public void eliminar(Long usuarioId, UUID publicId) {
+        Proyecto p = validarPropietario(usuarioId, publicId);
         if (p.estado == EstadoProyecto.FINALIZADO) {
             throw ProblemaException.validacion("No se puede eliminar un proyecto FINALIZADO");
         }
@@ -104,7 +96,12 @@ public class ProyectoService {
         proyectoRepository.persist(p);
     }
 
-    /** Valida que el proyecto pertenezca al usuario (RNF-05). */
+    public Proyecto validarPropietario(Long usuarioId, UUID publicId) {
+        return proyectoRepository
+                .findByPublicIdAndOwnerScope(publicId, usuarioId)
+                .orElseThrow(() -> ProblemaException.noEncontrado("Proyecto no encontrado"));
+    }
+
     public Proyecto validarPropietario(Long usuarioId, Long id) {
         return proyectoRepository
                 .findByIdYPropietario(id, usuarioId)
