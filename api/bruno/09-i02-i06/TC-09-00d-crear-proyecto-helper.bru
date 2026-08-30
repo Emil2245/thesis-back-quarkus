@@ -1,0 +1,53 @@
+meta {
+  name: TC-09-00d — Crear proyecto BORRADOR (helper)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/proyectos
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombreProyecto": "Plan08 demo {{$randomInt}}",
+    "codigo": "P-2026-08-{{$randomInt}}",
+    "descripcion": "Proyecto de prueba para casos Plan 08",
+    "anio": 2026,
+    "plazoEjecucion": 3,
+    "plazoUnidad": "MES",
+    "direccionInstitucional": "UCE"
+  }
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("proyectoId", res.body.id);
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("Estado inicial BORRADOR", function() {
+    expect(res.body.estado).to.equal("BORRADOR");
+  });
+}
+
+docs {
+  Helper de Plan 08 — crea un proyecto BORRADOR propio y captura su
+  `id` (UUIDv7). El proyecto se usa en TC-09-02 (base PERSONAL) y
+  TC-09-09 (rangos configurables), donde el caller necesita un
+  proyecto propio para fijar los parámetros antes de un PUT.
+}

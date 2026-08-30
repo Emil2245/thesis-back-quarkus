@@ -25,14 +25,21 @@
 > alcance actual.
 >
 > **Capacidades actuales** (cruzadas con [`estado-actual.md`](estado-actual.md)
-> §4): %CI y descuento legacy por APU → DONE; duplicar APU → DONE; ET
+> §4; sincronización Plan 08 — 2026-08-30):
+> %CI y descuento legacy por APU → DONE; duplicar APU → DONE; ET
 > (Apache POI) → DONE; rangos configurables → DONE; bases PERSONALES +
-> copia al usar → DONE; desglose de cálculo → PARTIAL; plantillas APU →
-> MISSING (Plan 04); plantilla de proyecto → MISSING (Plan 06);
+> copia al usar → DONE; desglose de cálculo → DONE (Plan 03, orden
+> persistido, lineas a 6 dp); plantillas APU → **DONE 2026-08-29**
+> (Plan 04); plantilla de proyecto → **DONE 2026-08-29** (Plan 06);
+> admin CENTRALES (archivar/borrar) → **DONE 2026-08-29** (Plan 05);
 > consolidación APU→Rubro **workbook-consistent** (regla aplicada) →
 > **PARTIAL — CIERRE CON RESIDUO ACEPTADO (2026-08-28)** (Plan 02; GM-19
 > `-$6.95` y GM-20 cap. 1 `-$0.84`); UUIDv7 en módulos actuales →
-> PARTIAL (Plan 07); write-through global → DEFERRED.
+> **DONE 2026-08-30 · VERIFICACIÓN DIRIGIDA COMPLETA** (Plan 07); display
+> global `precisionDinero=2` / `precisionPorcentaje=4` + endpoint
+> `GET /api/v1/config/display` → **DONE 2026-08-28** (Plan 014 T3);
+> `@Digits` en DTOs monetarios del catálogo cerrado → **DONE
+> 2026-08-28** (Plan 014 T4); write-through global → DEFERRED.
 >
 > ---
 >
@@ -394,8 +401,13 @@ aritmético**. Cambios futuros requieren
 **ApuResource** (ampliado en Plan 03):
 - `PATCH /apus/{id}/porcentaje-indirecto` (P-23) — **DONE**
 - `PATCH /apus/{id}/porcentaje-descuento` (P-24) — **DONE**
-- `GET /apus/{id}/calculo` (P-27 — `ApuCalculoResponse`) — **PARTIAL**
-  (falta aplicar `precisionDinero` / `precisionPorcentaje` al response desde `app.display.*` + `GET /api/v1/config/display`; Plan 03)
+- `GET /apus/{id}/calculo` (P-27 — `ApuCalculoResponse`) — **DONE**
+  (Plan 03: lineas ordenadas por `orden` ascendente, sin HM-primero;
+  operandos a 6 dp; `precisionDinero` y `precisionPorcentaje` del
+  display global `app.display.*` ya disponibles vía
+  `GET /api/v1/config/display` desde Plan 014 T3 — la capa de
+  presentación es quien aplica la redondeo final; el response crudo
+  mantiene precisión de cálculo).
 - `POST /apus/{id}/duplicar` (dossier §B.7) — **DONE**
 - `PUT /apus/{id}/especificacion-tecnica` (P-45) — **DONE**
 - `GET /apus/{id}/especificacion-tecnica` (P-45) — **DONE**
@@ -423,10 +435,12 @@ aritmético**. Cambios futuros requieren
 - `POST /bases-personales` — crear — **DONE**
 - `DELETE /bases-personales/{id}` — **DONE**
 
-> **UUIDv7 en paths:** `proyectoId`, `presupuestoId`, `apuId` siguen como
-> `Long` en las rutas actuales; la migración a UUIDv7 público está
-> diferida a
-> [planes-para-estar-al-dia/07](planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md).
+> **UUIDv7 en paths:** `proyectoId`, `presupuestoId`, `apuId` ya operan
+> como UUIDv7 público en path y JSON
+> (**DONE 2026-08-30 · VERIFICACIÓN DIRIGIDA COMPLETA**, Plan 07;
+> ver [planes-para-estar-al-dia/07](planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md)).
+> Las identidades internas BIGINT permanecen debajo de los resources
+> y de los services.
 
 ## 5. Tests nuevos (N04 original — bloque histórico)
 
@@ -505,7 +519,7 @@ sin hardcode de negocio):
 | Rangos parametrizables (A6) | DM §11; procesos P-11 | **DONE** — `ParametrosSistema` con columnas de rango + `ParametrosRangoDinamicoTest` |
 | Bases SIEMPRE copia + PERSONAL (A9) | DM §17 #16, §10; procesos P-17, P-39 | **DONE** — `ResolverInsumoProyectoService` + `BasesPersonalesService` |
 | Archivar central sin bloqueo (D-12) | DM §10; procesos P-39 | **MISSING** — Plan 05 ([planes-para-estar-al-dia/05](planes-para-estar-al-dia/05-administracion-bases.md)) |
-| Decimales: motor natural `BigDecimal`, display global 2/4, frontera APU→Rubro **workbook-consistent** (Plan 014 supersede #7; corrección 2026-08-28) | DM §0, §16, §17 #19 | **PARTIAL — CIERRE CON RESIDUO ACEPTADO (2026-08-28)** — Plan 02 ([planes-para-estar-al-dia/02](planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)) + Plan 014 ([plans/014](../../plans/014-motor-precision-no-links.md)). Regla workbook-consistent aplicada en `Consolidador`: `precioUnitario DOWN 2dp`; `precioTotal = cantidad × PU_2dp` retenido a escala 6 `HALF_UP`; capítulo y `totalGeneral` agregan esos `precioTotal` a escala 6. Display global `precisionDinero=2` / `precisionPorcentaje=4` vía `app.display.*` + `GET /api/v1/config/display` queda OPEN (T3 Plan 014). GM-19 (`-$6.95`) y GM-20 cap. 1 (`-$0.84`) con residual aceptado — **no** se reabre el motor. **No** reintroducir `setScale(2, DOWN)` por rubro total (causaba deltas sistemáticos `GM19 = -$9.37` y `GM20 cap1 = -$3.09` vs workbook IESS — STOP conditions de Plan 014). |
+| Decimales: motor natural `BigDecimal`, display global 2/4, frontera APU→Rubro **workbook-consistent** (Plan 014 supersede #7; corrección 2026-08-28) | DM §0, §16, §17 #19 | **PARTIAL — CIERRE CON RESIDUO ACEPTADO (2026-08-28)** — Plan 02 ([planes-para-estar-al-dia/02](planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)) + Plan 014 ([plans/014](../../plans/014-motor-precision-no-links.md)). Regla workbook-consistent aplicada en `Consolidador`: `precioUnitario DOWN 2dp`; `precioTotal = cantidad × PU_2dp` retenido a escala 6 `HALF_UP`; capítulo y `totalGeneral` agregan esos `precioTotal` a escala 6. Display global `precisionDinero=2` / `precisionPorcentaje=4` vía `app.display.*` + `GET /api/v1/config/display` **DONE 2026-08-28** (T3 Plan 014). GM-19 (`-$6.95`) y GM-20 cap. 1 (`-$0.84`) con residual aceptado — **no** se reabre el motor. **No** reintroducir `setScale(2, DOWN)` por rubro total (causaba deltas sistemáticos `GM19 = -$9.37` y `GM20 cap1 = -$3.09` vs workbook IESS — STOP conditions de Plan 014). |
 | Especificaciones Técnicas (ET) | DM §17 #18; procesos P-45 | **DONE** — `EspecificacionesTecnicasService` con Apache POI |
 | Plantilla de proyecto (A8) | DM §3, §10; procesos P-46 | **DONE 2026-08-29** — Plan 06 ([planes-para-estar-al-dia/06](planes-para-estar-al-dia/06-plantillas-proyecto.md)); verificación principal 83/83 verde |
 

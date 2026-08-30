@@ -20,7 +20,7 @@ auth:bearer {
 body:json {
   {
     "seccionTipo": "MANO_OBRA",
-    "insumoId": {{insumoMoId}},
+    "insumoId": "{{insumoMoId}}",
     "cantidad": 1,
     "rendimiento": 1
   }
@@ -29,7 +29,7 @@ body:json {
 script:post-response {
   if (res.status === 201 && res.body.secciones && res.body.secciones[1]) {
     var detalle = res.body.secciones[1].detalles.find(function(d) {
-      return d.insumoId === {{insumoMoId}};
+      return d.insumoId === bru.getVar("insumoMoId");
     });
     if (detalle) {
       bru.setVar("filaMoId", detalle.id);
@@ -44,7 +44,7 @@ tests {
 
   test("Fila MO con costos calculados", function() {
     var detalle = res.body.secciones[1].detalles.find(function(d) {
-      return d.insumoId === {{insumoMoId}};
+      return d.insumoId === bru.getVar("insumoMoId");
     });
     expect(detalle).to.not.be.null;
     expect(detalle.precioHeredado).to.equal(true);

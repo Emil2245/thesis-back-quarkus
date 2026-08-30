@@ -7,9 +7,9 @@ empaquetado de `documentos/01-ARQUITECTURA.md §5`.
 
 | Plan | Módulo | Procesos (P-xx) | Estado |
 |---|---|---|---|
-| [01-proyecto](01-proyecto.md) | `ec.uce.propuestas.proyecto` | P-05…P-11 | Implementado (crud núcleo) · TODO: logo, detalle |
-| [02-insumo](02-insumo.md) | `ec.uce.propuestas.insumo` | P-13…P-18 | Implementado (crud, catálogo, selector, copia) · TODO: uso en APU (P-18) |
-| [03-apu](03-apu.md) | `ec.uce.propuestas.apu` | P-19…P-22, P-27 | **Implementado (DONE 2026-08-28)** — Plan 03 cierra reordenamiento atómico + HM order-only; ver `planes-para-estar-al-dia/03-contrato-apu-actual.md` |
+| [01-proyecto](01-proyecto.md) | `ec.uce.propuestas.proyecto` | P-05…P-11 | **DONE** — CRUD núcleo, firmantes y parámetros; `proyectoId` UUIDv7 en path y JSON (Plan 07). |
+| [02-insumo](02-insumo.md) | `ec.uce.propuestas.insumo` | P-13…P-18 | **DONE** — CRUD, catálogo, selector multi-fuente, copia al usar (N04 §A9) y CSV. `proyectoId`/`insumoId`/`baseId` UUIDv7 en path y JSON (Plan 07). |
+| [03-apu](03-apu.md) | `ec.uce.propuestas.apu` | P-19…P-22, P-27 | **DONE 2026-08-28** — Plan 03 cierra reordenamiento atómico + HM order-only. `presupuestoId`/`apuId`/`detalleId` UUIDv7 (Plan 07). Ver [`planes-para-estar-al-dia/03-contrato-apu-actual.md`](planes-para-estar-al-dia/03-contrato-apu-actual.md). |
 | [04-apu-avanzado](04-apu-avanzado.md) | `apu` (ampliar) + `plantilla` (nuevo) + `documento` (extender) | P-23, P-26, P-46 + cierre I-06 | **P-26 DONE 2026-08-29 (Plan 04)** y **P-46 DONE 2026-08-29 (Plan 06, verificación principal 83/83)**. El módulo APU avanzado sigue PARTIAL únicamente por P-23 sin propagación global y `recalculo` DEFERRED. Cubre plantillas APU (P-26), plantilla proyecto (P-46), descuento CD (P-12/P-24), y cierre del display global residual del Plan 014 |
 
 > **Planes 03, 04, 05 y 06 cerrados al 2026-08-29.** P-46 quedó
@@ -23,11 +23,23 @@ empaquetado de `documentos/01-ARQUITECTURA.md §5`.
 > frontera), seam `POST /proyectos/{proyectoId}/guardar-plantilla`, y
 > `DocumentoResource` (ET). APU/detalle y `plantillas-apu` ya estaban
 > alineados. Sin migraciones nuevas (no V008/V009), sin cambios de PK/FK
-> (siguen `BIGINT`), motor intacto. Las suites Gradle y la verificación
-> completa quedan reservadas para el cierre del
-> [Plan 08](planes-para-estar-al-dia/08-cierre-documental-y-verificacion.md);
-> este pase documental no ejecuta Gradle. El módulo APU avanzado sigue
-> PARTIAL por P-23 sin propagación global y `recalculo` DEFERRED.
+> (siguen `BIGINT`), motor intacto. Su verificación dirigida quedó cerrada
+> en Plan 07 y la suite completa/Bruno fueron cerrados posteriormente por
+> [Plan 08](planes-para-estar-al-dia/08-cierre-documental-y-verificacion.md).
+>
+> **[Plan 08 — Cierre documental y verificación](planes-para-estar-al-dia/08-cierre-documental-y-verificacion.md) — DONE (2026-08-30).**
+> Sincroniza la documentación canónica (este README,
+> `docs/00-ESTADO-ACTUAL.md`, `docs/modulos/estado-actual.md`,
+> `plans/README.md` y los playbooks 01–04), repara dependencias UUID
+> rotas en `api/bruno/06-proyecto/`, `07-insumo/` y `08-apu/` que el
+> Plan 07 dejó desalineadas, y completa `api/bruno/09-i02-i06/`
+> con los nueve temas canónicos (rangos configurables, base PERSONAL
+> + copia CENTRAL, plantilla APU + fallback con advertencias,
+> reordenamiento, desglose a 6 dp, ET + títulos, archivar/borrar
+> CENTRAL, proyecto desde plantilla, UUID inválido + recurso ajeno).
+> Spotless y build verdes; suite completa con 313 tests y únicamente los dos residuales aceptados GM-19/GM-20 (GM-24 omitido upstream).
+> El módulo APU avanzado sigue PARTIAL por P-23 sin propagación
+> global y `recalculo` DEFERRED.
 
 **Decisiones de diseño compartidas** (resuelven las preguntas de arquitectura):
 
@@ -48,6 +60,10 @@ empaquetado de `documentos/01-ARQUITECTURA.md §5`.
 **Regla de oro:** no se crean migraciones SQL nuevas (tablas ya en V001–V003);
 solo entidades JPA que mapean el esquema.
 
-**No en sonancias:** `presupuesto` v1 y `cronograma` al crear proyecto se difieren
-a los módulos presupuesto/cronograma (I-07/I-08); administración de bases
-CENTRALES a I-11; refactor de `usuario/` a la nueva convención es limpieza.
+**No implementado todavía:** `presupuesto` v1 y `cronograma` al crear proyecto se difieren
+a los módulos `presupuesto/cronograma` (I-07/I-08) — estos módulos
+**no existen** hoy como primer nivel; el repositorio solo conserva sus
+entidades JPA y repositorios como rastro del seed V004. La
+administración de bases CENTRALES (P-39) está **DONE** desde
+Plan 05 (2026-08-29); el refactor de `usuario/` a la nueva convención
+es limpieza sin bloqueo.

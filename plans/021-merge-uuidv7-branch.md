@@ -4,14 +4,17 @@
 **Merge base:** `97280ab` (main, `style: format code for consistency`)
 **Our branch:** `test/stuff` (3 commits: DescuentoGlobalService, DB columns, D-12 admin base DELETE removal)
 **Teammate branch:** `worktree-agent-a83bad6bdd894143b` (20+ commits: UUIDv7, plantillas, admin, personal bases, display config, APU reorder, seed normalization)
+**Additional cherry-pick:** `f208217` (`feat(bruno)`) — one commit ahead of worktree tip on `origin/main`; adds `api/bruno/09-i02-i06/` collection (9 new test scenarios), repairs existing Bruno collections 06-08, and updates docs/plans.
 
 ## Summary
 
 The teammate's branch implemented plans 017-020 plus UUIDv7 public IDs
 (Plan 07) on a rewritten V001 baseline schema. Our branch had plans 013-016
 including the DescuentoGlobalService and DB schema additions. Both diverged
-from `97280ab`. This document records every manual resolution made during
-the merge.
+from `97280ab`. Additionally, commit `f208217` (`feat(bruno)`) was
+cherry-picked — it was pushed to `origin/main` after the worktree branch
+was created and adds the Bruno `09-i02-i06/` test collection plus doc
+updates. This document records every manual resolution made during the merge.
 
 ---
 

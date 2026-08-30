@@ -1,0 +1,53 @@
+meta {
+  name: TC-09-08a — Login SUPER_ADMIN (helper)
+  type: http
+  seq: 21
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{adminEmail}}",
+    "password": "{{adminPassword}}",
+    "recordarSesion": false
+  }
+}
+
+script:post-response {
+  if (res.status === 200 && res.body && res.body.accessToken) {
+    bru.setVar("admin_access_token", res.body.accessToken);
+  }
+}
+
+tests {
+  test("Status 200 OK cuando hay credenciales admin válidas", function() {
+    // Si el operador no ha sustituido `adminEmail`/`adminPassword` en
+    // dev.bru, este caso devuelve 401 y los casos TC-09-08b-0a/d/b/c
+    // fallarán con 401/403 (no autorizado). El orquestador del Plan
+    // 08 confirma que ningún SUPER_ADMIN se siembra desde el backend.
+    expect(res.status).to.equal(200);
+  });
+}
+
+docs {
+  Helper de Plan 08 — captura el access token del usuario
+  SUPER_ADMIN. Las credenciales viven en las variables
+  `adminEmail` / `adminPassword` declaradas en `dev.bru` y el
+  operador debe sustituirlas antes de ejecutar esta colección.
+  El backend **no** siembra un SUPER_ADMIN; el orquestador del Plan
+  08 confirmó que las credenciales admin dependen del entorno.
+  Sin credenciales válidas, los casos TC-09-08b-0a/d/b/c deben
+  interpretarse como bloqueados por prerequisite (devuelven 401/403,
+  no como regresión). **No** se usa ningún marker `meta.adminOnly`:
+  los archivos `.bru` no tienen ese slot, y los casos admin se
+  identifican por el path `/admin/...` en la URL.
+}

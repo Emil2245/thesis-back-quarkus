@@ -1,0 +1,44 @@
+meta {
+  name: TC-09-07a — Guardar Especificación Técnica del APU (PUT)
+  type: http
+  seq: 18
+}
+
+put {
+  url: {{baseUrl}}/apus/{{apuId}}/especificacion-tecnica
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "texto": "Plan 08 — Especificación técnica de prueba. Material: porcelanato rectificado 0.60x0.30 m. Mano de obra: maestro mayor + peón según EO C1 / EO E2. Equipo: volqueta, cargadora frontal. Proceso: replanteo, retiro de pisos existentes, disposición de escombros, limpieza final."
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("APU actualizado, ET persistido", function() {
+    // ApuCrudService.guardarEspecificacionTecnica persiste texto
+    // UTF-8 libre (RNF-09: 65 536 bytes) y devuelve el APU completo.
+    expect(res.body.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+}
+
+docs {
+  Caso Plan 08 #6 (ET + títulos) — parte A: PUT del texto de la
+  Especificación Técnica (P-45). El backend trata el contenido como
+  texto plano UTF-8 sin markup (RNF-09 ≤ 64 KB). El frontend puede
+  serializar desde un editor rich-text (TipTap / React-Quill) a texto
+  plano antes del PUT.
+}

@@ -3,9 +3,17 @@
 - Playbook auto-conductor. Implementa `docs/modulos/README.md`. No crea
   migraciones (tablas V001–V003 ya siembran `base_insumos` CENTRAL + 93 insumos).
 - Base: `ec.uce.propuestas.insumo`.
-- **Estado (2026-08-02):** implementado. Base + Insumo + Unidad catalogo +
-  CRUD + catálogo unidades + selector multi-fuente + copia + import CSV.
-  P-18 (verificación de uso en APU, D-08) queda `stub → 0` hasta módulo APU.
+- **Estado (2026-08-30 — sincronización Plan 08):** implementado. Base +
+  Insumo + Unidad catalogo + CRUD + catálogo unidades + selector
+  multi-fuente + copia al usar (N04 §A9) + import CSV. P-18 (uso en APU,
+  D-08) consumido por `ApuCrudService` vía `ResolverInsumoProyectoService`
+  (N04 §A9 ya implementado; no es `stub → 0`). Plan 07 migró el path
+  `proyectoId`/`insumoId`/`baseId` y los DTOs públicos
+  (`InsumoUsoResponse.apuId`, `CopiarBaseRequest.baseId`/`proyectoId`,
+  `BasePersonalResponse.id`, `BaseInsumosResponse.id`,
+  `AdminBaseCentralResponse.id`) a UUIDv7. Plan 05 cerró el ciclo
+  completo de bases PERSONALES (`DELETE`) y CENTRALES
+  (archivar/borrar, sin bloqueo por copias PROYECTO).
 
 ## 1. Empaquetado
 
@@ -196,19 +204,25 @@ copia-al-usar / materialización llega en el siguiente bloque.
 ```
 
 ## 9. Fuera de alcance (TODO)
-- Editar/eliminar `base_insumos` CENTRAL (admin P-39) → I-11.
 - **NUEVO I-06 (N04 §A9):** gestión de bases `PERSONAL` del usuario
-  (`GET/POST/DELETE /bases-personales`; compartir entre proyectos propios).
-  Detalle: `04-apu-avanzado.md` §2.8.
+  (`GET/POST/DELETE /bases-personales`) — **DONE** (módulo
+  `insumo` + Plan 05). Ver
+  [`planes-para-estar-al-dia/05-administracion-bases.md`](planes-para-estar-al-dia/05-administracion-bases.md)
+  y `04-apu-avanzado.md` §2.8.
+- **NUEVO I-06 (N04 §D-12):** archivar central (oculta del catálogo) y
+  borrar central (sin bloqueo de referencias) — **DONE** (Plan 05).
+  Endpoint vigente:
+  `POST /admin/bases-centrales/{baseId}/archivar` (canónico POST, no
+  PUT) + `DELETE /admin/bases-centrales/{baseId}`. La operación
+  `PUT /bases-central/{baseId}/archivar` listada en versiones
+  anteriores de este doc está **superada** por la ruta admin unificada.
+  Ningún caller existente la consume.
 - **NUEVO I-06 (N04 §A1 FORMA 2):** edición atómica de columnas en la base
   PROYECTO dispara `RecalculoService.recalcular(EDICION_ATOMICA_INSUMO)` —
   propaga a APUs que heredan (override NULL). Detalle:
   `04-apu-avanzado.md` §2.5. — **DEFERRED**: el módulo `recalculo` no se
   crea en esta etapa; la edición atómica persiste el nuevo precio y la
   siguiente mutación del APU afectado lo refleja vía COALESCE.
-- **NUEVO I-06 (N04 §D-12):** archivar central (oculta del catálogo) y
-  borrar central (sin bloqueo de referencias). Endpoint
-  `PUT /bases-central/{baseId}/archivar` + `DELETE /bases-central/{baseId}`.
 - Recalculo de precios/APU (RNF propios) en edición → **DEFERRED** (no
   se crea el módulo `recalculo` en esta etapa; el write-through local por
   APU lo realiza `apu.service.ApuCalculoService.recalcular(apu)`).

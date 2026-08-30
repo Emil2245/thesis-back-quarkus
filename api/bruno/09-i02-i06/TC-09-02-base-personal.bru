@@ -1,0 +1,55 @@
+meta {
+  name: TC-09-02 — Base PERSONAL del usuario autenticado
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/bases-personales
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+script:post-response {
+  if (res.status === 200 && Array.isArray(res.body)) {
+    var own = res.body.find(function(b) {
+      return b && b.nombre === "mis-rubros";
+    });
+    if (own) {
+      bru.setVar("basePersonalId", own.id);
+    }
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Al menos una base PERSONAL visible", function() {
+    expect(res.body.length).to.be.at.least(1);
+  });
+
+  test("Bases devueltas son del usuario autenticado", function() {
+    // La seam BasesPersonalesService.listar(usuarioId) sólo expone
+    // las bases PERSONALES del caller; CENTRAL/PROYECTO nunca
+    // aparecen aquí.
+    res.body.forEach(function(b) {
+      expect(b.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    });
+  });
+}
+
+docs {
+  Caso Plan 08 #2 (PERSONAL + copia CENTRAL) — parte A: lista bases
+  PERSONALES del usuario autenticado. La seed V004 fija una base
+  PERSONAL canónica ("mis-rubros", public_id
+  `0192f6c4-7c8a-7abc-8000-000000000021`) y el response captura su
+  UUIDv7 para TC-09-03 (copia desde CENTRAL). Esta operación valida
+  además que el seam `BasesPersonalesResource.listar` solo expone
+  bases PERSONALES del caller — CENTRAL/PROYECTO nunca aparecen
+  aquí (RNF-05).
+}

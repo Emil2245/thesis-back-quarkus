@@ -68,15 +68,16 @@ class ErrorContractIT {
                 .body("mensaje", not(emptyString()));
     }
 
-    /** Path param ilegible (número esperado) → 404 no-encontrado con mensaje legible */
+    /** Path param malformado/no-v7 → 400 validacion antes de consultar persistencia. */
     @Test
-    void path_param_ilegible_404_legible() {
+    void path_param_invalido_400_validacion() {
         String token = AuthSupport.registrarConToken(mailbox, "con@ex.com");
         given().header("Authorization", "Bearer " + token)
                 .when()
                 .get("/api/v1/proyectos/empty/insumos")
                 .then()
                 .statusCode(400)
-                .body("codigo", equalTo("validacion"));
+                .body("codigo", equalTo("validacion"))
+                .body("mensaje", equalTo("Identificador público inválido: se requiere UUIDv7"));
     }
 }

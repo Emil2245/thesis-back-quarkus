@@ -1,0 +1,38 @@
+meta {
+  name: TC-09-08d — Borrar base CENTRAL activa devuelve 409 conflicto
+  type: http
+  seq: 23
+}
+
+delete {
+  url: {{baseUrl}}/admin/bases-centrales/{{tempCentralId}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_access_token}}
+}
+
+tests {
+  test("Status 409 Conflict (base-no-archivada)", function() {
+    // La base `tempCentralId` se creó en 08b-0a sin archivar. El
+    // backend exige `archivada = true` antes del DELETE físico.
+    expect(res.status).to.equal(409);
+  });
+
+  test("Error tipado `base-no-archivada`", function() {
+    expect(res.body.codigo).to.equal("base-no-archivada");
+  });
+}
+
+docs {
+  Caso Plan 08 #7 (archivar/borrar CENTRAL) — paso 2/4. Confirma el
+  bloqueo D-12 cuando se intenta borrar una base activa: el seam
+  `BaseInsumosService.eliminarCentralArchivada` rechaza con 409 y
+  código de máquina `base-no-archivada` cuando `archivada = false`.
+  La transición esperada es: 08b-0a (crear activa) → 08d (409) → 08b
+  (archivar 200) → 08c (DELETE 204). Opera sobre la base **temporal**
+  creada por 08b-0a, no sobre el seed V003. Si `adminEmail`/
+  `adminPassword` están vacíos en `dev.bru`, este caso devuelve 401
+  en lugar de 409 (semántica esperada, no regresión).
+}

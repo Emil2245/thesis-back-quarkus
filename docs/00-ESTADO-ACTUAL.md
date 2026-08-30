@@ -1,6 +1,6 @@
 # Estado actual del proyecto — `thesis-back-quarkus`
 
-- **Fecha de este resumen:** 2026-08-02
+- **Fecha de este resumen:** 2026-08-30 (sincronización Plan 08; pase documental + Bruno).
 - **Fuentes verificadas:** `plans/README.md`, `README.md`, `build.gradle.kts`,
   `gradle/libs.versions.toml`, `application.yml`, test-results XML,
   `git log`, y docs canónicos en `../thesis-docs/plan/`.
@@ -71,10 +71,13 @@ conformidad CHK, semanas 22–24 SUS y desempeño.
 | 009 | Módulos `proyecto` + `insumo` | I-03/I-04 | ✅ DONE | CRUD de ambos módulos + importación CSV + copia de base + **repositorios por entidad** (ver `plans/README.md` §009). |
 | 010 | Seed de escenarios (V004) | I-04/I-05 | ✅ DONE | `V004__seed_escenarios.sql`: 3 proyectos (uno por estado BORRADOR/EN_PROCESO/FINALIZADO) con todas las tablas relacionadas; FINALIZADO = workbook real Cetro Médico Tulcán (298 rubros, total 395115.32). Verificado contra Postgres limpio + suite sin regresión (ver `docs/04-SEED-ESCENARIOS.md`). |
 | 011 | Módulo APU núcleo (P-19…P-22) | I-05 | ✅ DONE | P-19 lista/crea APUs por presupuesto, P-20 editor cabecera, P-21 filas M/N/O/P + fila HM protegida, P-22 override de precio con `JsonNullable`. Write-through vía `Motor.calcularApu` (RNF-02 a nivel APU). **10 tests verdes** (2 suites: `ApuCalculoServiceIT` + `ApuResourceIT`), colección Bruno `api/bruno/08-apu/`. Detalle en `docs/modulos/03-apu.md`. |
-| 013 | Módulo APU avanzado (P-23…P-27, P-45, P-46 + N04) | I-06 | ⬜ TODO | Plan completo: [`docs/modulos/04-apu-avanzado.md`](modulos/04-apu-avanzado.md). Incluye: %CI override (P-23), descuento CD legacy (P-24), auxiliares sin anidamiento (P-25 — N04 §A2 — **WITHDRAWN 2026-08-28**: no-links entre APUs confirmado), plantillas con fallback (P-26 — N04 §B.4), desglose cálculo (P-27), Especificaciones Técnicas (P-45 — N04 §ESP, NUEVA), plantilla de proyecto (P-46 — N04 §A8), `POST /apus/{id}/duplicar` (dossier §B.7), módulo `recalculo` (write-through parámetros — dossier §B.6 — **DEFERRED**), base PERSONAL (N04 §A9), rangos parametrizables (N04 §A6), **display global `precisionDinero=2` / `precisionPorcentaje=4` bajo `app.display.*` (Plan 014 supersede N04 §#7; `CALC_PRECISION=3 HALF_UP` retirado).** |
+| 013 | Módulo APU avanzado (P-23…P-27, P-45, P-46 + N04) | I-06 | ✓ PARTIAL (cierre transversal Planes 03–07, 2026-08-28–30) | Plan: [`docs/modulos/04-apu-avanzado.md`](modulos/04-apu-avanzado.md) (rastro histórico) + planes activos en [`planes-para-estar-al-dia/`](docs/modulos/planes-para-estar-al-dia/). **DONE:** P-23 set/clear, P-24 descuento, P-26 plantillas APU (Plan 04, 2026-08-29), P-27 desglose (Plan 03, 2026-08-28), P-45 ET + DOCX (Apache POI), P-46 plantilla de proyecto (Plan 06, 2026-08-29, 83/83), `POST /apus/{id}/duplicar`, base PERSONAL (N04 §A9), rangos parametrizables (N04 §A6), UUIDv7 en fronteras REST (Plan 07, 2026-08-30), display global `precisionDinero=2`/`precisionPorcentaje=4` + `GET /api/v1/config/display` (Plan 014 T3, 2026-08-28), `@Digits` (Plan 014 T4). **PARTIAL:** P-23 sin propagación global. **OBSOLETO/SUPERSEDED:** P-25 (no-links). **DEFERRED:** módulo profundo `recalculo`. |
 
 Planes de I-07…I-12 **no escritos** aún (se redactan cuando cada iteración
 precedente cierra CI-verde).
+
+| 017 | UUIDv7 en fronteras REST | I-06 | ✓ **DONE · VERIFICACIÓN DIRIGIDA COMPLETA (2026-08-30)** | `proyecto/firmante/parametros_proyecto`, `insumo/base_insumos` (admin central y bases personales), `PresupuestoApuResource`, seam `POST /proyectos/{proyectoId}/guardar-plantilla` y `DocumentoResource` (ET) migrados; APU/detalle y `plantillas-apu` (P-26) ya estaban alineados. PK/FK siguen `BIGINT`; motor intacto. 233/233 tests dirigidos verdes. Detalle en [`planes-para-estar-al-dia/07`](docs/modulos/planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md). |
+| 018 | Cierre documental, Bruno y verificación | I-06 | ✓ **DONE (2026-08-30)** | Documentación y Bruno sincronizados; Spotless y build verdes; suites dirigidas sin regresiones; suite completa 313 tests con solo GM-19/GM-20 residuales aceptados y GM-24 omitido por fixture upstream. Graphify actualizado. Detalle en [`planes-para-estar-al-dia/08`](docs/modulos/planes-para-estar-al-dia/08-cierre-documental-y-verificacion.md). |
 
 ---
 

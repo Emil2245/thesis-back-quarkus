@@ -4,11 +4,21 @@
   migraciones (las tablas `apu`, `apu_seccion`, `apu_detalle` ya viven en
   `V001__baseline.sql` §2.10; V004 ya siembra 3 escenarios con APUs).
 - Base: `ec.uce.propuestas.apu`.
-- **Estado (2026-08-11):** plan de iteración I-05 (editor de APU: crear, leer,
-  editar cabecera, filas M/N/O/P, fila HM auto-generada, recalculo write-through
-  vía `Motor.calcularApu`, override de precio por fila P-22). I-06 (P-23 %CI,
-  P-24 descuento, P-25 auxiliares, P-26 plantillas, P-27 desglose + nuevas
-  features N04) se cubre en [`04-apu-avanzado.md`](04-apu-avanzado.md) (plan 013).
+- **Estado (2026-08-30 — sincronización Plan 08):**
+  - **DONE 2026-08-11** — I-05 núcleo (editor de APU: crear, leer, editar
+    cabecera, filas M/N/O/P, fila HM auto-generada, recalculo write-through
+    vía `Motor.calcularApu`, override de precio por fila P-22).
+  - **DONE 2026-08-28** (Plan 03) — PATCH `orden: JsonNullable<Integer>`
+    (MOVE atómico), HM order-only, `GET /calculo` ordenado por `orden`
+    ascendente, precisión natural `BigDecimal`. Ver
+    [`planes-para-estar-al-dia/03-contrato-apu-actual.md`](planes-para-estar-al-dia/03-contrato-apu-actual.md).
+  - **DONE 2026-08-30** (Plan 07) — `presupuestoId`, `apuId`,
+    `detalleId`, `plantillaId`, `ApuDetalleResponse.insumoId` ya operan
+    con UUIDv7 público en path y JSON.
+  - I-06 (P-23 %CI, P-24 descuento, P-26 plantillas, P-27 desglose + ET)
+    se cubre en
+    [`planes-para-estar-al-dia/04-plantillas-apu.md`](planes-para-estar-al-dia/04-plantillas-apu.md)
+    y los planes 04–07 vigentes.
 - Pendiente del motor: GM-21/GM-24 detalles — sin relación con este módulo.
 
 ## 1. Alcance (qué entra en I-05 y qué no)
@@ -32,7 +42,8 @@ En alcance (endpoints implementados en esta iteración):
 | `PATCH /apus/{apuId}/detalles/{detalleId}` | P-21/P-22 + Plan 03 (`orden`) | `validacion` (incluye `orden` fuera de `[1,count]` o null explícito) · `no-encontrado` · `fila-protegida` (HM acepta solo `orden`; otros campos siguen 409) |
 | `DELETE /apus/{apuId}/detalles/{detalleId}` | P-21 | `no-encontrado` · `fila-protegida` |
 
-Fuera de alcance (I-06 — [`04-apu-avanzado.md`](04-apu-avanzado.md), plan 013):
+Fuera de alcance (I-06 — [`planes-para-estar-al-dia/04-plantillas-apu.md`](planes-para-estar-al-dia/04-plantillas-apu.md),
+planes 04–07):
 `porcentajeIndirecto` override (P-23), `/apus/{id}/descuento` (P-24),
 plantillas (P-26 — con fallback N04 §B.4), plantilla de proyecto
 (P-46 — N04 §A8, NUEVA), `POST /apus/{id}/duplicar`, **módulo `recalculo`**,
@@ -42,9 +53,11 @@ persistido, lineas en orden `orden` ascendente, sin HM-primero; display a
 N04 §ESP, NUEVA),
 base PERSONAL (N04 §A9), rangos parametrizables (N04 §A6),
 **display config global** (`precisionDinero=2` / `precisionPorcentaje=4`,
-endpoint `GET /api/v1/config/display`) y la **única rounding del motor** en
+endpoint `GET /api/v1/config/display`) **DONE 2026-08-28 (Plan 014 T3)**,
+y la **única rounding del motor** en
 `internal/Consolidador.java` con la regla **workbook-consistent**
-(corrección 2026-08-28): `RoundingMode.DOWN` 2 dp **solo** en
+(corrección 2026-08-28, **DONE**, residual IESS aceptado):
+`RoundingMode.DOWN` 2 dp **solo** en
 `precioUnitario`; `precioTotal = cantidad × PU_2dp` se retiene a la
 escala de persistencia 6 (`NUMERIC(14,6)`) con `HALF_UP` (sin truncar
 cada PT a 2 dp); capítulo y `totalGeneral` agregan esos `precioTotal` a
@@ -343,18 +356,21 @@ Expected: nuevas suites verdes; baseline 63 tests (2 rojos GM-19/20 conocidos,
   el motor opera con la precisión natural de `BigDecimal`; ya no aplica
   `HALF_UP` por operación. La única rounding del motor vive en
   `internal/Consolidador.java` con la regla **workbook-consistent**
-  (corrección 2026-08-28): `RoundingMode.DOWN` 2 dp **solo** en
+  (corrección 2026-08-28, **DONE**): `RoundingMode.DOWN` 2 dp **solo** en
   `precioUnitario`; `precioTotal = cantidad × PU_2dp` se retiene a la
   escala de persistencia 6 (`NUMERIC(14,6)`) con `HALF_UP` (sin truncar
   cada PT a 2 dp); capítulo y `totalGeneral` agregan esos `precioTotal`
   a escala 6; display/assertion canónico a 2 dp `HALF_UP` ocurre solo
   en la capa de presentación. El display se rige por la config global
   `precisionDinero=2` / `precisionPorcentaje=4` vía `app.display.*` y
-  `GET /api/v1/config/display`. Ver [`plans/014`](../../plans/014-motor-precision-no-links.md)
+  `GET /api/v1/config/display` (**DONE 2026-08-28, Plan 014 T3**). Ver
+  [`plans/014`](../../plans/014-motor-precision-no-links.md)
   y [`docs/modulos/planes-para-estar-al-dia/02`](planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)).
 - **módulo `recalculo`** (N04 dossier §B.6 — write-through de parámetros,
   edición atómica, descuento global) — **DEFERRED**: no se crea ningún
   módulo nuevo de primer nivel en esta etapa. El write-through local por
   APU lo realiza `ApuCalculoService.recalcular(apu)`.
-- **Archivar central sin bloqueo** (N04 §D-12).
+- **Archivar central sin bloqueo** (N04 §D-12) — **DONE 2026-08-29**
+  (Plan 05). Endpoint vigente:
+  `POST /admin/bases-centrales/{baseId}/archivar`.
 - propagación a rubro/capítulo/Total General (módulo presupuesto, I-07).

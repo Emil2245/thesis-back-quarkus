@@ -1,0 +1,43 @@
+meta {
+  name: TC-09-07c — Exportar DOCX de ET con títulos personalizables (N04-bis)
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{baseUrl}}/documentos/especificaciones-tecnicas/{{presupuestoId}}?formato=docx&titulo1=ESPECIFICACIONES%20TECNICAS%20(Plan%2008)&titulo2=Rehabilitaci%C3%B3n%20de%20consultorios%20UCE
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 200 OK (docx binario)", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Content-Type docx canónico (application/vnd.openxmlformats-officedocument.wordprocessingml.document)", function() {
+    // El backend fija `ArchivoGenerado.DOCX_MEDIA_TYPE` exactamente;
+    // el resource lo entrega en `Response.ok(...).type(mediaType)`.
+    // Cualquier otra cosa (octet-stream, application/json) es regresión.
+    expect(res.headers["content-type"] || "").to.match(/^application\/vnd\.openxmlformats-officedocument\.wordprocessingml\.document\b/);
+  });
+
+  test("Content-Disposition con filename", function() {
+    expect(res.headers["content-disposition"] || "").to.match(/attachment;\s*filename=/);
+  });
+}
+
+docs {
+  Caso Plan 08 #6 (ET + títulos) — parte C: exportación DOCX única
+  por proyecto (P-45, N04-bis) usando Apache POI (`poi-ooxml`). Los
+  overrides `titulo1` y `titulo2` opcionales prevalecen sobre los
+  defaults del proyecto (`proyecto.titulo_et_1`,
+  `proyecto.titulo_et_2`) sin persistirse. Headers: `Content-Type:
+  application/vnd.openxmlformats-officedocument.wordprocessingml.document`
+  y `Content-Disposition: attachment; filename=...`. Si el caller
+  omite los overrides, los defaults del proyecto aplican (titulo1 =
+  "ESPECIFICACIONES TÉCNICAS", titulo2 = nombre del proyecto).
+}

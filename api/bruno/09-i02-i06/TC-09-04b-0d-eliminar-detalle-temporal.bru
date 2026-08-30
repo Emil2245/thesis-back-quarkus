@@ -1,0 +1,36 @@
+meta {
+  name: TC-09-04b-0d — Eliminar fila MO temporal del APU helper (helper)
+  type: http
+  seq: 14
+}
+
+delete {
+  url: {{baseUrl}}/apus/{{apuId}}/detalles/{{tempDetalleId}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 200 OK", function() {
+    // ApuResource.eliminarDetalle devuelve el APU completo (200), no 204.
+    expect(res.status).to.equal(200);
+  });
+
+  test("Fila temporal ya no aparece en MANO_OBRA", function() {
+    var detalle = res.body.secciones[1].detalles.find(function(d) {
+      return d.id === bru.getVar("tempDetalleId");
+    });
+    expect(detalle).to.be.undefined;
+  });
+}
+
+docs {
+  Helper de Plan 08 — paso 4/5 del fallback autocontenido de TC-09-04b.
+  Borra la fila `tempDetalleId` del APU helper (preparada en 04b-0b) para
+  dejar el APU limpio **antes** de aplicarle la PERSONAL plantilla en
+  TC-09-04b. Importante: la fila NO está marcada como HM (no es la fila
+  protegida), por lo que el DELETE procede sin 409 `fila-protegida`.
+}

@@ -27,13 +27,13 @@ Lo que todavía falta, limitado a los módulos existentes, se concentra en:
 
 1. el seam de `ParametrosProyectoCambio` está **commiteado/completo** en `main` como `feat(proyecto): expose parameter change seam`; el write-through global de parámetros hacia el frontend queda **diferido** (la costura neutral ya está expuesta para futura propagación);
 2. corregir documentación contradictoria sobre APUs auxiliares;
-3. (Plan 014 supersede — **cierre parcial 2026-08-28**) display global `precisionDinero=2` / `precisionPorcentaje=4` vía `app.display.*` + `GET /api/v1/config/display` queda **OPEN** (T3 Plan 014); la **única rounding del motor aplicada** es la frontera APU→Rubro 2 dp `DOWN` (`internal/Consolidador.java`, regla workbook-consistent: `precioUnitario DOWN 2dp`; `precioTotal = cantidad × PU_2dp` retenido a escala 6 `HALF_UP`; totales de capítulo y `totalGeneral` agregados desde esos valores); motor opera con `BigDecimal` natural (`CALC_PRECISION=3 HALF_UP` retirado). Residual aceptado en GM-19 (`-$6.95`) y GM-20 cap. 1 (`-$0.84`) — no se reabre el motor;
+3. (Plan 014 supersede — **cierre parcial 2026-08-28**) display global `precisionDinero=2` / `precisionPorcentaje=4` vía `app.display.*` + `GET /api/v1/config/display` **DONE 2026-08-28** (T3 Plan 014: `DisplayConfig` + `DisplayConfigResponse` + `DisplayConfigResource` `@PermitAll`; cobertura `DisplayConfigResourceTest` 1/1 + `DisplayConfigResourceOverrideTest` 1/1). La **única rounding del motor aplicada** es la frontera APU→Rubro 2 dp `DOWN` (`internal/Consolidador.java`, regla workbook-consistent: `precioUnitario DOWN 2dp`; `precioTotal = cantidad × PU_2dp` retenido a escala 6 `HALF_UP`; totales de capítulo y `totalGeneral` agregados desde esos valores); motor opera con `BigDecimal` natural (`CALC_PRECISION=3 HALF_UP` retirado). Residual aceptado en GM-19 (`-$6.95`) y GM-20 cap. 1 (`-$0.84`) — no se reabre el motor. `@Digits(integer=8, fraction=2)` en los tres campos monetarios del catálogo cerrado también **DONE 2026-08-28** (T4 Plan 014: `ApuDetallePatchRequest.precioOverride`, `InsumoCrearRequest.precioUnitario`, `InsumoEditarRequest.precioUnitario`; cobertura `DigitsValidationCatalogTest` 3/3). Edición estructural no-links en `Motor.java`/`CalculadorFila.java` **DONE 2026-08-28** (T2 Plan 014: `SnapshotSinAuxiliaresTest` 6/6);
 4. ~~completar reordenamiento y precisión de la respuesta de cálculo~~ — **DONE 2026-08-28 (Plan 03)**;
 5. ~~implementar plantillas de APU~~ — **DONE 2026-08-29 (Plan 04)**;
 6. ~~completar administración de bases centrales y bases personales~~ — **DONE 2026-08-29 (Plan 05)**;
 7. ~~completar plantillas de proyecto usando los paquetes existentes~~ — **DONE 2026-08-29 (Plan 06)**;
-8. ~~uniformar UUIDv7 en las fronteras REST de los módulos actuales~~ — **DONE 2026-08-30 (Plan 07) · VERIFICACIÓN DIRIGIDA COMPLETA**. Recursos migrados en este pase: `proyecto/firmante/parametros_proyecto`, `insumo/base_insumos` (admin central y bases personales), `PresupuestoApuResource` (con parse de `plantillaId` en frontera), seam `POST /proyectos/{proyectoId}/guardar-plantilla`, `DocumentoResource` (ET). Ya alineados antes: APU/detalle, `plantillas-apu` (P-26), `ApuDetalleResponse.insumoId` UUIDv7. Sin migraciones nuevas (no V008/V009); PK/FK siguen `BIGINT`; motor intacto. Las suites dirigidas disponibles suman **233/233 verdes**; la suite completa, Bruno y la deuda Spotless global quedan para el [Plan 08](./planes-para-estar-al-dia/08-cierre-documental-y-verificacion.md). Ver [`planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md`](./planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md);
-9. completar Bruno/documentación y ejecutar la verificación final.
+8. ~~uniformar UUIDv7 en las fronteras REST de los módulos actuales~~ — **DONE 2026-08-30 (Plan 07) · VERIFICACIÓN DIRIGIDA COMPLETA**. Recursos migrados en este pase: `proyecto/firmante/parametros_proyecto`, `insumo/base_insumos` (admin central y bases personales), `PresupuestoApuResource` (con parse de `plantillaId` en frontera), seam `POST /proyectos/{proyectoId}/guardar-plantilla`, `DocumentoResource` (ET). Ya alineados antes: APU/detalle, `plantillas-apu` (P-26), `ApuDetalleResponse.insumoId` UUIDv7. Sin migraciones nuevas (no V008/V009); PK/FK siguen `BIGINT`; motor intacto. Las suites dirigidas disponibles suman **233/233 verdes**; la suite completa queda para el [Plan 08](./planes-para-estar-al-dia/08-cierre-documental-y-verificacion.md). Ver [`planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md`](./planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md);
+9. ~~cerrar documentación, Bruno y verificación transversal~~ — **DONE 2026-08-30 (Plan 08)**: Spotless y build verdes; suite completa 313/2/0/1, con solo GM-19/GM-20 residuales aceptados y GM-24 omitido upstream. Véase [`planes-para-estar-al-dia/08-cierre-documental-y-verificacion.md`](./planes-para-estar-al-dia/08-cierre-documental-y-verificacion.md) para el detalle.
 
 El write-through global que exige un módulo profundo `recalculo` queda
 **diferido**, porque crear ese nuevo módulo contradice el alcance solicitado en
@@ -179,8 +179,8 @@ siguientes.
 | A6 rangos globales | **DONE** | columnas, GET/PUT admin, validación dinámica, `ParametrosRangoDinamicoTest`, `ParametrosProyectoCambio` + test commitados | nada (la costura neutral ya está expuesta para futura propagación) |
 | A9 base PERSONAL | **DONE** | `BasesPersonalesService/Resource` | DELETE personal opcional indicado en Plan 04 |
 | A9 copia al usar | **DONE** | `ResolverInsumoProyectoService`, integración en `ApuCrudService` | nada para creación de filas; reutilizarlo desde plantillas |
-| D-12 central | **MISSING** | listado central activo solamente | CRUD admin, archivar y borrar sin bloqueo |
-| Precisión del motor | **MISSING** | motor aún usa `MathContext`/precisión histórica | CALC=3 por operación, remover ramas auxiliares, config explícita |
+| D-12 central | **DONE 2026-08-29 (Plan 05)** | `AdminBaseCentralResource` (P-39) bajo `/admin/bases-centrales`; `POST /archivar` + `DELETE` con 409 si activa; copia PROYECTO preservada | nada dentro de Plan 05; el catálogo `/bases-centrales` sigue ocultando archivadas |
+| Precisión del motor | **DONE 2026-08-28 (Plan 02 + Plan 014 T1/T3/T4)** | motor con `BigDecimal` natural (Plan 014 supersede #7); única rounding del motor en frontera APU→Rubro (workbook-consistent); display global `app.display.*` + `GET /api/v1/config/display`; `@Digits` en catálogo cerrado | presentación aplica `precisionDinero`/`precisionPorcentaje`; residual GM-19/GM-20 aceptado |
 | Consolidación GM-19/20 | **PARTIAL — CIERRE CON RESIDUO ACEPTADO (2026-08-28)** | regla workbook-consistent aplicada en `Consolidador.java` (`PU DOWN 2dp`; `PT = cantidad × PU_2dp` retenido a escala 6 `HALF_UP`); `ConsolidadorFronteraTest` 5/5 verde | residual aceptado: GM-19 `-$6.95`, GM-20 cap. 1 `-$0.84` (no se reabre el motor); T2–T4 de [`plans/014`](../../plans/014-motor-precision-no-links.md) **IMPLEMENTADOS** (2026-08-28): `SnapshotSinAuxiliaresTest` 6/6 + `DisplayConfigResourceTest` 1/1 + `DisplayConfigResourceOverrideTest` 1/1 + `DigitsValidationCatalogTest` 3/3; DIAG borrado. |
 | UUIDv7 en APU | **DONE** | paths APU y detalle usan UUIDv7 | nada |
 | UUIDv7 resto de módulos | **DONE (2026-08-30) · VERIFICACIÓN DIRIGIDA COMPLETA** | `proyecto/firmante/parametros_proyecto`, `insumo/base_insumos` (admin central y bases personales), `PresupuestoApuResource` (con parse de `plantillaId` en frontera), seam `POST /proyectos/{proyectoId}/guardar-plantilla` y `DocumentoResource` (ET) migrados en Plan 07; APU/detalle y `plantillas-apu` (P-26) ya estaban alineados; `ParametrosProyectoResponse.proyectoId` y `InsumoUsoResponse.apuId` migrados a `UUID`; `CopiarBaseRequest` con `UUID baseId`/`UUID proyectoId`. Sin migraciones nuevas (no V008/V009); PK/FK siguen `BIGINT`; motor intacto | suites dirigidas verdes; suite completa y Bruno se reservan al [Plan 08](./planes-para-estar-al-dia/08-cierre-documental-y-verificacion.md) |
@@ -265,7 +265,7 @@ Antes de editar, crear el plan obligatorio:
 plans/014-motor-precision-no-links.md
 ```
 
-> **Estado (cierre parcial 2026-08-28):** items 8 (regla workbook-consistent en `internal/Consolidador.java`) y 11 parcial (auditoría GM-21, fixtures) ejecutados; residual aceptado: GM-19 `-$6.95`, GM-20 cap. 1 `-$0.84`. Items 1–7 (config display, no-links estructural en `Motor.java`/`CalculadorFila.java`), 9 (call sites de no-links), 10 (`@Digits`) y borrado de DIAG siguen **OPEN** en [`plans/014`](../../plans/014-motor-precision-no-links.md) (T2–T4). El motor **no** se reabre para cerrar el residual.
+> **Estado (cierre parcial 2026-08-28; supersede Plan 08 — 2026-08-30):** items 8 (regla workbook-consistent en `internal/Consolidador.java`) y 11 parcial (auditoría GM-21, fixtures) ejecutados; residual aceptado: GM-19 `-$6.95`, GM-20 cap. 1 `-$0.84`. T1 (consolidación), T2 (no-links estructural en `Motor.java`/`CalculadorFila.java`: `SnapshotSinAuxiliaresTest` 6/6), T3 (`DisplayConfig` + `GET /api/v1/config/display`: `DisplayConfigResourceTest` 1/1 + `DisplayConfigResourceOverrideTest` 1/1) y T4 (`@Digits(integer=8, fraction=2)` en los tres campos del catálogo cerrado: `DigitsValidationCatalogTest` 3/3) **IMPLEMENTADOS 2026-08-28**. Borrado de DIAG **DONE 2026-08-28**. El motor **no** se reabre para cerrar el residual.
 
 Actualizar también:
 
@@ -546,8 +546,7 @@ creó V008/V009 ni se editó V001–V007.
 documento}.*'`, `./gradlew build -x test`, `./gradlew spotlessCheck`) y la
 búsqueda acotada de IDs `Long` en DTOs públicos / `@PathParam` quedan
 reservadas para el cierre del
-[Plan 08](./planes-para-estar-al-dia/08-cierre-documental-y-verificacion.md);
-este pase documental no ejecuta Gradle.
+[Plan 08](./planes-para-estar-al-dia/08-cierre-documental-y-verificacion.md); verificación transversal completada.
 
 Commit sugerido (no emitido por este pase):
 
@@ -606,7 +605,7 @@ docs(i06): reconcile backend modules and API examples
 > **233/233 tests disponibles verdes**; `presupuesto.*` aún no contiene tests.
 > `git diff --check` y el build sin el gate Spotless están verdes. El build
 > exacto permanece bloqueado solo por 23 archivos con formato preexistente,
-> ninguno modificado por Plan 07. Suite completa y Bruno quedan para Plan 08.
+> ninguno modificado por Plan 07. Suite completa y Bruno cerrados en Plan 08.
 
 ---
 
@@ -642,7 +641,7 @@ exista, permanecen incompletos:
 | Bloque | Resultado observable |
 |---|---|
 | 0 | `main` sin cambios flotantes; docs ya no ordenan enlaces auxiliares |
-| 1 | **PARCIAL — CIERRE CON RESIDUO ACEPTADO (2026-08-28)**: motor opera con `BigDecimal` natural; APU→Rubro usa `PU DOWN 2dp` + `PT = cantidad × PU_2dp` retenido a escala 6 `HALF_UP` (regla workbook-consistent). `ConsolidadorFronteraTest` 5/5 verde. **GM-19 (`-$6.95`) y GM-20 cap. 1 (`-$0.84`) con residual aceptado — no se reabre el motor.** T2 (no-links estructural), T3 (display config global) y T4 (`@Digits`) siguen OPEN en Plan 014. |
+| 1 | **PARCIAL — CIERRE CON RESIDUO ACEPTADO (2026-08-28)**: motor opera con `BigDecimal` natural; APU→Rubro usa `PU DOWN 2dp` + `PT = cantidad × PU_2dp` retenido a escala 6 `HALF_UP` (regla workbook-consistent). `ConsolidadorFronteraTest` 5/5 verde. **GM-19 (`-$6.95`) y GM-20 cap. 1 (`-$0.84`) con residual aceptado — no se reabre el motor.** T1 (consolidación) **DONE**; T2 (no-links estructural), T3 (display config global) y T4 (`@Digits`) **IMPLEMENTADOS 2026-08-28** (Plan 014). |
 | 2 | PATCH orden funciona; cálculo respeta orden y precisión |
 | 3 | plantilla PERSONAL se guarda/carga; fallback produce advertencias; fila pendiente con `insumo_id = NULL` + override `0` (V005 estructural) |
 | 4 | central archivada desaparece; borrado no afecta copias PROYECTO |

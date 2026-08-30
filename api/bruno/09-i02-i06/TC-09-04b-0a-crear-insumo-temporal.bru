@@ -1,0 +1,59 @@
+meta {
+  name: TC-09-04b-0a — Crear insumo temporal en base PROYECTO Rehabilitación (helper)
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/proyectos/{{proyectoEnProcesoId}}/insumos
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "codigo": "MO-FB-{{$randomInt}}",
+    "tipo": "MANO_OBRA",
+    "descripcion": "Insumo temporal Plan 08 — pendiente en plantilla fallback",
+    "unidad": "h",
+    "precioUnitario": 3.99
+  }
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("tempInsumoId", res.body.id);
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("Insumo creado en PROYECTO del proyecto Rehabilitación", function() {
+    expect(res.body.codigo).to.match(/^MO-FB-\d+$/);
+    expect(res.body.tipo).to.equal("MANO_OBRA");
+  });
+
+  test("tempInsumoId capturado como UUIDv7", function() {
+    expect("{{tempInsumoId}}").to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+}
+
+docs {
+  Helper de Plan 08 — paso 1/5 del fallback autocontenido de TC-09-04b.
+  Crea un insumo `MANO_OBRA` con código aleatorio `MO-FB-{{random}}` en la
+  base PROYECTO del proyecto `proyectoEnProcesoId` (Rehabilitación, John
+  Doe). El código aleatorio garantiza que no colisiona con ningún insumo
+  sembrado (V003, V004) ni con corridas previas de esta misma colección.
+  El `tempInsumoId` UUIDv7 se captura para usarlo en los helpers 04b-0b y
+  04b-0e.
+}

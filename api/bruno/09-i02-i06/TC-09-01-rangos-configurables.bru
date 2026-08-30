@@ -1,0 +1,40 @@
+meta {
+  name: TC-09-01a — Rangos configurables (lectura sistema + lectura proyecto)
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/proyectos/parametros-sistema
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Singleton presente con rangos configurables", function() {
+    // ParametrosSistema expone rangos activos para validar
+    // parametros de proyecto antes del PUT.
+    expect(res.body).to.have.property("porcentajeHerramientaMenor");
+    expect(res.body).to.have.property("iva");
+    expect(res.body.iva).to.be.a("number");
+    expect(res.body.iva).to.be.greaterThan(0);
+  });
+}
+
+docs {
+  Caso Plan 08 #1 (rangos configurables) — lectura del singleton de
+  parámetros del sistema (`GET /proyectos/parametros-sistema`).
+  Verifica que los defaults están vigentes antes de cualquier intento
+  de edición. El body real expone `porcentajeHerramientaMenor`,
+  `porcentajeIndirecto`, `iva`, `moneda`, `rangoHmMin`, `rangoHmMax`,
+  `rangoCiMin`, `rangoCiMax`, `rangoIvaMin`, `rangoIvaMax`,
+  `rangoDescuentoMin` y `rangoDescuentoMax`
+  — Plan 014 T1 ya integró la frontera APU→Rubro con `DOWN` 2dp.
+}

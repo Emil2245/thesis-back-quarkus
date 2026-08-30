@@ -1,0 +1,82 @@
+meta {
+  name: TC-09-00c — Crear APU helper desde plantilla SISTEMA (helper)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/presupuestos/{{presupuestoId}}/apus
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "codigo": "BR-I06-{{$randomInt}}",
+    "descripcion": "APU helper Plan 08 — fila MO reordenable",
+    "unidad": "m2",
+    "plantillaId": "{{plantillaApuSistemaId}}"
+  }
+}
+
+script:post-response {
+  // El APU se crea desde la plantilla SISTEMA "Retiro de pisos de
+  // porcelanato/cerámica" (MO-001 + MO-002). secciones[1] = MANO_OBRA,
+  // detalles[0] = MO-001 con su UUIDv7 (filaMoId). No usamos la fila HM
+  // porque está protegida contra PATCH distinto de `orden` (N04 §#9).
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("apuId", res.body.id);
+    if (res.body.secciones && res.body.secciones[1]
+        && res.body.secciones[1].detalles && res.body.secciones[1].detalles.length > 0) {
+      bru.setVar("filaMoId", res.body.secciones[1].detalles[0].id);
+    }
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("4 secciones en orden M/N/O/P", function() {
+    expect(res.body.secciones.length).to.equal(4);
+    expect(res.body.secciones[0].tipo).to.equal("EQUIPO");
+    expect(res.body.secciones[1].tipo).to.equal("MANO_OBRA");
+    expect(res.body.secciones[2].tipo).to.equal("MATERIAL");
+    expect(res.body.secciones[3].tipo).to.equal("TRANSPORTE");
+  });
+
+  test("MANO_OBRA con dos filas (MO-001, MO-002) resueltas", function() {
+    // SISTEMA "Retiro de pisos..." persiste MO-001 + MO-002 en el snapshot;
+    // ambas existen en la base PROYECTO de Rehabilitación (seed V004).
+    var seccionMo = res.body.secciones[1];
+    expect(seccionMo.detalles.length).to.equal(2);
+  });
+
+  test("Sin advertencias (insumos ya en PROYECTO)", function() {
+    expect(res.body.advertencias).to.satisfy(function(a) {
+      return a === undefined || a === null
+        || (Array.isArray(a) && a.length === 0);
+    });
+  });
+}
+
+docs {
+  Helper de Plan 08 — crea un APU **desde la plantilla SISTEMA**
+  `0192f6c4-7c8a-7abc-8000-000000002001` ("Retiro de pisos de
+  porcelanato/cerámica") para garantizar que la sección MANO_OBRA tiene
+  exactamente **dos filas** (MO-001 + MO-002) y exponer al menos un
+  `filaMoId` (UUIDv7) reordenable. El APU se consume en TC-09-05
+  (reordenamiento) y en los helpers de TC-09-04b (fallback). Este helper
+  **no** depende de `08-apu/`; es totalmente autocontenido en `09-i02-i06/`.
+
+  El código lleva sufijo aleatorio (`{{$randomInt}}`) para evitar colisión
+  con corridas previas en el mismo presupuesto.
+}

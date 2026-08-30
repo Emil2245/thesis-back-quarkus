@@ -21,17 +21,53 @@ vars {
   u2_token_verificacion: empty
 
   proyectoId: empty
+  proyectoEnProcesoId: 0192f6c4-7c8a-7abc-8000-000000001102
+  proyectoBorradorId: 0192f6c4-7c8a-7abc-8000-000000001101
   insumoId: empty
   firmanteId: empty
-  baseCentralId: empty
-  copiarBaseCentralId: empty
+  copiarBaseCentralId: 0192f6c4-7c8a-7abc-8000-000000000001
+  basePersonalId: 0192f6c4-7c8a-7abc-8000-000000000021
   nuevoInsumoId: empty
 
-  presupuestoId: 1
+  # UUIDv7 del seed V004 — Plan 07 migro presupuestoId a identidad externa UUIDv7.
+  # La ruta /presupuestos/{presupuestoId}/apus recibe el public_id de presupuesto, no el BIGINT.
+  presupuestoId: 0192f6c4-7c8a-7abc-8000-000000001201
   insumoMoId: empty
   insumoMatId: empty
   apuId: empty
+  apuR1Id: 0192f6c4-7c8a-7abc-8000-000000003001
+  apuCp1Id: 0192f6c4-7c8a-7abc-8000-000000003002
+  # `hmDetalleId` lo captura `08-apu/TC-08-02-crear-apu.bru` y lo consume
+  # `08-apu/TC-08-09-fila-hm-protegida-409.bru`. No se usa en `09-i02-i06/`
+  # (ese helper ya no la necesita: usa `filaMoId` desde TC-09-00c).
   hmDetalleId: empty
   filaMoId: empty
   filaMatId: empty
+
+  # Plantilla APU SISTEMA del seed V004 (P-26 plantillas APU). Es la única
+  # PUBLIC_ID fija usada por TC-09-00c (helper) y TC-09-04. El fallback
+  # TC-09-04b ya no usa la PERSONAL seed (002002) — construye su propia
+  # PERSONAL plantilla en runtime (helper 04b-0c) y la captura en
+  # `nuevaPlantillaApuId`.
+  plantillaApuSistemaId: 0192f6c4-7c8a-7abc-8000-000000002001
+  plantillaProyectoId: 0192f6c4-7c8a-7abc-8000-000000000401
+
+  # Plantilla PERSONAL creada en runtime por TC-09-04b-0c y aplicada por
+  # TC-09-04b para forzar la rama de advertencias. El nombre lleva sufijo
+  # aleatorio por lo que cada corrida crea/borra su propia plantilla.
+  nuevaPlantillaApuId: empty
+
+  # IDs efímeros del fallback TC-09-04b (insumo + detalle temporal) y del
+  # admin TC-09-08 (base CENTRAL temporal). Cada corrida los recrea.
+  tempInsumoId: empty
+  tempDetalleId: empty
+  tempCentralId: empty
+
+  # Variables admin (Plan 08) — ningún SUPER_ADMIN se siembra; el operador debe
+  # sustituirlas antes de invocar los casos TC-09-08b-0a/d/b/c. La marca
+  # `meta.adminOnly` no existe en archivos `.bru`; los casos admin se
+  # identifican por la URL `/admin/...`.
+  adminEmail: empty
+  adminPassword: empty
+  admin_access_token: empty
 }

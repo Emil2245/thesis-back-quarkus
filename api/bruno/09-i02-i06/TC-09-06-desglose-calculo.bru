@@ -1,0 +1,91 @@
+meta {
+  name: TC-09-06 — Desglose de cálculo del APU (P-27 / Plan 03)
+  type: http
+  seq: 17
+}
+
+get {
+  url: {{baseUrl}}/apus/{{apuId}}/calculo
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("apuId devuelto es UUIDv7", function() {
+    expect(res.body.apuId).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+
+  test("4 secciones (M/N/O/P) en orden fijo", function() {
+    expect(res.body.secciones.length).to.equal(4);
+    expect(res.body.secciones[0].tipo).to.equal("EQUIPO");
+    expect(res.body.secciones[1].tipo).to.equal("MANO_OBRA");
+    expect(res.body.secciones[2].tipo).to.equal("MATERIAL");
+    expect(res.body.secciones[3].tipo).to.equal("TRANSPORTE");
+  });
+
+  test("Parámetros efectivos presentes (hm, ciDefault, ciAplicado, descuento)", function() {
+    expect(res.body.parametros).to.have.property("hm");
+    expect(res.body.parametros).to.have.property("ciDefault");
+    expect(res.body.parametros).to.have.property("ciAplicado");
+    expect(res.body.parametros).to.have.property("descuento");
+  });
+
+  test("Resultados a precisión natural — el motor no aplica redondeo intermedio", function() {
+    // El motor conserva la precisión natural de BigDecimal; la columna
+    // de BD es NUMERIC(14,6) (6 dp de persistencia). La capa de
+    // presentación (frontend / export xlsx) aplica el display global
+    // `precisionDinero=2` y `precisionPorcentaje=4` desde
+    // `GET /api/v1/config/display` (Plan 014 T3, display config
+    // global vía `app.display.*`). El response crudo mantiene la
+    // precisión natural como garantía auditable; la frase "3dp" del
+    // workbook IESS histórico es **formato de display**, no aritmética
+    // del backend. Plan 014 T1 dejó explícito: la única rounding del
+    // motor es la frontera APU→Rubro (DOWN 2dp en precioUnitario, los
+    // precioTotal a escala 6 HALF_UP).
+    var seccion = res.body.secciones[1];
+    expect(seccion).to.have.property("subtotal");
+    expect(seccion).to.have.property("operacion");
+    expect(seccion).to.have.property("resultado");
+  });
+
+  test("Resumen con cd / cdAjustado / ci / ct", function() {
+    expect(res.body.resumen).to.have.property("cd");
+    expect(res.body.resumen).to.have.property("cdAjustado");
+    expect(res.body.resumen).to.have.property("operacionCdAjustado");
+    expect(res.body.resumen).to.have.property("ci");
+    expect(res.body.resumen).to.have.property("ct");
+  });
+}
+
+docs {
+  Caso Plan 08 #5 (desglose) — `GET /apus/{id}/calculo` expone el
+  desglose P-27 con `ApuCalculoResponse`: parámetros efectivos (HM, CI
+  default, CI aplicado, descuento), 4 secciones con líneas ordenadas
+  por `orden` ascendente, y resumen CD/CDAjustado/CI/CT.
+
+  **Plan 014 — citas correctas:**
+  - **T1 (Frontera APU→Rubro)** ya ejecutado: el único `setScale(2,
+    DOWN)` vive en `internal/Consolidador.collectRubros` y se aplica
+    sólo a `precioUnitario`; los `precioTotal` se retienen a escala
+    `NUMERIC(14,6)` con `HALF_UP` y se agregan a capítulo /
+    `totalGeneral` también a escala 6.
+  - **T3 (Display config global)** aplica `precisionDinero=2` y
+    `precisionPorcentaje=4` desde `app.display.*` y los expone por
+    `GET /api/v1/config/display`.
+  - **El cálculo crudo del motor opera a precisión natural de
+    `BigDecimal`** (NO `CALC_PRECISION=3 HALF_UP`; eso fue retirado
+    por Plan 014). La frase "3 dp" del workbook IESS histórico es
+    **formato de display**, no aritmética del backend.
+
+  Este caso asume que el `apuId` que dejó TC-09-04b (APU desde
+  PERSONAL con advertencias). Si se ejecuta aislado, basta con
+  autenticar como `u1` y crear un APU vía POST al endpoint de
+  presupuestos.
+}

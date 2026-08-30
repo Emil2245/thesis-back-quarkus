@@ -1,0 +1,49 @@
+meta {
+  name: TC-09-01b — Rangos configurables (edición proyecto dentro de rango)
+  type: http
+  seq: 7
+}
+
+put {
+  url: {{baseUrl}}/proyectos/{{proyectoId}}/parametros
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "porcentajeHerramientaMenor": 0.07,
+    "porcentajeIndirecto": 0.20,
+    "iva": 0.15,
+    "moneda": "USD"
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("porcentajeHerramientaMenor actualizado", function() {
+    expect(res.body.porcentajeHerramientaMenor).to.equal(0.07);
+  });
+
+  test("proyectoId devuelto es UUIDv7", function() {
+    expect(res.body.proyectoId).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+}
+
+docs {
+  Caso Plan 08 #1 (rangos configurables) — PUT de parámetros del
+  proyecto dentro de los rangos vigentes. Valida que el seam
+  `ParametrosProyectoResponse.proyectoId` ahora es UUIDv7 (Plan 07
+  cerrado, ya no `Long`). Si los rangos en `ParametrosSistema` son
+  demasiado estrechos, este caso devuelve 400 `validacion`.
+}
