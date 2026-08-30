@@ -31,10 +31,13 @@ public class InsumoCatalogoService {
     BaseInsumosService baseInsumosService;
 
     public Page<InsumoBusquedaResponse> buscar(
-            Long proyectoId, String q, boolean soloCentrales, int pageIndex, int pageSize) {
+            Long proyectoId, Long usuarioId, String q, boolean soloCentrales, int pageIndex, int pageSize) {
         List<BaseInsumos> bases = new ArrayList<>(baseInsumosRepository.listarCentralesActivas());
         if (!soloCentrales && proyectoId != null) {
             bases.add(baseInsumosService.asegurarBaseProyecto(proyectoId));
+        }
+        if (!soloCentrales && usuarioId != null) {
+            bases.addAll(baseInsumosRepository.listarPersonales(usuarioId));
         }
         if (bases.isEmpty()) {
             return Page.of(List.of(), 0, pageIndex, pageSize);
@@ -54,7 +57,7 @@ public class InsumoCatalogoService {
 
         List<InsumoBusquedaResponse> items = pageItems.stream()
                 .map(i -> {
-                    boolean esCentral = baseTipo.get(i.baseId) == TipoBase.CENTRAL;
+                    TipoBase tb = baseTipo.get(i.baseId);
                     return new InsumoBusquedaResponse(
                             i.id,
                             i.codigo,
@@ -64,7 +67,7 @@ public class InsumoCatalogoService {
                             i.precioUnitario,
                             i.updatedAt,
                             desactualizado(i, corte),
-                            esCentral ? "CENTRAL" : "PROYECTO",
+                            tb != null ? tb.name() : "PROYECTO",
                             baseNombre.get(i.baseId));
                 })
                 .toList();

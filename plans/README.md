@@ -43,13 +43,13 @@ the frontend (fully built) and the backend.
 | # | Plan | Priority | Effort | Depends on | Status |
 |---|---|---|---|---|---|
 | 013 | [Remove esAuxiliar / no-links](./013-remove-es-auxiliar.md) | P0 | S-M | — | **DONE** (2026-08-29; V005 migration, motor & entities cleaned, 76 tests green) |
-| 014 | [Presupuesto, capitulos, rubros, versiones](./014-presupuesto-versiones.md) | P0 | L | 013 | TODO |
-| 015 | [Cronograma module](./015-cronograma.md) | P1 | M | 014 | TODO |
-| 016 | [Document export + config/display](./016-document-export.md) | P2 | L | 014, 015 | TODO |
+| 014 | [Presupuesto, capitulos, rubros, versiones](./014-presupuesto-versiones.md) | P0 | L | 013 | **DONE** (2026-08-29; presupuesto CRUD, capitulos, rubros, versioning, deep copy, recalculo, descuento global, validación, comparación; auto-creates v1 on project creation; 79 tests green) |
+| 015 | [Cronograma module](./015-cronograma.md) | P1 | M | 014 | **DONE** (2026-08-29; entities, service, resources, mapper, IT test; crear auto-imports actividades from rubros, configurar with period-reduction confirmation, avance update, marcar revisado, desactualizado flag; 82 tests, 2 red GM-19/20, 2 skipped) |
+| 016 | [Document export + config/display](./016-document-export.md) | P2 | L | 014, 015 | **DONE** (2026-08-29; V006 migration, ExportApuService, ExportPresupuestoService, ExportCronogramaService, ExportEspecificacionesService, DocumentoResource at /documentos, DisplayConfigResource at /config/display; 86 tests, 2 red GM-19/20, 2 skipped) |
 | 017 | [APU advanced operations + plantillas APU](./017-apu-advanced.md) | P1 | M | 013, 014 | TODO |
-| 018 | [Project operations + plantilla proyecto](./018-project-operations.md) | P2 | M | 014 | TODO |
-| 019 | [Super-admin module](./019-admin-module.md) | P2 | L | 013, 014 | TODO |
-| 020 | [Bases personales](./020-bases-personales.md) | P3 | S | 013 | TODO |
+| 018 | [Project operations + plantilla proyecto](./018-project-operations.md) | P2 | M | 014 | **DONE** (2026-08-29; logo upload/download, insumo usage report, D-08 wired; duplicar EXCLUDED per 009; V008 migration, PlantillaProyecto entity+service+resource with JSONB snapshot; 91 tests, 2 red GM-19/20, 2 skipped) |
+| 019 | [Super-admin module](./019-admin-module.md) | P2 | L | 013, 014 | **DONE** (2026-08-29; V009 migration for range fields; AdminUsuarioResource, AdminBasesCentralesResource, AdminParametrosSistemaResource, AdminLogResource; LogService + LogActividad entity; 86 tests, 2 red GM-19/20, 2 skipped) |
+| 020 | [Bases personales](./020-bases-personales.md) | P3 | S | 013 | **DONE** (2026-08-29; V010 migration, BasePersonalResource, InsumoCatalogoService multi-source, 2 IT tests green) |
 
 **Recommended execution order:** 013 first (unblocks everything), then 014 (highest
 leverage), then 015+017 in parallel, then 016+018+019, finally 020.

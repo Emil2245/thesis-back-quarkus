@@ -22,6 +22,9 @@ public class BaseInsumos extends PanacheEntityBase {
     @Column(name = "proyecto_id")
     public Long proyectoId;
 
+    @Column(name = "usuario_id")
+    public Long usuarioId;
+
     @Column(nullable = false)
     public boolean archivada = false;
 

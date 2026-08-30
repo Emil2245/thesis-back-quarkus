@@ -17,4 +17,9 @@ public class BaseInsumosRepository implements PanacheRepositoryBase<BaseInsumos,
     public List<BaseInsumos> listarCentralesActivas() {
         return find("tipo = ?1 and archivada = false", TipoBase.CENTRAL).list();
     }
+
+    public List<BaseInsumos> listarPersonales(Long usuarioId) {
+        return find("tipo = ?1 and usuarioId = ?2", TipoBase.PERSONAL, usuarioId)
+                .list();
+    }
 }

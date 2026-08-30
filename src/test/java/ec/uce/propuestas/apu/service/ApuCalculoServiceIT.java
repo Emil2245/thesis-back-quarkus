@@ -115,8 +115,8 @@ class ApuCalculoServiceIT {
 
     private Long insertarPresupuesto(Long proyectoId) throws Exception {
         try (Connection con = ds.getConnection();
-                PreparedStatement ps = con.prepareStatement(
-                        "SELECT id FROM presupuesto WHERE proyecto_id = ? AND version = 1")) {
+                PreparedStatement ps =
+                        con.prepareStatement("SELECT id FROM presupuesto WHERE proyecto_id = ? AND version = 1")) {
             ps.setLong(1, proyectoId);
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();

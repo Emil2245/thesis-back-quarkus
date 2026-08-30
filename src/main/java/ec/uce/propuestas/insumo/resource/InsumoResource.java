@@ -1,9 +1,12 @@
 package ec.uce.propuestas.insumo.resource;
 
+import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.common.dto.Page;
 import ec.uce.propuestas.insumo.dto.*;
 import ec.uce.propuestas.insumo.entity.TipoInsumo;
 import ec.uce.propuestas.insumo.service.*;
+import ec.uce.propuestas.usuario.UsuarioRepository;
+import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
@@ -36,6 +39,20 @@ public class InsumoResource {
     @Inject
     CopiaBaseService copia;
 
+    @Inject
+    SecurityIdentity identity;
+
+    @Inject
+    UsuarioRepository usuarioRepository;
+
+    private Long usuarioId() {
+        String email = identity.getPrincipal().getName();
+        return usuarioRepository
+                .findByEmail(email)
+                .map(u -> u.id)
+                .orElseThrow(() -> ProblemaException.noEncontrado("Usuario autenticado no encontrado"));
+    }
+
     /** Lista insumos de la base PROYECTO (P-13). */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -61,7 +78,7 @@ public class InsumoResource {
             @QueryParam("soloCentrales") boolean soloCentrales,
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("size") @DefaultValue("25") int size) {
-        return catalogo.buscar(proyectoId, q, soloCentrales, page, size);
+        return catalogo.buscar(proyectoId, usuarioId(), q, soloCentrales, page, size);
     }
 
     /** Crear un insumo en la base PROYECTO. */
@@ -100,6 +117,13 @@ public class InsumoResource {
         var base = baseInsumosService.asegurarBaseProyecto(proyectoId);
         byte[] contenido = java.nio.file.Files.readAllBytes(form.archivo.uploadedFile());
         return importacion.importarCsv(base.id, contenido);
+    }
+
+    @GET
+    @Path("/{insumoId}/uso")
+    @Consumes(MediaType.WILDCARD)
+    public Response uso(@PathParam("proyectoId") Long proyectoId, @PathParam("insumoId") Long insumoId) {
+        return Response.ok(crud.listarUsos(insumoId)).build();
     }
 
     /** Copiar una base hacia la base PROYECTO (P-14). */

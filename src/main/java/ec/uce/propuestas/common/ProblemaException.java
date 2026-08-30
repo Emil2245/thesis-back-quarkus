@@ -43,4 +43,19 @@ public class ProblemaException extends WebApplicationException {
     public static ProblemaException versionVigenteProtegida(String mensaje) {
         return new ProblemaException(409, "version-vigente-protegida", mensaje);
     }
+
+    /** 409 cronograma-ya-existe */
+    public static ProblemaException cronogramaYaExiste(String mensaje) {
+        return new ProblemaException(409, "cronograma-ya-existe", mensaje);
+    }
+
+    /** 409 reduccion-periodos-requiere-confirmacion */
+    public static ProblemaException reduccionPeriodosRequiereConfirmacion(String mensaje) {
+        return new ProblemaException(409, "reduccion-periodos-requiere-confirmacion", mensaje);
+    }
+
+    /** 409 export-bloqueado */
+    public static ProblemaException exportBloqueado(String mensaje) {
+        return new ProblemaException(409, "export-bloqueado", mensaje);
+    }
 }

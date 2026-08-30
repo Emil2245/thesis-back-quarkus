@@ -50,6 +50,12 @@ public class Proyecto extends PanacheEntityBase {
     @Column(name = "logo")
     public byte[] logo;
 
+    @Column(name = "titulo_et_1", columnDefinition = "TEXT")
+    public String tituloEt1;
+
+    @Column(name = "titulo_et_2", columnDefinition = "TEXT")
+    public String tituloEt2;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     public Instant createdAt;
 

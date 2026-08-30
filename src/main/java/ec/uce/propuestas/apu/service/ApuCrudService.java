@@ -317,4 +317,17 @@ public class ApuCrudService {
             throw ProblemaException.validacion("El insumo no es compatible con la sección " + seccion);
         }
     }
+
+    @Transactional
+    public ApuResponse editarEspecificacion(Long apuId, String texto) {
+        Apu apu = apuRepository
+                .findByIdOptional(apuId)
+                .orElseThrow(() -> ProblemaException.noEncontrado("APU no encontrado"));
+        if (texto != null && texto.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 65536) {
+            throw ProblemaException.validacion("La especificación técnica no puede superar 64 KB");
+        }
+        apu.especificacionTecnica = texto;
+        apuRepository.persist(apu);
+        return obtener(apuId);
+    }
 }

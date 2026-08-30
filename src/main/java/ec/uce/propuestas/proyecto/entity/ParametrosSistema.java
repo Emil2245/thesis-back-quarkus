@@ -54,6 +54,30 @@ public class ParametrosSistema extends PanacheEntityBase {
     @Column(name = "modo_codigo_rubro", nullable = false, length = 12)
     public ModoCodigoRubro modoCodigoRubro;
 
+    @Column(name = "rango_hm_min", precision = 5, scale = 4)
+    public BigDecimal rangoHmMin;
+
+    @Column(name = "rango_hm_max", precision = 5, scale = 4)
+    public BigDecimal rangoHmMax;
+
+    @Column(name = "rango_ci_min", precision = 5, scale = 4)
+    public BigDecimal rangoCiMin;
+
+    @Column(name = "rango_ci_max", precision = 5, scale = 4)
+    public BigDecimal rangoCiMax;
+
+    @Column(name = "rango_descuento_min", precision = 5, scale = 4)
+    public BigDecimal rangoDescuentoMin;
+
+    @Column(name = "rango_descuento_max", precision = 5, scale = 4)
+    public BigDecimal rangoDescuentoMax;
+
+    @Column(name = "rango_iva_min", precision = 5, scale = 4)
+    public BigDecimal rangoIvaMin;
+
+    @Column(name = "rango_iva_max", precision = 5, scale = 4)
+    public BigDecimal rangoIvaMax;
+
     @Column(name = "updated_at", nullable = false)
     public Instant updatedAt;
 }

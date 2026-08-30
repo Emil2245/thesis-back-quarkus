@@ -97,6 +97,13 @@ public class ProyectoService {
         proyectoRepository.delete(p);
     }
 
+    @Transactional
+    public void guardarLogo(Long usuarioId, Long id, byte[] data) {
+        Proyecto p = validarPropietario(usuarioId, id);
+        p.logo = data;
+        proyectoRepository.persist(p);
+    }
+
     /** Valida que el proyecto pertenezca al usuario (RNF-05). */
     public Proyecto validarPropietario(Long usuarioId, Long id) {
         return proyectoRepository

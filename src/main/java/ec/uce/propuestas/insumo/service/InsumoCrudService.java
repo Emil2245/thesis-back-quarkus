@@ -1,9 +1,16 @@
 package ec.uce.propuestas.insumo.service;
 
+import ec.uce.propuestas.apu.entity.Apu;
+import ec.uce.propuestas.apu.entity.ApuDetalle;
+import ec.uce.propuestas.apu.entity.ApuSeccion;
+import ec.uce.propuestas.apu.repository.ApuDetalleRepository;
+import ec.uce.propuestas.apu.repository.ApuRepository;
+import ec.uce.propuestas.apu.repository.ApuSeccionRepository;
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.insumo.dto.InsumoCrearRequest;
 import ec.uce.propuestas.insumo.dto.InsumoEditarRequest;
 import ec.uce.propuestas.insumo.dto.InsumoResponse;
+import ec.uce.propuestas.insumo.dto.InsumoUsoResponse;
 import ec.uce.propuestas.insumo.entity.Insumo;
 import ec.uce.propuestas.insumo.entity.TipoInsumo;
 import ec.uce.propuestas.insumo.mapper.InsumoMapper;
@@ -11,6 +18,8 @@ import ec.uce.propuestas.insumo.repository.InsumoRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * CRUD de insumo con reglas D-06 (unidad fija 'h' para MO/Equipo y restricciones
@@ -22,6 +31,15 @@ public class InsumoCrudService {
 
     @Inject
     InsumoRepository insumoRepository;
+
+    @Inject
+    ApuDetalleRepository apuDetalleRepository;
+
+    @Inject
+    ApuSeccionRepository apuSeccionRepository;
+
+    @Inject
+    ApuRepository apuRepository;
 
     @Transactional
     public InsumoResponse crear(Long baseId, InsumoCrearRequest req) {
@@ -53,8 +71,6 @@ public class InsumoCrudService {
     @Transactional
     public void eliminar(Long baseId, Long id) {
         Insumo e = validarExistencia(baseId, id);
-        // TODO(P-18): la verificación de uso en APUs se resuelve con el módulo APU
-        // (RESTRICT real, D-08). Mientras no exista tabla apu_insumo, se permite.
         long usos = conteoUsosApu(e.id);
         if (usos > 0) {
             throw ProblemaException.validacion(
@@ -63,9 +79,22 @@ public class InsumoCrudService {
         insumoRepository.delete(e);
     }
 
-    /** stub: 0 hasta el módulo APU (P-18). */
     private long conteoUsosApu(Long insumoId) {
-        return 0L;
+        return apuDetalleRepository.countByInsumoId(insumoId);
+    }
+
+    public List<InsumoUsoResponse> listarUsos(Long insumoId) {
+        List<ApuDetalle> detalles = apuDetalleRepository.findByInsumoId(insumoId);
+        List<InsumoUsoResponse> result = new ArrayList<>();
+        for (ApuDetalle d : detalles) {
+            ApuSeccion sec = apuSeccionRepository.findByIdOptional(d.seccionId).orElse(null);
+            if (sec == null) continue;
+            Apu apu = apuRepository.findByIdOptional(sec.apuId).orElse(null);
+            if (apu == null) continue;
+            result.add(new InsumoUsoResponse(
+                    apu.id, apu.codigo, apu.descripcion, sec.tipo.name(), d.precioUnitarioTarifa != null));
+        }
+        return result;
     }
 
     private Insumo validarExistencia(Long baseId, Long id) {

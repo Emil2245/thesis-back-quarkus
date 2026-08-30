@@ -99,4 +99,11 @@ public class ApuResource {
         validarAcceso(apuId);
         return apuService.eliminarDetalle(apuId, detalleId);
     }
+
+    @PUT
+    @Path("/especificacion-tecnica")
+    public ApuResponse editarEspecificacion(@PathParam("apuId") Long apuId, EspecificacionTecnicaRequest req) {
+        validarAcceso(apuId);
+        return apuService.editarEspecificacion(apuId, req.texto());
+    }
 }

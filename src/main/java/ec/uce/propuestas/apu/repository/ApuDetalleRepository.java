@@ -23,6 +23,14 @@ public class ApuDetalleRepository implements PanacheRepositoryBase<ApuDetalle, L
                 .firstResultOptional();
     }
 
+    public List<ApuDetalle> findByInsumoId(Long insumoId) {
+        return find("insumoId", insumoId).list();
+    }
+
+    public long countByInsumoId(Long insumoId) {
+        return count("insumoId", insumoId);
+    }
+
     public short maxOrdenEnSeccion(Long seccionId) {
         List<ApuDetalle> items =
                 find("seccionId = ?1 order by orden desc", seccionId).list();

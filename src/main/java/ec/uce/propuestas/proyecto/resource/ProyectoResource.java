@@ -87,6 +87,32 @@ public class ProyectoResource {
         return Response.noContent().build();
     }
 
+    @PUT
+    @Path("/{proyectoId}/logo")
+    @Consumes(MediaType.APPLICATION_OCTET_STREAM)
+    public Response subirLogo(@PathParam("proyectoId") Long id, byte[] data) {
+        if (data == null || data.length == 0) {
+            throw ProblemaException.validacion("El logo no puede estar vacío");
+        }
+        if (data.length > 2 * 1024 * 1024) {
+            throw ProblemaException.validacion("El logo no puede superar 2 MB");
+        }
+        proyectoService.guardarLogo(usuarioId(), id, data);
+        return Response.noContent().build();
+    }
+
+    @GET
+    @Path("/{proyectoId}/logo")
+    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+    @Consumes(MediaType.WILDCARD)
+    public Response obtenerLogo(@PathParam("proyectoId") Long id) {
+        var p = proyectoService.validarPropietario(usuarioId(), id);
+        if (p.logo == null || p.logo.length == 0) {
+            throw ProblemaException.noEncontrado("El proyecto no tiene logo");
+        }
+        return Response.ok(p.logo).type(MediaType.APPLICATION_OCTET_STREAM).build();
+    }
+
     /** Parámetros globales (lectura). */
     @GET
     @Path("/parametros-sistema")
