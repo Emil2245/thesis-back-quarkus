@@ -109,8 +109,8 @@ public class ResolverInsumoPlantillaService {
         // 1) PROYECTO del proyecto destino (filtrado por tipo de sección)
         Optional<BaseInsumos> baseProyecto = baseInsumosRepository.findByProyecto(proyectoId);
         if (baseProyecto.isPresent()) {
-            Optional<Insumo> directo = insumoRepository.findByBaseYcodigoYTipo(
-                    baseProyecto.get().id, codigo, tipoInsumo);
+            Optional<Insumo> directo =
+                    insumoRepository.findByBaseYcodigoYTipo(baseProyecto.get().id, codigo, tipoInsumo);
             if (directo.isPresent()) {
                 return Resultado.encontrado(directo.get());
             }
@@ -126,8 +126,7 @@ public class ResolverInsumoPlantillaService {
         if (candidatoCentral != null) {
             Insumo insumoCentral = insumoRepository.findById(candidatoCentral);
             if (insumoCentral != null) {
-                return Resultado.encontrado(
-                        resolverInsumoProyecto.materializarOReusar(candidatoCentral, proyectoId));
+                return Resultado.encontrado(resolverInsumoProyecto.materializarOReusar(candidatoCentral, proyectoId));
             }
         }
 
@@ -136,8 +135,7 @@ public class ResolverInsumoPlantillaService {
         if (candidatoPersonal != null) {
             Insumo insumoPersonal = insumoRepository.findById(candidatoPersonal);
             if (insumoPersonal != null) {
-                return Resultado.encontrado(
-                        resolverInsumoProyecto.materializarOReusar(candidatoPersonal, proyectoId));
+                return Resultado.encontrado(resolverInsumoProyecto.materializarOReusar(candidatoPersonal, proyectoId));
             }
         }
 
@@ -149,17 +147,17 @@ public class ResolverInsumoPlantillaService {
      * base del tipo indicado, compatible con la sección destino y no
      * archivada. Devuelve {@code null} si no existe.
      */
-    private Long buscarCodigoEnBase(
-            String codigo, TipoBase tipo, Long usuarioId, TipoInsumo tipoInsumo) {
-        StringBuilder ql = new StringBuilder(
-                "select i.id from Insumo i, BaseInsumos b "
-                        + "where i.baseId = b.id and b.tipo = :tipo and b.archivada = false "
-                        + "and i.codigo = :codigo and i.tipo = :tipoInsumo");
+    private Long buscarCodigoEnBase(String codigo, TipoBase tipo, Long usuarioId, TipoInsumo tipoInsumo) {
+        StringBuilder ql = new StringBuilder("select i.id from Insumo i, BaseInsumos b "
+                + "where i.baseId = b.id and b.tipo = :tipo and b.archivada = false "
+                + "and i.codigo = :codigo and i.tipo = :tipoInsumo");
         if (usuarioId != null) {
             ql.append(" and b.usuarioId = :uid");
         }
         ql.append(" order by i.id");
-        var query = insumoRepository.getEntityManager().createQuery(ql.toString(), Long.class)
+        var query = insumoRepository
+                .getEntityManager()
+                .createQuery(ql.toString(), Long.class)
                 .setParameter("tipo", tipo)
                 .setParameter("codigo", codigo)
                 .setParameter("tipoInsumo", tipoInsumo)

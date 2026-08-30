@@ -58,8 +58,7 @@ public class PlantillaApuResource {
      */
     @GET
     @Consumes(MediaType.WILDCARD)
-    public List<PlantillaApuResumenResponse> listar(
-            @QueryParam("q") String q, @QueryParam("tipo") String tipo) {
+    public List<PlantillaApuResumenResponse> listar(@QueryParam("q") String q, @QueryParam("tipo") String tipo) {
         Long caller = usuarioId();
         List<PlantillaApuResumenResponse> todas = plantillaApuService.listar(caller, q);
         if (tipo == null || tipo.isBlank()) {
@@ -84,8 +83,7 @@ public class PlantillaApuResource {
 
     @PUT
     @Path("/{id}")
-    public PlantillaApuResumenResponse editar(
-            @PathParam("id") String id, @Valid PlantillaApuEditarRequest req) {
+    public PlantillaApuResumenResponse editar(@PathParam("id") String id, @Valid PlantillaApuEditarRequest req) {
         UUID plantillaId = UuidV7.parse(id);
         return plantillaApuService.editar(plantillaId, req, usuarioId());
     }

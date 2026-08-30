@@ -25,7 +25,8 @@ public record PlantillaApuDetalleResponse(
         Instant updatedAt,
         List<AdvertenciaPlantillaResponse> advertencias) {
 
-    public static PlantillaApuDetalleResponse from(PlantillaApu p, JsonNode snapshot, List<AdvertenciaPlantillaResponse> advertencias) {
+    public static PlantillaApuDetalleResponse from(
+            PlantillaApu p, JsonNode snapshot, List<AdvertenciaPlantillaResponse> advertencias) {
         return new PlantillaApuDetalleResponse(
                 p.publicId,
                 p.nombre,

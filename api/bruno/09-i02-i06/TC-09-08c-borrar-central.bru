@@ -1,0 +1,38 @@
+meta {
+  name: TC-09-08c — Borrar base CENTRAL temporal archivada (DELETE /admin/bases-centrales/{id})
+  type: http
+  seq: 25
+}
+
+delete {
+  url: {{baseUrl}}/admin/bases-centrales/{{tempCentralId}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_access_token}}
+}
+
+tests {
+  test("Status 204 No Content", function() {
+    expect(res.status).to.equal(204);
+  });
+}
+
+docs {
+  Caso Plan 08 #7 (archivar/borrar CENTRAL) — paso 4/4. Borrado
+  físico de la base CENTRAL **temporal** una vez archivada por
+  TC-09-08b. El borrado opera en cascada sobre sus `insumo` por la FK
+  `insumo.base_id → base_insumos(id) ON DELETE CASCADE` de V001, pero
+  **no** toca las copias PROYECTO (N04 §A9: cada fila de
+  `apu_detalle.insumo_id` apunta SIEMPRE a un insumo de la base
+  PROYECTO del proyecto del APU).
+
+  **Garantía:** el seed V003 (`0192f6c4-7c8a-7abc-8000-000000000001`,
+  "Base CENTRAL IESS") **no se toca** en este flujo. Esta versión
+  autocontenida del caso usa una base efímera creada por 08b-0a
+  precisamente para que el DELETE 204 no destruya el seed.
+
+  Requiere credenciales admin válidas (`adminEmail` / `adminPassword`
+  en `dev.bru`).
+}

@@ -41,7 +41,8 @@ public class PlantillaApuRepository implements PanacheRepositoryBase<PlantillaAp
      * Plan 04 (P-26) — Listado de plantillas por tipo, orden estable por nombre.
      */
     public List<PlantillaApu> listarPorTipo(PlantillaApu.Tipo tipo) {
-        return find("tipo = :tipo order by nombre", Parameters.with("tipo", tipo)).list();
+        return find("tipo = :tipo order by nombre", Parameters.with("tipo", tipo))
+                .list();
     }
 
     /**

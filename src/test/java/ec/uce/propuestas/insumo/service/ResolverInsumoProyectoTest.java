@@ -154,7 +154,8 @@ class ResolverInsumoProyectoTest {
 
     private long contarBasesDeProyecto(long proyectoId) throws Exception {
         try (Connection con = ds.getConnection();
-                PreparedStatement ps = con.prepareStatement("SELECT count(*) FROM base_insumos WHERE proyecto_id = ?")) {
+                PreparedStatement ps =
+                        con.prepareStatement("SELECT count(*) FROM base_insumos WHERE proyecto_id = ?")) {
             ps.setLong(1, proyectoId);
             try (ResultSet rs = ps.executeQuery()) {
                 assertTrue(rs.next());
@@ -216,9 +217,9 @@ class ResolverInsumoProyectoTest {
         long insumoAjeno = sembrarInsumo(basePersonalAjena, "MO-1", TipoInsumo.MANO_OBRA, "h", new BigDecimal("3.50"));
         long proyecto = sembrarProyecto(u.duenoA());
 
-        ec.uce.propuestas.common.ProblemaException ex =
-                assertThrows(ec.uce.propuestas.common.ProblemaException.class,
-                        () -> resolver.materializarOReusar(insumoAjeno, proyecto));
+        ec.uce.propuestas.common.ProblemaException ex = assertThrows(
+                ec.uce.propuestas.common.ProblemaException.class,
+                () -> resolver.materializarOReusar(insumoAjeno, proyecto));
         assertEquals(404, ex.getResponse().getStatus());
         assertEquals("no-encontrado", errorCodigo(ex));
 
@@ -235,9 +236,9 @@ class ResolverInsumoProyectoTest {
         long insumoOrigen = sembrarInsumo(baseOrigen, "MO-2", TipoInsumo.MANO_OBRA, "h", new BigDecimal("4.00"));
         long proyectoDestino = sembrarProyecto(u.duenoA());
 
-        ec.uce.propuestas.common.ProblemaException ex =
-                assertThrows(ec.uce.propuestas.common.ProblemaException.class,
-                        () -> resolver.materializarOReusar(insumoOrigen, proyectoDestino));
+        ec.uce.propuestas.common.ProblemaException ex = assertThrows(
+                ec.uce.propuestas.common.ProblemaException.class,
+                () -> resolver.materializarOReusar(insumoOrigen, proyectoDestino));
         assertEquals(404, ex.getResponse().getStatus());
         assertEquals("no-encontrado", errorCodigo(ex));
 
@@ -300,8 +301,7 @@ class ResolverInsumoProyectoTest {
 
         // edito el insumo CENTRAL directamente vía SQL
         try (Connection con = ds.getConnection();
-                PreparedStatement ps = con.prepareStatement(
-                        "UPDATE insumo SET precio_unitario = ? WHERE id = ?")) {
+                PreparedStatement ps = con.prepareStatement("UPDATE insumo SET precio_unitario = ? WHERE id = ?")) {
             ps.setBigDecimal(1, new BigDecimal("9.99"));
             ps.setLong(2, insumoCentral);
             ps.executeUpdate();
@@ -309,7 +309,9 @@ class ResolverInsumoProyectoTest {
         em.clear();
 
         Insumo copiaRecargada = insumoRepository.findById(copia.id);
-        assertEquals(0, copiaRecargada.precioUnitario.compareTo(new BigDecimal("2.50")),
+        assertEquals(
+                0,
+                copiaRecargada.precioUnitario.compareTo(new BigDecimal("2.50")),
                 "precio de la copia NO cambia con la edición del origen");
     }
 

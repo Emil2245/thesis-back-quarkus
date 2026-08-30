@@ -1,0 +1,43 @@
+meta {
+  name: TC-09-00e — Login titular ajeno (helper)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{u2Email}}",
+    "password": "{{u2Password}}",
+    "recordarSesion": false
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("u2_access_token", res.body.accessToken);
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+}
+
+docs {
+  Helper de Plan 08 — captura el access token del titular ajeno
+  (Ana de Armas). Debe ejecutarse antes que cualquier caso de
+  esta carpeta que opere como `u2`. El único caso que lo requiere
+  hoy es TC-09-11b (recurso ajeno 404 con `u2_access_token` contra
+  el UUID propio de John).
+}

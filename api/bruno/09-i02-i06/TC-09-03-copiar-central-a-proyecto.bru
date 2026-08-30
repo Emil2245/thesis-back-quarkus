@@ -1,0 +1,62 @@
+meta {
+  name: TC-09-03 — Copiar base CENTRAL → base PROYECTO (N04 §A9)
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/proyectos/{{proyectoId}}/insumos/copiar
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "fuenteTipo": "CENTRAL",
+    "baseId": "{{copiarBaseCentralId}}"
+  }
+}
+
+script:post-response {
+  if (res.status === 200 && res.body && typeof res.body.copiados !== "undefined") {
+    bru.setVar("insumosCopiadosCentral", res.body.copiados);
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Insumos CENTRAL copiados a la base PROYECTO", function() {
+    expect(res.body.copiados).to.be.at.least(1);
+  });
+
+  test("Respuesta incluye `omitidos[]` aunque esté vacío", function() {
+    // La primera copia de la CENTRAL IESS al proyecto no debe omitir
+    // nada porque el proyecto BORRADOR (TC-09-00d) no tiene base
+    // previa; las copias siguientes omiten por `dedup (base_id,
+    // codigo)` (D-07).
+    expect(res.body).to.have.property("omitidos");
+    expect(res.body.omitidos).to.be.an("array");
+  });
+}
+
+docs {
+  Caso Plan 08 #2 (PERSONAL + copia CENTRAL) — parte B: copia
+  masiva `POST /proyectos/{proyectoId}/insumos/copiar` con
+  `fuenteTipo=CENTRAL` y `baseId` UUIDv7. Implementa la regla N04
+  §A9 (siempre copia al usar) desde la perspectiva bulk — la
+  alternativa per-fila corre dentro de `ApuCrudService.agregarDetalle`
+  vía `ResolverInsumoProyectoService.materializarOReusar`. El body
+  envía `baseId` como string JSON entrecomillado (la identidad
+  externa es UUIDv7 desde Plan 07). El `omitidos[]` documenta la
+  dedup `D-07` que evita pisar codigos existentes.
+}

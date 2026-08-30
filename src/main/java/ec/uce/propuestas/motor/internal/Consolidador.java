@@ -66,8 +66,8 @@ public final class Consolidador {
             BigDecimal peso = totalGeneral.compareTo(BigDecimal.ZERO) == 0
                     ? BigDecimal.ZERO
                     : r.precioTotal()
-                                .multiply(new BigDecimal("100"), MC)
-                                .divide(totalGeneral, SCALE_PCT, RoundingMode.HALF_UP);
+                            .multiply(new BigDecimal("100"), MC)
+                            .divide(totalGeneral, SCALE_PCT, RoundingMode.HALF_UP);
             pesos.add(new PesoPonderado(r.codigo(), peso));
         }
 

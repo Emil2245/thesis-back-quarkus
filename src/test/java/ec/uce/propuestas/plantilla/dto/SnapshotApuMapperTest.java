@@ -31,9 +31,7 @@ class SnapshotApuMapperTest {
     void writer_nunca_persiste_precios_ni_ids() {
         List<SnapshotApuMapper.SnapshotBloque> bloques = List.of(
                 new SnapshotApuMapper.SnapshotBloque(
-                        "EQUIPO",
-                        List.of(new SnapshotApuMapper.SnapshotFila(
-                                "EQUIPO", true, null, null, null))),
+                        "EQUIPO", List.of(new SnapshotApuMapper.SnapshotFila("EQUIPO", true, null, null, null))),
                 new SnapshotApuMapper.SnapshotBloque(
                         "MANO_OBRA",
                         List.of(new SnapshotApuMapper.SnapshotFila(
@@ -58,15 +56,12 @@ class SnapshotApuMapperTest {
         // permite fijar un precio en SnapshotFila, pero si alguna vez alguien
         // modificara el writer para aceptar override, la verificación del JSON
         // afirma que NO se persiste.
-        List<SnapshotApuMapper.SnapshotBloque> bloques = List.of(
-                new SnapshotApuMapper.SnapshotBloque(
-                        "MATERIAL",
-                        List.of(new SnapshotApuMapper.SnapshotFila(
-                                "MATERIAL", false, "MA-1", new BigDecimal("2"), null))));
+        List<SnapshotApuMapper.SnapshotBloque> bloques = List.of(new SnapshotApuMapper.SnapshotBloque(
+                "MATERIAL",
+                List.of(new SnapshotApuMapper.SnapshotFila("MATERIAL", false, "MA-1", new BigDecimal("2"), null))));
 
         String json = mapper.escribir(bloques);
-        assertFalse(json.contains("precioOverride"),
-                "Snapshot price-free: nunca se persiste ningún campo de precio");
+        assertFalse(json.contains("precioOverride"), "Snapshot price-free: nunca se persiste ningún campo de precio");
         assertFalse(json.contains("\"costo\""));
         assertFalse(json.contains("tarifaJornal"));
         assertFalse(json.contains("precioUnitarioTarifa"));
@@ -112,9 +107,7 @@ class SnapshotApuMapperTest {
     void reader_round_trip_writer() {
         List<SnapshotApuMapper.SnapshotBloque> bloques = List.of(
                 new SnapshotApuMapper.SnapshotBloque(
-                        "EQUIPO",
-                        List.of(new SnapshotApuMapper.SnapshotFila(
-                                "EQUIPO", true, null, null, null))),
+                        "EQUIPO", List.of(new SnapshotApuMapper.SnapshotFila("EQUIPO", true, null, null, null))),
                 new SnapshotApuMapper.SnapshotBloque(
                         "MANO_OBRA",
                         List.of(

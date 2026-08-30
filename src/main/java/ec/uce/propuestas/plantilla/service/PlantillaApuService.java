@@ -175,8 +175,7 @@ public class PlantillaApuService {
      * accionable al guardarse como plantilla.
      */
     @Transactional
-    public PlantillaApuResumenResponse guardarDesdeApu(
-            Long apuId, PlantillaApuCrearRequest req, Long callerUsuarioId) {
+    public PlantillaApuResumenResponse guardarDesdeApu(Long apuId, PlantillaApuCrearRequest req, Long callerUsuarioId) {
         if (req == null || req.nombre() == null || req.nombre().isBlank()) {
             throw ProblemaException.validacion("nombre es obligatorio");
         }
@@ -184,7 +183,10 @@ public class PlantillaApuService {
             throw ProblemaException.validacion("nombre excede 200 caracteres");
         }
         Apu apu = apuRepository.findById(apuId);
-        if (apu == null || apuRepository.findByPublicIdAndOwnerScope(apu.publicId, callerUsuarioId).isEmpty()) {
+        if (apu == null
+                || apuRepository
+                        .findByPublicIdAndOwnerScope(apu.publicId, callerUsuarioId)
+                        .isEmpty()) {
             throw ProblemaException.noEncontrado("APU no encontrado");
         }
         String snapshot = snapshotApuMapper.escribir(construirSnapshotDesdeApu(apu));
@@ -210,11 +212,7 @@ public class PlantillaApuService {
             List<SnapshotApuMapper.SnapshotFila> filas = new ArrayList<>();
             for (ApuDetalle d : detalles) {
                 filas.add(new SnapshotApuMapper.SnapshotFila(
-                        s.tipo.name(),
-                        d.esHerramientaMenor,
-                        insumoCodigoDe(d),
-                        d.cantidad,
-                        d.rendimiento));
+                        s.tipo.name(), d.esHerramientaMenor, insumoCodigoDe(d), d.cantidad, d.rendimiento));
             }
             out.add(new SnapshotApuMapper.SnapshotBloque(s.tipo.name(), filas));
         }
@@ -361,8 +359,8 @@ public class PlantillaApuService {
         // Si el snapshot no traía HM, los rows no-HM del bloque M quedaron en
         // orden 1, 2, 3...; shift +1 e inserta HM en orden=1 para preservar la
         // invariante de orden único y contiguo por sección.
-        boolean hmEnEquipo = detalleRepository.listarDeSeccion(equipo.id).stream()
-                .anyMatch(x -> x.esHerramientaMenor);
+        boolean hmEnEquipo =
+                detalleRepository.listarDeSeccion(equipo.id).stream().anyMatch(x -> x.esHerramientaMenor);
         if (!hmEnEquipo) {
             List<ApuDetalle> equipoActuales = detalleRepository.listarDeSeccion(equipo.id);
             for (ApuDetalle d : equipoActuales) {

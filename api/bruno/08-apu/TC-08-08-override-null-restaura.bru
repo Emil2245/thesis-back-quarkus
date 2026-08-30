@@ -30,7 +30,7 @@ tests {
 
   test("Vuelve a heredar el precio del insumo (4.75)", function() {
     var detalle = res.body.secciones[1].detalles.find(function(d) {
-      return d.id === {{filaMoId}};
+      return d.id === bru.getVar("filaMoId");
     });
     expect(detalle).to.not.be.null;
     expect(detalle.precioEfectivo).to.equal(4.75);

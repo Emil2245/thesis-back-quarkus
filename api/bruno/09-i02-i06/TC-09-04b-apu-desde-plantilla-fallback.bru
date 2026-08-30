@@ -1,0 +1,113 @@
+meta {
+  name: TC-09-04b — APU desde plantilla PERSONAL con código no resuelto (200 + advertencias)
+  type: http
+  seq: 16
+}
+
+post {
+  url: {{baseUrl}}/presupuestos/{{presupuestoId}}/apus
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "codigo": "BR-P26-FB-{{$randomInt}}",
+    "descripcion": "APU desde plantilla PERSONAL con código no resuelto (fallback)",
+    "unidad": "m2",
+    "plantillaId": "{{nuevaPlantillaApuId}}"
+  }
+}
+
+script:post-response {
+  // El APU nuevo se crea con advertencias; apuId queda apuntando a este
+  // APU para los casos siguientes (06, 07a/b/c).
+  if ((res.status === 200 || res.status === 201) && res.body && res.body.id) {
+    bru.setVar("apuId", res.body.id);
+  }
+}
+
+tests {
+  test("Status 200 OK con advertencias", function() {
+    // ApuCrudService.ResultadoCrear.tieneAdvertencias() = true → el
+    // resource responde 200 (no 201). La rama 201 sin advertencias
+    // sigue vigente cuando todos los códigos del snapshot se resuelven.
+    expect(res.status).to.equal(200);
+  });
+
+  test("advertencias[] poblado con códigos no resueltos", function() {
+    // La PERSONAL plantilla guardada por 04b-0c contiene el código
+    // aleatorio `MO-FB-{random}` que los helpers 04b-0d/0e borraron.
+    // El resolver (PROYECTO → CENTRAL → PERSONAL del dueño) no lo
+    // encuentra en ningún lado y materializa una fila pendiente
+    // (`insumo_id = NULL`, override 0) con motivo
+    // `no-existe-en-base-proyecto`.
+    expect(res.body.advertencias).to.be.an("array");
+    expect(res.body.advertencias.length).to.be.at.least(1);
+  });
+
+  test("Cada advertencia tiene insumoCodigo + motivo + mensaje", function() {
+    res.body.advertencias.forEach(function(a) {
+      expect(a).to.have.property("insumoCodigo");
+      expect(a.motivo).to.equal("no-existe-en-base-proyecto");
+      expect(a).to.have.property("mensaje");
+    });
+  });
+
+  test("advertencias.insumoCodigo empieza por MO-FB-", function() {
+    // El código exacto es aleatorio pero respeta el prefijo `MO-FB-`
+    // elegido en 04b-0a.
+    var codigos = res.body.advertencias.map(function(a) {
+      return a.insumoCodigo;
+    });
+    expect(codigos.some(function(c) {
+      return /^MO-FB-\d+$/.test(c);
+    })).to.equal(true);
+  });
+
+  test("4 secciones persistidas aunque haya pendientes", function() {
+    expect(res.body.secciones.length).to.equal(4);
+  });
+
+  test("MANO_OBRA tiene una fila pendiente con insumoId = null", function() {
+    var mo = res.body.secciones[1];
+    var pendientes = mo.detalles.filter(function(d) {
+      return d.insumoId === null;
+    });
+    expect(pendientes.length).to.be.at.least(1);
+  });
+}
+
+docs {
+  Caso Plan 08 #3 (plantilla APU + fallback) — rama de advertencias
+  autocontenida. Los helpers 04b-0a..0e (seqs 11..15) crean un insumo
+  PROYECTO temporal con código aleatorio `MO-FB-{random}`, lo agregan
+  como fila MO al APU helper, guardan ese APU como **PERSONAL
+  plantilla** (snapshot persiste el codigo), eliminan la fila y el
+  insumo, y dejan la PERSONAL plantilla con un código pendiente puro.
+  Este paso aplica esa plantilla: el resolver `ResolverInsumoPlantillaService`
+  no encuentra `MO-FB-{random}` en PROYECTO/CENTRAL/PERSONAL del dueño
+  y emite `advertencias[]` con `motivo = "no-existe-en-base-proyecto"`.
+  El servicio devuelve HTTP **200** (no 201) y el recurso crea una
+  fila pendiente con `insumo_id = NULL` + override `0` por V005.
+
+  El comportamiento de **insumo real (HTTP 201 sin advertencias) vs
+  insumo pendiente (HTTP 200 con advertencias)** sigue la regla del
+  Plan 04 §6 y N04 §B.4. La distinción entre 200/201 es la única
+  forma estable que el cliente tiene para saber si la plantilla
+  aplicó limpia o si requiere completar el precio del insumo
+  pendiente.
+
+  **Eliminado en este pase:** la antigua afirmación de que la
+  plantilla seed PERSONAL referenciaba `MO-099` y que ese código no se
+  resolvía. Esa rama era ficticia: el seed V004 sólo tiene MO-001 y
+  MO-002 en las plantillas y la base PROYECTO. El fallback real se
+  construye con la PERSONAL plantilla efímera que produce 04b-0c.
+}

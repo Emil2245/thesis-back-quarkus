@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/proyectos/999999
+  url: {{baseUrl}}/proyectos/0192f6c4-7c8a-7abc-8000-000000001101
   auth: bearer
 }
 
@@ -18,4 +18,16 @@ tests {
     expect(res.status).to.equal(404);
     expect(res.body.codigo).to.equal("no-encontrado");
   });
+}
+
+docs {
+  Caso Plan 08 — John Doe (`u1`) intenta acceder al proyecto
+  `0192f6c4-7c8a-7abc-8000-000000001101` que pertenece a Ana de Armas
+  (`u2`, seed V004 `Adecuación de consultorio odontológico`). El
+  `UuidV7.parse` lo acepta (v7 bien formado), pero `validarPropietario`
+  rechaza con 404 `no-encontrado` (RNF-05: nunca 403, para no filtrar
+  existencia). Esta es la segunda línea de defensa del contrato UUIDv7
+  público: un UUID válido no implica acceso. Reemplaza al path antiguo
+  `/proyectos/999999` que asumía un BIGINT y devolvía 400 `validacion`
+  en lugar del 404 real.
 }

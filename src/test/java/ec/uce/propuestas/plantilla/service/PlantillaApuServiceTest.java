@@ -124,8 +124,8 @@ class PlantillaApuServiceTest {
 
         assertEquals(2, deAlice.size(), "Alice debe ver SISTEMA + su PERSONAL");
         assertTrue(deAlice.stream().anyMatch(p -> p.tipo() == PlantillaApu.Tipo.SISTEMA));
-        assertTrue(deAlice.stream().anyMatch(p -> p.tipo() == PlantillaApu.Tipo.PERSONAL
-                && p.id().equals(resumenAlice.publicId)));
+        assertTrue(deAlice.stream()
+                .anyMatch(p -> p.tipo() == PlantillaApu.Tipo.PERSONAL && p.id().equals(resumenAlice.publicId)));
 
         assertEquals(1, deBob.size(), "Bob solo debe ver SISTEMA");
         assertEquals(PlantillaApu.Tipo.SISTEMA, deBob.get(0).tipo());
@@ -138,8 +138,8 @@ class PlantillaApuServiceTest {
         Usuario bob = persistUsuario("bob@ex.com");
         PlantillaApu deAlice = persistPlantillaPersonal(alice.id, "Privada");
 
-        ProblemaException ex = assertThrows(
-                ProblemaException.class, () -> plantillaApuService.detalle(deAlice.publicId, bob.id));
+        ProblemaException ex =
+                assertThrows(ProblemaException.class, () -> plantillaApuService.detalle(deAlice.publicId, bob.id));
         assertEquals(404, ex.getResponse().getStatus());
     }
 
@@ -149,11 +149,10 @@ class PlantillaApuServiceTest {
         PlantillaApu sistema = persistPlantillaSistema("Sistema");
         Usuario alice = persistUsuario("alice@ex.com");
 
-        PlantillaApuEditarRequest req = new PlantillaApuEditarRequest(
-                JsonNullable.of("Sistema renombrado"), JsonNullable.undefined());
+        PlantillaApuEditarRequest req =
+                new PlantillaApuEditarRequest(JsonNullable.of("Sistema renombrado"), JsonNullable.undefined());
         ProblemaException ex = assertThrows(
-                ProblemaException.class,
-                () -> plantillaApuService.editar(sistema.publicId, req, alice.id));
+                ProblemaException.class, () -> plantillaApuService.editar(sistema.publicId, req, alice.id));
         assertEquals(404, ex.getResponse().getStatus());
     }
 
@@ -164,11 +163,10 @@ class PlantillaApuServiceTest {
         Usuario bob = persistUsuario("bob@ex.com");
         PlantillaApu deAlice = persistPlantillaPersonal(alice.id, "Solo Alice");
 
-        PlantillaApuEditarRequest req = new PlantillaApuEditarRequest(
-                JsonNullable.of("Tomada por Bob"), JsonNullable.undefined());
-        ProblemaException ex = assertThrows(
-                ProblemaException.class,
-                () -> plantillaApuService.editar(deAlice.publicId, req, bob.id));
+        PlantillaApuEditarRequest req =
+                new PlantillaApuEditarRequest(JsonNullable.of("Tomada por Bob"), JsonNullable.undefined());
+        ProblemaException ex =
+                assertThrows(ProblemaException.class, () -> plantillaApuService.editar(deAlice.publicId, req, bob.id));
         assertEquals(404, ex.getResponse().getStatus());
     }
 
@@ -178,10 +176,9 @@ class PlantillaApuServiceTest {
         Usuario alice = persistUsuario("alice@ex.com");
         PlantillaApu deAlice = persistPlantillaPersonal(alice.id, "Original");
 
-        PlantillaApuEditarRequest req = new PlantillaApuEditarRequest(
-                JsonNullable.of("Renombrada"), JsonNullable.of("desc"));
-        PlantillaApuResumenResponse out =
-                plantillaApuService.editar(deAlice.publicId, req, alice.id);
+        PlantillaApuEditarRequest req =
+                new PlantillaApuEditarRequest(JsonNullable.of("Renombrada"), JsonNullable.of("desc"));
+        PlantillaApuResumenResponse out = plantillaApuService.editar(deAlice.publicId, req, alice.id);
 
         assertEquals("Renombrada", out.nombre());
         assertEquals("desc", out.descripcionRubro());
@@ -193,8 +190,8 @@ class PlantillaApuServiceTest {
         PlantillaApu sistema = persistPlantillaSistema("Sistema");
         Usuario alice = persistUsuario("alice@ex.com");
 
-        ProblemaException ex = assertThrows(
-                ProblemaException.class, () -> plantillaApuService.eliminar(sistema.publicId, alice.id));
+        ProblemaException ex =
+                assertThrows(ProblemaException.class, () -> plantillaApuService.eliminar(sistema.publicId, alice.id));
         assertEquals(404, ex.getResponse().getStatus());
         assertNotNull(plantillaApuRepository.findById(sistema.id));
     }
@@ -242,12 +239,11 @@ class PlantillaApuServiceTest {
         Insumo mo = persistInsumo(base.id, "MO-001", TipoInsumo.MANO_OBRA, "h", "4.75");
 
         // Creamos el APU origen con una fila MO y guardamos como plantilla
-        ApuResponse apuResp = apuCrudService.crearComoRespuesta(
-                presupuestoId, new ApuCrearRequest("APU-CONS", "Pozo", "m"));
+        ApuResponse apuResp =
+                apuCrudService.crearComoRespuesta(presupuestoId, new ApuCrearRequest("APU-CONS", "Pozo", "m"));
         Apu apu = apuRepository.findById(internalId(apuResp.id()));
-        ApuSeccion seccionMo = seccionRepository
-                .findByApuYTipo(apu.id, SeccionTipo.MANO_OBRA)
-                .orElseThrow();
+        ApuSeccion seccionMo =
+                seccionRepository.findByApuYTipo(apu.id, SeccionTipo.MANO_OBRA).orElseThrow();
         ApuDetalle d = new ApuDetalle();
         d.seccionId = seccionMo.id;
         d.insumoId = mo.id;
@@ -265,8 +261,7 @@ class PlantillaApuServiceTest {
         assertEquals(PlantillaApu.Tipo.PERSONAL, resp.tipo());
 
         String snapshot = snapshotDePlantilla(resp.id());
-        assertFalse(snapshot.contains("precioOverride"),
-                "Sin override en el APU origen → sin override en snapshot");
+        assertFalse(snapshot.contains("precioOverride"), "Sin override en el APU origen → sin override en snapshot");
         assertFalse(snapshot.contains("\"insumoId\""), "Snapshot no debe persistir insumoId");
         assertFalse(snapshot.contains("\"precioUnitarioTarifa\""), "Sin override en MATERIAL/TRANSPORTE");
         assertFalse(snapshot.contains("\"tarifaJornal\""), "Sin override en EQUIPO/MANO_OBRA");
@@ -286,12 +281,15 @@ class PlantillaApuServiceTest {
         Insumo mo1 = persistInsumo(base.id, "MO-1", TipoInsumo.MANO_OBRA, "h", "3.00");
         Insumo mo2 = persistInsumo(base.id, "MO-2", TipoInsumo.MANO_OBRA, "h", "3.50");
 
-        ApuResponse apuResp = apuCrudService.crearComoRespuesta(
-                presupuestoId, new ApuCrearRequest("APU-ORD", "Orden", "m"));
+        ApuResponse apuResp =
+                apuCrudService.crearComoRespuesta(presupuestoId, new ApuCrearRequest("APU-ORD", "Orden", "m"));
         Apu apu = apuRepository.findById(internalId(apuResp.id()));
-        ApuSeccion equipo = seccionRepository.findByApuYTipo(apu.id, SeccionTipo.EQUIPO).orElseThrow();
-        ApuSeccion moSec = seccionRepository.findByApuYTipo(apu.id, SeccionTipo.MANO_OBRA).orElseThrow();
-        // HM ya existe (auto-creado por ApuCrudService.crear). Borramos la auto y creamos 2 filas MO con orden explícito.
+        ApuSeccion equipo =
+                seccionRepository.findByApuYTipo(apu.id, SeccionTipo.EQUIPO).orElseThrow();
+        ApuSeccion moSec =
+                seccionRepository.findByApuYTipo(apu.id, SeccionTipo.MANO_OBRA).orElseThrow();
+        // HM ya existe (auto-creado por ApuCrudService.crear). Borramos la auto y creamos 2 filas MO con orden
+        // explícito.
         for (ApuDetalle d : detalleRepository.listarDeSeccion(equipo.id)) {
             detalleRepository.delete(d);
         }
@@ -323,8 +321,8 @@ class PlantillaApuServiceTest {
         d2.unidad = "h";
         detalleRepository.persist(d2);
 
-        PlantillaApuResumenResponse resp = plantillaApuService.guardarDesdeApu(
-                apu.id, new PlantillaApuCrearRequest("Con orden", null), alice.id);
+        PlantillaApuResumenResponse resp =
+                plantillaApuService.guardarDesdeApu(apu.id, new PlantillaApuCrearRequest("Con orden", null), alice.id);
         String snapshot = snapshotDePlantilla(resp.id());
         // Verificamos orden/estructura: HM en M orden 1, MO-1 orden 1, MO-2 orden 2
         assertTrue(snapshot.contains("\"tipo\":\"EQUIPO\""), "Sección EQUIPO presente");
@@ -378,8 +376,8 @@ class PlantillaApuServiceTest {
         // El motor debe poder recalcular sin NPE
         ApuCalculado recalc = apuCalculoService.recalcular(cargado);
         assertNotNull(recalc);
-        assertEquals(0, recalc.subtotalN().compareTo(BigDecimal.ZERO),
-                "Subtotal N = 0 con fila pendiente (override 0)");
+        assertEquals(
+                0, recalc.subtotalN().compareTo(BigDecimal.ZERO), "Subtotal N = 0 con fila pendiente (override 0)");
     }
 
     // =========================================================================
@@ -437,10 +435,11 @@ class PlantillaApuServiceTest {
         BaseInsumos base = persistBaseProyecto(proyecto.id);
         Insumo mo = persistInsumo(base.id, "MO-COD", TipoInsumo.MANO_OBRA, "h", "3.21");
 
-        ApuResponse apuResp = apuCrudService.crearComoRespuesta(
-                presupuestoId, new ApuCrearRequest("APU-COD", "Codigo", "m"));
+        ApuResponse apuResp =
+                apuCrudService.crearComoRespuesta(presupuestoId, new ApuCrearRequest("APU-COD", "Codigo", "m"));
         Apu apu = apuRepository.findById(internalId(apuResp.id()));
-        ApuSeccion moSec = seccionRepository.findByApuYTipo(apu.id, SeccionTipo.MANO_OBRA).orElseThrow();
+        ApuSeccion moSec =
+                seccionRepository.findByApuYTipo(apu.id, SeccionTipo.MANO_OBRA).orElseThrow();
         ApuDetalle d = new ApuDetalle();
         d.seccionId = moSec.id;
         d.insumoId = mo.id;
@@ -452,8 +451,8 @@ class PlantillaApuServiceTest {
         d.unidad = "h";
         detalleRepository.persist(d);
 
-        PlantillaApuResumenResponse resp = plantillaApuService.guardarDesdeApu(
-                apu.id, new PlantillaApuCrearRequest("Con código", null), alice.id);
+        PlantillaApuResumenResponse resp =
+                plantillaApuService.guardarDesdeApu(apu.id, new PlantillaApuCrearRequest("Con código", null), alice.id);
         String snapshot = snapshotDePlantilla(resp.id());
 
         assertTrue(snapshot.contains("\"insumoCodigo\":\"MO-COD\""), "Persiste código de insumo");
@@ -470,10 +469,11 @@ class PlantillaApuServiceTest {
         Proyecto proyecto = persistProyecto(alice.id, "Pendiente");
         Long presupuestoId = insertarPresupuesto(proyecto.id);
 
-        ApuResponse apuResp = apuCrudService.crearComoRespuesta(
-                presupuestoId, new ApuCrearRequest("APU-PEN", "Pendiente", "m"));
+        ApuResponse apuResp =
+                apuCrudService.crearComoRespuesta(presupuestoId, new ApuCrearRequest("APU-PEN", "Pendiente", "m"));
         Apu apu = apuRepository.findById(internalId(apuResp.id()));
-        ApuSeccion moSec = seccionRepository.findByApuYTipo(apu.id, SeccionTipo.MANO_OBRA).orElseThrow();
+        ApuSeccion moSec =
+                seccionRepository.findByApuYTipo(apu.id, SeccionTipo.MANO_OBRA).orElseThrow();
         ApuDetalle d = new ApuDetalle();
         d.seccionId = moSec.id;
         d.insumoId = null;
@@ -489,8 +489,7 @@ class PlantillaApuServiceTest {
         PlantillaApuResumenResponse resp = plantillaApuService.guardarDesdeApu(
                 apu.id, new PlantillaApuCrearRequest("Con pendiente", null), alice.id);
         String snapshot = snapshotDePlantilla(resp.id());
-        assertTrue(snapshot.contains("\"insumoCodigo\":\"MO-PEND\""),
-                "Preserva el código pendiente desde descripcion");
+        assertTrue(snapshot.contains("\"insumoCodigo\":\"MO-PEND\""), "Preserva el código pendiente desde descripcion");
     }
 
     @Test
@@ -520,12 +519,11 @@ class PlantillaApuServiceTest {
                         + "{\"tipo\":\"TRANSPORTE\",\"lineas\":[]}]}");
 
         ApuCrudService.ResultadoCrear r = apuCrudService.crear(
-                presupuestoId,
-                new ApuCrearRequest("APU-FB", "Fallback", "m", plantilla.publicId),
-                alice.id);
+                presupuestoId, new ApuCrearRequest("APU-FB", "Fallback", "m", plantilla.publicId), alice.id);
 
         Apu cargado = apuRepository.findById(internalId(r.apu().id()));
-        ApuSeccion equipo = seccionRepository.findByApuYTipo(cargado.id, SeccionTipo.EQUIPO).orElseThrow();
+        ApuSeccion equipo =
+                seccionRepository.findByApuYTipo(cargado.id, SeccionTipo.EQUIPO).orElseThrow();
         List<ApuDetalle> filasEquipo = detalleRepository.listarDeSeccion(equipo.id);
 
         // Exactamente una fila HM (auto-recreada) en orden 1.
@@ -542,8 +540,7 @@ class PlantillaApuServiceTest {
                 .filter(x -> !x.esHerramientaMenor)
                 .findFirst()
                 .orElseThrow();
-        assertEquals(2, eqPersistida.orden.shortValue(),
-                "Fila EQUIPO no-HM debe estar en orden=2 (shift por HM)");
+        assertEquals(2, eqPersistida.orden.shortValue(), "Fila EQUIPO no-HM debe estar en orden=2 (shift por HM)");
         assertEquals(eq.id, eqPersistida.insumoId, "Insumo resuelto correctamente");
     }
 
@@ -565,11 +562,13 @@ class PlantillaApuServiceTest {
         Insumo mo = persistInsumo(base.id, "MO-HM2", TipoInsumo.MANO_OBRA, "h", "4.00");
 
         // Crear APU con HM auto-creado en orden=1 y 1 fila MO en orden=1 de MO.
-        ApuResponse apuResp = apuCrudService.crearComoRespuesta(
-                presupuestoId, new ApuCrearRequest("APU-HM2", "HM no primero", "m"));
+        ApuResponse apuResp =
+                apuCrudService.crearComoRespuesta(presupuestoId, new ApuCrearRequest("APU-HM2", "HM no primero", "m"));
         Apu apu = apuRepository.findById(internalId(apuResp.id()));
-        ApuSeccion equipo = seccionRepository.findByApuYTipo(apu.id, SeccionTipo.EQUIPO).orElseThrow();
-        ApuSeccion moSec = seccionRepository.findByApuYTipo(apu.id, SeccionTipo.MANO_OBRA).orElseThrow();
+        ApuSeccion equipo =
+                seccionRepository.findByApuYTipo(apu.id, SeccionTipo.EQUIPO).orElseThrow();
+        ApuSeccion moSec =
+                seccionRepository.findByApuYTipo(apu.id, SeccionTipo.MANO_OBRA).orElseThrow();
 
         // Fila MO en orden 1 de MO.
         ApuDetalle moRow = new ApuDetalle();
@@ -615,16 +614,22 @@ class PlantillaApuServiceTest {
         ApuDetalle moPersistida = detalleRepository
                 .find("seccionId = ?1 and esHerramientaMenor = false", moSec.id)
                 .firstResult();
-        assertEquals(0, new BigDecimal("4.000000").compareTo(moPersistida.costo),
+        assertEquals(
+                0,
+                new BigDecimal("4.000000").compareTo(moPersistida.costo),
                 "MO fila: costo = 1 × 4 × 1 = 4 (no mezclado con HM)");
-        assertEquals(0, new BigDecimal("4.000000").compareTo(moPersistida.costoHora),
+        assertEquals(
+                0,
+                new BigDecimal("4.000000").compareTo(moPersistida.costoHora),
                 "MO fila: costoHora = 1 × 4 = 4 (no mezclado con HM)");
 
         // La fila EQUIPO pendiente debe tener costo 0 (override 0).
         ApuDetalle equipoPersistida = detalleRepository
                 .find("seccionId = ?1 and esHerramientaMenor = false", equipo.id)
                 .firstResult();
-        assertEquals(0, equipoPersistida.costo.compareTo(BigDecimal.ZERO),
+        assertEquals(
+                0,
+                equipoPersistida.costo.compareTo(BigDecimal.ZERO),
                 "EQUIPO fila: costo = 1 × 0 × 1 = 0 (override 0)");
 
         // El HM debe tener costo = %HM × subtotalN = 0.05 × 4.0 = 0.2
@@ -633,14 +638,15 @@ class PlantillaApuServiceTest {
         ApuDetalle hmPersistida = detalleRepository
                 .find("seccionId = ?1 and esHerramientaMenor = true", equipo.id)
                 .firstResult();
-        assertEquals(0, new BigDecimal("0.200000").compareTo(hmPersistida.costo),
-                "HM: costo = 0.05 × subtotalN(4.0) = 0.2");
-        assertEquals("Herramienta Menor 5%MO", hmPersistida.descripcion,
-                "Descripción HM regenerada por recalcular");
+        assertEquals(
+                0, new BigDecimal("0.200000").compareTo(hmPersistida.costo), "HM: costo = 0.05 × subtotalN(4.0) = 0.2");
+        assertEquals("Herramienta Menor 5%MO", hmPersistida.descripcion, "Descripción HM regenerada por recalcular");
 
         // Sanity: el cálculo global es coherente.
         assertEquals(0, recalc.subtotalN().compareTo(new BigDecimal("4.0")));
-        assertEquals(0, recalc.subtotalM().compareTo(new BigDecimal("0.2")),
+        assertEquals(
+                0,
+                recalc.subtotalM().compareTo(new BigDecimal("0.2")),
                 "subtotalM = HM(0.2) + EQUIPO pendiente(0) = 0.2");
     }
 
@@ -767,9 +773,8 @@ class PlantillaApuServiceTest {
     }
 
     private String snapshotDePlantilla(UUID plantillaPublicId) {
-        PlantillaApu p = plantillaApuRepository
-                .find("publicId = ?1", plantillaPublicId)
-                .firstResult();
+        PlantillaApu p =
+                plantillaApuRepository.find("publicId = ?1", plantillaPublicId).firstResult();
         return p.snapshotSecciones;
     }
 

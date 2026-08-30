@@ -105,9 +105,8 @@ class BasesPersonalesServiceTest {
                 basesPersonalesService.crear(owner.id, new BasePersonalCrearRequest("catalogo-A"));
 
         // Releemos vía el seam del repositorio para verificar invariantes de la fila persistida.
-        BaseInsumos fila = baseInsumosRepository
-                .listarPersonalesDeUsuario(owner.id)
-                .get(0);
+        BaseInsumos fila =
+                baseInsumosRepository.listarPersonalesDeUsuario(owner.id).get(0);
         assertEquals(TipoBase.PERSONAL, fila.tipo, "El tipo debe quedar forzado a PERSONAL");
         assertEquals(owner.id, fila.usuarioId, "El dueño debe ser el caller, no el cliente");
         assertNotNull(fila.publicId, "El publicId debe quedar generado por la columna uuidv7()");
@@ -210,14 +209,12 @@ class BasesPersonalesServiceTest {
         BasePersonalResponse deAlice =
                 basesPersonalesService.crear(alice.id, new BasePersonalCrearRequest("solo-alice"));
 
-        Optional<BaseInsumos> comoDuenno =
-                basesPersonalesService.buscarPorPublicId(deAlice.id(), alice.id);
+        Optional<BaseInsumos> comoDuenno = basesPersonalesService.buscarPorPublicId(deAlice.id(), alice.id);
         assertTrue(comoDuenno.isPresent(), "El dueño debe verse a sí mismo por publicId");
         assertEquals(TipoBase.PERSONAL, comoDuenno.get().tipo);
         assertEquals(alice.id, comoDuenno.get().usuarioId);
 
-        Optional<BaseInsumos> comoAjeno =
-                basesPersonalesService.buscarPorPublicId(deAlice.id(), bob.id);
+        Optional<BaseInsumos> comoAjeno = basesPersonalesService.buscarPorPublicId(deAlice.id(), bob.id);
         assertTrue(comoAjeno.isEmpty(), "Un caller distinto debe recibir empty → 404 (nunca 403)");
     }
 
@@ -227,11 +224,9 @@ class BasesPersonalesServiceTest {
         Usuario owner = persistUsuario("owner@ex.com");
         UUID invented = UUID.fromString("0192f6c4-7c8a-7000-8000-000000000000");
 
-        Optional<BaseInsumos> resuelto =
-                basesPersonalesService.buscarPorPublicId(invented, owner.id);
+        Optional<BaseInsumos> resuelto = basesPersonalesService.buscarPorPublicId(invented, owner.id);
         assertTrue(
-                resuelto.isEmpty(),
-                "Un UUIDv7 que no existe en BD no debe resolverse ni para el propio dueño (404)");
+                resuelto.isEmpty(), "Un UUIDv7 que no existe en BD no debe resolverse ni para el propio dueño (404)");
     }
 
     @Test
@@ -245,8 +240,7 @@ class BasesPersonalesServiceTest {
         Optional<BaseInsumos> resueltoSobreCentral =
                 basesPersonalesService.buscarPorPublicId(central.publicId, owner.id);
         assertTrue(
-                resueltoSobreCentral.isEmpty(),
-                "Una fila CENTRAL no debe filtrarse por la seam PERSONAL del caller");
+                resueltoSobreCentral.isEmpty(), "Una fila CENTRAL no debe filtrarse por la seam PERSONAL del caller");
     }
 
     // =========================================================================
@@ -317,7 +311,6 @@ class BasesPersonalesServiceTest {
         if (entity instanceof ErrorPayload payload) {
             return payload.codigo();
         }
-        throw new AssertionError("Payload de error inesperado: "
-                + (entity == null ? "null" : entity.getClass()));
+        throw new AssertionError("Payload de error inesperado: " + (entity == null ? "null" : entity.getClass()));
     }
 }

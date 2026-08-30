@@ -54,11 +54,7 @@ import java.util.List;
 @ApplicationScoped
 public class SnapshotApuMapper {
 
-    public record SnapshotLinea(
-            String seccionTipo,
-            String insumoCodigo,
-            BigDecimal cantidad,
-            BigDecimal rendimiento) {}
+    public record SnapshotLinea(String seccionTipo, String insumoCodigo, BigDecimal cantidad, BigDecimal rendimiento) {}
 
     public record SnapshotFila(
             String seccionTipo,

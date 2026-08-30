@@ -8,4 +8,6 @@ import jakarta.validation.constraints.Size;
  * El sistema fija {@code tipo=PERSONAL}, {@code usuarioId} (del caller) y el
  * snapshot a partir del APU origen.
  */
-public record PlantillaApuCrearRequest(@NotBlank @Size(max = 200) String nombre, @Size(max = 500) String descripcionRubro) {}
+public record PlantillaApuCrearRequest(
+        @NotBlank @Size(max = 200) String nombre,
+        @Size(max = 500) String descripcionRubro) {}

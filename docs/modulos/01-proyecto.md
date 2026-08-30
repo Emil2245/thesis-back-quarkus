@@ -2,6 +2,15 @@
 
 > Playbook auto-contenido. Sigue `docs/modulos/README.md`. No crea migraciones
 > SQL (tablas en V001). Alcance: `ec.uce.propuestas.proyecto`.
+>
+> **Estado de cierre (2026-08-30 — sincronización Plan 08):**
+> implementación cerrada de P-05…P-11. Los recursos `Proyecto`,
+> `Firmante` y `ParametrosProyecto` ya migran el path
+> `proyectoId`/`firmanteId` a UUIDv7 ([Plan 07 — DONE
+> 2026-08-30](./planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md));
+> `ParametrosProyectoResponse.proyectoId` y la seam
+> `ParametrosProyectoCambio` ya están alineadas. El módulo
+> `proyecto` ya no expone `Long` en path ni JSON.
 
 ## 1. Arquitectura de empaquetado
 
@@ -169,10 +178,14 @@ El propietario se resuelve con `@Inject UsuarioContext` o lectura de `JsonWebTok
 - **Duplicar proyecto destructivo (P-09): NO se implementará** — solo se
   duplican insumos entre bases (P-17, módulo `insumo`). Decisión N02 §3
   ratificada por N04 §A8 (se prefiere "cargar desde plantilla" — P-46).
-- **NUEVO I-06 — Cargar proyecto desde plantilla (P-46)** — ver
-  [`04-apu-avanzado.md`](04-apu-avanzado.md) §2.7 (módulo `plantilla/`,
-  `PlantillaProyectoService`). Endpoint:
-  `POST /proyectos/{proyectoId}/desde-plantilla/{plantillaId}`. El proyecto
-  origen debe ser del usuario; la plantilla se guarda como favorita
-  (`POST /plantillas-proyecto`).
-- Admin P-39 (CRUD bases CENTRALES).
+- **NUEVO I-06 — Cargar proyecto desde plantilla (P-46)** — **DONE
+  2026-08-29 (Plan 06)**, ver
+  [`planes-para-estar-al-dia/06-plantillas-proyecto.md`](planes-para-estar-al-dia/06-plantillas-proyecto.md).
+  Endpoint vigente:
+  `POST /proyectos/desde-plantilla/{plantillaId}` con `UuidV7.parse` en
+  el path (Plan 07). Verificación principal 83/83 verde.
+- Admin P-39 (CRUD bases CENTRALES) — **DONE 2026-08-29 (Plan 05)**,
+  ver
+  [`planes-para-estar-al-dia/05-administracion-bases.md`](planes-para-estar-al-dia/05-administracion-bases.md).
+  Recurso `AdminBaseCentralResource` en `insumo/resource/` bajo
+  `@RolesAllowed("SUPER_ADMIN")`.

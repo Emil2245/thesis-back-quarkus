@@ -73,8 +73,8 @@ class ApuCalculoServiceNullableInsumoTest {
         long proyectoId;
         long presupuestoId;
         try (Connection con = ds.getConnection()) {
-            try (PreparedStatement ps = con.prepareStatement(
-                    "INSERT INTO usuario (nombre, email, password_hash, email_verificado, activo) "
+            try (PreparedStatement ps =
+                    con.prepareStatement("INSERT INTO usuario (nombre, email, password_hash, email_verificado, activo) "
                             + "VALUES ('u','u@e','x',TRUE,TRUE) RETURNING id")) {
                 try (var rs = ps.executeQuery()) {
                     rs.next();
@@ -107,11 +107,13 @@ class ApuCalculoServiceNullableInsumoTest {
         }
 
         // APU con secciones y HM auto-creado
-        var apuResp = apuCrudService.crearComoRespuesta(presupuestoId, new ApuCrearRequest("APU-N", "Null insumo", "u"));
+        var apuResp =
+                apuCrudService.crearComoRespuesta(presupuestoId, new ApuCrearRequest("APU-N", "Null insumo", "u"));
         Apu apu = apuRepository.findById(apuInternalId(apuResp.id(), ds));
 
         // Inyectamos una fila pendiente en MO: insumoId=null, tarifaJornal=0, cantidad=1, rendimiento=0.5
-        ApuSeccion mo = seccionRepository.findByApuYTipo(apu.id, SeccionTipo.MANO_OBRA).orElseThrow();
+        ApuSeccion mo =
+                seccionRepository.findByApuYTipo(apu.id, SeccionTipo.MANO_OBRA).orElseThrow();
         ApuDetalle d = new ApuDetalle();
         d.seccionId = mo.id;
         d.insumoId = null;
@@ -127,8 +129,8 @@ class ApuCalculoServiceNullableInsumoTest {
         ApuCalculado recalc = apuCalculoService.recalcular(apu);
         assertNotNull(recalc, "El motor no debe lanzar NPE");
         // Costo de la fila pendiente: 1 × 0 × 0.5 = 0; subtotalN = 0
-        assertEquals(0, recalc.subtotalN().compareTo(BigDecimal.ZERO),
-                "Subtotal N = 0 con fila pendiente (override 0)");
+        assertEquals(
+                0, recalc.subtotalN().compareTo(BigDecimal.ZERO), "Subtotal N = 0 con fila pendiente (override 0)");
     }
 
     private static long apuInternalId(java.util.UUID publicId, DataSource ds) throws Exception {

@@ -11,4 +11,5 @@ import jakarta.validation.constraints.Size;
  * (RNF-05 / A9). Solo se acepta el nombre, requerido para identificar la
  * base en el catálogo personal.</p>
  */
-public record BasePersonalCrearRequest(@NotBlank @Size(max = 200) String nombre) {}
+public record BasePersonalCrearRequest(
+        @NotBlank @Size(max = 200) String nombre) {}

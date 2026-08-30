@@ -1,0 +1,64 @@
+meta {
+  name: TC-09-10 — Crear proyecto desde plantilla de proyecto (P-46 / Plan 06)
+  type: http
+  seq: 26
+}
+
+post {
+  url: {{baseUrl}}/proyectos/desde-plantilla/{{plantillaProyectoId}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "Cetro Médico Tulcán — clon estructural Plan 08 {{$randomInt}}"
+  }
+}
+
+script:post-response {
+  if ((res.status === 200 || res.status === 201) && res.body
+      && res.body.proyecto && res.body.proyecto.id) {
+    bru.setVar("proyectoDesdePlantillaId", res.body.proyecto.id);
+  }
+}
+
+tests {
+  test("Status 201 Created (sin advertencias) o 200 OK (con advertencias)", function() {
+    expect(res.status === 201 || res.status === 200).to.equal(true);
+  });
+
+  test("Proyecto nuevo devuelto con estado BORRADOR", function() {
+    expect(res.body.proyecto.estado).to.equal("BORRADOR");
+  });
+
+  test("proyecto.id es UUIDv7", function() {
+    expect(res.body.proyecto.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+
+  test("Proyecto clona cabecera del seed (titulo_et_1)", function() {
+    expect(res.body.proyecto).to.have.property("nombreProyecto");
+  });
+}
+
+docs {
+  Caso Plan 08 #8 (crear proyecto desde plantilla de proyecto) —
+  `POST /proyectos/desde-plantilla/{plantillaId}` con la plantilla
+  PERSONAL seed `0192f6c4-7c8a-7abc-8000-000000000401` ("Plantilla
+  Cetro estructural" de John Doe). El backend construye cabecera +
+  parámetros + presupuesto v1 + base PROYECTO + capítulos/APUs
+  recursivos; el cliente edita cantidades de obra y precios después.
+  Lineage opcional vía `plantilla_proyecto_origen_id` con `ON DELETE
+  SET NULL`. Forma de respuesta: `ProyectoDesdePlantillaResponse {
+  proyecto: ProyectoResponse, advertencias: [] }`. Devuelve 201 sin
+  advertencias (todos los insumos resueltos) o 200 con
+  `advertencias[]` poblado (códigos no resueltos). El nombre lleva
+  sufijo aleatorio para evitar colisiones.
+}

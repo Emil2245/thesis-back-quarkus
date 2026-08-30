@@ -1,0 +1,65 @@
+meta {
+  name: TC-09-04 — APU desde plantilla SISTEMA happy-path (201 sin advertencias)
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/presupuestos/{{presupuestoId}}/apus
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "codigo": "BR-P26-{{$randomInt}}",
+    "descripcion": "APU desde plantilla SISTEMA (happy-path)",
+    "unidad": "m2",
+    "plantillaId": "{{plantillaApuSistemaId}}"
+  }
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("apuId", res.body.id);
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("Sin advertencias — códigos resueltos en PROYECTO/CENTRAL", function() {
+    // La plantilla SISTEMA seed usa MO-001 / MO-002 que ya están en
+    // el seed V004 proyecto Rehabilitación (base PROYECTO). El
+    // ResolverInsumoProyectoService los reutiliza sin advertencias.
+    expect(res.body.advertencias).to.satisfy(function(a) {
+      return a === undefined || a === null
+        || (Array.isArray(a) && a.length === 0);
+    });
+  });
+
+  test("4 secciones persistidas", function() {
+    expect(res.body.secciones.length).to.equal(4);
+  });
+}
+
+docs {
+  Caso Plan 08 #3 (plantilla APU + fallback) — happy-path: la
+  plantilla SISTEMA `0192f6c4-7c8a-7abc-8000-000000002001`
+  ("Retiro de pisos de porcelanato/cerámica") carga insumos MO-001
+  y MO-002 que ya están en la base PROYECTO del proyecto seed
+  (Rehabilitación). El resolver reutiliza las filas existentes
+  (D-07 dedup) y el endpoint devuelve 201 con `advertencias`
+  ausente (forma estable por `@JsonInclude(NON_NULL)`). El código
+  generado lleva sufijo aleatorio para evitar colisión con corridas
+  previas.
+}

@@ -30,8 +30,16 @@ import org.junit.jupiter.api.Test;
 class RepresentativeSeedsIT {
 
     private static final List<String> PUBLIC_TABLES = List.of(
-            "usuario", "firmante", "proyecto", "presupuesto", "apu", "apu_detalle", "base_insumos",
-            "insumo", "plantilla_apu", "plantilla_proyecto");
+            "usuario",
+            "firmante",
+            "proyecto",
+            "presupuesto",
+            "apu",
+            "apu_detalle",
+            "base_insumos",
+            "insumo",
+            "plantilla_apu",
+            "plantilla_proyecto");
 
     private static final String UUIDV7_VALUE =
             "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}";
@@ -55,9 +63,15 @@ class RepresentativeSeedsIT {
         assertEquals(first, publicIds(), "seed public_id values must be stable across rebuilds");
         for (Map.Entry<String, List<String>> entry : publicIds().entrySet()) {
             assertFalse(entry.getValue().isEmpty(), entry.getKey());
-            assertEquals(entry.getValue().size(), entry.getValue().stream().distinct().count(), entry.getKey());
-            entry.getValue().forEach(id -> assertTrue(id.matches(
-                    "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"), id));
+            assertEquals(
+                    entry.getValue().size(),
+                    entry.getValue().stream().distinct().count(),
+                    entry.getKey());
+            entry.getValue()
+                    .forEach(id -> assertTrue(
+                            id.matches(
+                                    "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"),
+                            id));
         }
     }
 
@@ -80,11 +94,14 @@ class RepresentativeSeedsIT {
             for (InsertStatement statement : extractApiTableInserts(source)) {
                 int before = insertCounts.get(statement.table);
                 insertCounts.put(statement.table, before + 1);
-                assertTrue(statement.columnList.contains("public_id"),
+                assertTrue(
+                        statement.columnList.contains("public_id"),
                         statement.table + " INSERT must declare public_id in its column list");
-                assertTrue(UUIDV7_LITERAL.matcher(statement.body).find(),
+                assertTrue(
+                        UUIDV7_LITERAL.matcher(statement.body).find(),
                         statement.table + " INSERT must contain an explicit UUIDv7 literal cast with ::uuid");
-                assertFalse(UNCAST_UUIDV7_LITERAL.matcher(statement.body).find(),
+                assertFalse(
+                        UNCAST_UUIDV7_LITERAL.matcher(statement.body).find(),
                         statement.table + " INSERT contains an uncast UUIDv7 literal");
                 explicitUuidLiteralCounts.put(statement.table, explicitUuidLiteralCounts.get(statement.table) + 1);
             }
@@ -92,9 +109,12 @@ class RepresentativeSeedsIT {
 
         for (String table : PUBLIC_TABLES) {
             int inserts = insertCounts.get(table);
-            assertTrue(inserts > 0,
+            assertTrue(
+                    inserts > 0,
                     "API table " + table + " must have at least one INSERT across V002-V004 (found " + inserts + ")");
-            assertEquals(inserts, explicitUuidLiteralCounts.get(table),
+            assertEquals(
+                    inserts,
+                    explicitUuidLiteralCounts.get(table),
                     "API table " + table + " must have every INSERT covered by an explicit UUIDv7 literal");
         }
     }
@@ -125,15 +145,14 @@ class RepresentativeSeedsIT {
                 "ALTER TABLE apu ADD COLUMN",
                 "ALTER COLUMN public_id DROP DEFAULT",
                 "DROP COLUMN")) {
-            assertFalse(source.contains(banned),
-                    "migration source must not contain compatibility token: " + banned);
+            assertFalse(source.contains(banned), "migration source must not contain compatibility token: " + banned);
         }
     }
 
     private static List<InsertStatement> extractApiTableInserts(String source) {
         Set<String> apiTables = Set.copyOf(PUBLIC_TABLES);
-        Pattern headerPattern = Pattern.compile(
-                "(?imsx)\\bINSERT\\s+INTO\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\(([^)]*)\\)");
+        Pattern headerPattern =
+                Pattern.compile("(?imsx)\\bINSERT\\s+INTO\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\(([^)]*)\\)");
         List<InsertStatement> statements = new ArrayList<>();
         Matcher matcher = headerPattern.matcher(source);
         while (matcher.find()) {
@@ -174,7 +193,10 @@ class RepresentativeSeedsIT {
             if (inSingleQuote) {
                 body.append(current);
                 if (current == '\'' && next != '\'') inSingleQuote = false;
-                else if (current == '\'' && next == '\'') { body.append(next); i++; }
+                else if (current == '\'' && next == '\'') {
+                    body.append(next);
+                    i++;
+                }
                 continue;
             }
             if (inDoubleQuote) {
@@ -194,8 +216,16 @@ class RepresentativeSeedsIT {
                 inBlockComment = true;
                 continue;
             }
-            if (current == '\'') { body.append(current); inSingleQuote = true; continue; }
-            if (current == '"') { body.append(current); inDoubleQuote = true; continue; }
+            if (current == '\'') {
+                body.append(current);
+                inSingleQuote = true;
+                continue;
+            }
+            if (current == '"') {
+                body.append(current);
+                inDoubleQuote = true;
+                continue;
+            }
             if (current == '(') depth++;
             else if (current == ')') depth--;
             if (current == ';' && depth <= 0) {
@@ -210,30 +240,48 @@ class RepresentativeSeedsIT {
     private record InsertStatement(String table, String columnList, String body) {}
 
     private void rebuild() {
-        Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").cleanDisabled(false).load().clean();
-        Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").load().migrate();
+        Flyway.configure()
+                .dataSource(dataSource)
+                .locations("classpath:db/migration")
+                .cleanDisabled(false)
+                .load()
+                .clean();
+        Flyway.configure()
+                .dataSource(dataSource)
+                .locations("classpath:db/migration")
+                .load()
+                .migrate();
     }
 
     private void assertProjectsAndTitles() throws Exception {
         assertEquals(Set.of("BORRADOR", "EN_PROCESO", "FINALIZADO"), querySet("SELECT estado FROM proyecto"));
         assertEquals(3, queryLong("SELECT count(*) FROM proyecto WHERE titulo_et_1 = 'ESPECIFICACIONES TÉCNICAS'"));
-        assertEquals(1, queryLong("SELECT count(*) FROM proyecto WHERE estado = 'FINALIZADO' AND titulo_et_2 = 'ESTANCIA-ACADEMICA'"));
+        assertEquals(
+                1,
+                queryLong(
+                        "SELECT count(*) FROM proyecto WHERE estado = 'FINALIZADO' AND titulo_et_2 = 'ESTANCIA-ACADEMICA'"));
         assertTrue(queryLong("SELECT count(*) FROM parametros_sistema WHERE id = 1") == 1);
-        assertEquals(1, queryLong("SELECT count(*) FROM parametros_sistema WHERE rango_hm_max = 0.2000 AND rango_ci_max = 1.0000"));
+        assertEquals(
+                1,
+                queryLong(
+                        "SELECT count(*) FROM parametros_sistema WHERE rango_hm_max = 0.2000 AND rango_ci_max = 1.0000"));
     }
 
     private void assertFinalSchemaHasNoLegacyAuxiliaryArtifacts() throws Exception {
-        assertEquals(0, queryLong(
-                "SELECT count(*) FROM information_schema.columns "
+        assertEquals(
+                0,
+                queryLong("SELECT count(*) FROM information_schema.columns "
                         + "WHERE table_schema = current_schema() "
                         + "AND lower(column_name) IN ('es_auxiliar', 'apu_auxiliar_id', 'cd_auxiliar')"));
-        assertEquals(0, queryLong(
-                "SELECT count(*) FROM pg_class c "
+        assertEquals(
+                0,
+                queryLong("SELECT count(*) FROM pg_class c "
                         + "JOIN pg_namespace n ON n.oid = c.relnamespace "
                         + "WHERE n.nspname = current_schema() "
                         + "AND lower(c.relname) LIKE '%auxiliar%'"));
-        assertEquals(0, queryLong(
-                "SELECT count(*) FROM pg_constraint c "
+        assertEquals(
+                0,
+                queryLong("SELECT count(*) FROM pg_constraint c "
                         + "JOIN pg_namespace n ON n.oid = c.connamespace "
                         + "WHERE n.nspname = current_schema() "
                         + "AND lower(c.conname) LIKE '%auxiliar%'"));
@@ -242,16 +290,28 @@ class RepresentativeSeedsIT {
     private void assertBasesAndFlexibleApus() throws Exception {
         assertEquals(Set.of("CENTRAL", "PERSONAL", "PROYECTO"), querySet("SELECT DISTINCT tipo FROM base_insumos"));
         assertTrue(queryLong("SELECT count(*) FROM base_insumos WHERE tipo = 'PERSONAL'") >= 1);
-        assertTrue(queryLong("SELECT count(*) FROM insumo i JOIN base_insumos b ON b.id = i.base_id WHERE b.tipo = 'PERSONAL'") >= 5);
-        assertTrue(queryLong("SELECT count(*) FROM apu a JOIN apu_seccion s ON s.apu_id = a.id GROUP BY a.id HAVING count(*) = 4 AND count(DISTINCT s.tipo) = 4") >= 1);
-        assertTrue(queryLong("SELECT count(*) FROM apu a JOIN apu_seccion s ON s.apu_id = a.id GROUP BY a.id HAVING count(*) = 1") >= 1);
+        assertTrue(queryLong(
+                        "SELECT count(*) FROM insumo i JOIN base_insumos b ON b.id = i.base_id WHERE b.tipo = 'PERSONAL'")
+                >= 5);
+        assertTrue(queryLong(
+                        "SELECT count(*) FROM apu a JOIN apu_seccion s ON s.apu_id = a.id GROUP BY a.id HAVING count(*) = 4 AND count(DISTINCT s.tipo) = 4")
+                >= 1);
+        assertTrue(queryLong(
+                        "SELECT count(*) FROM apu a JOIN apu_seccion s ON s.apu_id = a.id GROUP BY a.id HAVING count(*) = 1")
+                >= 1);
         assertTrue(queryLong("SELECT count(*) FROM insumo WHERE tipo = 'TRANSPORTE'") >= 1);
-        assertEquals(0, queryLong("SELECT count(*) FROM apu_detalle WHERE insumo_id IS NULL AND descripcion LIKE '%auxiliar%'"));
+        assertEquals(
+                0,
+                queryLong(
+                        "SELECT count(*) FROM apu_detalle WHERE insumo_id IS NULL AND descripcion LIKE '%auxiliar%'"));
     }
 
     private void assertTemplatesAndInertRows() throws Exception {
         assertEquals(2, queryLong("SELECT count(*) FROM plantilla_apu"));
-        assertEquals(2, queryLong("SELECT count(*) FROM plantilla_apu WHERE snapshot_secciones::text NOT LIKE '%apuAuxiliarId%'"));
+        assertEquals(
+                2,
+                queryLong(
+                        "SELECT count(*) FROM plantilla_apu WHERE snapshot_secciones::text NOT LIKE '%apuAuxiliarId%'"));
         assertTrue(queryLong("SELECT count(*) FROM plantilla_proyecto") >= 1);
         assertTrue(queryLong("SELECT count(*) FROM presupuesto_rubro") >= 1);
         assertTrue(queryLong("SELECT count(*) FROM cronograma_actividad") >= 1);
@@ -259,7 +319,8 @@ class RepresentativeSeedsIT {
 
     private Map<String, List<String>> publicIds() throws Exception {
         Map<String, List<String>> result = new LinkedHashMap<>();
-        for (String table : PUBLIC_TABLES) result.put(table, queryStrings("SELECT public_id::text FROM " + table + " ORDER BY id"));
+        for (String table : PUBLIC_TABLES)
+            result.put(table, queryStrings("SELECT public_id::text FROM " + table + " ORDER BY id"));
         return result;
     }
 
@@ -269,14 +330,18 @@ class RepresentativeSeedsIT {
 
     private List<String> queryStrings(String sql) throws Exception {
         List<String> result = new ArrayList<>();
-        try (Connection connection = dataSource.getConnection(); PreparedStatement statement = connection.prepareStatement(sql); ResultSet rows = statement.executeQuery()) {
+        try (Connection connection = dataSource.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql);
+                ResultSet rows = statement.executeQuery()) {
             while (rows.next()) result.add(rows.getString(1));
         }
         return result;
     }
 
     private long queryLong(String sql) throws Exception {
-        try (Connection connection = dataSource.getConnection(); PreparedStatement statement = connection.prepareStatement(sql); ResultSet rows = statement.executeQuery()) {
+        try (Connection connection = dataSource.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql);
+                ResultSet rows = statement.executeQuery()) {
             assertTrue(rows.next());
             return rows.getLong(1);
         }
