@@ -11,6 +11,7 @@ import ec.uce.propuestas.apu.repository.ApuDetalleRepository;
 import ec.uce.propuestas.apu.repository.ApuRepository;
 import ec.uce.propuestas.apu.repository.ApuSeccionRepository;
 import ec.uce.propuestas.common.ProblemaException;
+import ec.uce.propuestas.common.UuidV7;
 import ec.uce.propuestas.common.dto.Page;
 import ec.uce.propuestas.insumo.entity.Insumo;
 import ec.uce.propuestas.insumo.entity.TipoInsumo;
@@ -30,6 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 
 /** CRUD del agregado {@code apu} + filas (P-19…P-22). Recibe usuarioId/proyectoId validados por el resource. */
 @ApplicationScoped
@@ -219,17 +221,23 @@ public class ApuCrudService {
     }
 
     @Transactional
-    public ApuResponse agregarDetalle(Long apuId, ApuDetalleCrearRequest req) {
+    public ApuResponse agregarDetalle(Long apuId, ApuDetalleCrearRequest req, Long callerUsuarioId) {
         Apu apu = _validar(apuId);
         Long proyectoId = apuRepository
                 .proyectoDePresupuesto(apu.presupuestoId)
                 .orElseThrow(() -> ProblemaException.noEncontrado("Presupuesto no encontrado"));
 
+        // Plan 07 — frontera JSON: el {@code insumoId} del body es UUID; Jackson
+        // acepta UUIDv4 bien formado, por lo que validamos explícitamente v7 antes
+        // de delegar al resolver. Un UUID mal formado o no-v7 devuelve 400
+        // {@code validacion} (RNF-05) en lugar del 404 ambiguo del lookup.
+        UUID insumoPublicId = UuidV7.parse(req.insumoId().toString());
+
         // N04 §A9 — copia al usar: el insumo persistido en apu_detalle debe ser SIEMPRE
         // PROYECTO del proyecto del APU. El resolver materializa una copia si la fuente es
         // CENTRAL o PERSONAL (del dueño del proyecto), reusa si ya es PROYECTO del mismo
         // proyecto, o devuelve 404 si la fuente es ajena o PERSONAL de otro dueño.
-        Insumo insumo = resolverInsumoProyecto.materializarOReusar(req.insumoId(), proyectoId);
+        Insumo insumo = resolverInsumoProyecto.materializarOReusar(insumoPublicId, proyectoId, callerUsuarioId);
         validarSeccionParaInsumo(req.seccionTipo(), insumo.tipo);
 
         ApuSeccion seccion = seccionRepository
@@ -400,7 +408,10 @@ public class ApuCrudService {
                     .map(d -> {
                         Insumo insumo = d.insumoId == null ? null : insumoRepository.findById(d.insumoId);
                         return ApuDetalleMapper.toResponse(
-                                d, calculoService.precioEfectivo(d, s.tipo, insumo), overrideDe(d, s.tipo) == null);
+                                d,
+                                insumo,
+                                calculoService.precioEfectivo(d, s.tipo, insumo),
+                                overrideDe(d, s.tipo) == null);
                     })
                     .toList();
             respSecciones.add(new ApuSeccionResponse(s.tipo, s.orden, s.subtotal, respDetalles));

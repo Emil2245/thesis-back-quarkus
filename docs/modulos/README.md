@@ -14,10 +14,20 @@ empaquetado de `documentos/01-ARQUITECTURA.md §5`.
 
 > **Planes 03, 04, 05 y 06 cerrados al 2026-08-29.** P-46 quedó
 > implementado por el [Plan 06](planes-para-estar-al-dia/06-plantillas-proyecto.md)
-> con verificación principal 83/83 verde. El siguiente plan ejecutable es el
-> [Plan 07 — UUIDv7](planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md). El módulo APU
-> avanzado sigue PARTIAL por P-23 sin propagación global y `recalculo`
-> DEFERRED.
+> con verificación principal 83/83 verde.
+>
+> **[Plan 07 — UUIDv7](planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md) — DONE · VERIFICACIÓN DIRIGIDA COMPLETA (2026-08-30).**
+> Recursos migrados: `proyecto/firmante/parametros_proyecto`,
+> `insumo/base_insumos` (admin central y bases personales),
+> `PresupuestoApuResource` (con validación de `ApuCrearRequest.plantillaId` en
+> frontera), seam `POST /proyectos/{proyectoId}/guardar-plantilla`, y
+> `DocumentoResource` (ET). APU/detalle y `plantillas-apu` ya estaban
+> alineados. Sin migraciones nuevas (no V008/V009), sin cambios de PK/FK
+> (siguen `BIGINT`), motor intacto. Las suites Gradle y la verificación
+> completa quedan reservadas para el cierre del
+> [Plan 08](planes-para-estar-al-dia/08-cierre-documental-y-verificacion.md);
+> este pase documental no ejecuta Gradle. El módulo APU avanzado sigue
+> PARTIAL por P-23 sin propagación global y `recalculo` DEFERRED.
 
 **Decisiones de diseño compartidas** (resuelven las preguntas de arquitectura):
 

@@ -29,10 +29,10 @@ Lo que todavía falta, limitado a los módulos existentes, se concentra en:
 2. corregir documentación contradictoria sobre APUs auxiliares;
 3. (Plan 014 supersede — **cierre parcial 2026-08-28**) display global `precisionDinero=2` / `precisionPorcentaje=4` vía `app.display.*` + `GET /api/v1/config/display` queda **OPEN** (T3 Plan 014); la **única rounding del motor aplicada** es la frontera APU→Rubro 2 dp `DOWN` (`internal/Consolidador.java`, regla workbook-consistent: `precioUnitario DOWN 2dp`; `precioTotal = cantidad × PU_2dp` retenido a escala 6 `HALF_UP`; totales de capítulo y `totalGeneral` agregados desde esos valores); motor opera con `BigDecimal` natural (`CALC_PRECISION=3 HALF_UP` retirado). Residual aceptado en GM-19 (`-$6.95`) y GM-20 cap. 1 (`-$0.84`) — no se reabre el motor;
 4. ~~completar reordenamiento y precisión de la respuesta de cálculo~~ — **DONE 2026-08-28 (Plan 03)**;
-5. implementar plantillas de APU;
-6. completar administración de bases centrales y bases personales;
-7. completar plantillas de proyecto usando los paquetes existentes;
-8. uniformar UUIDv7 en las fronteras REST de los módulos actuales;
+5. ~~implementar plantillas de APU~~ — **DONE 2026-08-29 (Plan 04)**;
+6. ~~completar administración de bases centrales y bases personales~~ — **DONE 2026-08-29 (Plan 05)**;
+7. ~~completar plantillas de proyecto usando los paquetes existentes~~ — **DONE 2026-08-29 (Plan 06)**;
+8. ~~uniformar UUIDv7 en las fronteras REST de los módulos actuales~~ — **DONE 2026-08-30 (Plan 07) · VERIFICACIÓN DIRIGIDA COMPLETA**. Recursos migrados en este pase: `proyecto/firmante/parametros_proyecto`, `insumo/base_insumos` (admin central y bases personales), `PresupuestoApuResource` (con parse de `plantillaId` en frontera), seam `POST /proyectos/{proyectoId}/guardar-plantilla`, `DocumentoResource` (ET). Ya alineados antes: APU/detalle, `plantillas-apu` (P-26), `ApuDetalleResponse.insumoId` UUIDv7. Sin migraciones nuevas (no V008/V009); PK/FK siguen `BIGINT`; motor intacto. Las suites dirigidas disponibles suman **233/233 verdes**; la suite completa, Bruno y la deuda Spotless global quedan para el [Plan 08](./planes-para-estar-al-dia/08-cierre-documental-y-verificacion.md). Ver [`planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md`](./planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md);
 9. completar Bruno/documentación y ejecutar la verificación final.
 
 El write-through global que exige un módulo profundo `recalculo` queda
@@ -143,8 +143,10 @@ ParametrosProyectoCambio(
   (`ParametrosProyectoResponse`); los flags internos y el `Long proyectoId`
   **no** se exponen por REST.
 - La migración del `proyectoId` en path y de
-  `ParametrosProyectoResponse.id` a UUIDv7 está diferida a
-  [`planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md`](planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md).
+  `ParametrosProyectoResponse.id` a UUIDv7 quedó **cerrada por Plan 07
+  (DONE 2026-08-30 · VERIFICACIÓN DIRIGIDA COMPLETA)**; ver
+  [`planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md`](planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md)
+  para la matriz completa de fronteras.
 
 Si en el futuro se decide revertir la costura, hay que revertir
 exactamente esos cinco paths; no mezclar esa decisión con los bloques
@@ -181,7 +183,7 @@ siguientes.
 | Precisión del motor | **MISSING** | motor aún usa `MathContext`/precisión histórica | CALC=3 por operación, remover ramas auxiliares, config explícita |
 | Consolidación GM-19/20 | **PARTIAL — CIERRE CON RESIDUO ACEPTADO (2026-08-28)** | regla workbook-consistent aplicada en `Consolidador.java` (`PU DOWN 2dp`; `PT = cantidad × PU_2dp` retenido a escala 6 `HALF_UP`); `ConsolidadorFronteraTest` 5/5 verde | residual aceptado: GM-19 `-$6.95`, GM-20 cap. 1 `-$0.84` (no se reabre el motor); T2–T4 de [`plans/014`](../../plans/014-motor-precision-no-links.md) **IMPLEMENTADOS** (2026-08-28): `SnapshotSinAuxiliaresTest` 6/6 + `DisplayConfigResourceTest` 1/1 + `DisplayConfigResourceOverrideTest` 1/1 + `DigitsValidationCatalogTest` 3/3; DIAG borrado. |
 | UUIDv7 en APU | **DONE** | paths APU y detalle usan UUIDv7 | nada |
-| UUIDv7 resto de módulos | **PARTIAL** | entidades/repositories tienen `publicId` | varios resources actuales aún usan `Long` en paths/responses |
+| UUIDv7 resto de módulos | **DONE (2026-08-30) · VERIFICACIÓN DIRIGIDA COMPLETA** | `proyecto/firmante/parametros_proyecto`, `insumo/base_insumos` (admin central y bases personales), `PresupuestoApuResource` (con parse de `plantillaId` en frontera), seam `POST /proyectos/{proyectoId}/guardar-plantilla` y `DocumentoResource` (ET) migrados en Plan 07; APU/detalle y `plantillas-apu` (P-26) ya estaban alineados; `ParametrosProyectoResponse.proyectoId` y `InsumoUsoResponse.apuId` migrados a `UUID`; `CopiarBaseRequest` con `UUID baseId`/`UUID proyectoId`. Sin migraciones nuevas (no V008/V009); PK/FK siguen `BIGINT`; motor intacto | suites dirigidas verdes; suite completa y Bruno se reservan al [Plan 08](./planes-para-estar-al-dia/08-cierre-documental-y-verificacion.md) |
 | Write-through global | **DEFERRED** | costura `ParametrosProyectoCambio` ya commiteada y neutral | módulo profundo `recalculo`, excluido por alcance actual |
 
 ---
@@ -236,8 +238,9 @@ Resultados:
 3. los documentos globales enumerados en §2.2 se sincronizaron con la nueva
    versión acumulativa `v1.3-functional-requirements.md`;
 4. `plans/README.md` refleja:
-   - Plan 013 en estado **PARTIAL** (P-26 y P-46 cerrados 2026-08-29 por Planes 04 y 06; write-through global, FORMA 1, FORMA 2 y UUIDv7 del resto de módulos siguen pendientes);
-   - Plan 006 como “decisión cerrada, código aún pendiente” hasta aplicar DOWN.
+   - Plan 013 en estado **PARTIAL** (P-26 y P-46 cerrados 2026-08-29 por Planes 04 y 06; write-through global, FORMA 1, FORMA 2 siguen pendientes; UUIDv7 del resto de módulos cerrado por Plan 07 **DONE 2026-08-30 · VERIFICACIÓN DIRIGIDA COMPLETA**);
+   - Plan 006 como "decisión cerrada, código aún pendiente" hasta aplicar DOWN;
+   - Plan 07 con la fila 017 y el detalle de fronteras migradas / seams ya alineados (sin migraciones nuevas).
 
 Commit sugerido:
 
@@ -493,25 +496,60 @@ feat(plantilla): add project templates from existing aggregates
 
 **Objetivo:** que ningún resource actual exponga o acepte BIGINT internos.
 
-Revisar:
+**Estado (2026-08-29):** **DONE · VERIFICACIÓN DIRIGIDA COMPLETA**
+(ver [Plan 07](./planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md)). La
+matriz de endpoints, DTOs migrados y seams ya alineados están en el doc del
+plan; resumen aquí:
 
-- `proyecto` y firmantes;
-- `insumo` y bases;
-- `presupuesto`;
-- `plantilla`;
-- `documento`;
-- referencias anidadas en DTOs.
+Recursos migrados en este pase:
 
-Reglas:
+- `proyecto/firmante/parametros_proyecto` — `UuidV7.parse` en path y parseo
+  de `proyectoId`/`firmanteId` UUIDv7;
+- `insumo/base_insumos` (admin central + bases personales) — `UuidV7.parse`
+  en path; `InsumoUsoResponse.apuId` y `CopiarBaseRequest` (`UUID baseId`,
+  `UUID proyectoId`) migrados a `UUID`;
+- `PresupuestoApuResource` — `UuidV7.parse(presupuestoId)` + parse de
+  `ApuCrearRequest.plantillaId` en frontera (`normalizarPlantillaId`);
+- seam `POST /proyectos/{proyectoId}/guardar-plantilla` y
+  `POST /proyectos/desde-plantilla/{plantillaId}` — `UuidV7.parse` en path;
+- `DocumentoResource` (ET) — `UuidV7.parse(presupuestoId)` + owner-to-404
+  sobre presupuesto y proyecto.
 
-1. paths públicos reciben UUIDv7 como `String` y validan mediante `UuidV7`;
-2. repositories resuelven UUID + owner a BIGINT una sola vez;
-3. joins y FKs permanecen BIGINT;
-4. JSON usa el nombre semántico `id`, nunca `public_id`;
-5. owner ajeno → 404;
-6. UUID malformado/no-v7 → 400 `validacion`.
+Recursos **ya alineados** antes de este plan (no modificados):
 
-Commit sugerido:
+- APU y detalle (`apu/resource/ApuResource.java`);
+- `plantillas-apu` (P-26) y `ApuDetalleResponse.insumoId` UUIDv7.
+
+Reglas aplicadas (sin cambios):
+
+1. paths públicos reciben UUIDv7 como `String` y validan mediante
+   `UuidV7.parse` (regex v7 + `UUID.version() == 7` + variant `2`);
+2. repositories resuelven UUID + owner a BIGINT una sola vez por frontera de
+   service;
+3. JSON usa el nombre semántico `id`, nunca `public_id` ni `publicId`;
+4. owner ajeno → 404 `no-encontrado` (RNF-05; nunca 403);
+5. UUID malformado/no-v7 → 400 `validacion`;
+6. PK/FK y joins internos siguen siendo `BIGINT` (V001 §1; sin
+   migraciones nuevas en este plan — no se creó V008/V009 y no se reabre
+   V001–V007);
+7. motor intacto (`BigDecimal` natural; sin cambios en `Motor.java` ni en
+   `internal/Consolidador.java`).
+
+**Sin migraciones nuevas:** la columna `public_id` (UUID con
+`DEFAULT uuidv7()`) ya existía en V001 para `usuario`, `proyecto`,
+`firmante`, `presupuesto`, `apu`, `apu_detalle`, `base_insumos`, `insumo`,
+`plantilla_apu`, `plantilla_proyecto`, con trigger de inmutabilidad. No se
+creó V008/V009 ni se editó V001–V007.
+
+**Verificación PENDING:** las suites Gradle
+(`./gradlew test --tests 'ec.uce.propuestas.{proyecto,insumo,apu,plantilla,
+documento}.*'`, `./gradlew build -x test`, `./gradlew spotlessCheck`) y la
+búsqueda acotada de IDs `Long` en DTOs públicos / `@PathParam` quedan
+reservadas para el cierre del
+[Plan 08](./planes-para-estar-al-dia/08-cierre-documental-y-verificacion.md);
+este pase documental no ejecuta Gradle.
+
+Commit sugerido (no emitido por este pase):
 
 ```text
 refactor(api): finish public UUID boundaries
@@ -556,8 +594,19 @@ docs(i06): reconcile backend modules and API examples
 > regresión dirigida 47/47). Los canónicos activos de `thesis-docs` (06-schema,
 > 07-API, 02-data-model, 03-procesos-detalle, 02-catalogo-pruebas) se
 > actualizaron en la misma pasada. Plan 013 sigue PARTIAL en su conjunto
-> (P-46 / write-through global / FORMA 1 / FORMA 2 / UUIDv7 resto de módulos
-> permanecen pendientes).
+> (write-through global, FORMA 1 y FORMA 2 permanecen pendientes).
+>
+> **Cierre de Plan 07 — UUIDv7 en fronteras REST (2026-08-30; DONE):**
+> se migraron `proyecto/firmante/parametros_proyecto`, `insumo/base_insumos`
+> (incluidas bases personales y administración central), la frontera
+> `PresupuestoApuResource`, guardar plantilla de proyecto y `DocumentoResource`.
+> APU/detalle y plantillas ya tenían UUIDv7 para sus IDs propios; Plan 07 cerró
+> además la referencia anidada `insumoId`. No hubo migraciones: V007 sigue
+> siendo la última y PK/FK permanecen `BIGINT`. Verificación dirigida:
+> **233/233 tests disponibles verdes**; `presupuesto.*` aún no contiene tests.
+> `git diff --check` y el build sin el gate Spotless están verdes. El build
+> exacto permanece bloqueado solo por 23 archivos con formato preexistente,
+> ninguno modificado por Plan 07. Suite completa y Bruno quedan para Plan 08.
 
 ---
 
@@ -598,7 +647,7 @@ exista, permanecen incompletos:
 | 3 | plantilla PERSONAL se guarda/carga; fallback produce advertencias; fila pendiente con `insumo_id = NULL` + override `0` (V005 estructural) |
 | 4 | central archivada desaparece; borrado no afecta copias PROYECTO |
 | 5 | proyecto se crea desde snapshot sin enlazar datos originales |
-| 6 | APIs actuales no filtran BIGINT internos |
+| 6 | **DONE 2026-08-30 · VERIFICACIÓN DIRIGIDA COMPLETA** — APIs actuales no filtran BIGINT internos; matriz completa en [Plan 07](./planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md); sin migraciones nuevas; PK/FK `BIGINT`; motor intacto. Suites dirigidas verdes; suite completa y Bruno quedan para Plan 08. |
 | 7 | docs/Bruno describen exactamente el código final |
 
 ---

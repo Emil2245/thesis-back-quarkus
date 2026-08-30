@@ -226,6 +226,35 @@ class BasesPersonalesResourceIT {
         given().when().delete("/api/v1/bases-personales/" + invented).then().statusCode(401);
     }
 
+    // ========================================================================
+    // Plan 07 — frontera UUIDv7 en path params (malformado / v4 → 400)
+    // ========================================================================
+
+    @Test
+    void TC_BP_REST_09_borrar_path_uuid_v4_no_v7_devuelve_400() {
+        String token = AuthSupport.registrarConToken(mailbox, "v4-borra@ex.com");
+        String uuidV4 = "550e8400-e29b-41d4-a716-446655440000";
+
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .delete("/api/v1/bases-personales/" + uuidV4)
+                .then()
+                .statusCode(400)
+                .body("codigo", equalTo("validacion"));
+    }
+
+    @Test
+    void TC_BP_REST_10_borrar_path_uuid_malformado_devuelve_400() {
+        String token = AuthSupport.registrarConToken(mailbox, "malformado-borra@ex.com");
+
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .delete("/api/v1/bases-personales/no-es-un-uuid")
+                .then()
+                .statusCode(400)
+                .body("codigo", equalTo("validacion"));
+    }
+
     private long contarInsumosDeBase(long baseId) throws Exception {
         try (Connection con = ds.getConnection();
                 PreparedStatement ps = con.prepareStatement("SELECT count(*) FROM insumo WHERE base_id = ?")) {

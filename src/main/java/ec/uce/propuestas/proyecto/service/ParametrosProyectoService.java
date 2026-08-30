@@ -6,6 +6,7 @@ import ec.uce.propuestas.proyecto.dto.ParametrosProyectoResponse;
 import ec.uce.propuestas.proyecto.dto.ParametrosSistemaEditarRequest;
 import ec.uce.propuestas.proyecto.entity.ParametrosProyecto;
 import ec.uce.propuestas.proyecto.entity.ParametrosSistema;
+import ec.uce.propuestas.proyecto.entity.Proyecto;
 import ec.uce.propuestas.proyecto.mapper.ParametrosProyectoMapper;
 import ec.uce.propuestas.proyecto.repository.ParametrosProyectoRepository;
 import ec.uce.propuestas.proyecto.repository.ParametrosSistemaRepository;
@@ -14,6 +15,7 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.UUID;
 
 @ApplicationScoped
 public class ParametrosProyectoService {
@@ -27,16 +29,18 @@ public class ParametrosProyectoService {
     @Inject
     ProyectoService proyectoService;
 
+    /** Plan 07 — el caller llega con el {@code publicId} UUIDv7 del proyecto. */
     @Transactional
-    public ParametrosProyectoResponse leer(Long usuarioId, Long proyectoId) {
-        proyectoService.validarPropietario(usuarioId, proyectoId);
-        ParametrosProyecto p = obtenerOCrear(proyectoId);
-        return ParametrosProyectoMapper.toResponse(p);
+    public ParametrosProyectoResponse leer(Long usuarioId, UUID proyectoPublicId) {
+        Proyecto proyecto = proyectoService.validarPropietario(usuarioId, proyectoPublicId);
+        ParametrosProyecto p = obtenerOCrear(proyecto.id);
+        return ParametrosProyectoMapper.toResponse(p, proyecto);
     }
 
     @Transactional
-    public ParametrosProyectoCambio actualizar(Long usuarioId, Long proyectoId, ParametrosProyectoEditarRequest req) {
-        proyectoService.validarPropietario(usuarioId, proyectoId);
+    public ParametrosProyectoCambio actualizar(
+            Long usuarioId, UUID proyectoPublicId, ParametrosProyectoEditarRequest req) {
+        Proyecto proyecto = proyectoService.validarPropietario(usuarioId, proyectoPublicId);
         ParametrosSistema sistema = leerSistema();
         validarRangoDinamico(
                 req.porcentajeHerramientaMenor(), sistema.rangoHmMin, sistema.rangoHmMax, "porcentajeHerramientaMenor");
@@ -46,7 +50,7 @@ public class ParametrosProyectoService {
         }
         validarRangoDinamico(req.iva(), sistema.rangoIvaMin, sistema.rangoIvaMax, "iva");
 
-        ParametrosProyecto p = obtenerOCrear(proyectoId);
+        ParametrosProyecto p = obtenerOCrear(proyecto.id);
         // Snapshot numérico previo: escala-insensible (compareTo) y null-safe.
         BigDecimal hmPrevio = p.porcentajeHerramientaMenor;
         BigDecimal ciPrevio = p.porcentajeIndirecto;
@@ -56,10 +60,10 @@ public class ParametrosProyectoService {
         p.moneda = req.moneda();
         parametrosRepository.persist(p);
         return new ParametrosProyectoCambio(
-                p.proyectoId,
+                proyecto.publicId,
                 cambioNumerico(ciPrevio, p.porcentajeIndirecto),
                 cambioNumerico(hmPrevio, p.porcentajeHerramientaMenor),
-                ParametrosProyectoMapper.toResponse(p));
+                ParametrosProyectoMapper.toResponse(p, proyecto));
     }
 
     /** True si {@code solicitado} difiere numéricamente de {@code previo}. Null-safe. */

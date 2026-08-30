@@ -56,7 +56,7 @@ public class InsumoCatalogoService {
                 .map(i -> {
                     boolean esCentral = baseTipo.get(i.baseId) == TipoBase.CENTRAL;
                     return new InsumoBusquedaResponse(
-                            i.id,
+                            i.publicId,
                             i.codigo,
                             i.tipo,
                             i.descripcion,

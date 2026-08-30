@@ -1,6 +1,7 @@
 package ec.uce.propuestas.insumo.resource;
 
 import ec.uce.propuestas.common.ProblemaException;
+import ec.uce.propuestas.common.UuidV7;
 import ec.uce.propuestas.insumo.dto.BasePersonalCrearRequest;
 import ec.uce.propuestas.insumo.dto.BasePersonalResponse;
 import ec.uce.propuestas.insumo.service.BasesPersonalesService;
@@ -67,10 +68,15 @@ public class BasesPersonalesResource {
      * existe y pertenece al caller; 404 en cualquier otro caso (base
      * ajena, CENTRAL o PROYECTO — nunca 403, RNF-05). Los insumos asociados
      * se eliminan por la FK CASCADE de V001.
+     *
+     * <p>Plan 07 — el path param es {@code String} y se valida como UUIDv7
+     * en la frontera: un UUID mal formado o de versión distinta devuelve 400
+     * {@code validacion} antes de cualquier acceso al repositorio.
      */
     @DELETE
     @Path("/{id}")
-    public Response borrar(@PathParam("id") UUID publicId) {
+    public Response borrar(@PathParam("id") String id) {
+        UUID publicId = UuidV7.parse(id);
         boolean borrada = basesPersonalesService.borrar(publicId, usuarioId());
         if (!borrada) {
             throw ProblemaException.noEncontrado("Base personal no encontrada");

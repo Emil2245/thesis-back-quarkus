@@ -48,54 +48,51 @@ class PlantillaApuResourceIT {
         }
     }
 
-    private Long crearProyecto(String token) {
-        return ((Number) given().contentType(JSON)
-                        .header("Authorization", "Bearer " + token)
-                        .body(Map.of(
-                                "nombreProyecto", "Plantilla test",
-                                "anio", (short) 2026,
-                                "plazoEjecucion", (short) 4,
-                                "plazoUnidad", "MES",
-                                "direccionInstitucional", "UCE"))
-                        .when()
-                        .post("/api/v1/proyectos")
-                        .then()
-                        .statusCode(201)
-                        .extract()
-                        .path("id"))
-                .longValue();
+    private String crearProyecto(String token) {
+        return given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of(
+                        "nombreProyecto", "Plantilla test",
+                        "anio", (short) 2026,
+                        "plazoEjecucion", (short) 4,
+                        "plazoUnidad", "MES",
+                        "direccionInstitucional", "UCE"))
+                .when()
+                .post("/api/v1/proyectos")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
     }
 
-    private Long crearInsumo(
+    private String crearInsumo(
             String token,
-            Long proyectoId,
+            String proyectoId,
             String codigo,
             String tipo,
             String descripcion,
             String unidad,
             double precio) {
-        return ((Number) given().contentType(JSON)
-                        .header("Authorization", "Bearer " + token)
-                        .body(Map.of(
-                                "codigo", codigo,
-                                "tipo", tipo,
-                                "descripcion", descripcion,
-                                "unidad", unidad,
-                                "precioUnitario", precio))
-                        .when()
-                        .post("/api/v1/proyectos/" + proyectoId + "/insumos")
-                        .then()
-                        .statusCode(201)
-                        .extract()
-                        .path("id"))
-                .longValue();
+        return given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of(
+                        "codigo", codigo,
+                        "tipo", tipo,
+                        "descripcion", descripcion,
+                        "unidad", unidad,
+                        "precioUnitario", precio))
+                .when()
+                .post("/api/v1/proyectos/" + proyectoId + "/insumos")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
     }
 
-    private Long insertarPresupuesto(Long proyectoId) throws Exception {
+    private Long internalProyectoId(String publicId) throws Exception {
         try (Connection con = ds.getConnection();
-                PreparedStatement ps = con.prepareStatement(
-                        "INSERT INTO presupuesto (proyecto_id, version, es_vigente) VALUES (?, 1, TRUE) RETURNING id")) {
-            ps.setLong(1, proyectoId);
+                PreparedStatement ps = con.prepareStatement("SELECT id FROM proyecto WHERE public_id = ?")) {
+            ps.setObject(1, UUID.fromString(publicId));
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();
                 return rs.getLong(1);
@@ -103,7 +100,19 @@ class PlantillaApuResourceIT {
         }
     }
 
-    private String crearApu(String token, Long presupuestoId, String codigo) {
+    private String insertarPresupuesto(String proyectoId) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement(
+                        "INSERT INTO presupuesto (proyecto_id, version, es_vigente) VALUES (?, 1, TRUE) RETURNING public_id")) {
+            ps.setLong(1, internalProyectoId(proyectoId));
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getString(1);
+            }
+        }
+    }
+
+    private String crearApu(String token, String presupuestoId, String codigo) {
         return given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(Map.of("codigo", codigo, "descripcion", "APU base", "unidad", "u"))
@@ -117,8 +126,8 @@ class PlantillaApuResourceIT {
 
     private UUID sembrarPlantillaSistema(String nombre) throws Exception {
         try (Connection con = ds.getConnection();
-                PreparedStatement ps = con.prepareStatement(
-                        "INSERT INTO plantilla_apu (nombre, tipo, snapshot_secciones) "
+                PreparedStatement ps =
+                        con.prepareStatement("INSERT INTO plantilla_apu (nombre, tipo, snapshot_secciones) "
                                 + "VALUES (?, 'SISTEMA', '{\"secciones\":[]}') RETURNING public_id")) {
             ps.setString(1, nombre);
             try (ResultSet rs = ps.executeQuery()) {
@@ -130,8 +139,8 @@ class PlantillaApuResourceIT {
 
     private UUID sembrarPlantillaPersonal(Long usuarioId, String nombre, String snapshot) throws Exception {
         try (Connection con = ds.getConnection();
-                PreparedStatement ps = con.prepareStatement(
-                        "INSERT INTO plantilla_apu (nombre, tipo, usuario_id, snapshot_secciones) "
+                PreparedStatement ps =
+                        con.prepareStatement("INSERT INTO plantilla_apu (nombre, tipo, usuario_id, snapshot_secciones) "
                                 + "VALUES (?, 'PERSONAL', ?, ?::jsonb) RETURNING public_id")) {
             ps.setString(1, nombre);
             ps.setLong(2, usuarioId);
@@ -240,8 +249,8 @@ class PlantillaApuResourceIT {
     void TC_PR_05_eliminar_personal_propia_204_y_no_altera_apus() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "alice-del@ex.com");
         long aliceId = usuarioIdPorEmail("alice-del@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(token, presupuestoId, "APU-PRE");
 
         // Crear plantilla PERSONAL desde el APU
@@ -288,8 +297,8 @@ class PlantillaApuResourceIT {
     @Test
     void TC_PR_07_guardar_desde_apu_propia_devuelve_201_con_snapshot() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "alice-g@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(token, presupuestoId, "APU-1");
 
         given().contentType(JSON)
@@ -308,8 +317,8 @@ class PlantillaApuResourceIT {
     void TC_PR_08_guardar_desde_apu_ajena_devuelve_404() throws Exception {
         String tokenAlice = AuthSupport.registrarConToken(mailbox, "alice-ga@ex.com");
         String tokenBob = AuthSupport.registrarConToken(mailbox, "bob-ga@ex.com");
-        Long proyectoAlice = crearProyecto(tokenAlice);
-        Long presupuestoAlice = insertarPresupuesto(proyectoAlice);
+        String proyectoAlice = crearProyecto(tokenAlice);
+        String presupuestoAlice = insertarPresupuesto(proyectoAlice);
         String apuAlice = crearApu(tokenAlice, presupuestoAlice, "APU-A");
 
         given().contentType(JSON)
@@ -324,9 +333,9 @@ class PlantillaApuResourceIT {
     @Test
     void TC_PR_10_crear_apu_desde_plantilla_sin_faltantes_devuelve_201() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "alice-load@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long insumoMo = crearInsumo(token, proyectoId, "MO-001", "MANO_OBRA", "Maestro", "h", 4.75);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
+        String insumoMo = crearInsumo(token, proyectoId, "MO-001", "MANO_OBRA", "Maestro", "h", 4.75);
         long aliceId = usuarioIdPorEmail("alice-load@ex.com");
         UUID plantilla = sembrarPlantillaPersonal(
                 aliceId,
@@ -356,8 +365,8 @@ class PlantillaApuResourceIT {
     @Test
     void TC_PR_11_crear_apu_desde_plantilla_con_faltantes_devuelve_200_con_advertencias() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "alice-warn@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         long aliceId = usuarioIdPorEmail("alice-warn@ex.com");
         UUID plantilla = sembrarPlantillaPersonal(
                 aliceId,
@@ -389,8 +398,8 @@ class PlantillaApuResourceIT {
     void TC_PR_12_crear_apu_plantilla_ajena_devuelve_404() throws Exception {
         String tokenAlice = AuthSupport.registrarConToken(mailbox, "alice-pa@ex.com");
         String tokenBob = AuthSupport.registrarConToken(mailbox, "bob-pa@ex.com");
-        Long proyectoBob = crearProyecto(tokenBob);
-        Long presupuestoBob = insertarPresupuesto(proyectoBob);
+        String proyectoBob = crearProyecto(tokenBob);
+        String presupuestoBob = insertarPresupuesto(proyectoBob);
         long aliceId = usuarioIdPorEmail("alice-pa@ex.com");
         UUID personalAlice = sembrarPlantillaPersonal(aliceId, "Solo Alice", "{\"secciones\":[]}");
 
@@ -410,8 +419,8 @@ class PlantillaApuResourceIT {
     @Test
     void TC_PR_13_crear_apu_plantilla_id_mal_formado_devuelve_400() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "alice-bad@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
 
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)

@@ -233,7 +233,8 @@ public class ApuCalculoService {
         for (ApuDetalle d : entidades) {
             ApuSeccion seccion = seccionById.get(d.seccionId);
             FilaCalculada fc = calc.get(calcIdxByDetalleId.get(d.id));
-            porSeccion.get(seccion.tipo).add(buildLinea(d, fc, out));
+            Insumo insumo = d.insumoId == null ? null : insumoRepository.findById(d.insumoId);
+            porSeccion.get(seccion.tipo).add(buildLinea(d, fc, out, insumo));
         }
         // Plan 03 — el response sale en orden persistido (orden ascendente), nunca HM-primero.
         for (List<ApuCalculoLinea> ls : porSeccion.values()) {
@@ -259,8 +260,7 @@ public class ApuCalculoService {
      * este helper, un HM movido a un orden distinto de 1 mezclaba su
      * costo/costoHora con las filas no-HM (Plan 03 + Plan 04 §3 fix).
      */
-    static Map<Long, Integer> mapearDetallesACalc(
-            List<ApuDetalle> entidades, List<ApuSeccion> secciones) {
+    static Map<Long, Integer> mapearDetallesACalc(List<ApuDetalle> entidades, List<ApuSeccion> secciones) {
         Map<Long, SeccionTipo> tipoPorSeccion = new HashMap<>();
         for (ApuSeccion s : secciones) tipoPorSeccion.put(s.id, s.tipo);
 
@@ -299,7 +299,7 @@ public class ApuCalculoService {
         return out;
     }
 
-    private ApuCalculoLinea buildLinea(ApuDetalle d, FilaCalculada fc, ApuCalculado out) {
+    private ApuCalculoLinea buildLinea(ApuDetalle d, FilaCalculada fc, ApuCalculado out, Insumo insumo) {
         String operacion;
         BigDecimal resultado = escala6(fc.costoFila());
         if (fc.esHerramientaMenor()) {
@@ -317,12 +317,13 @@ public class ApuCalculoService {
             operacion = escala6(fc.cantidad()).toPlainString() + " × "
                     + escala6(fc.precioUnitarioEfectivo()).toPlainString();
         }
+        java.util.UUID insumoPublicId = insumo == null ? null : insumo.publicId;
         return new ApuCalculoLinea(
                 d.publicId,
                 d.orden,
                 fc.seccion(),
                 fc.esHerramientaMenor(),
-                d.insumoId,
+                insumoPublicId,
                 d.descripcion,
                 d.cantidad,
                 d.rendimiento,

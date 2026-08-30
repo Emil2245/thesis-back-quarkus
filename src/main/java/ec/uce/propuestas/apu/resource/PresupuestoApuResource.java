@@ -8,6 +8,8 @@ import ec.uce.propuestas.apu.service.ApuCrudService;
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.common.UuidV7;
 import ec.uce.propuestas.common.dto.Page;
+import ec.uce.propuestas.presupuesto.entity.Presupuesto;
+import ec.uce.propuestas.presupuesto.repository.PresupuestoRepository;
 import ec.uce.propuestas.proyecto.service.ProyectoService;
 import ec.uce.propuestas.usuario.UsuarioRepository;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -22,6 +24,13 @@ import java.util.UUID;
 /**
  * APUs de una versión de presupuesto (07-api-contract.md §5, P-19/P-20).
  * Ruta {@code /presupuestos/{presupuestoId}/apus}.
+ *
+ * <p>Plan 07 — el {@code presupuestoId} del path es la identidad externa
+ * UUIDv7 (columna {@code presupuesto.public_id}). El parse se hace con
+ * {@link UuidV7#parse}: UUID mal formado o no-v7 → 400 {@code validacion};
+ * presupuesto ajeno o inexistente → 404 {@code no-encontrado}. El
+ * {@code BIGINT} interno se retiene debajo del resource y de los services;
+ * nunca se expone.</p>
  *
  * <p>Plan 04 (P-26) — {@code POST} acepta un {@code plantillaId} opcional
  * (UUIDv7). Cuando viene:
@@ -45,6 +54,9 @@ public class PresupuestoApuResource {
     ApuRepository apuRepository;
 
     @Inject
+    PresupuestoRepository presupuestoRepository;
+
+    @Inject
     ProyectoService proyectoService;
 
     @Inject
@@ -61,22 +73,25 @@ public class PresupuestoApuResource {
                 .orElseThrow(() -> ProblemaException.noEncontrado("Usuario autenticado no encontrado"));
     }
 
-    private void validarAcceso(Long presupuestoId) {
-        Long proyectoId = apuRepository
-                .proyectoDePresupuesto(presupuestoId)
+    private Long resolverPresupuestoInterno(String presupuestoIdStr) {
+        UUID presupuestoPublicId = UuidV7.parse(presupuestoIdStr);
+        Presupuesto presupuesto = presupuestoRepository
+                .findByPublicIdAndOwnerScope(presupuestoPublicId, usuarioId())
                 .orElseThrow(() -> ProblemaException.noEncontrado("Presupuesto no encontrado"));
+        Long proyectoId = presupuesto.proyectoId;
         proyectoService.validarPropietario(usuarioId(), proyectoId);
+        return presupuesto.id;
     }
 
     @GET
     @Consumes(MediaType.WILDCARD)
     public Page<ApuResumenResponse> listar(
-            @PathParam("presupuestoId") Long presupuestoId,
+            @PathParam("presupuestoId") String presupuestoId,
             @QueryParam("q") String q,
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("size") @DefaultValue("25") int size) {
-        validarAcceso(presupuestoId);
-        return apuService.listar(presupuestoId, q, page, size);
+        Long presupuestoInternoId = resolverPresupuestoInterno(presupuestoId);
+        return apuService.listar(presupuestoInternoId, q, page, size);
     }
 
     /**
@@ -86,11 +101,11 @@ public class PresupuestoApuResource {
      * resuelve. Sin plantillaId sigue siendo 201.
      */
     @POST
-    public Response crear(@PathParam("presupuestoId") Long presupuestoId, @Valid ApuCrearRequest req) {
-        validarAcceso(presupuestoId);
+    public Response crear(@PathParam("presupuestoId") String presupuestoId, @Valid ApuCrearRequest req) {
+        Long presupuestoInternoId = resolverPresupuestoInterno(presupuestoId);
         Long caller = usuarioId();
         ApuCrearRequest normalizado = normalizarPlantillaId(req);
-        ApuCrudService.ResultadoCrear resultado = apuService.crear(presupuestoId, normalizado, caller);
+        ApuCrudService.ResultadoCrear resultado = apuService.crear(presupuestoInternoId, normalizado, caller);
 
         ApuResponse conAdvertencias = normalizado.tienePlantilla()
                 ? conAdvertencias(resultado.apu(), resultado.advertencias())
@@ -125,7 +140,8 @@ public class PresupuestoApuResource {
      * añadimos el campo opcional.
      */
     private ApuResponse conAdvertencias(
-            ApuResponse base, java.util.List<ec.uce.propuestas.plantilla.dto.AdvertenciaPlantillaResponse> advertencias) {
+            ApuResponse base,
+            java.util.List<ec.uce.propuestas.plantilla.dto.AdvertenciaPlantillaResponse> advertencias) {
         if (advertencias == null || advertencias.isEmpty()) {
             return base;
         }

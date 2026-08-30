@@ -3,6 +3,7 @@ package ec.uce.propuestas.plantilla.resource;
 import static io.restassured.RestAssured.given;
 import static io.restassured.http.ContentType.JSON;
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -57,35 +58,46 @@ class PlantillaProyectoResourceIT {
     // Helpers de sembrado via REST
     // =========================================================================
 
-    private Long crearProyecto(String token, String nombre) {
-        return ((Number) given().contentType(JSON)
-                        .header("Authorization", "Bearer " + token)
-                        .body(Map.of(
-                                "nombreProyecto",
-                                nombre,
-                                "anio",
-                                (short) 2026,
-                                "plazoEjecucion",
-                                (short) 4,
-                                "plazoUnidad",
-                                "MES",
-                                "direccionInstitucional",
-                                "UCE"))
-                        .when()
-                        .post("/api/v1/proyectos")
-                        .then()
-                        .statusCode(201)
-                        .extract()
-                        .path("id"))
-                .longValue();
+    private String crearProyecto(String token, String nombre) {
+        return given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of(
+                        "nombreProyecto",
+                        nombre,
+                        "anio",
+                        (short) 2026,
+                        "plazoEjecucion",
+                        (short) 4,
+                        "plazoUnidad",
+                        "MES",
+                        "direccionInstitucional",
+                        "UCE"))
+                .when()
+                .post("/api/v1/proyectos")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
     }
 
-    private Long insertarPresupuestoVigente(Long proyectoId) throws Exception {
+    private String insertarPresupuestoVigente(String proyectoId) throws Exception {
         try (Connection con = ds.getConnection();
                 PreparedStatement ps =
                         con.prepareStatement("INSERT INTO presupuesto (proyecto_id, version, es_vigente) "
-                                + "VALUES (?, 1, TRUE) RETURNING id")) {
-            ps.setLong(1, proyectoId);
+                                + "VALUES (?, 1, TRUE) RETURNING public_id")) {
+            ps.setLong(1, internalProyectoId(proyectoId));
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getString(1);
+            }
+        }
+    }
+
+    /** Resuelve el {@code BIGINT} interno del proyecto a partir de su {@code publicId} UUIDv7. */
+    private Long internalProyectoId(String publicId) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT id FROM proyecto WHERE public_id = ?")) {
+            ps.setObject(1, java.util.UUID.fromString(publicId));
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();
                 return rs.getLong(1);
@@ -193,7 +205,7 @@ class PlantillaProyectoResourceIT {
     @Test
     void TC_PPR_04_eliminar_propia_204_y_conserva_proyectos_creados() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "alice-del@ex.com");
-        Long proyectoId = crearProyecto(token, "Para plantilla");
+        String proyectoId = crearProyecto(token, "Para plantilla");
         insertarPresupuestoVigente(proyectoId);
 
         String plantillaId = given().contentType(JSON)
@@ -241,7 +253,7 @@ class PlantillaProyectoResourceIT {
     @Test
     void TC_PPR_06_guardar_desde_proyecto_propio_devuelve_201_con_snapshot() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "alice-guardar@ex.com");
-        Long proyectoId = crearProyecto(token, "Obras");
+        String proyectoId = crearProyecto(token, "Obras");
         insertarPresupuestoVigente(proyectoId);
 
         given().contentType(JSON)
@@ -261,7 +273,7 @@ class PlantillaProyectoResourceIT {
     void TC_PPR_07_guardar_desde_proyecto_ajeno_devuelve_404() throws Exception {
         String tokenAlice = AuthSupport.registrarConToken(mailbox, "alice-gda@ex.com");
         String tokenBob = AuthSupport.registrarConToken(mailbox, "bob-gda@ex.com");
-        Long proyectoAlice = crearProyecto(tokenAlice, "Alice");
+        String proyectoAlice = crearProyecto(tokenAlice, "Alice");
 
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + tokenBob)
@@ -275,7 +287,7 @@ class PlantillaProyectoResourceIT {
     @Test
     void TC_PPR_08_guardar_nombre_vacio_devuelve_400() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "alice-vac@ex.com");
-        Long proyectoId = crearProyecto(token, "Vacio");
+        String proyectoId = crearProyecto(token, "Vacio");
 
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
@@ -395,7 +407,7 @@ class PlantillaProyectoResourceIT {
         // plantilla.
         String token = AuthSupport.registrarConToken(mailbox, "alice-blank@ex.com");
 
-        Number id = given().contentType(JSON)
+        String id = given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(Map.of(
                         "nombreProyecto", "Blank",
@@ -413,5 +425,6 @@ class PlantillaProyectoResourceIT {
                 .path("id");
 
         assertNotNull(id);
+        assertEquals(7, UUID.fromString(id).version());
     }
 }

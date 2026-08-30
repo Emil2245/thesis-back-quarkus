@@ -186,7 +186,7 @@ public class PlantillaProyectoService {
      */
     @Transactional
     public PlantillaProyectoResponse guardarDesdeProyecto(
-            Long proyectoId, String nombre, String descripcion, Long callerUsuarioId) {
+            UUID proyectoPublicId, String nombre, String descripcion, Long callerUsuarioId) {
         if (nombre == null || nombre.isBlank()) {
             throw ProblemaException.validacion("nombre es obligatorio");
         }
@@ -197,7 +197,7 @@ public class PlantillaProyectoService {
         String descripcionNorm = descripcion == null ? null : (descripcion.isBlank() ? null : descripcion.trim());
 
         Proyecto proyecto = proyectoRepository
-                .findByIdYPropietario(proyectoId, callerUsuarioId)
+                .findByPublicIdAndOwnerScope(proyectoPublicId, callerUsuarioId)
                 .orElseThrow(() -> ProblemaException.noEncontrado("Proyecto no encontrado"));
 
         SnapshotProyectoMapper.Snapshot snap = construirSnapshotDesdeProyecto(proyecto);

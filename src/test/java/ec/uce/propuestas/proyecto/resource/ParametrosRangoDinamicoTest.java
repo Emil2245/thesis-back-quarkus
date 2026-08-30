@@ -22,7 +22,9 @@ import org.junit.jupiter.api.Test;
  * {@code PUT /proyectos/parametros-sistema} (sólo SUPER_ADMIN).
  *
  * <p>Cubre: defaults del seed, widening de rango HM por admin, rechazo 400
- * fuera de rango, no-mutación al rechazar, y aislamiento por propietario.
+ * fuera de rango, no-mutación al rechazar, y aislamiento por propietario.</p>
+ *
+ * <p>Plan 07 — los path params son UUIDv7 (identidad externa inmutable).</p>
  */
 @QuarkusTest
 class ParametrosRangoDinamicoTest {
@@ -58,23 +60,22 @@ class ParametrosRangoDinamicoTest {
         }
     }
 
-    private Long crearProyecto(String token) {
-        return ((Number) given().contentType(JSON)
-                        .header("Authorization", "Bearer " + token)
-                        .body(Map.of(
-                                "nombreProyecto", "Rangos dinamicos",
-                                "codigo", "P-RANG-01",
-                                "anio", (short) 2026,
-                                "plazoEjecucion", (short) 6,
-                                "plazoUnidad", "MES",
-                                "direccionInstitucional", "GAD"))
-                        .when()
-                        .post("/api/v1/proyectos")
-                        .then()
-                        .statusCode(201)
-                        .extract()
-                        .path("id"))
-                .longValue();
+    private String crearProyecto(String token) {
+        return given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of(
+                        "nombreProyecto", "Rangos dinamicos",
+                        "codigo", "P-RANG-01",
+                        "anio", (short) 2026,
+                        "plazoEjecucion", (short) 6,
+                        "plazoUnidad", "MES",
+                        "direccionInstitucional", "GAD"))
+                .when()
+                .post("/api/v1/proyectos")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
     }
 
     private void ascenderASuperAdmin(String email) throws Exception {
@@ -103,7 +104,7 @@ class ParametrosRangoDinamicoTest {
     @Test
     void TC_WU06_defaults_reflejados_en_get_y_acepta_valor_dentro_del_rango() {
         String token = registrar("wu06-defaults@ex.com");
-        Long proyectoId = crearProyecto(token);
+        String proyectoId = crearProyecto(token);
 
         given().header("Authorization", "Bearer " + token)
                 .when()
@@ -161,7 +162,7 @@ class ParametrosRangoDinamicoTest {
 
         // Usuario normal ahora puede fijar 0.25 (>0.20 default, ≤0.30 nuevo rango).
         String userToken = registrar("wu06-user@ex.com");
-        Long proyectoId = crearProyecto(userToken);
+        String proyectoId = crearProyecto(userToken);
 
         given().header("Authorization", "Bearer " + userToken)
                 .contentType(JSON)
@@ -179,7 +180,7 @@ class ParametrosRangoDinamicoTest {
     @Test
     void TC_WU06_fuera_de_rango_devuelve_400_y_no_persiste() {
         String token = registrar("wu06-rechazo@ex.com");
-        Long proyectoId = crearProyecto(token);
+        String proyectoId = crearProyecto(token);
 
         // %HM 0.25 > default rango_hm_max 0.2000 → 400 validacion.
         given().header("Authorization", "Bearer " + token)
@@ -258,7 +259,7 @@ class ParametrosRangoDinamicoTest {
     @Test
     void TC_WU06_otro_usuario_no_puede_editar_parametros_de_proyecto_ajeno_404() {
         String titular = registrar("wu06-dueño@ex.com");
-        Long proyectoId = crearProyecto(titular);
+        String proyectoId = crearProyecto(titular);
 
         String intruso = registrar("wu06-intruso@ex.com");
 

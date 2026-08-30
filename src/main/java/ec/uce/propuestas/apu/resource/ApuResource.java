@@ -115,13 +115,13 @@ public class ApuResource {
 
     private boolean seccionPerteneceAApu(Long seccionId, Long apuId) {
         return apuRepository
-                .getEntityManager()
-                .createQuery(
-                        "select count(s) from ApuSeccion s where s.id = :seccionId and s.apuId = :apuId",
-                        Long.class)
-                .setParameter("seccionId", seccionId)
-                .setParameter("apuId", apuId)
-                .getSingleResult()
+                        .getEntityManager()
+                        .createQuery(
+                                "select count(s) from ApuSeccion s where s.id = :seccionId and s.apuId = :apuId",
+                                Long.class)
+                        .setParameter("seccionId", seccionId)
+                        .setParameter("apuId", apuId)
+                        .getSingleResult()
                 > 0;
     }
 
@@ -181,7 +181,7 @@ public class ApuResource {
     @Path("/detalles")
     public Response agregarDetalle(@PathParam("apuId") String apuId, @Valid ApuDetalleCrearRequest req) {
         Apu apu = resolverApu(apuId);
-        ApuResponse actualizado = apuService.agregarDetalle(apu.id, req);
+        ApuResponse actualizado = apuService.agregarDetalle(apu.id, req, usuarioId());
         return Response.status(Response.Status.CREATED).entity(actualizado).build();
     }
 

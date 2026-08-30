@@ -29,10 +29,10 @@ import org.junit.jupiter.api.Test;
  * Especificaciones Técnicas generado por
  * {@code GET /documentos/especificaciones-tecnicas/{presupuestoId}}.
  *
- * <p>Patrón de bootstrap y auth: {@code ApuResourceIT}. El parse-back relee los
- * bytes con {@link XWPFDocument} (misma dependencia Apache POI que el writer) y
- * afirma sobre el contenido textual — sin inspección HTML ni dependencias
- * adicionales.</p>
+ * <p>Plan 07 — el {@code presupuestoId} del path es la identidad externa
+ * UUIDv7 (columna {@code presupuesto.public_id}). El {@code BIGINT} interno se
+ * retiene debajo de los seeds SQL; los asserts de contrato y las URLs de los
+ * resources usan el UUID público.</p>
  */
 @QuarkusTest
 class DocumentoResourceIT {
@@ -54,34 +54,46 @@ class DocumentoResourceIT {
         }
     }
 
-    private Long crearProyecto(String token, String nombre, Short anio) {
-        return ((Number) given().contentType("application/json")
-                        .header("Authorization", "Bearer " + token)
-                        .body(java.util.Map.of(
-                                "nombreProyecto",
-                                nombre,
-                                "anio",
-                                anio,
-                                "plazoEjecucion",
-                                (short) 4,
-                                "plazoUnidad",
-                                "MES",
-                                "direccionInstitucional",
-                                "Universidad Central del Ecuador"))
-                        .when()
-                        .post("/api/v1/proyectos")
-                        .then()
-                        .statusCode(201)
-                        .extract()
-                        .path("id"))
-                .longValue();
+    private String crearProyecto(String token, String nombre, Short anio) {
+        return given().contentType("application/json")
+                .header("Authorization", "Bearer " + token)
+                .body(java.util.Map.of(
+                        "nombreProyecto",
+                        nombre,
+                        "anio",
+                        anio,
+                        "plazoEjecucion",
+                        (short) 4,
+                        "plazoUnidad",
+                        "MES",
+                        "direccionInstitucional",
+                        "Universidad Central del Ecuador"))
+                .when()
+                .post("/api/v1/proyectos")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
     }
 
-    private Long insertarPresupuesto(Long proyectoId) throws Exception {
+    private String insertarPresupuesto(String proyectoId) throws Exception {
+        Long proyectoIdInterno = internalProyectoId(proyectoId);
         try (Connection con = ds.getConnection();
                 PreparedStatement ps = con.prepareStatement(
-                        "INSERT INTO presupuesto (proyecto_id, version, es_vigente) VALUES (?, 1, TRUE) RETURNING id")) {
-            ps.setLong(1, proyectoId);
+                        "INSERT INTO presupuesto (proyecto_id, version, es_vigente) VALUES (?, 1, TRUE) RETURNING public_id")) {
+            ps.setLong(1, proyectoIdInterno);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getString(1);
+            }
+        }
+    }
+
+    /** Resuelve el {@code BIGINT} interno del proyecto a partir de su {@code publicId} UUIDv7. */
+    private Long internalProyectoId(String publicId) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT id FROM proyecto WHERE public_id = ?")) {
+            ps.setObject(1, java.util.UUID.fromString(publicId));
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();
                 return rs.getLong(1);
@@ -89,7 +101,12 @@ class DocumentoResourceIT {
         }
     }
 
-    private String crearApu(String token, Long presupuestoId, String codigo, String descripcion, String unidad) {
+    /** Resuelve el {@code BIGINT} interno del proyecto (necesario para UPDATE de titulo_et_*). */
+    private Long internalProyectoIdForUpdate(String proyectoPublicId) throws Exception {
+        return internalProyectoId(proyectoPublicId);
+    }
+
+    private String crearApu(String token, String presupuestoId, String codigo, String descripcion, String unidad) {
         return given().contentType("application/json")
                 .header("Authorization", "Bearer " + token)
                 .body(java.util.Map.of("codigo", codigo, "descripcion", descripcion, "unidad", unidad))
@@ -141,7 +158,7 @@ class DocumentoResourceIT {
         }
     }
 
-    private static byte[] descargarDocx(String token, Long presupuestoId, String query) {
+    private static byte[] descargarDocx(String token, String presupuestoId, String query) {
         String path = "/api/v1/documentos/especificaciones-tecnicas/" + presupuestoId;
         var request = given().header("Authorization", "Bearer " + token);
         if (query != null && !query.isBlank()) {
@@ -164,7 +181,7 @@ class DocumentoResourceIT {
     @Test
     void TC_P45_05_docx_precedencia_titulos_override_gana_sobre_proyecto() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p45t1@ex.com");
-        Long proyectoId = crearProyecto(token, "Rehabilitación Tulcán", (short) 2026);
+        String proyectoId = crearProyecto(token, "Rehabilitación Tulcán", (short) 2026);
         // fijamos titulo_et_1 / titulo_et_2 desde SQL para garantizar que el proyecto
         // tiene valores preexistentes y la precedencia de los overrides es observable
         try (Connection con = ds.getConnection();
@@ -172,10 +189,10 @@ class DocumentoResourceIT {
                         con.prepareStatement("UPDATE proyecto SET titulo_et_1 = ?, titulo_et_2 = ? WHERE id = ?")) {
             ps.setString(1, "PLIEGO BASE TULCÁN");
             ps.setString(2, "ETs Tulcán desde proyecto");
-            ps.setLong(3, proyectoId);
+            ps.setLong(3, internalProyectoIdForUpdate(proyectoId));
             ps.executeUpdate();
         }
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(token, presupuestoId, "PZ-001", "Pozo", "u");
         ponerEt(token, apuId, "Excavación manual, entibado, nivelación.");
 
@@ -204,8 +221,8 @@ class DocumentoResourceIT {
     @Test
     void TC_P45_06_docx_titulos_proyecto_y_defaults_si_no_hay_override() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p45t2@ex.com");
-        Long proyectoId = crearProyecto(token, "Hospital Solanda", (short) 2027);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token, "Hospital Solanda", (short) 2027);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(token, presupuestoId, "HOS-001", "Losa", "m2");
         ponerEt(token, apuId, "Concreto fc=210 kg/cm2.");
 
@@ -215,7 +232,7 @@ class DocumentoResourceIT {
                         con.prepareStatement("UPDATE proyecto SET titulo_et_1 = ?, titulo_et_2 = ? WHERE id = ?")) {
             ps.setString(1, "ESPECIFICACIONES HOSPITAL SOLANDA");
             ps.setString(2, "Subcabecera persistida");
-            ps.setLong(3, proyectoId);
+            ps.setLong(3, internalProyectoIdForUpdate(proyectoId));
             ps.executeUpdate();
         }
 
@@ -237,7 +254,7 @@ class DocumentoResourceIT {
         try (Connection con = ds.getConnection();
                 PreparedStatement ps = con.prepareStatement(
                         "UPDATE proyecto SET titulo_et_1 = NULL, titulo_et_2 = NULL WHERE id = ?")) {
-            ps.setLong(1, proyectoId);
+            ps.setLong(1, internalProyectoIdForUpdate(proyectoId));
             ps.executeUpdate();
         }
 
@@ -256,8 +273,8 @@ class DocumentoResourceIT {
     @Test
     void TC_P45_07_docx_omite_apus_sin_et_y_rechaza_sin_contenido() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p45t3@ex.com");
-        Long proyectoId = crearProyecto(token, "Puente Norte", (short) 2026);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token, "Puente Norte", (short) 2026);
+        String presupuestoId = insertarPresupuesto(proyectoId);
 
         String conEt = crearApu(token, presupuestoId, "PN-001", "Con ET", "u");
         String sinEt = crearApu(token, presupuestoId, "PN-002", "Sin ET", "u");
@@ -304,8 +321,8 @@ class DocumentoResourceIT {
     @Test
     void TC_P45_08_docx_no_contiene_campos_monetarios_y_respeta_mime() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p45t4@ex.com");
-        Long proyectoId = crearProyecto(token, "Mercado Sur", (short) 2026);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token, "Mercado Sur", (short) 2026);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(token, presupuestoId, "MS-001", "Pavimento", "m2");
         // texto que deliberadamente contiene números que podrían confundirse con precios
         ponerEt(
@@ -365,8 +382,8 @@ class DocumentoResourceIT {
     @Test
     void TC_P45_09_docx_devuelve_404_si_presupuesto_ajeno() throws Exception {
         String titular = AuthSupport.registrarConToken(mailbox, "p45t5a@ex.com");
-        Long proyectoId = crearProyecto(titular, "Solo titular", (short) 2026);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(titular, "Solo titular", (short) 2026);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(titular, presupuestoId, "PR-001", "Privado", "u");
         ponerEt(titular, apuId, "Contenido real, no debe exportarse a intruso");
 
@@ -389,8 +406,8 @@ class DocumentoResourceIT {
     @Test
     void TC_P45_10_docx_rechaza_formato_distinto_a_docx() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p45t6@ex.com");
-        Long proyectoId = crearProyecto(token, "Solo docx", (short) 2026);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token, "Solo docx", (short) 2026);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(token, presupuestoId, "FM-001", "Filtro formato", "u");
         ponerEt(token, apuId, "Texto de prueba");
 
@@ -412,8 +429,8 @@ class DocumentoResourceIT {
     void TC_P45_11_docx_headers_estructura_basica_es_docx_valido() throws Exception {
         // sanity: los primeros bytes de un .docx son siempre la firma ZIP "PK\x03\x04"
         String token = AuthSupport.registrarConToken(mailbox, "p45t7@ex.com");
-        Long proyectoId = crearProyecto(token, "Sanidad ZIP", (short) 2026);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token, "Sanidad ZIP", (short) 2026);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(token, presupuestoId, "ZIP-001", "Cabecera", "u");
         ponerEt(token, apuId, "ET que valida la firma PK del contenedor OOXML.");
 

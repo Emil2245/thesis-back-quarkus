@@ -102,7 +102,7 @@ class PlantillaProyectoServiceTest {
         Usuario bob = persistUsuario("bob-pp@ex.com");
         Proyecto pAlice = persistProyecto(alice.id, "Alice obras");
         persistirPresupuestoVigente(pAlice.id);
-        PlantillaProyecto plantillaAlice = persistPlantillaDesdeProyecto(alice.id, pAlice.id, "Plantilla Alice");
+        PlantillaProyecto plantillaAlice = persistPlantillaDesdeProyecto(alice.id, pAlice.publicId, "Plantilla Alice");
 
         List<PlantillaProyectoResponse> deAlice = plantillaProyectoService.listar(alice.id);
         List<PlantillaProyectoResponse> deBob = plantillaProyectoService.listar(bob.id);
@@ -124,7 +124,7 @@ class PlantillaProyectoServiceTest {
         Usuario bob = persistUsuario("bob-del@ex.com");
         Proyecto pAlice = persistProyecto(alice.id, "Alice del");
         persistirPresupuestoVigente(pAlice.id);
-        PlantillaProyecto plantillaAlice = persistPlantillaDesdeProyecto(alice.id, pAlice.id, "Borrable");
+        PlantillaProyecto plantillaAlice = persistPlantillaDesdeProyecto(alice.id, pAlice.publicId, "Borrable");
 
         // Ajena → 404
         ProblemaException exAjena = assertThrows(
@@ -154,7 +154,7 @@ class PlantillaProyectoServiceTest {
         insertarRubro(capId, apuId, "1.1", "RP-001", "Replanteo", "m2");
 
         PlantillaProyectoResponse resp = plantillaProyectoService.guardarDesdeProyecto(
-                proyecto.id, "Mi plantilla", "descripcion demo", alice.id);
+                proyecto.publicId, "Mi plantilla", "descripcion demo", alice.id);
 
         assertNotNull(resp.id());
         assertEquals("Mi plantilla", resp.nombre());
@@ -189,7 +189,7 @@ class PlantillaProyectoServiceTest {
 
         ProblemaException ex = assertThrows(
                 ProblemaException.class,
-                () -> plantillaProyectoService.guardarDesdeProyecto(pAlice.id, "Hack", null, bob.id));
+                () -> plantillaProyectoService.guardarDesdeProyecto(pAlice.publicId, "Hack", null, bob.id));
         assertEquals(404, ex.getResponse().getStatus());
     }
 
@@ -202,7 +202,7 @@ class PlantillaProyectoServiceTest {
 
         ProblemaException ex = assertThrows(
                 ProblemaException.class,
-                () -> plantillaProyectoService.guardarDesdeProyecto(p.id, "  ", null, alice.id));
+                () -> plantillaProyectoService.guardarDesdeProyecto(p.publicId, "  ", null, alice.id));
         assertEquals(400, ex.getResponse().getStatus());
     }
 
@@ -225,7 +225,7 @@ class PlantillaProyectoServiceTest {
         Long apu1 = insertarApu(presupuestoId, "RP-001", "Replanteo", "m2");
         insertarRubro(cap1, apu1, "1.1", "RP-001", "Replanteo", "m2");
 
-        PlantillaProyecto plantilla = persistPlantillaDesdeProyecto(alice.id, origen.id, "Estructura completa");
+        PlantillaProyecto plantilla = persistPlantillaDesdeProyecto(alice.id, origen.publicId, "Estructura completa");
 
         ProyectoDesdePlantillaResponse out =
                 plantillaProyectoService.aplicar(plantilla.publicId, "Nuevo desde plantilla", alice.id);
@@ -235,10 +235,10 @@ class PlantillaProyectoServiceTest {
         assertEquals(EstadoProyecto.BORRADOR, out.proyecto().estado());
         assertFalse(out.tieneAdvertencias(), "Sin faltantes");
         // ID distinto del origen.
-        assertNotEquals(origen.id, out.proyecto().id());
+        assertNotEquals(origen.publicId, out.proyecto().id());
         // PublicId del origen queda registrado como lineage (FK interno).
         Proyecto nuevo = proyectoRepository
-                .findByIdYPropietario(out.proyecto().id(), alice.id)
+                .findByPublicIdAndOwnerScope(out.proyecto().id(), alice.id)
                 .orElseThrow();
         assertEquals(plantilla.id, nuevo.plantillaProyectoOrigenId, "lineage persistido");
 
@@ -272,11 +272,11 @@ class PlantillaProyectoServiceTest {
 
         insertarRubro(cap, apuId, "1.1", "RP-001", "Replanteo", "m2");
 
-        PlantillaProyecto plantilla = persistPlantillaDesdeProyecto(alice.id, origen.id, "Reco");
+        PlantillaProyecto plantilla = persistPlantillaDesdeProyecto(alice.id, origen.publicId, "Reco");
         ProyectoDesdePlantillaResponse out = plantillaProyectoService.aplicar(plantilla.publicId, "Nuevo", alice.id);
 
         Proyecto nuevo = proyectoRepository
-                .findByIdYPropietario(out.proyecto().id(), alice.id)
+                .findByPublicIdAndOwnerScope(out.proyecto().id(), alice.id)
                 .orElseThrow();
         Presupuesto nuevoPresupuesto =
                 presupuestoRepository.findVigenteDeProyecto(nuevo.id).orElseThrow();
@@ -314,7 +314,7 @@ class PlantillaProyectoServiceTest {
         insertarFilaMo(apuId, null, "0.3", "0.1", "MO-FALTA");
         insertarRubro(cap, apuId, "1.1", "RP-001", "Replanteo", "m2");
 
-        PlantillaProyecto plantilla = persistPlantillaDesdeProyecto(alice.id, origen.id, "Fallback");
+        PlantillaProyecto plantilla = persistPlantillaDesdeProyecto(alice.id, origen.publicId, "Fallback");
         ProyectoDesdePlantillaResponse out = plantillaProyectoService.aplicar(plantilla.publicId, "Nuevo", alice.id);
 
         assertTrue(out.tieneAdvertencias(), "Faltante genera advertencia");
@@ -325,7 +325,7 @@ class PlantillaProyectoServiceTest {
 
         // El nuevo proyecto tiene una base PROYECTO.
         Proyecto nuevo = proyectoRepository
-                .findByIdYPropietario(out.proyecto().id(), alice.id)
+                .findByPublicIdAndOwnerScope(out.proyecto().id(), alice.id)
                 .orElseThrow();
         BaseInsumos baseNueva = baseInsumosRepository.findByProyecto(nuevo.id).orElseThrow();
 
@@ -356,11 +356,11 @@ class PlantillaProyectoServiceTest {
         Long apuId = insertarApu(presupuestoId, "RP-001", "Replanteo", "m2");
         insertarRubro(cap, apuId, "1.1", "RP-001", "Replanteo", "m2");
 
-        PlantillaProyecto plantilla = persistPlantillaDesdeProyecto(alice.id, origen.id, "Sin op");
+        PlantillaProyecto plantilla = persistPlantillaDesdeProyecto(alice.id, origen.publicId, "Sin op");
         ProyectoDesdePlantillaResponse out = plantillaProyectoService.aplicar(plantilla.publicId, "Nuevo", alice.id);
 
         Proyecto nuevo = proyectoRepository
-                .findByIdYPropietario(out.proyecto().id(), alice.id)
+                .findByPublicIdAndOwnerScope(out.proyecto().id(), alice.id)
                 .orElseThrow();
         Presupuesto nuevoPresupuesto =
                 presupuestoRepository.findVigenteDeProyecto(nuevo.id).orElseThrow();
@@ -375,7 +375,7 @@ class PlantillaProyectoServiceTest {
 
         // Log_actividad: el aplicado no debe emitir filas en este pase (los
         // eventos D-13 los emite otro seam).
-        long logs = contarLogActividadPara(out.proyecto().id());
+        long logs = contarLogActividadPara(nuevo.id);
         assertEquals(0, logs, "No se emite log");
     }
 
@@ -389,12 +389,12 @@ class PlantillaProyectoServiceTest {
         Long apuId = insertarApu(presupuestoId, "RP-001", "Replanteo", "m2");
         insertarRubro(cap, apuId, "1.1", "RP-001", "Replanteo", "m2");
 
-        PlantillaProyecto plantilla = persistPlantillaDesdeProyecto(alice.id, origen.id, "Lineage");
+        PlantillaProyecto plantilla = persistPlantillaDesdeProyecto(alice.id, origen.publicId, "Lineage");
         ProyectoDesdePlantillaResponse out =
                 plantillaProyectoService.aplicar(plantilla.publicId, "Nuevo desde plantilla", alice.id);
 
         Proyecto nuevo = proyectoRepository
-                .findByIdYPropietario(out.proyecto().id(), alice.id)
+                .findByPublicIdAndOwnerScope(out.proyecto().id(), alice.id)
                 .orElseThrow();
         assertEquals(plantilla.id, nuevo.plantillaProyectoOrigenId);
 
@@ -417,7 +417,7 @@ class PlantillaProyectoServiceTest {
         Long cap = insertarCapitulo(presupuestoAlice, null, "1", "OBRAS", 1);
         Long apu = insertarApu(presupuestoAlice, "RP-001", "Replanteo", "m2");
         insertarRubro(cap, apu, "1.1", "RP-001", "Replanteo", "m2");
-        PlantillaProyecto plantillaAlice = persistPlantillaDesdeProyecto(alice.id, pAlice.id, "Solo Alice");
+        PlantillaProyecto plantillaAlice = persistPlantillaDesdeProyecto(alice.id, pAlice.publicId, "Solo Alice");
 
         ProblemaException ex = assertThrows(
                 ProblemaException.class,
@@ -431,7 +431,7 @@ class PlantillaProyectoServiceTest {
         Usuario alice = persistUsuario("alice-nv@ex.com");
         Proyecto origen = persistProyecto(alice.id, "Origen nv");
         Long presupuestoId = insertarPresupuestoYVigente(origen.id);
-        PlantillaProyecto plantilla = persistPlantillaDesdeProyecto(alice.id, origen.id, "X");
+        PlantillaProyecto plantilla = persistPlantillaDesdeProyecto(alice.id, origen.publicId, "X");
 
         ProblemaException ex = assertThrows(
                 ProblemaException.class, () -> plantillaProyectoService.aplicar(plantilla.publicId, "  ", alice.id));
@@ -456,7 +456,7 @@ class PlantillaProyectoServiceTest {
         origen.fechaInicio = LocalDate.parse("2026-04-01");
 
         PlantillaProyectoResponse resp =
-                plantillaProyectoService.guardarDesdeProyecto(origen.id, "Con cabecera", null, alice.id);
+                plantillaProyectoService.guardarDesdeProyecto(origen.publicId, "Con cabecera", null, alice.id);
         PlantillaProyecto persistida = plantillaProyectoRepository
                 .findByPublicIdAndOwnerScope(resp.id(), alice.id)
                 .orElseThrow();
@@ -493,12 +493,12 @@ class PlantillaProyectoServiceTest {
         origen.subdireccionInstitucional = "Subdir replica";
         origen.tituloEt1 = "ET-1 replica";
         origen.tituloEt2 = "ET-2 replica";
-        PlantillaProyecto plantilla = persistPlantillaDesdeProyecto(alice.id, origen.id, "Replica cabecera");
+        PlantillaProyecto plantilla = persistPlantillaDesdeProyecto(alice.id, origen.publicId, "Replica cabecera");
 
         ProyectoDesdePlantillaResponse out =
                 plantillaProyectoService.aplicar(plantilla.publicId, "Nombre provisto por el cliente", alice.id);
         Proyecto nuevo = proyectoRepository
-                .findByIdYPropietario(out.proyecto().id(), alice.id)
+                .findByPublicIdAndOwnerScope(out.proyecto().id(), alice.id)
                 .orElseThrow();
 
         // El request fija el nombre (autoritativo), NO el snapshot.
@@ -545,7 +545,7 @@ class PlantillaProyectoServiceTest {
                 plantillaProyectoService.aplicar(plantillaPublicId, "Nuevo desde V004", alice.id);
 
         Proyecto nuevo = proyectoRepository
-                .findByIdYPropietario(out.proyecto().id(), alice.id)
+                .findByPublicIdAndOwnerScope(out.proyecto().id(), alice.id)
                 .orElseThrow();
 
         // Cabecera: cae a defaults editables.
@@ -607,7 +607,7 @@ class PlantillaProyectoServiceTest {
         ProyectoDesdePlantillaResponse out =
                 plantillaProyectoService.aplicar(plantillaPublicId, "Nuevo parcial", alice.id);
         Proyecto nuevo = proyectoRepository
-                .findByIdYPropietario(out.proyecto().id(), alice.id)
+                .findByPublicIdAndOwnerScope(out.proyecto().id(), alice.id)
                 .orElseThrow();
 
         // Cabecera con campos presentes replicados.
@@ -650,7 +650,7 @@ class PlantillaProyectoServiceTest {
         Long apuId = insertarApu(presupuestoId, "RP-001", "Replanteo", "m2");
         insertarRubro(cap, apuId, "1.1", "RP-001", "Replanteo", "m2");
 
-        PlantillaProyecto plantilla = persistPlantillaDesdeProyecto(alice.id, origen.id, "Rollback");
+        PlantillaProyecto plantilla = persistPlantillaDesdeProyecto(alice.id, origen.publicId, "Rollback");
 
         long proyectosAntes = contarTabla("proyecto", "usuario_id", alice.id);
 
@@ -664,7 +664,7 @@ class PlantillaProyectoServiceTest {
         // Para un proyecto NUEVO no puede haber cronograma, ni actividades,
         // ni firmantes, ni log (atomicidad + atomicidad de la operación).
         Proyecto nuevo = proyectoRepository
-                .findByIdYPropietario(out.proyecto().id(), alice.id)
+                .findByPublicIdAndOwnerScope(out.proyecto().id(), alice.id)
                 .orElseThrow();
         assertEquals(0, contarTabla("firmante", "proyecto_id", nuevo.id), "Sin firmantes");
         assertEquals(0, contarLogActividadPara(nuevo.id), "Sin log");
@@ -835,9 +835,10 @@ class PlantillaProyectoServiceTest {
         }
     }
 
-    private PlantillaProyecto persistPlantillaDesdeProyecto(Long usuarioId, Long proyectoId, String nombre) {
+    private PlantillaProyecto persistPlantillaDesdeProyecto(
+            Long usuarioId, java.util.UUID proyectoPublicId, String nombre) {
         PlantillaProyectoResponse response =
-                plantillaProyectoService.guardarDesdeProyecto(proyectoId, nombre, null, usuarioId);
+                plantillaProyectoService.guardarDesdeProyecto(proyectoPublicId, nombre, null, usuarioId);
         return plantillaProyectoRepository
                 .findByPublicIdAndOwnerScope(response.id(), usuarioId)
                 .orElseThrow();

@@ -3,6 +3,7 @@ package ec.uce.propuestas.proyecto.repository;
 import ec.uce.propuestas.proyecto.entity.Firmante;
 import ec.uce.propuestas.proyecto.entity.RolFirmante;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
+import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.List;
 import java.util.Optional;
@@ -15,8 +16,21 @@ public class FirmanteRepository implements PanacheRepositoryBase<Firmante, Long>
         return find("proyectoId = ?1 order by orden", proyectoId).list();
     }
 
+    /** Variante interna (BIGINT) — usada por código interno y tests legacy. */
     public Optional<Firmante> findByIdYProyecto(Long id, Long proyectoId) {
         return find("id = ?1 and proyectoId = ?2", id, proyectoId).firstResultOptional();
+    }
+
+    /**
+     * Plan 07 — resolución por {@code publicId} (UUIDv7) dentro del scope del
+     * proyecto (ya validado por owner). La junta al {@code BIGINT} interno es la
+     * única ruta usada para escribir/editar a partir de este punto.
+     */
+    public Optional<Firmante> findByPublicIdAndProyecto(UUID publicId, Long proyectoId) {
+        return find(
+                        "publicId = :publicId and proyectoId = :proyectoId",
+                        Parameters.with("publicId", publicId).and("proyectoId", proyectoId))
+                .firstResultOptional();
     }
 
     public boolean existeRolOrden(Long proyectoId, RolFirmante rol, Short orden) {

@@ -46,59 +46,70 @@ class ApuResourceIT {
         }
     }
 
-    private Long crearProyecto(String token) {
-        return ((Number) given().contentType(JSON)
-                        .header("Authorization", "Bearer " + token)
-                        .body(Map.of(
-                                "nombreProyecto", "Redes UCE",
-                                "anio", (short) 2026,
-                                "plazoEjecucion", (short) 4,
-                                "plazoUnidad", "MES",
-                                "direccionInstitucional", "Universidad Central del Ecuador"))
-                        .when()
-                        .post("/api/v1/proyectos")
-                        .then()
-                        .statusCode(201)
-                        .extract()
-                        .path("id"))
-                .longValue();
+    private String crearProyecto(String token) {
+        return given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of(
+                        "nombreProyecto", "Redes UCE",
+                        "anio", (short) 2026,
+                        "plazoEjecucion", (short) 4,
+                        "plazoUnidad", "MES",
+                        "direccionInstitucional", "Universidad Central del Ecuador"))
+                .when()
+                .post("/api/v1/proyectos")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
     }
 
-    private Long crearInsumo(
+    private String crearInsumo(
             String token,
-            Long proyectoId,
+            String proyectoId,
             String codigo,
             String tipo,
             String descripcion,
             String unidad,
             double precio) {
-        return ((Number) given().contentType(JSON)
-                        .header("Authorization", "Bearer " + token)
-                        .body(Map.of(
-                                "codigo",
-                                codigo,
-                                "tipo",
-                                tipo,
-                                "descripcion",
-                                descripcion,
-                                "unidad",
-                                unidad,
-                                "precioUnitario",
-                                precio))
-                        .when()
-                        .post("/api/v1/proyectos/" + proyectoId + "/insumos")
-                        .then()
-                        .statusCode(201)
-                        .extract()
-                        .path("id"))
-                .longValue();
+        return given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of(
+                        "codigo",
+                        codigo,
+                        "tipo",
+                        tipo,
+                        "descripcion",
+                        descripcion,
+                        "unidad",
+                        unidad,
+                        "precioUnitario",
+                        precio))
+                .when()
+                .post("/api/v1/proyectos/" + proyectoId + "/insumos")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
     }
 
-    private Long insertarPresupuesto(Long proyectoId) throws Exception {
+    private String insertarPresupuesto(String proyectoId) throws Exception {
+        Long proyectoIdInterno = internalProyectoId(proyectoId);
         try (Connection con = ds.getConnection();
                 PreparedStatement ps = con.prepareStatement(
-                        "INSERT INTO presupuesto (proyecto_id, version, es_vigente) VALUES (?, 1, TRUE) RETURNING id")) {
-            ps.setLong(1, proyectoId);
+                        "INSERT INTO presupuesto (proyecto_id, version, es_vigente) VALUES (?, 1, TRUE) RETURNING public_id")) {
+            ps.setLong(1, proyectoIdInterno);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getString(1);
+            }
+        }
+    }
+
+    /** Resuelve el {@code BIGINT} interno del proyecto a partir de su {@code publicId} UUIDv7. */
+    private Long internalProyectoId(String publicId) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT id FROM proyecto WHERE public_id = ?")) {
+            ps.setObject(1, java.util.UUID.fromString(publicId));
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();
                 return rs.getLong(1);
@@ -106,7 +117,7 @@ class ApuResourceIT {
         }
     }
 
-    private String crearApu(String token, Long presupuestoId, String codigo) {
+    private String crearApu(String token, String presupuestoId, String codigo) {
         return given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(Map.of("codigo", codigo, "descripcion", "Instalación", "unidad", "m"))
@@ -140,11 +151,35 @@ class ApuResourceIT {
         }
     }
 
+    /** Resuelve el {@code BIGINT} interno del presupuesto a partir de su {@code publicId} UUIDv7. */
+    private Long internalPresupuestoId(String publicId) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT id FROM presupuesto WHERE public_id = ?")) {
+            ps.setObject(1, java.util.UUID.fromString(publicId));
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        }
+    }
+
+    /** Resuelve el {@code publicId} UUIDv7 del insumo a partir de su {@code BIGINT} interno. */
+    private String publicIdDeInsumo(Long insumoId) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT public_id FROM insumo WHERE id = ?")) {
+            ps.setLong(1, insumoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getString(1);
+            }
+        }
+    }
+
     @Test
     void TC_P20_01_crear_apu_crea_4_secciones_ordenadas_y_fila_hm() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p20@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
 
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
@@ -166,8 +201,8 @@ class ApuResourceIT {
     @Test
     void TC_P20_03_codigo_duplicado_unicamente_por_version() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p20dup@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoV1 = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token);
+        String presupuestoV1 = insertarPresupuesto(proyectoId);
 
         crearApu(token, presupuestoV1, "DUP-001");
 
@@ -193,10 +228,10 @@ class ApuResourceIT {
     @Test
     void TC_P21_02_agregar_filas_mo_y_material_recalcula_totales() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p21@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long mo = crearInsumo(token, proyectoId, "MO-010", "MANO_OBRA", "Peón", "h", 4.0);
-        Long mat = crearInsumo(token, proyectoId, "MA-010", "MATERIAL", "Tubo", "m", 2.0);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
+        String mo = crearInsumo(token, proyectoId, "MO-010", "MANO_OBRA", "Peón", "h", 4.0);
+        String mat = crearInsumo(token, proyectoId, "MA-010", "MATERIAL", "Tubo", "m", 2.0);
         String apuId = crearApu(token, presupuestoId, "TB-001");
 
         int numSec = 1;
@@ -204,8 +239,7 @@ class ApuResourceIT {
 
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
-                .body(Map.of(
-                        "seccionTipo", "MANO_OBRA", "insumoId", mo.intValue(), "cantidad", 2.0, "rendimiento", 1.0))
+                .body(Map.of("seccionTipo", "MANO_OBRA", "insumoId", mo, "cantidad", 2.0, "rendimiento", 1.0))
                 .when()
                 .post("/api/v1/apus/" + apuId + "/detalles")
                 .then()
@@ -214,7 +248,7 @@ class ApuResourceIT {
 
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
-                .body(Map.of("seccionTipo", "MATERIAL", "insumoId", mat.intValue(), "cantidad", 3.0))
+                .body(Map.of("seccionTipo", "MATERIAL", "insumoId", mat, "cantidad", 3.0))
                 .when()
                 .post("/api/v1/apus/" + apuId + "/detalles")
                 .then()
@@ -229,8 +263,8 @@ class ApuResourceIT {
     @Test
     void TC_P21_03_fila_hm_no_editable_ni_eliminable() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p21hm@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(token, presupuestoId, "HM-001");
 
         String detalleId = given().header("Authorization", "Bearer " + token)
@@ -261,15 +295,14 @@ class ApuResourceIT {
     @Test
     void TC_P22_02_override_precio_cambia_precio_efectivo_y_null_hereda() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p22@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long mo = crearInsumo(token, proyectoId, "MO-020", "MANO_OBRA", "Soldador", "h", 5.0);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
+        String mo = crearInsumo(token, proyectoId, "MO-020", "MANO_OBRA", "Soldador", "h", 5.0);
         String apuId = crearApu(token, presupuestoId, "OV-001");
 
         String detalleId = given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
-                .body(Map.of(
-                        "seccionTipo", "MANO_OBRA", "insumoId", mo.intValue(), "cantidad", 1.0, "rendimiento", 1.0))
+                .body(Map.of("seccionTipo", "MANO_OBRA", "insumoId", mo, "cantidad", 1.0, "rendimiento", 1.0))
                 .when()
                 .post("/api/v1/apus/" + apuId + "/detalles")
                 .then()
@@ -312,14 +345,14 @@ class ApuResourceIT {
     @Test
     void TC_P22_01_editar_precio_insumo_cambia_fila_sin_override() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p22b@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long mat = crearInsumo(token, proyectoId, "MA-030", "MATERIAL", "Ángulo", "kg", 2.0);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
+        String mat = crearInsumo(token, proyectoId, "MA-030", "MATERIAL", "Ángulo", "kg", 2.0);
         String apuId = crearApu(token, presupuestoId, "PR-001");
 
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
-                .body(Map.of("seccionTipo", "MATERIAL", "insumoId", mat.intValue(), "cantidad", 1.0))
+                .body(Map.of("seccionTipo", "MATERIAL", "insumoId", mat, "cantidad", 1.0))
                 .when()
                 .post("/api/v1/apus/" + apuId + "/detalles")
                 .then()
@@ -347,8 +380,8 @@ class ApuResourceIT {
     @Test
     void TC_P19_apu_vinculado_a_rubro_no_se_elimina_409() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "del@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(token, presupuestoId, "VD-001");
 
         // SQL necesita el BIGINT interno; la URL del resource usa el UUID público.
@@ -365,8 +398,8 @@ class ApuResourceIT {
     @Test
     void RNF05_apu_de_otro_usuario_devuelve_404() throws Exception {
         String dueno = AuthSupport.registrarConToken(mailbox, "dueno@ex.com");
-        Long proyectoId = crearProyecto(dueno);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(dueno);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(dueno, presupuestoId, "AJ-001");
 
         String intruso = AuthSupport.registrarConToken(mailbox, "intruso@ex.com");
@@ -390,8 +423,8 @@ class ApuResourceIT {
     @Test
     void TC_WU02C_agregarDetalle_persiste_copia_proyecto_nunca_central() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "wu02c@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(token, presupuestoId, "WU02C-001");
 
         // 1. sembrar base CENTRAL e insumo CENTRAL vía SQL (la API admin no existe aún)
@@ -417,10 +450,12 @@ class ApuResourceIT {
             }
         }
 
-        // 2. POST /detalles con el insumo CENTRAL (origen)
+        // 2. POST /detalles con el insumo CENTRAL (origen) — Plan 07: el caller envía
+        // el publicId UUIDv7 del insumo CENTRAL, no su BIGINT interno.
+        String insumoCentralPublicId = publicIdDeInsumo(insumoCentralId);
         String detalleId = given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
-                .body(Map.of("seccionTipo", "MATERIAL", "insumoId", insumoCentralId, "cantidad", 1.0))
+                .body(Map.of("seccionTipo", "MATERIAL", "insumoId", insumoCentralPublicId, "cantidad", 1.0))
                 .when()
                 .post("/api/v1/apus/" + apuId + "/detalles")
                 .then()
@@ -428,19 +463,21 @@ class ApuResourceIT {
                 .extract()
                 .path("secciones[2].detalles[0].id");
 
-        // 3. el insumoId reportado en el JSON NO es el CENTRAL
-        Number insumoIdReportado = given().header("Authorization", "Bearer " + token)
+        // 3. el insumoId reportado en el JSON es el publicId UUIDv7 de la copia PROYECTO,
+        // nunca el BIGINT ni el publicId del insumo CENTRAL original.
+        String insumoIdReportado = given().header("Authorization", "Bearer " + token)
                 .when()
                 .get("/api/v1/apus/" + apuId)
                 .then()
                 .statusCode(200)
                 .extract()
                 .jsonPath()
-                .get("secciones[2].detalles[0].insumoId");
+                .getString("secciones[2].detalles[0].insumoId");
+        org.junit.jupiter.api.Assertions.assertNotNull(insumoIdReportado, "el insumoId del JSON no debe ser null");
         org.junit.jupiter.api.Assertions.assertNotEquals(
-                insumoCentralId,
-                insumoIdReportado.longValue(),
-                "el insumoId de la fila NO es el BIGINT del insumo CENTRAL");
+                insumoCentralPublicId,
+                insumoIdReportado,
+                "el publicId de la fila NO es el publicId del insumo CENTRAL original");
 
         // 4. verificar por SQL que la fila vive en una base PROYECTO del proyecto
         long insumoEnDetalle;
@@ -472,7 +509,7 @@ class ApuResourceIT {
                 PreparedStatement ps = con.prepareStatement("SELECT count(*) FROM insumo i "
                         + "JOIN base_insumos b ON b.id = i.base_id "
                         + "WHERE b.proyecto_id = ? AND i.codigo = 'WC-CENT-1'")) {
-            ps.setLong(1, proyectoId);
+            ps.setLong(1, internalProyectoId(proyectoId));
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();
                 org.junit.jupiter.api.Assertions.assertEquals(
@@ -481,7 +518,8 @@ class ApuResourceIT {
         }
     }
 
-    private void insertarRubroVinculado(Long presupuestoId, Long apuId) throws Exception {
+    private void insertarRubroVinculado(String presupuestoPublicId, Long apuId) throws Exception {
+        Long presupuestoId = internalPresupuestoId(presupuestoPublicId);
         try (Connection con = ds.getConnection();
                 Statement st = con.createStatement()) {
             st.execute("INSERT INTO capitulo (presupuesto_id, item, descripcion, orden) " + "VALUES (" + presupuestoId
@@ -509,8 +547,8 @@ class ApuResourceIT {
     @Test
     void TC_P23_P24_porcentajes_actualizan_y_restauran() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p23p24@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(token, presupuestoId, "PCT-001");
 
         given().contentType(JSON)
@@ -553,8 +591,8 @@ class ApuResourceIT {
     @Test
     void TC_P45_01_et_roundtrip_get_devuelve_contenido_persistente() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p45rt@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(token, presupuestoId, "ET-RT-001");
 
         String texto = "Dosificación 1:2:3, vibrado mecánico, curado húmedo 7 días.\n"
@@ -581,8 +619,8 @@ class ApuResourceIT {
     @Test
     void TC_P45_02_et_null_y_vacio_limpian_contenido() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p45clr@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(token, presupuestoId, "ET-CLR-001");
 
         // sembrar texto
@@ -639,8 +677,8 @@ class ApuResourceIT {
     @Test
     void TC_P45_03_et_multibyte_excede_65536_bytes_rechaza_con_400() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p45mb@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(token, presupuestoId, "ET-MB-001");
 
         // "á" son 2 bytes UTF-8; 65 537 caracteres 'á' = 131 074 bytes > 65 536
@@ -674,8 +712,8 @@ class ApuResourceIT {
     @Test
     void TC_P45_04_et_exacto_65536_bytes_se_acepta() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p45bd@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(token, presupuestoId, "ET-BD-001");
 
         // 'a' es 1 byte ASCII; 65 536 caracteres = exactamente el límite permitido
@@ -704,8 +742,8 @@ class ApuResourceIT {
     @Test
     void RNF05_et_de_otro_usuario_devuelve_404_en_get_y_put() throws Exception {
         String dueno = AuthSupport.registrarConToken(mailbox, "duenoet@ex.com");
-        Long proyectoId = crearProyecto(dueno);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(dueno);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(dueno, presupuestoId, "ET-AJ-001");
 
         String intruso = AuthSupport.registrarConToken(mailbox, "intrusoet@ex.com");
@@ -738,17 +776,16 @@ class ApuResourceIT {
     @Test
     void TC_P46_01_duplicar_deep_copy_preserva_secciones_filas_orden_y_overrides() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p46deep@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long mo = crearInsumo(token, proyectoId, "MO-D-010", "MANO_OBRA", "Peón", "h", 4.0);
-        Long mat = crearInsumo(token, proyectoId, "MA-D-010", "MATERIAL", "Tubo", "m", 2.5);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
+        String mo = crearInsumo(token, proyectoId, "MO-D-010", "MANO_OBRA", "Peón", "h", 4.0);
+        String mat = crearInsumo(token, proyectoId, "MA-D-010", "MATERIAL", "Tubo", "m", 2.5);
         String apuId = crearApu(token, presupuestoId, "DUP-SRC");
 
         // fila MO con override para que la copia preserve el override (no heredar)
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
-                .body(Map.of(
-                        "seccionTipo", "MANO_OBRA", "insumoId", mo.intValue(), "cantidad", 2.0, "rendimiento", 1.5))
+                .body(Map.of("seccionTipo", "MANO_OBRA", "insumoId", mo, "cantidad", 2.0, "rendimiento", 1.5))
                 .when()
                 .post("/api/v1/apus/" + apuId + "/detalles")
                 .then()
@@ -777,7 +814,7 @@ class ApuResourceIT {
         // fila MATERIAL sin override (heredada)
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
-                .body(Map.of("seccionTipo", "MATERIAL", "insumoId", mat.intValue(), "cantidad", 3.0))
+                .body(Map.of("seccionTipo", "MATERIAL", "insumoId", mat, "cantidad", 3.0))
                 .when()
                 .post("/api/v1/apus/" + apuId + "/detalles")
                 .then()
@@ -807,13 +844,13 @@ class ApuResourceIT {
                 .body("secciones[1].detalles[0].rendimiento", comparesTo(new BigDecimal("1.5")))
                 .body("secciones[1].detalles[0].precioEfectivo", comparesTo(new BigDecimal("7.0")))
                 .body("secciones[1].detalles[0].precioHeredado", is(false))
-                .body("secciones[1].detalles[0].insumoId", is(mo.intValue()))
+                .body("secciones[1].detalles[0].insumoId", is(mo))
                 // fila MATERIAL copiada: cantidad y precio heredado preservados
                 .body("secciones[2].detalles.size()", is(1))
                 .body("secciones[2].detalles[0].cantidad", comparesTo(new BigDecimal("3.0")))
                 .body("secciones[2].detalles[0].precioEfectivo", comparesTo(new BigDecimal("2.5")))
                 .body("secciones[2].detalles[0].precioHeredado", is(true))
-                .body("secciones[2].detalles[0].insumoId", is(mat.intValue()))
+                .body("secciones[2].detalles[0].insumoId", is(mat))
                 // totales recalculados: HM(0.05*7*2*1.5=1.05) + N(2*7*1.5=21) + O(3*2.5=7.5) = 29.55
                 .body("costoDirecto", comparesTo(new BigDecimal("29.55")))
                 .body("costoTotal", comparesTo(new BigDecimal("29.55")))
@@ -854,8 +891,8 @@ class ApuResourceIT {
     @Test
     void TC_P46_02_duplicar_copiarET_true_copia_especificacion_tecnica() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p46ettrue@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(token, presupuestoId, "ET-COPY-T-001");
 
         String et = "Dosificación 1:2:3, vibrado, curado 7 días.";
@@ -890,8 +927,8 @@ class ApuResourceIT {
     @Test
     void TC_P46_03_duplicar_copiarET_false_y_ausente_no_copian_especificacion() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p46etfalse@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(token, presupuestoId, "ET-COPY-F-001");
 
         String et = "Texto que NO debe copiarse a ninguna de las dos copias.";
@@ -943,8 +980,8 @@ class ApuResourceIT {
     @Test
     void TC_P46_04_duplicar_genera_codigo_unico_APU_n_sin_colision() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p46uniq@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(token, presupuestoId, "APU-001");
 
         // 1ª copia → APU-002
@@ -998,8 +1035,8 @@ class ApuResourceIT {
     @Test
     void TC_P46_05_duplicar_APU_de_otro_usuario_devuelve_404() throws Exception {
         String dueno = AuthSupport.registrarConToken(mailbox, "duenodup@ex.com");
-        Long proyectoId = crearProyecto(dueno);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(dueno);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(dueno, presupuestoId, "AJ-DUP-001");
 
         String intruso = AuthSupport.registrarConToken(mailbox, "intrusodup@ex.com");
@@ -1025,15 +1062,14 @@ class ApuResourceIT {
     @Test
     void TC_P46_06_duplicar_no_muta_el_origen_inmutabilidad() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p46inmut@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long mo = crearInsumo(token, proyectoId, "MO-IMM-010", "MANO_OBRA", "Peón", "h", 4.0);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
+        String mo = crearInsumo(token, proyectoId, "MO-IMM-010", "MANO_OBRA", "Peón", "h", 4.0);
         String apuId = crearApu(token, presupuestoId, "IMM-SRC");
 
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
-                .body(Map.of(
-                        "seccionTipo", "MANO_OBRA", "insumoId", mo.intValue(), "cantidad", 2.0, "rendimiento", 1.0))
+                .body(Map.of("seccionTipo", "MANO_OBRA", "insumoId", mo, "cantidad", 2.0, "rendimiento", 1.0))
                 .when()
                 .post("/api/v1/apus/" + apuId + "/detalles")
                 .then()
@@ -1111,23 +1147,22 @@ class ApuResourceIT {
     @Test
     void TC_P27_01_calculo_shape_4_secciones_parametros_resumen() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p27shape@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long mo = crearInsumo(token, proyectoId, "MO-P27-1", "MANO_OBRA", "Peón", "h", 4.0);
-        Long mat = crearInsumo(token, proyectoId, "MA-P27-1", "MATERIAL", "Tubo", "m", 2.0);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
+        String mo = crearInsumo(token, proyectoId, "MO-P27-1", "MANO_OBRA", "Peón", "h", 4.0);
+        String mat = crearInsumo(token, proyectoId, "MA-P27-1", "MATERIAL", "Tubo", "m", 2.0);
         String apuId = crearApu(token, presupuestoId, "P27-SHAPE");
 
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
-                .body(Map.of(
-                        "seccionTipo", "MANO_OBRA", "insumoId", mo.intValue(), "cantidad", 2.0, "rendimiento", 1.0))
+                .body(Map.of("seccionTipo", "MANO_OBRA", "insumoId", mo, "cantidad", 2.0, "rendimiento", 1.0))
                 .when()
                 .post("/api/v1/apus/" + apuId + "/detalles")
                 .then()
                 .statusCode(201);
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
-                .body(Map.of("seccionTipo", "MATERIAL", "insumoId", mat.intValue(), "cantidad", 3.0))
+                .body(Map.of("seccionTipo", "MATERIAL", "insumoId", mat, "cantidad", 3.0))
                 .when()
                 .post("/api/v1/apus/" + apuId + "/detalles")
                 .then()
@@ -1163,23 +1198,22 @@ class ApuResourceIT {
     @Test
     void TC_P27_02_calculo_valores_y_operaciones_a_6dp_con_porcentajes() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p27vals@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long mo = crearInsumo(token, proyectoId, "MO-P27-2", "MANO_OBRA", "Soldador", "h", 5.0);
-        Long mat = crearInsumo(token, proyectoId, "MA-P27-2", "MATERIAL", "Cemento", "kg", 1.5);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
+        String mo = crearInsumo(token, proyectoId, "MO-P27-2", "MANO_OBRA", "Soldador", "h", 5.0);
+        String mat = crearInsumo(token, proyectoId, "MA-P27-2", "MATERIAL", "Cemento", "kg", 1.5);
         String apuId = crearApu(token, presupuestoId, "P27-VALS");
 
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
-                .body(Map.of(
-                        "seccionTipo", "MANO_OBRA", "insumoId", mo.intValue(), "cantidad", 2.0, "rendimiento", 1.0))
+                .body(Map.of("seccionTipo", "MANO_OBRA", "insumoId", mo, "cantidad", 2.0, "rendimiento", 1.0))
                 .when()
                 .post("/api/v1/apus/" + apuId + "/detalles")
                 .then()
                 .statusCode(201);
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
-                .body(Map.of("seccionTipo", "MATERIAL", "insumoId", mat.intValue(), "cantidad", 3.0))
+                .body(Map.of("seccionTipo", "MATERIAL", "insumoId", mat, "cantidad", 3.0))
                 .when()
                 .post("/api/v1/apus/" + apuId + "/detalles")
                 .then()
@@ -1229,15 +1263,14 @@ class ApuResourceIT {
     @Test
     void TC_P27_03_calculo_excluye_tipos_internos_del_motor() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p27noexpose@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
-        Long mo = crearInsumo(token, proyectoId, "MO-P27-3", "MANO_OBRA", "Peón", "h", 4.0);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
+        String mo = crearInsumo(token, proyectoId, "MO-P27-3", "MANO_OBRA", "Peón", "h", 4.0);
         String apuId = crearApu(token, presupuestoId, "P27-LEAK");
 
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
-                .body(Map.of(
-                        "seccionTipo", "MANO_OBRA", "insumoId", mo.intValue(), "cantidad", 1.0, "rendimiento", 1.0))
+                .body(Map.of("seccionTipo", "MANO_OBRA", "insumoId", mo, "cantidad", 1.0, "rendimiento", 1.0))
                 .when()
                 .post("/api/v1/apus/" + apuId + "/detalles")
                 .then()
@@ -1306,8 +1339,8 @@ class ApuResourceIT {
     @Test
     void TC_P27_04_calculo_de_otro_usuario_devuelve_404() throws Exception {
         String dueno = AuthSupport.registrarConToken(mailbox, "p27dueno@ex.com");
-        Long proyectoId = crearProyecto(dueno);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(dueno);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(dueno, presupuestoId, "P27-AJ");
 
         String intruso = AuthSupport.registrarConToken(mailbox, "p27intruso@ex.com");
@@ -1342,8 +1375,8 @@ class ApuResourceIT {
     @Test
     void TC_WU03_01_path_uuid_v4_no_v7_devuelve_400_validacion_en_get() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "wu03v4@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
 
         given().header("Authorization", "Bearer " + token)
                 .when()
@@ -1356,8 +1389,8 @@ class ApuResourceIT {
     @Test
     void TC_WU03_02_path_uuid_malformado_devuelve_400_validacion_en_todos_los_verbos() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "wu03mal@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
 
         // basura que no es ni siquiera un UUID → 400 validacion antes de la BD
         String basura = "esto-no-es-un-uuid";
@@ -1401,8 +1434,8 @@ class ApuResourceIT {
     @Test
     void TC_WU03_03_path_uuid_v7_inexistente_devuelve_404_no_encontrado() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "wu03nf@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
 
         // UUIDv7 bien formado pero que no existe en BD → 404 (no 400)
         given().header("Authorization", "Bearer " + token)
@@ -1431,23 +1464,15 @@ class ApuResourceIT {
     // borrar HM sigue 409.
     // =========================================================================
 
-    private List<String> agregarFilasMoSecuenciales(String token, String apuId, Long proyectoId, int cantidad)
+    private List<String> agregarFilasMoSecuenciales(String token, String apuId, String proyectoId, int cantidad)
             throws Exception {
         List<String> ids = new java.util.ArrayList<>();
         for (int i = 0; i < cantidad; i++) {
             String codigo = String.format("MO-RNG-%02d", i);
-            Long insumoId = crearInsumo(token, proyectoId, codigo, "MANO_OBRA", "Peón " + codigo, "h", 4.0);
+            String insumoId = crearInsumo(token, proyectoId, codigo, "MANO_OBRA", "Peón " + codigo, "h", 4.0);
             String id = given().contentType(JSON)
                     .header("Authorization", "Bearer " + token)
-                    .body(Map.of(
-                            "seccionTipo",
-                            "MANO_OBRA",
-                            "insumoId",
-                            insumoId.intValue(),
-                            "cantidad",
-                            1.0,
-                            "rendimiento",
-                            1.0))
+                    .body(Map.of("seccionTipo", "MANO_OBRA", "insumoId", insumoId, "cantidad", 1.0, "rendimiento", 1.0))
                     .when()
                     .post("/api/v1/apus/" + apuId + "/detalles")
                     .then()
@@ -1489,8 +1514,8 @@ class ApuResourceIT {
     @Test
     void TC_P21_03_orden_omitido_no_cambia_orden_de_la_seccion() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p21omit@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(token, presupuestoId, "RNG-OMIT");
         List<String> ids = agregarFilasMoSecuenciales(token, apuId, proyectoId, 3);
 
@@ -1514,8 +1539,8 @@ class ApuResourceIT {
     @Test
     void TC_P21_04_orden_sube_desplaza_rango_y_calculo_respeta_orden() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p21up@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(token, presupuestoId, "RNG-UP");
         List<String> ids = agregarFilasMoSecuenciales(token, apuId, proyectoId, 4);
 
@@ -1562,8 +1587,8 @@ class ApuResourceIT {
     @Test
     void TC_P21_05_orden_baja_desplaza_rango_inverso() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p21down@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(token, presupuestoId, "RNG-DOWN");
         List<String> ids = agregarFilasMoSecuenciales(token, apuId, proyectoId, 4);
 
@@ -1585,8 +1610,8 @@ class ApuResourceIT {
     @Test
     void TC_P21_06_orden_igual_a_actual_es_noop() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p21noop@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(token, presupuestoId, "RNG-NOOP");
         List<String> ids = agregarFilasMoSecuenciales(token, apuId, proyectoId, 3);
 
@@ -1612,22 +1637,22 @@ class ApuResourceIT {
     @Test
     void TC_P21_07_hm_reordenable_pero_protegida_contra_editar_y_borrar() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p21hmord@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(token, presupuestoId, "HM-ORD");
 
-        Long eq1 = crearInsumo(token, proyectoId, "EQ-RNG-1", "EQUIPO", "Compactador", "h", 5.0);
-        Long eq2 = crearInsumo(token, proyectoId, "EQ-RNG-2", "EQUIPO", "Vibrador", "h", 6.0);
+        String eq1 = crearInsumo(token, proyectoId, "EQ-RNG-1", "EQUIPO", "Compactador", "h", 5.0);
+        String eq2 = crearInsumo(token, proyectoId, "EQ-RNG-2", "EQUIPO", "Vibrador", "h", 6.0);
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
-                .body(Map.of("seccionTipo", "EQUIPO", "insumoId", eq1.intValue(), "cantidad", 1.0, "rendimiento", 1.0))
+                .body(Map.of("seccionTipo", "EQUIPO", "insumoId", eq1, "cantidad", 1.0, "rendimiento", 1.0))
                 .when()
                 .post("/api/v1/apus/" + apuId + "/detalles")
                 .then()
                 .statusCode(201);
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
-                .body(Map.of("seccionTipo", "EQUIPO", "insumoId", eq2.intValue(), "cantidad", 1.0, "rendimiento", 1.0))
+                .body(Map.of("seccionTipo", "EQUIPO", "insumoId", eq2, "cantidad", 1.0, "rendimiento", 1.0))
                 .when()
                 .post("/api/v1/apus/" + apuId + "/detalles")
                 .then()
@@ -1699,15 +1724,13 @@ class ApuResourceIT {
     @ValueSource(ints = {0, -1, 99})
     void TC_P21_08_orden_fuera_de_rango_rechaza_400(int nuevoOrden) throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p21rng" + nuevoOrden + "@ex.com");
-        Long proyectoId = crearProyecto(token);
-        Long presupuestoId = insertarPresupuesto(proyectoId);
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(token, presupuestoId, "RNG-BAD");
         List<String> ids = agregarFilasMoSecuenciales(token, apuId, proyectoId, 3);
 
         // `nuevoOrden == 0` modela `{"orden": null}` explícito.
-        String body = nuevoOrden == 0
-                ? "{\"orden\": null}"
-                : "{\"orden\":" + nuevoOrden + "}";
+        String body = nuevoOrden == 0 ? "{\"orden\": null}" : "{\"orden\":" + nuevoOrden + "}";
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(body)

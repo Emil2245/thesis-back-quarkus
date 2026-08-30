@@ -11,14 +11,17 @@ import java.util.UUID;
  * aplicados a precisión de 6 dp (auditoría). {@code resultado} es el costo
  * final de la fila a 6 dp. Los campos restantes exponen la trazabilidad
  * mínima (id, orden, descripción, sección, insumoId) sin filtrar tipos del
- * motor.
+ * motor.</p>
+ *
+ * <p>Plan 07 — el {@code insumoId} es la identidad externa UUIDv7 del insumo;
+ * nunca el {@code BIGINT} interno.</p>
  */
 public record ApuCalculoLinea(
         UUID detalleId,
         Short orden,
         SeccionTipo seccion,
         boolean esHerramientaMenor,
-        Long insumoId,
+        UUID insumoId,
         String descripcion,
         BigDecimal cantidad,
         BigDecimal rendimiento,

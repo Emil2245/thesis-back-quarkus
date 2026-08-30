@@ -40,6 +40,18 @@ public class InsumoRepository implements PanacheRepositoryBase<Insumo, Long> {
                 .firstResultOptional();
     }
 
+    /**
+     * Plan 07 — lookup de insumo por {@code publicId} UUIDv7 dentro de una base
+     * especificada por su {@code BIGINT} interno. La autorización (owner-to-404)
+     * se cierra en la capa superior (resource o {@code BaseInsumosService}).
+     */
+    public Optional<Insumo> findByPublicIdAndBase(UUID publicId, Long baseId) {
+        return find(
+                        "publicId = :publicId and baseId = :baseId",
+                        Parameters.with("publicId", publicId).and("baseId", baseId))
+                .firstResultOptional();
+    }
+
     public List<Insumo> listarDeBase(Long baseId) {
         return find("baseId = :baseId", Parameters.with("baseId", baseId)).list();
     }
@@ -110,6 +122,20 @@ public class InsumoRepository implements PanacheRepositoryBase<Insumo, Long> {
                 .setParameter("caller", callerUsuarioId)
                 .setParameter("tipoPersonal", TipoBase.PERSONAL)
                 .setParameter("tipoProyecto", TipoBase.PROYECTO)
+                .getResultList()
+                .stream()
+                .findFirst();
+    }
+
+    /** Resuelve por UUID público únicamente cuando el insumo pertenece a una base CENTRAL. */
+    public Optional<Insumo> findCentralByPublicId(UUID publicId) {
+        return getEntityManager()
+                .createQuery(
+                        "select i from Insumo i, BaseInsumos b "
+                                + "where i.publicId = :publicId and i.baseId = b.id and b.tipo = :tipoCentral",
+                        Insumo.class)
+                .setParameter("publicId", publicId)
+                .setParameter("tipoCentral", TipoBase.CENTRAL)
                 .getResultList()
                 .stream()
                 .findFirst();

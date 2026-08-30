@@ -1,6 +1,7 @@
 package ec.uce.propuestas.insumo.resource;
 
 import ec.uce.propuestas.common.ProblemaException;
+import ec.uce.propuestas.common.UuidV7;
 import ec.uce.propuestas.insumo.dto.AdminBaseCentralCrearRequest;
 import ec.uce.propuestas.insumo.dto.AdminBaseCentralEditarRequest;
 import ec.uce.propuestas.insumo.dto.AdminBaseCentralResponse;
@@ -63,6 +64,11 @@ import java.util.UUID;
  * FK CASCADE de V001 ({@code insumo.base_id → base_insumos(id)}) garantiza
  * que los insumos se eliminan junto con la base, sin afectar las copias
  * PROYECTO ya materializadas.</p>
+ *
+ * <p>Plan 07 — los path params {@code {id}} y {@code {iid}} son {@code String}
+ * y se validan como UUIDv7 en la frontera con {@link UuidV7#parse(String)}:
+ * UUID mal formado o de versión distinta devuelve 400 {@code validacion}
+ * antes de cualquier acceso al repositorio.</p>
  */
 @Path("/admin/bases-centrales")
 @Produces(MediaType.APPLICATION_JSON)
@@ -110,8 +116,8 @@ public class AdminBaseCentralResource {
 
     @PUT
     @Path("/{id}")
-    public AdminBaseCentralResponse renombrar(
-            @PathParam("id") UUID publicId, @Valid AdminBaseCentralEditarRequest req) {
+    public AdminBaseCentralResponse renombrar(@PathParam("id") String id, @Valid AdminBaseCentralEditarRequest req) {
+        UUID publicId = UuidV7.parse(id);
         return aAdminResponse(baseInsumosService.renombrarCentral(publicId, req.nombre()));
     }
 
@@ -126,7 +132,8 @@ public class AdminBaseCentralResource {
     @POST
     @Path("/{id}/archivar")
     @Consumes(MediaType.WILDCARD)
-    public AdminBaseCentralResponse archivar(@PathParam("id") UUID publicId) {
+    public AdminBaseCentralResponse archivar(@PathParam("id") String id) {
+        UUID publicId = UuidV7.parse(id);
         return aAdminResponse(baseInsumosService.archivarCentral(publicId));
     }
 
@@ -138,7 +145,8 @@ public class AdminBaseCentralResource {
      */
     @DELETE
     @Path("/{id}")
-    public Response eliminar(@PathParam("id") UUID publicId) {
+    public Response eliminar(@PathParam("id") String id) {
+        UUID publicId = UuidV7.parse(id);
         baseInsumosService.eliminarCentralArchivada(publicId);
         return Response.noContent().build();
     }
@@ -149,7 +157,8 @@ public class AdminBaseCentralResource {
 
     @POST
     @Path("/{id}/insumos")
-    public Response crearInsumo(@PathParam("id") UUID publicId, @Valid InsumoCrearRequest req) {
+    public Response crearInsumo(@PathParam("id") String id, @Valid InsumoCrearRequest req) {
+        UUID publicId = UuidV7.parse(id);
         Long baseId = baseInsumosService.obtenerCentralPorPublicId(publicId).id;
         InsumoResponse body = insumoCrudService.crear(baseId, req);
         return Response.status(Response.Status.CREATED).entity(body).build();
@@ -158,16 +167,20 @@ public class AdminBaseCentralResource {
     @PUT
     @Path("/{id}/insumos/{iid}")
     public InsumoResponse editarInsumo(
-            @PathParam("id") UUID publicId, @PathParam("iid") Long insumoId, @Valid InsumoEditarRequest req) {
+            @PathParam("id") String id, @PathParam("iid") String insumoId, @Valid InsumoEditarRequest req) {
+        UUID publicId = UuidV7.parse(id);
+        UUID insumoPublicId = UuidV7.parse(insumoId);
         Long baseId = baseInsumosService.obtenerCentralPorPublicId(publicId).id;
-        return insumoCrudService.actualizar(baseId, insumoId, req);
+        return insumoCrudService.actualizar(baseId, insumoPublicId, req);
     }
 
     @DELETE
     @Path("/{id}/insumos/{iid}")
-    public Response eliminarInsumo(@PathParam("id") UUID publicId, @PathParam("iid") Long insumoId) {
+    public Response eliminarInsumo(@PathParam("id") String id, @PathParam("iid") String insumoId) {
+        UUID publicId = UuidV7.parse(id);
+        UUID insumoPublicId = UuidV7.parse(insumoId);
         Long baseId = baseInsumosService.obtenerCentralPorPublicId(publicId).id;
-        insumoCrudService.eliminar(baseId, insumoId);
+        insumoCrudService.eliminar(baseId, insumoPublicId);
         return Response.noContent().build();
     }
 
@@ -181,10 +194,11 @@ public class AdminBaseCentralResource {
     @Path("/{id}/insumos/import")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     public ImportResultadoResponse importarInsumos(
-            @PathParam("id") UUID publicId,
+            @PathParam("id") String id,
             @QueryParam("soloValidar") @DefaultValue("false") boolean soloValidar,
             InsumoImportForm form)
             throws IOException {
+        UUID publicId = UuidV7.parse(id);
         Long baseId = baseInsumosService.obtenerCentralPorPublicId(publicId).id;
         if (form == null || form.archivo == null) {
             throw ProblemaException.validacion("Archivo CSV requerido");

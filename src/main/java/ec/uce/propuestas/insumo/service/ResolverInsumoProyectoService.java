@@ -3,7 +3,6 @@ package ec.uce.propuestas.insumo.service;
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.insumo.entity.BaseInsumos;
 import ec.uce.propuestas.insumo.entity.Insumo;
-import ec.uce.propuestas.insumo.entity.TipoBase;
 import ec.uce.propuestas.insumo.repository.BaseInsumosRepository;
 import ec.uce.propuestas.insumo.repository.InsumoRepository;
 import ec.uce.propuestas.proyecto.entity.Proyecto;
@@ -11,6 +10,7 @@ import ec.uce.propuestas.proyecto.repository.ProyectoRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.util.UUID;
 
 /**
  * Resolver de "copia al usar" (N04 §A9, plan 02 §2): garantiza que toda fila de
@@ -34,9 +34,11 @@ import jakarta.transaction.Transactional;
  *       propagan al destino — la copia es independiente.</li>
  * </ul>
  *
- * <p>El método opera con BIGINTs internos: el seam de identidad externa
- * (UUIDv7 + scope de owner) ya se cerró en la capa de resource. Una entrada
- * ajena nunca llega aquí.
+ * <p>Plan 07 — el método público recibe el {@code publicId} UUIDv7 del insumo
+ * fuente (ya validado por owner en la capa de resource). El seam resuelve
+ * UUID → BIGINT interno vía {@code InsumoRepository.findByPublicIdAndOwnerScope};
+ * una entrada ajena o inexistente devuelve 404 (RNF-05). El resto del método
+ * opera con BIGINTs internos.</p>
  */
 @ApplicationScoped
 public class ResolverInsumoProyectoService {
@@ -54,17 +56,39 @@ public class ResolverInsumoProyectoService {
     BaseInsumosService baseInsumosService;
 
     /**
-     * Devuelve el insumo PROYECTO que el APU debe referenciar. Materializa una
-     * copia si el origen es CENTRAL o PERSONAL (del dueño del proyecto); reusa
-     * el existente si el origen ya es PROYECTO del mismo proyecto o si ya hay
-     * una fila con el mismo {@code codigo} en la base destino.
+     * Variante principal — el caller llega con el {@code publicId} UUIDv7 del
+     * insumo fuente y el {@code proyectoId} BIGINT interno (ya resuelto en la
+     * capa de resource al validar owner del APU). Devuelve el insumo PROYECTO
+     * que el APU debe referenciar. Materializa una copia si el origen es
+     * CENTRAL o PERSONAL (del dueño del proyecto); reusa el existente si el
+     * origen ya es PROYECTO del mismo proyecto o si ya hay una fila con el
+     * mismo {@code codigo} en la base destino.
      *
-     * @param insumoId BIGINT interno del insumo fuente (ya validado por owner)
-     * @param proyectoId BIGINT interno del proyecto dueño del APU
+     * @param insumoPublicId identidad externa UUIDv7 del insumo fuente (ya validada por owner)
+     * @param proyectoId     BIGINT interno del proyecto dueño del APU
+     * @param callerUsuarioId BIGINT interno del caller — usado para validar owner del insumo
      * @return insumo PROYECTO usable para {@code apu_detalle.insumo_id}
      */
     @Transactional
+    public Insumo materializarOReusar(UUID insumoPublicId, Long proyectoId, Long callerUsuarioId) {
+        Insumo origen = insumoRepository
+                .findByPublicIdAndOwnerScope(insumoPublicId, callerUsuarioId)
+                .or(() -> insumoRepository.findCentralByPublicId(insumoPublicId))
+                .orElseThrow(() -> ProblemaException.noEncontrado("Insumo no encontrado"));
+        return materializarOReusarDesdeInterno(origen.id, proyectoId);
+    }
+
+    /**
+     * Variante interna — recibe el BIGINT del insumo fuente (usado por paths
+     * legacy y por los seeds de los recursos que ya validaron owner en la
+     * capa superior).
+     */
+    @Transactional
     public Insumo materializarOReusar(Long insumoId, Long proyectoId) {
+        return materializarOReusarDesdeInterno(insumoId, proyectoId);
+    }
+
+    private Insumo materializarOReusarDesdeInterno(Long insumoId, Long proyectoId) {
         Insumo origen = insumoRepository.findById(insumoId);
         if (origen == null) {
             throw ProblemaException.noEncontrado("Insumo no encontrado");
@@ -105,18 +129,16 @@ public class ResolverInsumoProyectoService {
      */
     private Insumo copiarOReusar(Insumo origen, Long proyectoId) {
         BaseInsumos baseDestino = baseInsumosService.asegurarBaseProyecto(proyectoId);
-        return insumoRepository
-                .findByBaseYcodigo(baseDestino.id, origen.codigo)
-                .orElseGet(() -> {
-                    Insumo nuevo = new Insumo();
-                    nuevo.baseId = baseDestino.id;
-                    nuevo.codigo = origen.codigo;
-                    nuevo.tipo = origen.tipo;
-                    nuevo.descripcion = origen.descripcion;
-                    nuevo.unidad = origen.unidad;
-                    nuevo.precioUnitario = origen.precioUnitario;
-                    insumoRepository.persist(nuevo);
-                    return nuevo;
-                });
+        return insumoRepository.findByBaseYcodigo(baseDestino.id, origen.codigo).orElseGet(() -> {
+            Insumo nuevo = new Insumo();
+            nuevo.baseId = baseDestino.id;
+            nuevo.codigo = origen.codigo;
+            nuevo.tipo = origen.tipo;
+            nuevo.descripcion = origen.descripcion;
+            nuevo.unidad = origen.unidad;
+            nuevo.precioUnitario = origen.precioUnitario;
+            insumoRepository.persist(nuevo);
+            return nuevo;
+        });
     }
 }

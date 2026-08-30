@@ -14,6 +14,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.util.List;
+import java.util.UUID;
 
 @ApplicationScoped
 public class ProyectoService {
@@ -56,9 +57,14 @@ public class ProyectoService {
         return ProyectoMapper.toResponse(p);
     }
 
+    /**
+     * Plan 07 — edición vía identidad externa (UUIDv7). Resuelve por
+     * {@code publicId + owner} a BIGINT interno antes de mutar. Una entrada
+     * ajena o inexistente lanza 404 (RNF-05).
+     */
     @Transactional
-    public ProyectoResponse actualizar(Long usuarioId, Long id, ProyectoEditarRequest req) {
-        Proyecto p = validarPropietario(usuarioId, id);
+    public ProyectoResponse actualizar(Long usuarioId, UUID publicId, ProyectoEditarRequest req) {
+        Proyecto p = validarPropietario(usuarioId, publicId);
         p.nombreProyecto = req.nombreProyecto();
         p.codigo = req.codigo();
         p.descripcion = req.descripcion();
@@ -75,15 +81,22 @@ public class ProyectoService {
     }
 
     @Transactional
-    public void eliminar(Long usuarioId, Long id) {
-        Proyecto p = validarPropietario(usuarioId, id);
+    public void eliminar(Long usuarioId, UUID publicId) {
+        Proyecto p = validarPropietario(usuarioId, publicId);
         if (p.estado == EstadoProyecto.FINALIZADO) {
             throw ProblemaException.validacion("No se puede eliminar un proyecto FINALIZADO");
         }
         proyectoRepository.delete(p);
     }
 
-    /** Valida que el proyecto pertenezca al usuario (RNF-05). */
+    /** Valida que el proyecto pertenezca al usuario por {@code publicId} UUIDv7 (Plan 07). */
+    public Proyecto validarPropietario(Long usuarioId, UUID publicId) {
+        return proyectoRepository
+                .findByPublicIdAndOwnerScope(publicId, usuarioId)
+                .orElseThrow(() -> ProblemaException.noEncontrado("Proyecto no encontrado"));
+    }
+
+    /** Variante de compatibilidad: rutas internas que aún pasan BIGINT. */
     public Proyecto validarPropietario(Long usuarioId, Long id) {
         return proyectoRepository
                 .findByIdYPropietario(id, usuarioId)

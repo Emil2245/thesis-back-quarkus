@@ -11,6 +11,8 @@ import ec.uce.propuestas.insumo.mapper.BaseInsumosMapper;
 import ec.uce.propuestas.insumo.mapper.InsumoMapper;
 import ec.uce.propuestas.insumo.repository.BaseInsumosRepository;
 import ec.uce.propuestas.insumo.repository.InsumoRepository;
+import ec.uce.propuestas.proyecto.entity.Proyecto;
+import ec.uce.propuestas.proyecto.repository.ProyectoRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -28,6 +30,9 @@ public class BaseInsumosService {
 
     @Inject
     InsumoRepository insumoRepository;
+
+    @Inject
+    ProyectoRepository proyectoRepository;
 
     /** Base PROYECTO del proyecto; la crea si no existe (cada proyecto tiene una). */
     @Transactional
@@ -47,6 +52,17 @@ public class BaseInsumosService {
         return baseInsumosRepository
                 .findByProyecto(proyectoId)
                 .orElseThrow(() -> new jakarta.ws.rs.NotFoundException("El proyecto no tiene base de insumos"));
+    }
+
+    /**
+     * Plan 07 — variante UUID-aware: dada una base PROYECTO buscada por
+     * {@code publicId} UUIDv7, devuelve su fila interna (BIGINT).
+     */
+    public BaseInsumos obtenerBaseProyectoPorPublicIdYOwner(UUID proyectoPublicId, Long callerUsuarioId) {
+        Proyecto proyecto = proyectoRepository
+                .findByPublicIdAndOwnerScope(proyectoPublicId, callerUsuarioId)
+                .orElseThrow(() -> ProblemaException.noEncontrado("Proyecto no encontrado"));
+        return obtenerBaseProyecto(proyecto.id);
     }
 
     /** Bases centrales (P-13). Las archivadas no se exponen (D-12). */

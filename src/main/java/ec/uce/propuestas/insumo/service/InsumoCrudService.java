@@ -11,11 +11,17 @@ import ec.uce.propuestas.insumo.repository.InsumoRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.util.UUID;
 
 /**
  * CRUD de insumo con reglas D-06 (unidad fija 'h' para MO/Equipo y restricciones
  * de edición de unidad), D-08 (no eliminar si está referenciado) y unicidad de
  * (base, codigo). Fallos -> {@link ProblemaException}.
+ *
+ * <p>Plan 07 — el {@code insumoId} de los métodos públicos es el {@code publicId}
+ * UUIDv7 (identidad externa inmutable). El seam resuelve UUID → BIGINT interno
+ * vía {@link InsumoRepository#findByPublicIdAndBase} dentro de la base indicada.
+ * El resto del flujo opera con BIGINTs internos.</p>
  */
 @ApplicationScoped
 public class InsumoCrudService {
@@ -39,9 +45,14 @@ public class InsumoCrudService {
         return InsumoMapper.toResponse(e);
     }
 
+    /**
+     * Plan 07 — el caller pasa el {@code publicId} UUIDv7 del insumo y la base
+     * (ya validada por owner en la capa de resource). El seam resuelve UUID →
+     * BIGINT interno antes de mutar.
+     */
     @Transactional
-    public InsumoResponse actualizar(Long baseId, Long id, InsumoEditarRequest req) {
-        Insumo e = validarExistencia(baseId, id);
+    public InsumoResponse actualizar(Long baseId, UUID insumoPublicId, InsumoEditarRequest req) {
+        Insumo e = validarExistencia(baseId, insumoPublicId);
         e.descripcion = req.descripcion();
         aplicarUnidad(e, e.tipo, req.unidad());
         e.precioUnitario = req.precioUnitario();
@@ -51,10 +62,8 @@ public class InsumoCrudService {
 
     /** D-08: no permite borrar si el insumo está vinculado a un APU. */
     @Transactional
-    public void eliminar(Long baseId, Long id) {
-        Insumo e = validarExistencia(baseId, id);
-        // TODO(P-18): la verificación de uso en APUs se resuelve con el módulo APU
-        // (RESTRICT real, D-08). Mientras no exista tabla apu_insumo, se permite.
+    public void eliminar(Long baseId, UUID insumoPublicId) {
+        Insumo e = validarExistencia(baseId, insumoPublicId);
         long usos = conteoUsosApu(e.id);
         if (usos > 0) {
             throw ProblemaException.validacion(
@@ -68,9 +77,9 @@ public class InsumoCrudService {
         return 0L;
     }
 
-    private Insumo validarExistencia(Long baseId, Long id) {
+    private Insumo validarExistencia(Long baseId, UUID insumoPublicId) {
         return insumoRepository
-                .findByIdYBase(id, baseId)
+                .findByPublicIdAndBase(insumoPublicId, baseId)
                 .orElseThrow(() -> ProblemaException.noEncontrado("Insumo no encontrado en esta base"));
     }
 

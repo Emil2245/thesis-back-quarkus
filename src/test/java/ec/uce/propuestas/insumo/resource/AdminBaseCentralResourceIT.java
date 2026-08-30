@@ -422,21 +422,20 @@ class AdminBaseCentralResourceIT {
                 .extract()
                 .path("id");
 
-        Long idInsumo = ((Number) given().contentType(JSON)
-                        .header("Authorization", "Bearer " + adminToken)
-                        .body(Map.of(
-                                "codigo", "MAT-E",
-                                "tipo", "MATERIAL",
-                                "descripcion", "antes",
-                                "unidad", "kg",
-                                "precioUnitario", 1.0))
-                        .when()
-                        .post("/api/v1/admin/bases-centrales/" + idBase + "/insumos")
-                        .then()
-                        .statusCode(201)
-                        .extract()
-                        .path("id"))
-                .longValue();
+        String idInsumo = given().contentType(JSON)
+                .header("Authorization", "Bearer " + adminToken)
+                .body(Map.of(
+                        "codigo", "MAT-E",
+                        "tipo", "MATERIAL",
+                        "descripcion", "antes",
+                        "unidad", "kg",
+                        "precioUnitario", 1.0))
+                .when()
+                .post("/api/v1/admin/bases-centrales/" + idBase + "/insumos")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
 
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + adminToken)
@@ -530,21 +529,20 @@ class AdminBaseCentralResourceIT {
         String adminToken = registrarSuperAdmin("admin-cascade@ex.com");
         String userToken = AuthSupport.registrarConToken(mailbox, "user-cascade@ex.com");
 
-        Long proyectoId = ((Number) given().contentType(JSON)
-                        .header("Authorization", "Bearer " + userToken)
-                        .body(Map.of(
-                                "nombreProyecto", "Aislado",
-                                "anio", (short) 2026,
-                                "plazoEjecucion", (short) 6,
-                                "plazoUnidad", "MES",
-                                "direccionInstitucional", "GAD"))
-                        .when()
-                        .post("/api/v1/proyectos")
-                        .then()
-                        .statusCode(201)
-                        .extract()
-                        .path("id"))
-                .longValue();
+        String proyectoId = given().contentType(JSON)
+                .header("Authorization", "Bearer " + userToken)
+                .body(Map.of(
+                        "nombreProyecto", "Aislado",
+                        "anio", (short) 2026,
+                        "plazoEjecucion", (short) 6,
+                        "plazoUnidad", "MES",
+                        "direccionInstitucional", "GAD"))
+                .when()
+                .post("/api/v1/proyectos")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
 
         String idCentral = given().contentType(JSON)
                 .header("Authorization", "Bearer " + adminToken)
@@ -574,14 +572,14 @@ class AdminBaseCentralResourceIT {
         Long centralIdInterno = lookupBaseInterna(idCentral);
         given().header("Authorization", "Bearer " + userToken)
                 .contentType(JSON)
-                .body(Map.of("fuenteTipo", "CENTRAL", "baseId", centralIdInterno))
+                .body(Map.of("fuenteTipo", "CENTRAL", "baseId", idCentral))
                 .when()
                 .post("/api/v1/proyectos/" + proyectoId + "/insumos/copiar")
                 .then()
                 .statusCode(200)
                 .body("copiados", equalTo(1));
 
-        long insumosProyectoAntes = contarInsumosProyecto(proyectoId);
+        long insumosProyectoAntes = contarInsumosProyecto(internalProyectoId(proyectoId));
         // Archivar y borrar la central.
         given().header("Authorization", "Bearer " + adminToken)
                 .when()
@@ -594,7 +592,7 @@ class AdminBaseCentralResourceIT {
                 .then()
                 .statusCode(204);
 
-        long insumosProyectoDespues = contarInsumosProyecto(proyectoId);
+        long insumosProyectoDespues = contarInsumosProyecto(internalProyectoId(proyectoId));
         org.junit.jupiter.api.Assertions.assertEquals(
                 insumosProyectoAntes,
                 insumosProyectoDespues,
@@ -634,6 +632,18 @@ class AdminBaseCentralResourceIT {
         }
     }
 
+    /** Resuelve el {@code BIGINT} interno del proyecto a partir de su {@code publicId} UUIDv7. */
+    private Long internalProyectoId(String publicId) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT id FROM proyecto WHERE public_id = ?")) {
+            ps.setObject(1, java.util.UUID.fromString(publicId));
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        }
+    }
+
     private long contarInsumosProyecto(Long proyectoId) throws Exception {
         try (Connection con = ds.getConnection();
                 PreparedStatement ps = con.prepareStatement("SELECT count(*) FROM insumo i "
@@ -645,5 +655,141 @@ class AdminBaseCentralResourceIT {
                 return rs.getLong(1);
             }
         }
+    }
+
+    // ========================================================================
+    // Plan 07 — frontera UUIDv7 en path params {id} e {iid} (v4/malformado → 400)
+    // ========================================================================
+
+    @Test
+    void TC_ABC_REST_17_renombrar_path_uuid_v4_no_v7_devuelve_400() {
+        String adminToken = registrarSuperAdmin("admin-v4-ren@ex.com");
+        String uuidV4 = "550e8400-e29b-41d4-a716-446655440000";
+
+        given().header("Authorization", "Bearer " + adminToken)
+                .contentType(JSON)
+                .body(Map.of("nombre", "X"))
+                .when()
+                .put("/api/v1/admin/bases-centrales/" + uuidV4)
+                .then()
+                .statusCode(400)
+                .body("codigo", equalTo("validacion"));
+    }
+
+    @Test
+    void TC_ABC_REST_18_archivar_path_uuid_v4_no_v7_devuelve_400() {
+        String adminToken = registrarSuperAdmin("admin-v4-arch@ex.com");
+        String uuidV4 = "550e8400-e29b-41d4-a716-446655440000";
+
+        given().header("Authorization", "Bearer " + adminToken)
+                .when()
+                .post("/api/v1/admin/bases-centrales/" + uuidV4 + "/archivar")
+                .then()
+                .statusCode(400)
+                .body("codigo", equalTo("validacion"));
+    }
+
+    @Test
+    void TC_ABC_REST_19_eliminar_path_uuid_v4_no_v7_devuelve_400() {
+        String adminToken = registrarSuperAdmin("admin-v4-del@ex.com");
+        String uuidV4 = "550e8400-e29b-41d4-a716-446655440000";
+
+        given().header("Authorization", "Bearer " + adminToken)
+                .when()
+                .delete("/api/v1/admin/bases-centrales/" + uuidV4)
+                .then()
+                .statusCode(400)
+                .body("codigo", equalTo("validacion"));
+    }
+
+    @Test
+    void TC_ABC_REST_20_crear_insumo_path_uuid_v4_no_v7_devuelve_400() {
+        String adminToken = registrarSuperAdmin("admin-v4-cins@ex.com");
+        String uuidV4 = "550e8400-e29b-41d4-a716-446655440000";
+
+        given().header("Authorization", "Bearer " + adminToken)
+                .contentType(JSON)
+                .body(Map.of(
+                        "codigo", "MAT-V4",
+                        "tipo", "MATERIAL",
+                        "descripcion", "v4",
+                        "unidad", "kg",
+                        "precioUnitario", 1.0))
+                .when()
+                .post("/api/v1/admin/bases-centrales/" + uuidV4 + "/insumos")
+                .then()
+                .statusCode(400)
+                .body("codigo", equalTo("validacion"));
+    }
+
+    @Test
+    void TC_ABC_REST_21_editar_insumo_path_uuid_v4_no_v7_devuelve_400() {
+        String adminToken = registrarSuperAdmin("admin-v4-eins@ex.com");
+        String uuidV4 = "550e8400-e29b-41d4-a716-446655440000";
+
+        given().header("Authorization", "Bearer " + adminToken)
+                .contentType(JSON)
+                .body(Map.of("descripcion", "v4", "unidad", "kg", "precioUnitario", 1.0))
+                .when()
+                .put("/api/v1/admin/bases-centrales/" + uuidV4 + "/insumos/" + uuidV4)
+                .then()
+                .statusCode(400)
+                .body("codigo", equalTo("validacion"));
+    }
+
+    @Test
+    void TC_ABC_REST_22_eliminar_insumo_path_uuid_v4_no_v7_devuelve_400() {
+        String adminToken = registrarSuperAdmin("admin-v4-dins@ex.com");
+        String uuidV4 = "550e8400-e29b-41d4-a716-446655440000";
+
+        given().header("Authorization", "Bearer " + adminToken)
+                .when()
+                .delete("/api/v1/admin/bases-centrales/" + uuidV4 + "/insumos/" + uuidV4)
+                .then()
+                .statusCode(400)
+                .body("codigo", equalTo("validacion"));
+    }
+
+    @Test
+    void TC_ABC_REST_23_importar_insumos_path_uuid_v4_no_v7_devuelve_400() {
+        String adminToken = registrarSuperAdmin("admin-v4-imp@ex.com");
+        String uuidV4 = "550e8400-e29b-41d4-a716-446655440000";
+        String csv = "codigo,descripcion,unidad,precio\nMAT-IMP,Material,kg,1.25\n";
+
+        given().header("Authorization", "Bearer " + adminToken)
+                .multiPart("archivo", "insumos.csv", csv.getBytes(), "text/csv")
+                .when()
+                .post("/api/v1/admin/bases-centrales/" + uuidV4 + "/insumos/import")
+                .then()
+                .statusCode(400)
+                .body("codigo", equalTo("validacion"));
+    }
+
+    @Test
+    void TC_ABC_REST_24_path_uuid_malformado_devuelve_400_en_todos_los_verbs() {
+        String adminToken = registrarSuperAdmin("admin-mal@ex.com");
+
+        given().header("Authorization", "Bearer " + adminToken)
+                .contentType(JSON)
+                .body(Map.of("nombre", "X"))
+                .when()
+                .put("/api/v1/admin/bases-centrales/no-es-uuid")
+                .then()
+                .statusCode(400)
+                .body("codigo", equalTo("validacion"));
+
+        given().header("Authorization", "Bearer " + adminToken)
+                .when()
+                .post("/api/v1/admin/bases-centrales/no-es-uuid/archivar")
+                .then()
+                .statusCode(400)
+                .body("codigo", equalTo("validacion"));
+
+        given().header("Authorization", "Bearer " + adminToken)
+                .when()
+                .delete("/api/v1/admin/bases-centrales/no-es-uuid")
+                .then()
+                .statusCode(400)
+                .body("codigo", equalTo("validacion"));
     }
 }
