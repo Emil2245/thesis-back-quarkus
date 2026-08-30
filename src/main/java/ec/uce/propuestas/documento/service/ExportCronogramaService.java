@@ -56,9 +56,7 @@ public class ExportCronogramaService {
 
             for (Actividad act : actividades) {
                 Row r = sheet.createRow(rowIdx++);
-                Optional<Rubro> rubroOpt = rubroRepository.findById(act.rubroId) != null
-                        ? Optional.of(rubroRepository.findById(act.rubroId))
-                        : Optional.empty();
+                Optional<Rubro> rubroOpt = rubroRepository.findByIdOptional(act.rubroId);
                 String item = rubroOpt.map(rb -> rb.item).orElse("—");
                 String desc = rubroOpt.map(rb -> rb.descripcion).orElse("—");
                 BigDecimal precioTotal = rubroOpt.map(rb -> rb.precioTotal).orElse(BigDecimal.ZERO);

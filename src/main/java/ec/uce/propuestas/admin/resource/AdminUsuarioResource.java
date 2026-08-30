@@ -18,7 +18,6 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
-import java.util.Map;
 
 @Path("/admin/usuarios")
 @Produces(MediaType.APPLICATION_JSON)
@@ -73,7 +72,7 @@ public class AdminUsuarioResource {
             u.rol = Rol.valueOf(req.rol());
         }
         usuarioRepository.persist(u);
-        logService.registrar(adminId(), "usuario.editado", "usuario", id, Map.of("nombre", u.nombre));
+        logService.registrar(adminId(), "usuario.editado", "usuario", id, null);
         return toResponse(u);
     }
 
@@ -117,7 +116,7 @@ public class AdminUsuarioResource {
         if (proyectos > 0) {
             throw ProblemaException.validacion("No se puede eliminar el usuario: tiene " + proyectos + " proyecto(s)");
         }
-        logService.registrar(adminId(), "usuario.eliminado", "usuario", id, Map.of("email", u.email));
+        logService.registrar(adminId(), "usuario.eliminado", "usuario", id, null);
         usuarioRepository.delete(u);
         return Response.noContent().build();
     }

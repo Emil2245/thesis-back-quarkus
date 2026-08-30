@@ -3,6 +3,7 @@ package ec.uce.propuestas.cronograma.dto;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 public record CronogramaResponse(
         Long id,
@@ -13,4 +14,6 @@ public record CronogramaResponse(
         BigDecimal totalGeneralRevisado,
         Instant fechaRevision,
         boolean desactualizado,
-        List<ActividadResponse> actividades) {}
+        List<ActividadResponse> actividades,
+        Map<String, BigDecimal> avancePorPeriodo,
+        Map<String, BigDecimal> avanceAcumulado) {}

@@ -185,12 +185,12 @@ class AdminResourceIT {
                 .statusCode(200)
                 .body("archivada", is(false));
 
-        // Delete
+        // D-12: central bases archived, never deleted — DELETE must not exist
         given().header("Authorization", "Bearer " + adminToken)
                 .when()
                 .delete("/api/v1/admin/bases-centrales/" + baseId)
                 .then()
-                .statusCode(204);
+                .statusCode(405);
     }
 
     @Test

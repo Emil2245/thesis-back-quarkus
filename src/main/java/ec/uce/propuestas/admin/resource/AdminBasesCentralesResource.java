@@ -107,17 +107,6 @@ public class AdminBasesCentralesResource {
         return toResp(b);
     }
 
-    @DELETE
-    @Path("/{id}")
-    @Transactional
-    @Consumes(MediaType.WILDCARD)
-    public Response eliminar(@PathParam("id") Long id) {
-        BaseInsumos b = findCentral(id);
-        logService.registrar(adminId(), "base.eliminada", "base_insumos", id, Map.of("nombre", b.nombre));
-        baseInsumosRepository.delete(b);
-        return Response.noContent().build();
-    }
-
     @POST
     @Path("/{id}/insumos")
     @Transactional

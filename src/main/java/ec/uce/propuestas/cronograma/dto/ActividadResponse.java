@@ -10,4 +10,5 @@ public record ActividadResponse(
         String descripcion,
         BigDecimal precioTotal,
         BigDecimal pesoPonderado,
-        Map<String, BigDecimal> avancePorPeriodo) {}
+        Map<String, BigDecimal> avancePorPeriodo,
+        BigDecimal desviacion) {}

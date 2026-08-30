@@ -16,7 +16,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
-import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.HashMap;
@@ -27,8 +26,6 @@ import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class CronogramaService {
-
-    private static final MathContext MC = new MathContext(20, RoundingMode.HALF_UP);
 
     @Inject
     CronogramaRepository cronogramaRepository;

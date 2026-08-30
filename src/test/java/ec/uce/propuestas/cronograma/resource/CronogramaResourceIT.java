@@ -208,7 +208,10 @@ class CronogramaResourceIT {
                 .patch("/api/v1/cronogramas/" + cronogramaId + "/actividades/" + actividadId)
                 .then()
                 .statusCode(200)
-                .body("actividades[0].avancePorPeriodo.size()", is(4));
+                .body("actividades[0].avancePorPeriodo.size()", is(4))
+                .body("actividades[0].desviacion", notNullValue())
+                .body("avancePorPeriodo.size()", is(4))
+                .body("avanceAcumulado.size()", is(4));
 
         // Invalid period key -> 400
         given().contentType(JSON)
