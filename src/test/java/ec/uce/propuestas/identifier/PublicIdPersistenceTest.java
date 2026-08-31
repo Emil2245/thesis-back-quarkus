@@ -20,8 +20,12 @@ import ec.uce.propuestas.plantilla.entity.PlantillaApu;
 import ec.uce.propuestas.plantilla.entity.PlantillaProyecto;
 import ec.uce.propuestas.plantilla.repository.PlantillaApuRepository;
 import ec.uce.propuestas.plantilla.repository.PlantillaProyectoRepository;
+import ec.uce.propuestas.presupuesto.entity.Capitulo;
 import ec.uce.propuestas.presupuesto.entity.Presupuesto;
+import ec.uce.propuestas.presupuesto.entity.Rubro;
+import ec.uce.propuestas.presupuesto.repository.CapituloRepository;
 import ec.uce.propuestas.presupuesto.repository.PresupuestoRepository;
+import ec.uce.propuestas.presupuesto.repository.RubroRepository;
 import ec.uce.propuestas.proyecto.entity.Firmante;
 import ec.uce.propuestas.proyecto.entity.ParametrosProyecto;
 import ec.uce.propuestas.proyecto.entity.ParametrosSistema;
@@ -75,7 +79,9 @@ class PublicIdPersistenceTest {
             BaseInsumos.class,
             Insumo.class,
             PlantillaApu.class,
-            PlantillaProyecto.class);
+            PlantillaProyecto.class,
+            Capitulo.class,
+            Rubro.class);
 
     private static final List<Class<?>> INTERNAL_ENTITIES =
             List.of(ParametrosSistema.class, ParametrosProyecto.class, ApuSeccion.class);
@@ -119,6 +125,12 @@ class PublicIdPersistenceTest {
 
     @Inject
     PlantillaProyectoRepository plantillaProyectoRepository;
+
+    @Inject
+    CapituloRepository capituloRepository;
+
+    @Inject
+    RubroRepository rubroRepository;
 
     @BeforeEach
     void reset() throws Exception {
@@ -167,6 +179,8 @@ class PublicIdPersistenceTest {
         assertRepositoryHasOwnerScopeResolver(insumoRepository, "Insumo");
         assertRepositoryHasOwnerScopeResolver(plantillaApuRepository, "PlantillaApu");
         assertRepositoryHasOwnerScopeResolver(plantillaProyectoRepository, "PlantillaProyecto");
+        assertRepositoryHasOwnerScopeResolver(capituloRepository, "Capitulo");
+        assertRepositoryHasOwnerScopeResolver(rubroRepository, "Rubro");
     }
 
     @Test
@@ -185,6 +199,8 @@ class PublicIdPersistenceTest {
         assertFkLong(ApuDetalle.class, "insumoId");
         assertFkLong(BaseInsumos.class, "proyectoId");
         assertFkLong(BaseInsumos.class, "usuarioId");
+        assertFkLong(Capitulo.class, "presupuestoId");
+        assertFkLong(Capitulo.class, "parentId");
         assertFkLong(Firmante.class, "proyectoId");
         assertFkLong(Insumo.class, "baseId");
         assertFkLong(PlantillaApu.class, "usuarioId");
@@ -192,6 +208,8 @@ class PublicIdPersistenceTest {
         assertFkLong(Presupuesto.class, "proyectoId");
         assertFkLong(Presupuesto.class, "origenId");
         assertFkLong(Proyecto.class, "usuarioId");
+        assertFkLong(Rubro.class, "capituloId");
+        assertFkLong(Rubro.class, "apuId");
         assertFkLong(Usuario.class, "id"); // primary key must also be BigInt
     }
 
@@ -294,6 +312,8 @@ class PublicIdPersistenceTest {
         Insumo insumo = persistInsumo(base.id, "PER-EQ-001", "EQUIPO");
         PlantillaApu plantilla = persistPlantillaApu(owner.id);
         PlantillaProyecto plantillaProyecto = persistPlantillaProyecto(owner.id);
+        Capitulo capitulo = persistCapitulo(presupuesto.id, "1");
+        Rubro rubro = persistRubro(capitulo.id, apu.id, "1.1", "APU-1");
 
         // Every repository must resolve its own row for the legitimate owner.
         assertOwnerScopePresent(firmanteRepository, firmante.publicId, owner.id, "Firmante");
@@ -304,6 +324,8 @@ class PublicIdPersistenceTest {
         assertOwnerScopePresent(insumoRepository, insumo.publicId, owner.id, "Insumo");
         assertOwnerScopePresent(plantillaApuRepository, plantilla.publicId, owner.id, "PlantillaApu");
         assertOwnerScopePresent(plantillaProyectoRepository, plantillaProyecto.publicId, owner.id, "PlantillaProyecto");
+        assertOwnerScopePresent(capituloRepository, capitulo.publicId, owner.id, "Capitulo");
+        assertOwnerScopePresent(rubroRepository, rubro.publicId, owner.id, "Rubro");
 
         // Every repository must hide its row from a foreign caller.
         assertOwnerScopeEmpty(firmanteRepository, firmante.publicId, foreign.id, "Firmante");
@@ -314,6 +336,49 @@ class PublicIdPersistenceTest {
         assertOwnerScopeEmpty(insumoRepository, insumo.publicId, foreign.id, "Insumo");
         assertOwnerScopeEmpty(plantillaApuRepository, plantilla.publicId, foreign.id, "PlantillaApu");
         assertOwnerScopeEmpty(plantillaProyectoRepository, plantillaProyecto.publicId, foreign.id, "PlantillaProyecto");
+        assertOwnerScopeEmpty(capituloRepository, capitulo.publicId, foreign.id, "Capitulo");
+        assertOwnerScopeEmpty(rubroRepository, rubro.publicId, foreign.id, "Rubro");
+    }
+
+    @Test
+    @TestTransaction
+    void capitulo_and_rubro_are_generated_as_uuidv7_after_persist() {
+        // Plan 019 — Capitulo y Rubro también deben recibir publicId UUIDv7 desde la
+        // columna DEFAULT uuidv7() añadida por V008, exactamente como Presupuesto y Apu.
+        Usuario owner = persistUsuario("cap-rubro-owner@ex.com");
+        Proyecto proyecto = persistProyecto(owner.id, "Capitulo Rubro");
+        Presupuesto presupuesto = persistPresupuesto(proyecto.id, (short) 1);
+        Apu apu = persistApu(presupuesto.id, "APU-CAP-1");
+        Capitulo capitulo = persistCapitulo(presupuesto.id, "1");
+        Rubro rubro = persistRubro(capitulo.id, apu.id, "1.1", "APU-CAP-1");
+
+        assertNotNull(capitulo.publicId, "Capitulo.publicId must be populated after persist");
+        assertNotNull(rubro.publicId, "Rubro.publicId must be populated after persist");
+        assertTrue(
+                UUID_V7.matcher(capitulo.publicId.toString()).matches(),
+                "Capitulo.publicId must be a UUIDv7: " + capitulo.publicId);
+        assertTrue(
+                UUID_V7.matcher(rubro.publicId.toString()).matches(),
+                "Rubro.publicId must be a UUIDv7: " + rubro.publicId);
+        assertEquals(7, capitulo.publicId.version(), "Capitulo UUIDv7 version nibble must be 7");
+        assertEquals(7, rubro.publicId.version(), "Rubro UUIDv7 version nibble must be 7");
+        assertEquals(2, capitulo.publicId.variant(), "Capitulo UUIDv7 must use RFC 4122 variant");
+        assertEquals(2, rubro.publicId.variant(), "Rubro UUIDv7 must use RFC 4122 variant");
+        assertFalse(capitulo.publicId.equals(rubro.publicId), "Capitulo and Rubro must receive distinct publicIds");
+    }
+
+    @Test
+    @TestTransaction
+    void owner_scope_returns_empty_for_nonexistent_capitulo_and_rubro_publicIds() {
+        // Plan 019 — un UUIDv7 inexistente devuelve Optional.empty() para ambas
+        // entidades públicas (404 semantics, RNF-05).
+        Usuario owner = persistUsuario("only-cap-rubro@ex.com");
+        UUID invented = UUID.fromString("0192f6c4-7c8a-7000-8000-000000000000");
+
+        Optional<Capitulo> capitulo = capituloRepository.findByPublicIdAndOwnerScope(invented, owner.id);
+        Optional<Rubro> rubro = rubroRepository.findByPublicIdAndOwnerScope(invented, owner.id);
+        assertTrue(capitulo.isEmpty(), "An invented UUIDv7 must not resolve any Capitulo row");
+        assertTrue(rubro.isEmpty(), "An invented UUIDv7 must not resolve any Rubro row");
     }
 
     // =========================================================================
@@ -530,5 +595,32 @@ class PublicIdPersistenceTest {
         plantilla.snapshotEstructura = "{}";
         plantillaProyectoRepository.persist(plantilla);
         return plantilla;
+    }
+
+    private Capitulo persistCapitulo(Long presupuestoId, String item) {
+        Capitulo capitulo = new Capitulo();
+        capitulo.presupuestoId = presupuestoId;
+        capitulo.parentId = null;
+        capitulo.item = item;
+        capitulo.descripcion = "Capítulo de prueba " + item;
+        capitulo.orden = (short) 1;
+        capitulo.total = BigDecimal.ZERO;
+        capituloRepository.persist(capitulo);
+        return capitulo;
+    }
+
+    private Rubro persistRubro(Long capituloId, Long apuId, String item, String codigo) {
+        Rubro rubro = new Rubro();
+        rubro.capituloId = capituloId;
+        rubro.apuId = apuId;
+        rubro.item = item;
+        rubro.codigo = codigo;
+        rubro.descripcion = "Rubro de prueba " + codigo;
+        rubro.unidad = "u";
+        rubro.cantidad = new BigDecimal("1.000000");
+        rubro.precioUnitario = BigDecimal.ZERO;
+        rubro.precioTotal = BigDecimal.ZERO;
+        rubroRepository.persist(rubro);
+        return rubro;
     }
 }

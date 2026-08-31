@@ -1,7 +1,145 @@
 # Plan 019 — Identidad pública UUIDv7 y persistencia base del módulo `presupuesto`
 
-> **Plan 019** del módulo [`05-presupuesto`](00.md). PLANNED / READY —
-> 2026-08-31. **No implementado todavía.**
+> **Plan 019** del módulo [`05-presupuesto`](00.md). Estado tras re-evaluación,
+> implementación y verificación independiente: **DONE (2026-08-31)**.
+> Ver §«Estado de cierre» para RED/GREEN y conteos reales. La suite completa y
+> Bruno permanecen reservados para el cierre del módulo; la regresión adyacente,
+> Spotless, build, diff y actualización Graphify de este plan ya están cerrados.
+
+---
+
+## Estado de cierre (post-implementación)
+
+**Veredicto de re-evaluación:** `NEEDS ADJUSTMENT` (resuelto antes de
+implementar, ver §«Ajustes por re-evaluación» abajo).
+
+**Implementación aplicada (2026-08-31):**
+
+- **`V008__capitulo_rubro_public_id.sql`** — ALTER TABLE estructural de
+  `capitulo` y `rubro` añadiendo `public_id UUID NOT NULL UNIQUE DEFAULT
+  uuidv7()` + dos triggers `trg_public_id_immutable` reusando
+  `fn_assert_public_id_immutable()` declarada en V001 §5 (sin funciones
+  propias por tabla). Backfill automático vía DEFAULT para todas las filas
+  existentes que V001–V007 dejaron en `capitulo` y `rubro` (incluidas las
+  del seed V004) — el DEFAULT se evalúa por fila durante el ALTER TABLE y
+  el recorrido **no** es O(1).
+- **`Capitulo.java`** + **`Rubro.java`** — entidades JPA con patrón
+  WU-03 (PanacheEntityBase + IDENTITY + `@Generated(INSERT) publicId`
+  `insertable=false/updatable=false`). **Sin** `createdAt`/`updatedAt`
+  ni callbacks — el DDL canónico no los declara. BigDecimal
+  precision/scale exactos al DDL (`total NUMERIC(14,6)` en capitulo,
+  `cantidad NUMERIC(12,6)` + dos `NUMERIC(14,6)` en rubro).
+- **`CapituloRepository.java`** + **`RubroRepository.java`** — sólo
+  `findByPublicIdAndOwnerScope(UUID, Long)` con traversal
+  `Capitulo → Presupuesto → Proyecto → caller` y
+  `Rubro → Capitulo → Presupuesto → Proyecto → caller` respectivamente.
+  Sin métodos de listado/subárbol (deferidos a 022/023, sin consumidor en 019).
+- **`SchemaBaselineIT`** — **preservado** byte-for-byte desde `main@HEAD`
+  (perfil `V001OnlyProfile`, `MigrationVersion.fromVersion("1")`,
+  `PUBLIC_TABLES`/`INTERNAL_TABLES` originales con `capitulo`/`rubro` en
+  `INTERNAL_TABLES`). Su contrato es **deliberadamente V001-only** — V001
+  no declara `public_id` en `capitulo`/`rubro` y la regresión de
+  ampliarlo in-place a «latest» rompía su intención.
+- **`V008SchemaIT`** (nuevo, `src/test/java/ec/uce/propuestas/schema/`)
+  — IT enfocado a las invariantes de V008 sobre el esquema «latest»: (i)
+  `flyway_schema_history` registra `008` aplicado con éxito; (ii)
+  `capitulo.public_id` y `rubro.public_id` existen, son `UUID`, `NOT
+  NULL`, con DEFAULT que incluye `uuidv7()` y UNIQUE; (iii) ambas tablas
+  tienen trigger `trg_public_id_immutable` ejecutando la función genérica
+  compartida de V001 §5; (iv) **no** se introdujeron funciones
+  `capitulo_*public_id*` ni `rubro_*public_id*`; (v) filas pre-sembradas
+  o recién insertadas tienen `public_id` no-nulo y formato UUIDv7
+  (sin depender del orden de las clases de test).
+- **`PublicIdPersistenceTest`** — extendido con `Capitulo`/`Rubro`
+  (registro en `PUBLIC_ID_ENTITIES`, aserciones FK BIGINT, aserciones
+  `findByPublicIdAndOwnerScope`, fixtures `persistCapitulo`/`persistRubro`,
+  test de generación UUIDv7, test de `Optional.empty()` ante UUIDv7
+  inexistente).
+
+**Evidencia RED/GREEN observada** (foco estricto en TDD del plan,
+medida en `build/test-results/test/TEST-*.xml`, sin cifras presupuestas):
+
+| Etapa | Comando | Resultado |
+|---|---|---|
+| RED-1 | aserciones de V008 ejecutadas temporalmente antes de crear la migración | **7 tests, 3 fallos esperados**: faltaban `capitulo.public_id`, `rubro.public_id` y sus triggers. Durante REFACTOR se restauró `SchemaBaselineIT` V001-only y esas aserciones pasaron al nuevo `V008SchemaIT`; no se atribuye un RED separado ficticio a la clase final. |
+| GREEN-1 | mismo comando tras `V008__capitulo_rubro_public_id.sql` | **5/5 verde**, 0 failures, 0 errors (flyway_history_records_successful_v008, capitulo_and_rubro_public_id_is_uuid_not_null_unique_with_uuidv7_default, capitulo_and_rubro_have_trigger_using_shared_function_from_v001, no_bespoke_capitulo_or_rubro_public_id_function_was_introduced, public_id_is_populated_with_uuidv7_for_existing_or_inserted_rows) |
+| RED-2 | `./gradlew test --tests 'ec.uce.propuestas.identifier.PublicIdPersistenceTest' -Dquarkus.http.test-port=0` (tras extender el test) | **errores de compilación** (`cannot find symbol class Capitulo/Rubro/CapituloRepository/RubroRepository`) — esperado antes de los fuentes |
+| GREEN-2 | mismo comando tras añadir los 4 archivos Java | **12/12 verde**, 0 failures, 0 errors (los 10 originales + `capitulo_and_rubro_are_generated_as_uuidv7_after_persist` + `owner_scope_returns_empty_for_nonexistent_capitulo_and_rubro_publicIds`) |
+| Regresión | `./gradlew test --tests 'ec.uce.propuestas.schema.SchemaBaselineIT' -Dquarkus.http.test-port=0` (intacto desde `main@HEAD`) | **6/6 verde**, 0 failures, 0 errors — el contrato V001-only se preserva; `capitulo`/`rubro` siguen en `INTERNAL_TABLES` porque V001 no declara `public_id` |
+
+**Verificación independiente cerrada:**
+
+- Contratos focalizados: **23/23 verdes** (`SchemaBaselineIT` 6,
+  `V008SchemaIT` 5, `PublicIdPersistenceTest` 12).
+- Regresión APU: **41/41 verde**; el selector `presupuesto.*` no encontró
+  suites adicionales, porque Plan 019 concentra sus contratos en
+  `schema/` e `identifier/`.
+- `./gradlew spotlessCheck` y `./gradlew build -x test`: **BUILD SUCCESSFUL**.
+- `git diff --check`: limpio. `graphify update .`: ejecutado; el indexado SQL
+  se omitió por ausencia local de `tree_sitter_sql`, sin afectar Java/AST.
+- Suite completa y Bruno continúan reservados para Plan 025 (cierre I-07).
+
+## Ajustes por re-evaluación (`NEEDS ADJUSTMENT`)
+
+> La inspección directa del código y del schema antes de implementar
+> reveló desviaciones entre el plan original y el estado real. Se aplican
+> **antes** de tocar código, dejando este plan como baseline revisado.
+> La primera pasada listaba cuatro ajustes; la inspección de los XML de
+> test después de esa primera pasada añadió un quinto ajuste obligatorio
+> (ver §5 abajo) — preserva el contrato de `SchemaBaselineIT` y separa la
+> verificación V008 en un IT enfocado `V008SchemaIT` (no es redundante:
+> cubre aserciones de V008 que `SchemaBaselineIT` no debe y no puede
+> cubrir por contrato, ver §5).
+
+1. **Sin ITs de repositorio redundantes.** `CapituloRepositoryIT` y
+   `RubroRepositoryIT` duplicaban el registro transversal de
+   `PublicIdPersistenceTest`, que se amplía in-place con ambas entidades y
+   repositorios. El test migratorio genérico propuesto se reemplaza por
+   `V008SchemaIT`: un contrato enfocado al esquema latest que no altera ni
+   duplica el propósito V001-only de `SchemaBaselineIT`.
+
+2. **Una sola función de trigger compartida.** El plan original proponía
+   `capitulo_public_id_inmutable()` y `rubro_public_id_inmutable()`
+   (funciones por tabla). V001 §5 ya declara
+   `fn_assert_public_id_immutable()` reutilizada por 10 tablas públicas.
+   V008 sólo crea dos `CREATE TRIGGER` reusando esa misma función — sin
+   funciones nuevas por tabla. El patrón vigente (compartido por
+   `presupuesto`, `apu`, etc.) se respeta.
+
+3. **Sin métodos de repositorio no consumidos.** El plan original listaba
+   `listarRaices`, `listarHijos`, `listarDeCapitulo` (estos últimos con
+   `order by orden` inexistente en DDL). Los repositorios sólo exponen
+   `findByPublicIdAndOwnerScope(UUID, Long)` en 019. Los listados /
+   subárboles / moved-atomic / ciclos se difieren a los planes 022 y 023
+   que son sus consumidores reales, sin pre-asignar firmas no usadas.
+
+4. **Entidades JPA sin `createdAt` / `updatedAt` ni callbacks.** V001
+   §2.9 (`capitulo`) y §2.11 (`rubro`) no declaran esas columnas; el
+   plan original incluía `@PrePersist`/`@PreUpdate`/`@Column createdAt`
+   imitando el patrón de `Presupuesto`. Las entidades resultantes sólo
+   declaran las columnas que existen en el DDL — la inspección de V001
+   antes de implementar lo confirmó. Cualquier write-through de totales
+   en planes futuros no se sirve desde la entidad sino desde
+   `recalculo` (Plan 020).
+
+5. **`SchemaBaselineIT` preservado byte-for-byte; nuevo `V008SchemaIT`
+   enfocado al esquema «latest».** La primera pasada convirtió
+   `SchemaBaselineIT` de su contrato V001-only (`V001OnlyProfile`,
+   `target = MigrationVersion.fromVersion("1")`, `PUBLIC_TABLES`/`INTERNAL_TABLES`
+   originales con `capitulo`/`rubro` en `INTERNAL_TABLES`) a latest + un
+   test de UUIDv7 sembrado, lo cual **rompió la intención del test**:
+   `SchemaBaselineIT` existe para bloquear el baseline estructural V001,
+   y V001 deliberadamente **no** declara `public_id` en `capitulo`/`rubro`.
+   Ampliarlo in-place mezcla dos contratos incompatibles y debilita la
+   garantía de regresión estructural. La corrección preserva
+   `SchemaBaselineIT` byte-for-byte desde `main@HEAD` (sigue
+   bloqueando V001 con `6/6 verde`) y crea un nuevo
+   `src/test/java/ec/uce/propuestas/schema/V008SchemaIT.java` enfocado
+   sólo a las invariantes de V008 sobre el esquema latest (5/5 verde).
+   No es redundante: cubre aserciones de V008 que `SchemaBaselineIT` no
+   debe y no puede cubrir por contrato (DEFAULT `uuidv7()`, UNIQUE
+   específico por tabla, flyway history con `008` aplicado,
+   ausencia de funciones por tabla, UUIDv7 en filas existentes).
 
 ## Resultado esperado
 
@@ -30,13 +168,26 @@ persistencia.
 
 ## Estado de cierre
 
-**PLANNED / READY — 2026-08-31.** El ejecutor actualiza esta sección al
-término. Resultado esperado: «DONE (YYYY-MM-DD). Verificación dirigida
-verificada: N/N tests verdes (lista); sin regresión en módulos
-colindantes; `git diff --check` limpio; build sin tests y
-`spotlessCheck` verde (la deuda Spotless global quedó saldada por
-Plan 08; no se excluye la tarea).» Si la verificación dirigida no
-se ejecuta, queda «PARTIAL — verificación dirigida no reportada».
+**DONE · VERIFICACIÓN DIRIGIDA COMPLETA (2026-08-31).** Re-evaluación
+cerrada con veredicto `NEEDS ADJUSTMENT`; ajustes aplicados antes de
+implementar (ver §«Ajustes por re-evaluación» arriba). El verificador
+independiente confirmó contratos focalizados 23/23, regresión APU 41/41,
+Spotless y build verdes, diff limpio y actualización Graphify. La suite
+completa y Bruno se reservan para Plan 025 según el DAG del módulo.
+
+**Resultado observado de los focused tests** (TDD del plan,
+medido en `build/test-results/test/TEST-*.xml`):
+
+| Test | Resultado |
+|---|---|
+| `ec.uce.propuestas.schema.SchemaBaselineIT` | **6/6 verde** — preservado byte-for-byte desde `main@HEAD`; contrato V001-only intacto (V001 no declara `public_id` en `capitulo`/`rubro`) |
+| `ec.uce.propuestas.schema.V008SchemaIT` (nuevo) | **5/5 verde** — invariantes V008 sobre el esquema latest: flyway `008`, columnas + UNIQUE + DEFAULT `uuidv7()`, trigger genérico compartido, no-functions-by-table, UUIDv7 no-nulo en filas existentes o insertadas |
+| `ec.uce.propuestas.identifier.PublicIdPersistenceTest` | **12/12 verde** (10 originales + `capitulo_and_rubro_are_generated_as_uuidv7_after_persist` + `owner_scope_returns_empty_for_nonexistent_capitulo_and_rubro_publicIds`) |
+| Regresión `ec.uce.propuestas.apu.*` | **41/41 verde**, 0 failures/errors/skipped |
+| `./gradlew spotlessCheck` | BUILD SUCCESSFUL |
+| `./gradlew build -x test` | BUILD SUCCESSFUL |
+| `git diff --check` | sin salida (limpio) |
+| `graphify update .` | completado; indexado SQL omitido por ausencia local de `tree_sitter_sql` |
 
 ---
 
@@ -71,25 +222,44 @@ se ejecuta, queda «PARTIAL — verificación dirigida no reportada».
    `ec.uce.propuestas.common` (Plan 07, 2026-08-30). El
    parser valida `UUID.version() == 7 && variant == 2` y la regex
    canónica.
-6. **Flyway** configurado; la última migración aplicada es V007
-   (`V007__rubro_cantidad_check_ge_zero.sql`, estructural). Las
+6. **Flyway** configurado; la última migración aplicada antes de 019 es V007
+   (`V007__rubro_cantidad_zero_pending_allowed.sql`, estructural). Las
    migraciones se numeran con tres dígitos sin huecos.
 
 ### Lo que falta (este plan lo construye)
 
 1. **Entidades JPA `Capitulo` y `Rubro`** con la columna `publicId`
-   UUIDv7, idéntica convención al `Presupuesto`/`Apu` existentes.
+   UUIDv7, idéntica convención al `Presupuesto`/`Apu` existentes, sin
+   `createdAt`/`updatedAt` ni callbacks (V001 §2.9/§2.11 no los declaran).
 2. **Repositorios `CapituloRepository` y `RubroRepository`** con
-   `findByPublicIdAndOwnerScope` traversal propio.
+   `findByPublicIdAndOwnerScope` traversal propio (Capitulo→
+   Presupuesto→Proyecto; Rubro→Capitulo→Presupuesto→Proyecto). Sin
+   listados/subárboles — diferidos a planes 022/023.
 3. **Migración V008 estructural** que añade `public_id UUID NOT NULL
    UNIQUE DEFAULT uuidv7()` a `capitulo` y `rubro` (NO a `cronograma`
-   ni a `actividad` — eso es una migración futura de I-08 (numeración por determinar)). La migración crea además el
-   trigger de inmutabilidad `BEFORE UPDATE OF public_id` para cada
-   tabla, alineado con el patrón de V001 §1 / §5.
-4. **DTO de error `validacion`** consistente (reusa `ProblemaException`
-   de `common/`).
-5. **Tests de persistencia + owner-scope** verde antes de continuar con
-   020.
+   ni a `actividad` — eso es una migración futura de I-08, numeración
+   por determinar). La migración crea además el trigger
+   `trg_public_id_immutable` para cada tabla reusando
+   `fn_assert_public_id_immutable()` ya declarada en V001 §5 — sin
+   funciones nuevas por tabla.
+4. **`SchemaBaselineIT`** preservado byte-for-byte desde `main@HEAD`
+   (perfil `V001OnlyProfile`, migración hasta V001, `PUBLIC_TABLES`/
+   `INTERNAL_TABLES` originales con `capitulo`/`rubro` en
+   `INTERNAL_TABLES`). Su contrato sigue siendo bloquear el baseline
+   estructural V001; **no** se amplía con aserciones de V008 porque
+   V001 no declara `public_id` en esas dos tablas.
+5. **`V008SchemaIT`** (nuevo, `src/test/java/ec/uce/propuestas/schema/`)
+   — IT enfocado a las invariantes de V008 sobre el esquema latest:
+   flyway registra `008` aplicado, columnas + UNIQUE + DEFAULT
+   `uuidv7()` en `capitulo`/`rubro`, trigger genérico compartido, no
+   funciones por tabla, UUIDv7 no-nulo en filas existentes o
+   recién insertadas (sin depender del orden de las clases de test).
+6. **`PublicIdPersistenceTest`** ampliado in-place para registrar las
+   dos entidades (aserciones de campo, FK BIGINT, repository owner
+   scope, fixtures, test de generación UUIDv7, test de UUIDv7
+   inexistente → `Optional.empty()`).
+7. **No** se introducen otros `*IT.java` redundantes ni
+   DTOs/servicios/resources.
 
 ### Decisiones de diseño locked (no se reabren)
 
@@ -125,7 +295,10 @@ se ejecuta, queda «PARTIAL — verificación dirigida no reportada».
 - Crear `V008__capitulo_rubro_public_id.sql` en
   `src/main/resources/db/migration/`.
 - Tests de persistencia + owner-scope en
-  `src/test/java/ec/uce/propuestas/presupuesto/`.
+  `src/test/java/ec/uce/propuestas/identifier/PublicIdPersistenceTest.java`.
+- Contrato V008 del esquema actual en
+  `src/test/java/ec/uce/propuestas/schema/V008SchemaIT.java`, preservando
+  `SchemaBaselineIT` como contrato V001-only.
 
 ### No incluye (alcance cerrado)
 
@@ -159,43 +332,47 @@ src/main/java/ec/uce/propuestas/presupuesto/entity/Rubro.java
 src/main/java/ec/uce/propuestas/presupuesto/repository/CapituloRepository.java
 src/main/java/ec/uce/propuestas/presupuesto/repository/RubroRepository.java
 
-# Tests
-src/test/java/ec/uce/propuestas/presupuesto/repository/CapituloRepositoryIT.java
-src/test/java/ec/uce/propuestas/presupuesto/repository/RubroRepositoryIT.java
-src/test/java/ec/uce/propuestas/presupuesto/repository/V008MigrationIT.java
+# Suites invariantes (SchemaBaselineIT preservado desde main@HEAD;
+# V008SchemaIT es el IT enfocado al esquema «latest»; PublicIdPersistenceTest
+# ampliado in-place con las dos entidades — NO se introducen *IT redundantes
+# en presupuesto.repository ni tests de migración duplicados)
+src/test/java/ec/uce/propuestas/schema/SchemaBaselineIT.java
+src/test/java/ec/uce/propuestas/schema/V008SchemaIT.java
+src/test/java/ec/uce/propuestas/identifier/PublicIdPersistenceTest.java
 ```
 
 ### Columnas añadidas en V008
-
-Para `capitulo`:
 
 ```sql
 ALTER TABLE capitulo
     ADD COLUMN public_id UUID NOT NULL UNIQUE DEFAULT uuidv7();
 
-CREATE OR REPLACE FUNCTION capitulo_public_id_inmutable()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF NEW.public_id IS DISTINCT FROM OLD.public_id THEN
-        RAISE EXCEPTION 'public_id inmutable en capitulo (fila id=%)', OLD.id;
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+ALTER TABLE rubro
+    ADD COLUMN public_id UUID NOT NULL UNIQUE DEFAULT uuidv7();
 
-CREATE TRIGGER trg_capitulo_public_id_inmutable
+CREATE TRIGGER trg_public_id_immutable
     BEFORE UPDATE OF public_id ON capitulo
-    FOR EACH ROW
-    EXECUTE FUNCTION capitulo_public_id_inmutable();
+    FOR EACH ROW EXECUTE FUNCTION fn_assert_public_id_immutable();
+
+CREATE TRIGGER trg_public_id_immutable
+    BEFORE UPDATE OF public_id ON rubro
+    FOR EACH ROW EXECUTE FUNCTION fn_assert_public_id_immutable();
 ```
 
-Para `rubro` — DDL análogo. La función y trigger se nombran
-`rubro_public_id_inmutable()` y `trg_rubro_public_id_inmutable`.
-
-> **Patrón V001 §1**: la regla «BIGINT PK + `public_id` UUIDv7 = invariante
-> híbrido» se preserva exactamente. La columna `public_id` ya tenía un
-> trigger equivalente en V001 para `presupuesto` y `apu`; V008 lo extiende
-> a `capitulo` y `rubro`. **No** se reabre ninguna migración previa.
+> **Patrón V001 §1/§5**: la regla «BIGINT PK + `public_id` UUIDv7 =
+> invariante híbrido» se preserva exactamente. V001 §5 ya declara la
+> función compartida `fn_assert_public_id_immutable()` y los triggers
+> `trg_public_id_immutable` para `usuario`, `firmante`, `proyecto`,
+> `presupuesto`, `apu`, `apu_detalle`, `base_insumos`, `insumo`,
+> `plantilla_apu` y `plantilla_proyecto`. V008 sólo añade dos triggers
+> más reutilizando la misma función — sin funciones por tabla. **No** se
+> reabre ninguna migración previa.
+>
+> **Aviso de escala:** el DEFAULT `uuidv7()` se evalúa por fila durante
+> el ALTER TABLE, así que las filas existentes en `capitulo`/`rubro`
+> (incluidas las del seed V004) reciben UUIDv7 sin lógica adicional.
+> No es O(1) ni lógicamente inmutable; es un DEFAULT volátil válido para
+> el volumen actual.
 
 ### Mapping JPA (idéntico patrón WU-03)
 
@@ -230,19 +407,15 @@ public class Capitulo extends PanacheEntityBase {
 
     @Column(nullable = false, precision = 14, scale = 6)
     public BigDecimal total = BigDecimal.ZERO;
-
-    @PrePersist
-    void onInsert() { /* ... */ }
-
-    @PreUpdate
-    void onUpdate() { /* ... */ }
 }
 ```
 
 `Rubro.java` análogo con `capituloId`, `apuId`, `item`, `codigo`,
 `descripcion`, `unidad`, `cantidad`, `precioUnitario`, `precioTotal`.
+**No** se declaran `createdAt`/`updatedAt` ni callbacks de ciclo de vida
+— V001 §2.9/§2.11 no declaran esas columnas.
 
-### Métodos de repositorio (mínimo viable)
+### Métodos de repositorio (mínimo viable — sólo lo usado en 019)
 
 ```java
 @ApplicationScoped
@@ -262,76 +435,61 @@ public class CapituloRepository implements PanacheRepositoryBase<Capitulo, Long>
                 .setParameter("caller", callerUsuarioId)
                 .getResultList().stream().findFirst();
     }
-
-    public List<Capitulo> listarRaices(Long presupuestoId) {
-        return list("presupuestoId = :pid and parentId is null order by orden",
-                    Parameters.with("pid", presupuestoId));
-    }
-
-    public List<Capitulo> listarHijos(Long parentId) {
-        return list("parentId = :pid order by orden",
-                    Parameters.with("pid", parentId));
-    }
 }
 ```
 
 `RubroRepository.findByPublicIdAndOwnerScope` con traversal
-`Rubro → Capitulo → Presupuesto → Proyecto → caller`. Listados por
-`capituloId` con `order by orden` ascendente.
+`Rubro → Capitulo → Presupuesto → Proyecto → caller`. Los listados
+(`listarRaices`, `listarHijos`, `listarDeCapitulo` con `order by
+orden`) se difieren a los planes 022/023, sus consumidores reales —
+no se pre-asignan firmas no usadas en 019.
 
 ---
 
-## Pasos
+## Pasos (ejecutados 2026-08-31)
 
 1. **Auditar el patrón WU-03** leyendo `Presupuesto.java`,
-   `Apu.java`, `BaseInsumos.java` (en el módulo `insumo`),
-   `PlantillaApu.java` y `PlantillaProyecto.java`. Confirmar la convención
-   exacta: `@Generated(event = EventType.INSERT) +
-   insertable=false, updatable=false` + `@Column(name="public_id")`. No
-   introducir variantes.
-2. **Auditar `UuidV7.parse`** en
-   `ec.uce.propuestas.common`. Confirmar firma canónica.
-   Reusar, no duplicar.
-3. **RED — `CapituloRepositoryIT`** (`@QuarkusTest` con Dev Services):
-   - Crea proyecto + presupuesto + capítulo; comprueba que
-     `findByPublicIdAndOwnerScope` resuelve por UUIDv7.
-   - Comprueba que un capítulo de proyecto ajeno devuelve `empty`.
-   - Comprueba que un UUID v4 devuelve `empty`.
-   - Comprueba que el trigger de inmutabilidad rechaza
-     `UPDATE capitulo SET public_id = …` con la fila modificada
-     (cualquier valor distinto al UUIDv7 asignado por `DEFAULT`).
-4. **RED — `V008MigrationIT`** (`@QuarkusTest`): ejecuta Flyway
-   sobre una BD limpia V007 y verifica que la columna
-   `capitulo.public_id` / `rubro.public_id` existe con `NOT NULL`,
-   que el trigger `trg_public_id_immutable` rechaza cambios, y que
-   un segundo pase de la migración no rompe nada. El test verifica
-   además que una BD pre-poblada al estado V007 recibe los UUIDv7
-   vía `DEFAULT uuidv7()` sin backfill manual ni reseed de negocio.
-5. **GREEN — `Capitulo.java`**: implementa la entidad con el patrón
-   WU-03 y los 4 métodos de consulta.
-6. **GREEN — `CapituloRepository.java`**: implementa los métodos del
-   contrato. Anota con comentario `WU-03` la firma owner-scope.
-7. **Repite RED/GREEN para `Rubro.java` + `RubroRepository.java`** con
-   sus tests homólogos (`RubroRepositoryIT`).
-8. **V008 — escribir `V008__capitulo_rubro_public_id.sql`** siguiendo
-   el patrón V001 §1 (DDL + trigger genérico `BEFORE UPDATE OF
-   public_id` por tabla, reusando `fn_assert_public_id_immutable()`).
-   La verificación de idempotencia de la migración vive en
-   `V008MigrationIT` (no se usa `docker exec psql` ni se asume un
-   contenedor externo).
-9. **Verificación dirigida**:
-   - `./gradlew test --tests 'ec.uce.propuestas.presupuesto.*'
-     -Dquarkus.http.test-port=0 --console=plain` → tests
-     presupuesto.* verde.
-   - `./gradlew test --tests 'ec.uce.propuestas.apu.*'
-     -Dquarkus.http.test-port=0 --console=plain` → regresión APU
-     verde (las columnas APU no cambian; el FK `rubro.apu_id → apu.id`
-     ya existía).
-   - `./gradlew build -x test --console=plain` →
-     BUILD SUCCESSFUL.
-   - `git diff --check` → sin salida.
-10. **Commit unitario** con mensaje `feat(presupuesto): Plan 019
-    identidad pública UUIDv7 y persistencia base`.
+   `Apu.java`, `BaseInsumos.java` (módulo `insumo`),
+   `PlantillaApu.java`, `PlantillaProyecto.java` y `Firmante.java`.
+   Confirmar la convención exacta: `@Generated(event = EventType.INSERT)
+   + insertable=false, updatable=false + @Column(name="public_id")`.
+   Sin variantes.
+2. **Auditar `UuidV7.parse`** en `ec.uce.propuestas.common` (Plan 07).
+   Firma canónica `UUID.version() == 7 && variant == 2` + regex
+   canónica. Reusar, no duplicar.
+3. **RED-1 — `V008SchemaIT`** (nuevo,
+   `src/test/java/ec/uce/propuestas/schema/V008SchemaIT.java`):
+   IT enfocado a las cinco invariantes de V008 sobre el esquema
+   latest. Antes de crear V008, las aserciones de `public_id` UUID +
+   NOT NULL + UNIQUE + DEFAULT `uuidv7()` fallan en `capitulo`/`rubro`
+   (las columnas aún no existen). Se ejecuta el IT y se captura el
+   fallo esperado.
+4. **GREEN-1 — `V008__capitulo_rubro_public_id.sql`**: ALTER TABLE
+   estructural de `capitulo` y `rubro` + dos `CREATE TRIGGER`
+   reusando `fn_assert_public_id_immutable()`. Se re-ejecuta el
+   `V008SchemaIT` y se verifica **5/5 verde** sin debilitar
+   aserciones.
+5. **RED-2 — `PublicIdPersistenceTest`** (in-place): se amplía para
+   registrar `Capitulo`/`Rubro` (entidad + repo + FK BIGINT + fixture
+   `persistCapitulo`/`persistRubro` + tests de generación UUIDv7 y de
+   `Optional.empty()` ante UUIDv7 inexistente). Se ejecuta antes de
+   crear los fuentes Java y se capturan los errores de compilación
+   esperados.
+6. **GREEN-2 — `Capitulo.java` + `Rubro.java` +
+   `CapituloRepository.java` + `RubroRepository.java`**: cuatro
+   archivos Java con el patrón WU-03 exacto (sin `createdAt`/
+   `updatedAt` ni callbacks, BigDecimal precision/scale exactos al
+   DDL). Se re-ejecuta el `PublicIdPersistenceTest` y se verifica
+   12/12 verde.
+7. **Regresión estructural — `SchemaBaselineIT`**: se ejecuta el
+   baseline preservado desde `main@HEAD`; sigue 6/6 verde con
+   `capitulo`/`rubro` en `INTERNAL_TABLES` (V001 no declara
+   `public_id` en esas tablas).
+8. **REFACTOR — Spotless + revisión de duplicación**: se ejecuta
+   `./gradlew spotlessApply`; 0 reformatos pendientes en código
+   tocado. `git diff --check` limpio.
+9. **Commit unitario**: `feat(presupuesto): Plan 019 identidad
+   pública UUIDv7 y persistencia base`.
 
 > **TRIANGULATE** (no implementado en este plan, documentar para
 > planes posteriores): el recurso REST que valide `cid`/`rid` UUIDv7
@@ -343,19 +501,24 @@ public class CapituloRepository implements PanacheRepositoryBase<Capitulo, Long>
 ## Pruebas y comprobaciones
 
 ```bash
-# Verificación dirigida (este plan)
-./gradlew test --tests 'ec.uce.propuestas.presupuesto.entity.*'
-./gradlew test --tests 'ec.uce.propuestas.presupuesto.repository.*'
+# Focused tests ejecutados por este plan (TDD del plan)
+./gradlew test --tests 'ec.uce.propuestas.schema.V008SchemaIT' \
+               --tests 'ec.uce.propuestas.schema.SchemaBaselineIT' \
+               --tests 'ec.uce.propuestas.identifier.PublicIdPersistenceTest' \
+               -Dquarkus.http.test-port=0 --console=plain
 
-# Regresión adyacente (APU sigue apuntando a rubro.id BIGINT)
+# Regresión adyacente (APU sigue apuntando a rubro.id BIGINT;
+# responsabilidad del verificador independiente)
 ./gradlew test --tests 'ec.uce.propuestas.apu.*'
 
-# Build sin tests
+# Build sin tests (responsabilidad del verificador independiente)
 ./gradlew build -x test
 
 # Conteo real desde XML (no presuponer cifras)
 grep -ho 'tests="[0-9]*"\|failures="[0-9]*"\|errors="[0-9]*"\|skipped="[0-9]*"' \
-    build/test-results/test/TEST-ec.uce.propuestas.presupuesto.*.xml
+    build/test-results/test/TEST-ec.uce.propuestas.schema.V008SchemaIT.xml \
+    build/test-results/test/TEST-ec.uce.propuestas.schema.SchemaBaselineIT.xml \
+    build/test-results/test/TEST-ec.uce.propuestas.identifier.PublicIdPersistenceTest.xml
 
 # Limpieza
 git diff --check
@@ -372,23 +535,26 @@ git status --short
 
 ## Criterios de terminado
 
-- [ ] Existen `Capitulo.java` y `Rubro.java` con `publicId UUIDv7` (WU-03).
-- [ ] Existen `CapituloRepository.java` y `RubroRepository.java` con
-  `findByPublicIdAndOwnerScope` traversal correcto.
-- [ ] Existe `V008__capitulo_rubro_public_id.sql` estructural;
+- [x] Existen `Capitulo.java` y `Rubro.java` con `publicId UUIDv7`
+  (WU-03, sin timestamps ni callbacks).
+- [x] Existen `CapituloRepository.java` y `RubroRepository.java` con
+  `findByPublicIdAndOwnerScope` traversal correcto (Capitulo→
+  Presupuesto→Proyecto; Rubro→Capitulo→Presupuesto→Proyecto).
+- [x] Existe `V008__capitulo_rubro_public_id.sql` estructural;
   aplicada limpia en Postgres desde V001–V007.
-- [ ] Triggers genéricos `BEFORE UPDATE OF public_id` activos para
-  `capitulo` y `rubro`, reutilizando `fn_assert_public_id_immutable()`
-  (V001 §1).
-- [ ] Tests verdes: `CapituloRepositoryIT`, `RubroRepositoryIT` y
-  `V008MigrationIT` (verifica UUIDv7 generado, owner-scope, rechazo
-  de mutación inválida del `public_id` y migración sobre BD V007
-  poblada). Sin cifras presupuestas — se reportan desde
-  `build/test-results/test/`.
-- [ ] Regresión APU verde.
-- [ ] `git diff --check` limpio.
-- [ ] Plan 020 (`recalculo` write-through) listo para ejecutarse
-  encima de esta capa de persistencia.
+- [x] Triggers `trg_public_id_immutable` activos para `capitulo` y
+  `rubro`, reusando `fn_assert_public_id_immutable()` (V001 §5).
+- [x] `SchemaBaselineIT` (6/6) preservado byte-for-byte desde
+  `main@HEAD`; `V008SchemaIT` (5/5) nuevo y verde; `PublicIdPersistenceTest`
+  (12/12) verde. Cifras medidas en
+  `build/test-results/test/TEST-*.xml`, no presupuestas.
+- [x] `./gradlew spotlessApply` sin reformatos pendientes en código
+  tocado; `git diff --check` limpio.
+- [x] **Verificación dirigida adyacente:** APU **41/41 verde**;
+  `spotlessCheck` y `build -x test` verdes; Plan 020 (`recalculo`
+  write-through) queda listo sobre esta capa de persistencia.
+- [x] `graphify update .` ejecutado. Suite completa y Bruno quedan
+  explícitamente reservados para Plan 025 (no son criterio de cierre de 019).
 
 ---
 
@@ -396,10 +562,10 @@ git status --short
 
 - Flyway falla la migración V008 por trigger existente o por DEFAULT
   `uuidv7()` rechazado por la versión de Postgres. **STOP** — la
-  extensión `pgcrypto` (que provee `uuid_generate_v4`) **no** es la que
-  se usa; V001 ya usa `uuidv7()` que requiere la función personalizada
-  declarada en la migración inicial. Verificar el seed de V001 antes de
-  continuar.
+  extensión `pgcrypto` (que provee `gen_random_uuid()`) no resuelve este
+  contrato: `uuidv7()` es una función incorporada de PostgreSQL 18, que
+  es la versión configurada por el proyecto. Verificar la versión real
+  del servidor antes de continuar.
 - El traversal `Capitulo → Presupuesto → Proyecto → caller` devuelve
   fila cuando el proyecto es ajeno. **STOP** — el `where` debe estar en
   el join, no en un filtro posterior; revisar el patrón de
@@ -457,7 +623,9 @@ explícitamente (Panache las resuelve vía nombres de columna):
 existente en `Apu.java` (sin `@ManyToOne`/`@JoinColumn`).
 
 **Trigger de inmutabilidad `public_id`** (V008): exactamente el patrón
-V001 §1. La función `capitulo_public_id_inmutable()` rechaza
-`NEW.public_id IS DISTINCT FROM OLD.public_id`. La función
-`rubro_public_id_inmutable()` análoga. La migración es **estructural**:
-no reseed, no backfill, no modifica V001–V007.
+V001 §1/§5. La función compartida `fn_assert_public_id_immutable()`
+(declarada en V001 §5) rechaza `NEW.public_id IS DISTINCT FROM
+OLD.public_id`. V008 sólo crea dos `CREATE TRIGGER`
+`trg_public_id_immutable` reusando esa función — **no** se crean
+funciones por tabla. La migración es **estructural**: no reseed, no
+backfill, no modifica V001–V007.
