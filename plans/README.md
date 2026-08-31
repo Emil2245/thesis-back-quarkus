@@ -41,10 +41,35 @@ iteration I-01 in full plus the I-02 hito (motor de cálculo puro).
 | 017 | [UUIDv7 en fronteras REST actuales](../docs/modulos/planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md) | I-06 | **DONE · VERIFICACIÓN DIRIGIDA COMPLETA (2026-08-30).** Recursos migrados en este pase: `proyecto/firmante/parametros_proyecto` (path UUIDv7; `ParametrosProyectoResponse.proyectoId` migrado de `Long` a `UUID`), `insumo/base_insumos` (admin central y bases personales; `InsumoUsoResponse.apuId` migrado a `UUID`; `CopiarBaseRequest` con `UUID baseId`/`proyectoId`), `PresupuestoApuResource` (`UuidV7.parse(presupuestoId)` + parse de `ApuCrearRequest.plantillaId` en frontera), `PlantillaProyectoGuardarResource` y `PlantillaProyectoAplicarResource` (`UuidV7.parse` en path; seam `POST /proyectos/{proyectoId}/guardar-plantilla`), `DocumentoResource` (ET; `UuidV7.parse(presupuestoId)` + owner-to-404 presupuesto/proyecto). Ya alineados antes: APU/detalle, `plantillas-apu` (P-26), `ApuDetalleResponse.insumoId` UUIDv7. PK/FK permanecen `BIGINT`; `public_id` UUIDv7 ya existía en V001 (sin migraciones nuevas — no se creó V008/V009 y no se reabre V001–V007). `UuidV7.parse` (regex v7 + `UUID.version() == 7` + variant `2`) como parser canónico de frontera; 400 `validacion` para UUID malformado/no-v7; 404 `no-encontrado` para ajeno/inexistente (RNF-05). **Verificación dirigida: 233/233 tests disponibles verdes** (`proyecto` 17, `insumo` 57, `apu` 41, `plantilla` 75, `documento` 7, `identifier` 36; `presupuesto.*` aún no contiene tests). `git diff --check` verde; build sin el gate Spotless verde. `spotlessCheck` y el build exacto siguen rojos únicamente por 23 archivos preexistentes ajenos a Plan 07. Suite completa y Bruno quedan para Plan 08. Matriz endpoint↔ID externo y seams alineados en el doc del plan. |
 | 018 | [Cierre documental, Bruno y verificación](../docs/modulos/planes-para-estar-al-dia/08-cierre-documental-y-verificacion.md) | I-06 | **DONE (2026-08-30).** Documentación backend sincronizada; `api/bruno/09-i02-i06/` autocontenido con UUIDv7 y nueve temas; colecciones 06–08 reparadas. Spotless y `build -x test` verdes. Suites dirigidas sin regresiones; suite completa 313/2/0/1 con únicamente GM-19/GM-20 residuales aceptados y GM-24 omitido upstream. Sin módulos, endpoints ni migraciones nuevas; Graphify actualizado. |
 
-Plans for I-07 through I-12 (presupuesto, cronograma, export, admin,
-validación final) are not yet written — they
-will be authored in later planning sessions once each preceding iteration's
-plans are DONE and CI-green.
+Plans for I-08 through I-12 (cronograma, export, admin, validación final) are
+not yet written — they will be authored in later planning sessions once each
+preceding iteration's plans are DONE and CI-green.
+
+### I-07 — Módulo `presupuesto` (P-28…P-32)
+
+> **Estado (2026-08-31):** planificación I-07 redactada y **PLANNED / READY**.
+> Índice + 7 planes ejecutables (019–025) en
+> [`../docs/modulos/05-presupuesto/`](../docs/modulos/05-presupuesto/00.md).
+> **No implementado todavía** — la ejecución efectiva de cada plan queda
+> pendiente y se hace en orden estricto del DAG (019 → 020 → 021 → 022 →
+> 023 → 024 → 025). Las decisiones locked son: PK/FK BIGINT internas;
+> `public_id UUID DEFAULT uuidv7()` en `capitulo` y `rubro` (V008
+> estructural, nuevo); motor no se reabre; regla workbook-consistent
+> vigente; `recalculo` es el único seam nuevo de I-07; cronograma/actividad
+> P-33…P-36 y export SERCOP P-37 siguen fuera de I-07 (I-08/I-09/I-10);
+> la identidad pública UUIDv7 para `cronograma`/`actividad` queda
+> pendiente para una migración futura de I-08 (numeración por
+> determinar; no se pre-asigna V009).
+
+| # | Plan | Iteración | Estado |
+|---|---|---|---|
+| 019 | [Identidad pública UUIDv7 y persistencia base](../docs/modulos/05-presupuesto/01-identidad-y-persistencia.md) | I-07 | **PLANNED / READY (2026-08-31)** — entidades `Capitulo`/`Rubro` con WU-03 + V008 estructural (`public_id UUID DEFAULT uuidv7()` + trigger de inmutabilidad); repos `findByPublicIdAndOwnerScope` con traversal a `Proyecto`. Sin implementación todavía. |
+| 020 | [Activación del módulo profundo `recalculo` (write-through)](../docs/modulos/05-presupuesto/02-recalculo-write-through.md) | I-07 | **PLANNED / READY (2026-08-31)** — nuevo módulo `ec.uce.propuestas.recalculo` con interfaz `recalcular(Alcance)` (3 records: `Version`, `Apu`, `Insumo` — firma canónica de `08-codebase-design.md` §3); delega al `Motor.consolidar`/`Motor.calcularApu` existente (motor cerrado por Plan 014). La propagación grano fino del agregado `Presupuesto → Capitulo → Rubro` se sirve por `Alcance.Version(presupuestoId)`. Activación del `recalculo` diferido por I-06 — I-07 es el primer plan que lo activa. Sin implementación todavía. |
+| 021 | [Ciclo de vida del presupuesto: auto-create v1 vigente, listado y read model](../docs/modulos/05-presupuesto/03-ciclo-presupuesto.md) | I-07 | **PLANNED / READY (2026-08-31)** — `GET /proyectos/{id}/presupuestos` + `GET /presupuestos/{id}`; verificación de auto-create v1 vigente en `POST /proyectos`; invariante «exactamente una vigente por proyecto» vía índice parcial V001 §2.8. Sin implementación todavía. |
+| 022 | [CRUD de capítulos con renumeración atómica y prevención de ciclos](../docs/modulos/05-presupuesto/04-capitulos.md) | I-07 | **PLANNED / READY (2026-08-31)** — P-28 completo: jerarquía ilimitada, `item` autogenerado en backend, mover atómico con `WITH RECURSIVE` para detección de ciclos, eliminación con cascade. APUs sobreviven al borrado de un capítulo (D-09 + V001 §3). Sin implementación todavía. |
+| 023 | [Rubros, totales write-through y resumen por componente](../docs/modulos/05-presupuesto/05-rubros-totales-resumen.md) | I-07 | **PLANNED / READY (2026-08-31)** — P-29 + P-30: vínculo 1:1 APU↔rubro (D-09), cantidad de obra > 0 validada en DTO (V007 mantiene `cantidad >= 0` interno para plantilla de proyecto), write-through vía `recalculo`, resumen M/N/O/P + IVA referencial. Sin implementación todavía. |
+| 024 | [Versionado de presupuesto: deep copy, vigente, comparación](../docs/modulos/05-presupuesto/06-versionado-comparacion.md) | I-07 | **PLANNED / READY (2026-08-31)** — P-31 completo: deep copy bit-a-bit idéntico al origen (TC-P31-01 tolerancia 0.00), marcar vigente transaccional, eliminar con protección de la vigente (409 `version-vigente-protegida`), comparación lado a lado. Copia estructural de `cronograma`/`actividad` si existen (I-08 introduce CRUD). Sin implementación todavía. |
+| 025 | [Validación de integridad, Bruno, Graphify y cierre del módulo I-07](../docs/modulos/05-presupuesto/07-validacion-y-cierre.md) | I-07 | **PLANNED / READY (2026-08-31)** — P-32 (`GET /presupuestos/{id}/validacion` con `exportable`, `itemsPuCero`, `itemsCantidadCero`, `itemsSinActividad`), Bruno `api/bruno/10-presupuesto/`, Graphify refresh, cierre documental, suite completa con conteo real. Sin implementación todavía. |
 
 ### 013 — Módulo APU avanzado (P-23…P-27, P-45, P-46 + decisiones N04) (raised 2026-08-19, reconciled 2026-08-28)
 
