@@ -210,8 +210,8 @@ public class CapituloService {
             throw ProblemaException.validacion("El parentId indicado crearía un ciclo en el árbol de capítulos");
         }
 
-        List<Capitulo> hermanosDestino = new ArrayList<>(
-                capituloRepository.listarHermanosEnPresupuesto(presupuestoId, nuevoPadreId));
+        List<Capitulo> hermanosDestino =
+                new ArrayList<>(capituloRepository.listarHermanosEnPresupuesto(presupuestoId, nuevoPadreId));
         hermanosDestino.removeIf(h -> cap.id.equals(h.id));
         validarPosicion(req.orden(), hermanosDestino.size() + 1);
 
@@ -274,7 +274,9 @@ public class CapituloService {
             if (c.parentId == null) {
                 raices.add(c);
             } else {
-                hijosPorPadre.computeIfAbsent(c.parentId, k -> new ArrayList<>()).add(c);
+                hijosPorPadre
+                        .computeIfAbsent(c.parentId, k -> new ArrayList<>())
+                        .add(c);
             }
         }
         // El orden en memoria ya refleja la posición pedida por la mutación (que
@@ -374,8 +376,7 @@ public class CapituloService {
      * proyecto) → 400 {@code validacion}; si no existe o es de otro usuario →
      * 404 {@code no-encontrado}.
      */
-    private Capitulo resolverCapituloEnPresupuesto(
-            UUID capituloPublicId, Long presupuestoId, Long callerUsuarioId) {
+    private Capitulo resolverCapituloEnPresupuesto(UUID capituloPublicId, Long presupuestoId, Long callerUsuarioId) {
         if (capituloPublicId == null) {
             throw ProblemaException.noEncontrado("Capítulo no encontrado");
         }
@@ -421,7 +422,8 @@ public class CapituloService {
      * asignado. Longitud 19 ≤ {@code VARCHAR(20)}.
      */
     private static String itemAparcadoProvisional() {
-        return PREFIJO_ITEM_APARCADO + UUID.randomUUID().toString().replace("-", "").substring(0, 18);
+        return PREFIJO_ITEM_APARCADO
+                + UUID.randomUUID().toString().replace("-", "").substring(0, 18);
     }
 
     /**

@@ -24,4 +24,5 @@ import java.util.UUID;
  * </ul>
  * </p>
  */
-public record CapituloMoverRequest(UUID parentId, @NotNull @Min(1) Short orden) {}
+public record CapituloMoverRequest(
+        UUID parentId, @NotNull @Min(1) Short orden) {}

@@ -9,4 +9,5 @@ import jakarta.validation.constraints.Size;
  * descripción; {@code item} y {@code orden} se mantienen (no son editables
  * directamente — para reposicionar se usa {@code PATCH …/mover}).
  */
-public record CapituloEditarRequest(@NotBlank @Size(max = 255) String descripcion) {}
+public record CapituloEditarRequest(
+        @NotBlank @Size(max = 255) String descripcion) {}

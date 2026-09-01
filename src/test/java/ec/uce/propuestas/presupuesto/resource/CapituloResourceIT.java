@@ -78,12 +78,18 @@ class CapituloResourceIT {
         return given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .body(Map.of(
-                        "nombreProyecto", nombre,
-                        "codigo", "P-2026-P22",
-                        "anio", (short) 2026,
-                        "plazoEjecucion", (short) 6,
-                        "plazoUnidad", "MES",
-                        "direccionInstitucional", "GAD Municipal"))
+                        "nombreProyecto",
+                        nombre,
+                        "codigo",
+                        "P-2026-P22",
+                        "anio",
+                        (short) 2026,
+                        "plazoEjecucion",
+                        (short) 6,
+                        "plazoUnidad",
+                        "MES",
+                        "direccionInstitucional",
+                        "GAD Municipal"))
                 .when()
                 .post("/api/v1/proyectos")
                 .then()
@@ -155,8 +161,8 @@ class CapituloResourceIT {
     private Long insertarApu(String presupuestoPublicId, String codigo) throws Exception {
         Long presupuestoId = internalPresupuestoId(presupuestoPublicId);
         try (Connection con = ds.getConnection();
-                PreparedStatement ps = con.prepareStatement(
-                        "INSERT INTO apu (presupuesto_id, codigo, descripcion, unidad, "
+                PreparedStatement ps =
+                        con.prepareStatement("INSERT INTO apu (presupuesto_id, codigo, descripcion, unidad, "
                                 + "costo_directo, costo_indirecto, costo_total) "
                                 + "VALUES (?, ?, ?, 'u', 0, 0, 0) RETURNING id")) {
             ps.setLong(1, presupuestoId);
@@ -270,8 +276,8 @@ class CapituloResourceIT {
     private String insertarVersionNoVigente(String proyectoPublicId, short version) throws Exception {
         Long proyectoId = internalProyectoId(proyectoPublicId);
         try (Connection con = ds.getConnection();
-                PreparedStatement ps = con.prepareStatement(
-                        "INSERT INTO presupuesto (proyecto_id, version, es_vigente) "
+                PreparedStatement ps =
+                        con.prepareStatement("INSERT INTO presupuesto (proyecto_id, version, es_vigente) "
                                 + "VALUES (?, ?, FALSE) RETURNING public_id")) {
             ps.setLong(1, proyectoId);
             ps.setShort(2, version);
@@ -309,8 +315,7 @@ class CapituloResourceIT {
     private long contarCapitulos(String presupuestoPublicId) throws Exception {
         Long pId = internalPresupuestoId(presupuestoPublicId);
         try (Connection con = ds.getConnection();
-                PreparedStatement ps = con.prepareStatement(
-                        "SELECT COUNT(*) FROM capitulo WHERE presupuesto_id = ?")) {
+                PreparedStatement ps = con.prepareStatement("SELECT COUNT(*) FROM capitulo WHERE presupuesto_id = ?")) {
             ps.setLong(1, pId);
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();
@@ -322,9 +327,8 @@ class CapituloResourceIT {
     private long contarRubros(String presupuestoPublicId) throws Exception {
         Long pId = internalPresupuestoId(presupuestoPublicId);
         try (Connection con = ds.getConnection();
-                PreparedStatement ps = con.prepareStatement(
-                        "SELECT COUNT(*) FROM rubro r "
-                                + "JOIN capitulo c ON c.id = r.capitulo_id WHERE c.presupuesto_id = ?")) {
+                PreparedStatement ps = con.prepareStatement("SELECT COUNT(*) FROM rubro r "
+                        + "JOIN capitulo c ON c.id = r.capitulo_id WHERE c.presupuesto_id = ?")) {
             ps.setLong(1, pId);
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();
@@ -1017,16 +1021,17 @@ class CapituloResourceIT {
     }
 
     @Test
-    void TC_P22_25_recalcular_total_capitulo_y_presupuesto_con_rubro() throws Exception {
+    void TC_P22_25_recalcular_normaliza_totales_desde_snapshot_del_apu() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p22-c25@ex.com");
         String proyectoId = crearProyecto(token, "Recalc rubro");
         String presupuestoId = vigenteDeProyecto(proyectoId);
 
-        // Sembrar APU con costo_total=12.345678 (precio_unitario se trunca a 12.34)
+        // Sembrar un APU sin filas pero con derivados obsoletos. El recálculo debe
+        // reconstruirlos desde su snapshot vacío.
         long apuId;
         try (Connection con = ds.getConnection();
-                PreparedStatement ps = con.prepareStatement(
-                        "INSERT INTO apu (presupuesto_id, codigo, descripcion, unidad, "
+                PreparedStatement ps =
+                        con.prepareStatement("INSERT INTO apu (presupuesto_id, codigo, descripcion, unidad, "
                                 + "costo_directo, costo_indirecto, costo_total) "
                                 + "VALUES (?, 'AR-CALC', 'Calculo', 'u', 0, 0, 12.345678) RETURNING id")) {
             Long presupuestoIdInt = internalPresupuestoId(presupuestoId);
@@ -1069,16 +1074,14 @@ class CapituloResourceIT {
                 .then()
                 .statusCode(200)
                 .body("capitulos[0].rubros.size()", is(1))
-                // precioUnitario truncado DOWN a 2dp = 12.34 (escala 6 → "12.340000")
-                .body("capitulos[0].rubros[0].precioUnitario", equalTo("12.340000"))
-                // precioTotal = 10 * 12.34 = 123.4 a escala 6 → "123.400000"
-                .body("capitulos[0].rubros[0].precioTotal", equalTo("123.400000"))
-                .body("capitulos[0].total", equalTo("123.400000"))
-                .body("totalGeneral", equalTo("123.400000"));
+                .body("capitulos[0].rubros[0].precioUnitario", equalTo("0.000000"))
+                .body("capitulos[0].rubros[0].precioTotal", equalTo("0.000000"))
+                .body("capitulos[0].total", equalTo("0.000000"))
+                .body("totalGeneral", equalTo("0.000000"));
 
         // Write-through persistido, no sólo serializado en la respuesta.
-        assertEquals(0, leerTotalCapitulo(capId).compareTo(new BigDecimal("123.400000")));
-        assertEquals(0, leerTotalPresupuesto(presupuestoId).compareTo(new BigDecimal("123.400000")));
+        assertEquals(0, leerTotalCapitulo(capId).compareTo(BigDecimal.ZERO));
+        assertEquals(0, leerTotalPresupuesto(presupuestoId).compareTo(BigDecimal.ZERO));
     }
 
     @Test
@@ -1312,8 +1315,8 @@ class CapituloResourceIT {
     private String internalCapituloItemLookup(String presupuestoPublicId, String item) throws Exception {
         Long presupuestoId = internalPresupuestoId(presupuestoPublicId);
         try (Connection con = ds.getConnection();
-                PreparedStatement ps = con.prepareStatement(
-                        "SELECT public_id FROM capitulo WHERE presupuesto_id = ? AND item = ?")) {
+                PreparedStatement ps =
+                        con.prepareStatement("SELECT public_id FROM capitulo WHERE presupuesto_id = ? AND item = ?")) {
             ps.setLong(1, presupuestoId);
             ps.setString(2, item);
             try (ResultSet rs = ps.executeQuery()) {
