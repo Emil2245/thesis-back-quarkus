@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.matchesPattern;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ec.uce.propuestas.support.AuthSupport;
 import ec.uce.propuestas.usuario.auth.RecordingEnviadorCorreo;
@@ -1283,6 +1284,80 @@ class CapituloResourceIT {
                 .body("capitulos[0].subcapitulos[2].descripcion", equalTo("S2"));
 
         assertEquals(List.of("1:1", "1.1:1", "1.2:2", "1.3:3"), huellaArbol(presupuestoId));
+    }
+
+    /**
+     * Plan 023 — al renumerar el árbol (p. ej. mover un capítulo que
+     * cambia su {@code item}), los rubros directos bajo cada capítulo se
+     * renumeran también para que su prefijo refleje el {@code item} vigente
+     * del padre. Cierra el riesgo Plan 022 de un rubro con prefijo stale.
+     */
+    @Test
+    void TC_P22_31_mover_capitulo_re_numera_prefijo_de_sus_rubros() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p22-c31@ex.com");
+        String proyectoId = crearProyecto(token, "Prefijo rubro");
+        String presupuestoId = vigenteDeProyecto(proyectoId);
+        Long presupuestoLong = internalPresupuestoId(presupuestoId);
+
+        // Sembrar: cap1 (item="1") con rubro "1.1", cap2 (item="2").
+        long cap1Id;
+        long apuId;
+        try (Connection con = ds.getConnection()) {
+            try (var ps = con.prepareStatement(
+                    "INSERT INTO capitulo (presupuesto_id, parent_id, item, descripcion, orden, total) "
+                            + "VALUES (?, NULL, '1', 'Cap1', 1, 0) RETURNING id")) {
+                ps.setLong(1, presupuestoLong);
+                try (ResultSet rs = ps.executeQuery()) {
+                    rs.next();
+                    cap1Id = rs.getLong(1);
+                }
+            }
+            try (var ps = con.prepareStatement(
+                    "INSERT INTO capitulo (presupuesto_id, parent_id, item, descripcion, orden, total) "
+                            + "VALUES (?, NULL, '2', 'Cap2', 2, 0)")) {
+                ps.setLong(1, presupuestoLong);
+                ps.executeUpdate();
+            }
+            try (var ps = con.prepareStatement("INSERT INTO apu (presupuesto_id, codigo, descripcion, unidad, "
+                    + "costo_directo, costo_indirecto, costo_total) "
+                    + "VALUES (?, 'APU-PFX', 'X', 'u', 0, 0, 0) RETURNING id")) {
+                ps.setLong(1, presupuestoLong);
+                try (ResultSet rs = ps.executeQuery()) {
+                    rs.next();
+                    apuId = rs.getLong(1);
+                }
+            }
+            try (var ps = con.prepareStatement(
+                    "INSERT INTO rubro (capitulo_id, apu_id, item, codigo, descripcion, unidad, cantidad) "
+                            + "VALUES (?, ?, '1.1', 'AR-001', 'R', 'u', 5)")) {
+                ps.setLong(1, cap1Id);
+                ps.setLong(2, apuId);
+                ps.executeUpdate();
+            }
+        }
+
+        // Mover cap1 a la posición 2 → cap1 ahora item="2", cap2 ahora item="1".
+        // El rubro bajo cap1 (era "1.1") debe re-numerarse a "2.1".
+        String cap1Pub = capituloPublicIdDeItem(presupuestoId, "1");
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("orden", 2))
+                .when()
+                .patch("/api/v1/presupuestos/" + presupuestoId + "/capitulos/" + cap1Pub + "/mover")
+                .then()
+                .statusCode(200);
+
+        // Persistencia: el rubro bajo el capítulo con item="2" debe tener item="2.1".
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps =
+                        con.prepareStatement("SELECT r.item FROM rubro r JOIN capitulo c ON c.id = r.capitulo_id "
+                                + "WHERE c.presupuesto_id = ? AND c.item = '2'")) {
+            ps.setLong(1, presupuestoLong);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next(), "Se esperaba un rubro bajo el capítulo con item=\"2\"");
+                assertEquals("2.1", rs.getString(1));
+            }
+        }
     }
 
     // ──────────────────────────────────────────────────────────────────────

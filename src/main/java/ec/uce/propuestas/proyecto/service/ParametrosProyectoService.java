@@ -73,6 +73,20 @@ public class ParametrosProyectoService {
         return previo.compareTo(solicitado) != 0;
     }
 
+    /**
+     * Devuelve los parámetros efectivos sin materializar la fila lazy. Los GET de
+     * cálculo/resumen usan este método para permanecer estrictamente read-only.
+     */
+    public ParametrosProyecto obtenerEfectivosSinCrear(Long proyectoId) {
+        ParametrosProyecto existentes = parametrosRepository.findById(proyectoId);
+        if (existentes != null) {
+            return existentes;
+        }
+        ParametrosProyecto defaults = new ParametrosProyecto();
+        defaults.proyectoId = proyectoId;
+        return defaults;
+    }
+
     /** Crea la fila de parámetros con defaults si aún no existe (tabla de uno-a-uno). */
     @Transactional
     public ParametrosProyecto obtenerOCrear(Long proyectoId) {

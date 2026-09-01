@@ -54,9 +54,13 @@ import java.util.UUID;
  * <p>Toda mutación estructural termina en {@link #renumerarArbol(Long)}, que:
  * <ol>
  *   <li>normaliza el {@code orden} de cada nivel a {@code 1..n} contiguo (sin
- *       huecos ni empates), y</li>
+ *       huecos ni empates),</li>
  *   <li>recomputa recursivamente el {@code item} de TODO el árbol
- *       ({@code padre.item + "." + orden}; raíz = {@code orden}).</li>
+ *       ({@code padre.item + "." + orden}; raíz = {@code orden}), y</li>
+ *   <li>Plan 023 — normaliza los {@code item} de los rubros directos de cada
+ *       capítulo a {@code capitulo.item + "." + 1..n}, ordenando por {@code item}
+ *       y desempate por {@code id}. Cierra el riesgo Plan 022 de un rubro con
+ *       prefijo stale heredado de un capítulo que cambió de posición.</li>
  * </ol>
  *
  * <p>La escritura de los {@code item} se hace en <strong>dos pasadas</strong>
@@ -313,6 +317,54 @@ public class CapituloService {
             }
         }
         capituloRepository.getEntityManager().flush();
+
+        // Plan 023 — tras renumerar el árbol de capítulos, los rubros
+        // directos de cada capítulo heredan un prefijo que puede quedar
+        // stale (p. ej. un rubro "1.1" bajo un capítulo que pasó a ser
+        // "3"). Se normaliza cada capítulo a
+        // {@code capitulo.item + "." + 1..n}, ordenando los rubros por
+        // {@code item} y desempate por {@code id}. Idempotente.
+        normalizarItemsDeRubros(todos);
+    }
+
+    /**
+     * Plan 023 (§6) — Normaliza los {@code item} de los rubros directos de
+     * cada capítulo a la forma contigua {@code capitulo.item + "." + 1..n}.
+     *
+     * <p>Reglas:
+     * <ul>
+     *   <li>Sort estable: {@code item} ascendente, desempata por {@code id}.</li>
+     *   <li>Sólo se reescribe el campo {@code item}; precios, cantidades y
+     *       totales quedan intactos (el write-through del {@code recalcular}
+     *       posterior los propaga).</li>
+     *   <li>No se abre transacción propia (hereda la del caller).</li>
+     * </ul>
+     *
+     * <p>Se accede directamente a {@link RubroRepository} en lugar de
+     * delegar en {@code RubroService.compactarRubrosDelCapitulo} para no
+     * introducir un seam Plan023 → Plan022 desde este servicio: la
+     * determinación del prefijo vigente vive aquí porque este método
+     * corre justo después de fijar el {@code item} de los capítulos.</p>
+     */
+    private void normalizarItemsDeRubros(List<Capitulo> capitulos) {
+        boolean cambios = false;
+        for (Capitulo c : capitulos) {
+            List<Rubro> rubros = rubroRepository.listarPorCapitulo(c.id);
+            if (rubros.isEmpty()) {
+                continue;
+            }
+            rubros.sort(Comparator.comparing((Rubro r) -> r.item).thenComparing(r -> r.id));
+            for (int i = 0; i < rubros.size(); i++) {
+                String objetivo = c.item + "." + (i + 1);
+                if (!objetivo.equals(rubros.get(i).item)) {
+                    rubros.get(i).item = objetivo;
+                    cambios = true;
+                }
+            }
+        }
+        if (cambios) {
+            rubroRepository.getEntityManager().flush();
+        }
     }
 
     /**

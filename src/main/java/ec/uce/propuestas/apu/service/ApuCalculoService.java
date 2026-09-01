@@ -30,10 +30,17 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Write-through del cálculo de un APU (RNF-02, a nivel APU). Construye el
- * {@link ApuSnapshot} desde la BD, llama a {@link Motor#calcularApu} y persiste
- * los derivados (totales del APU, subtotales de sección, costo/costo_hora por
- * fila). No toca nada dentro de {@code motor/}.
+ * Cálculo de un APU (RNF-02 a nivel APU). Plan 023 introduce el seam
+ * read-only {@link #calcular(Apu)} que construye el {@link ApuSnapshot}
+ * desde la BD, llama a {@link Motor#calcularApu} y devuelve el
+ * {@link ApuCalculado} <b>sin</b> persistir derivados — para alimentar el
+ * resumen por componente (P-30) y otros consumidores on-demand sin tocar
+ * la BD. {@link #recalcular(Apu)} delega en {@link #calcular(Apu)} y
+ * luego persiste los derivados (totales del APU, subtotales de sección,
+ * costo/costo_hora por fila), preservando exactamente el comportamiento
+ * previo del write-through.
+ *
+ * <p>No toca nada dentro de {@code motor/}.</p>
  */
 @ApplicationScoped
 public class ApuCalculoService {
@@ -53,31 +60,59 @@ public class ApuCalculoService {
     @Inject
     ParametrosProyectoService parametrosService;
 
-    @Transactional
-    public ApuCalculado recalcular(Apu apu) {
+    /**
+     * Plan 023 — read-only: construye el snapshot del APU, llama al motor y
+     * devuelve el {@link ApuCalculado} sin persistir nada. Pensado para
+     * consumidores on-demand (P-30 resumen, cálculo proyectado) que no quieren
+     * pagar el costo del write-through.
+     *
+     * <p>Se ejecuta dentro de la transacción del caller (no se anota con
+     * {@code @Transactional} propio): si el caller está dentro de una
+     * transacción más amplia, comparte su contexto y ve la sesión de la
+     * misma forma que {@code recalcular}. El motor es puro Java y no requiere
+     * contexto transaccional propio.</p>
+     */
+    public ApuCalculado calcular(Apu apu) {
         Long proyectoId = apuRepository
                 .proyectoDePresupuesto(apu.presupuestoId)
                 .orElseThrow(() -> ProblemaException.noEncontrado("Presupuesto no encontrado"));
-        ParametrosProyecto params = parametrosService.obtenerOCrear(proyectoId);
+        ParametrosProyecto params = parametrosService.obtenerEfectivosSinCrear(proyectoId);
 
         List<ApuSeccion> secciones = seccionRepository.listarDeApu(apu.id);
         secciones.sort(Comparator.comparingInt(s -> s.tipo.ordinal()));
 
         List<FilaSnapshot> filas = new ArrayList<>();
-        List<ApuDetalle> entidades = new ArrayList<>();
 
         for (ApuSeccion seccion : secciones) {
             List<ApuDetalle> detalles = detalleRepository.listarDeSeccion(seccion.id);
             for (ApuDetalle d : detalles) {
                 Insumo insumo = d.insumoId == null ? null : insumoRepository.findById(d.insumoId);
                 filas.add(snapshotDeDetalle(d, seccion.tipo, insumo, params.porcentajeHerramientaMenor));
-                entidades.add(d);
             }
         }
 
-        ApuCalculado out = Motor.calcularApu(
+        return Motor.calcularApu(
                 new ApuSnapshot(apu.codigo, apu.porcentajeIndirecto, filas),
                 new ParametrosCalculo(params.porcentajeHerramientaMenor, params.porcentajeIndirecto));
+    }
+
+    /**
+     * Write-through del cálculo de un APU (RNF-02, a nivel APU). Plan 023
+     * refactor: delega en {@link #calcular(Apu)} (read-only, recién
+     * introducido) y luego persiste los derivados sobre la salida del motor.
+     * Comportamiento y semántica idénticos al release previo (Plan 013).
+     */
+    @Transactional
+    public ApuCalculado recalcular(Apu apu) {
+        ApuCalculado out = calcular(apu);
+
+        List<ApuSeccion> secciones = seccionRepository.listarDeApu(apu.id);
+        secciones.sort(Comparator.comparingInt(s -> s.tipo.ordinal()));
+
+        List<ApuDetalle> entidades = new ArrayList<>();
+        for (ApuSeccion seccion : secciones) {
+            entidades.addAll(detalleRepository.listarDeSeccion(seccion.id));
+        }
 
         List<FilaCalculada> calc = out.filas();
         // Layout de out.filas() = [M (HM primero si existe), N, O, P]. Las
@@ -86,6 +121,10 @@ public class ApuCalculoService {
         // compartido para NO asumir índices paralelos — sin esto, mover el HM
         // a un orden no primero mezclaría su costo con el de las filas no-HM.
         Map<Long, Integer> calcIdx = mapearDetallesACalc(entidades, secciones);
+        Long proyectoId = apuRepository
+                .proyectoDePresupuesto(apu.presupuestoId)
+                .orElseThrow(() -> ProblemaException.noEncontrado("Presupuesto no encontrado"));
+        ParametrosProyecto params = parametrosService.obtenerOCrear(proyectoId);
         for (ApuDetalle d : entidades) {
             FilaCalculada fc = calc.get(calcIdx.get(d.id));
             d.costo = fc.costoFila();

@@ -1,10 +1,9 @@
 # Plan 023 — Rubros, totales write-through y resumen por componente (P-29, P-30)
 
-> **Plan 023** del módulo [`05-presupuesto`](00.md). PLANNED / READY —
-> 2026-08-31. **No implementado todavía.** Cubre P-29 (CRUD de
-> rubros: vínculo 1:1 APU↔rubro, cantidad de obra, write-through) y
-> P-30 (totales por capítulo recursivos + resumen por componente
-> M/N/O/P + IVA referencial + total general).
+> **Plan 023** del módulo [`05-presupuesto`](00.md). **DONE —
+> 2026-09-01.** Implementa P-29 (CRUD de rubros, vínculo 1:1
+> APU↔rubro, cantidad y write-through) y P-30 (resumen directo M/N/O/P,
+> total general persistido, IVA referencial y total con IVA).
 
 ## Resultado esperado
 
@@ -30,11 +29,17 @@ estrictos).
 
 ## Estado de cierre
 
-**PLANNED / READY — 2026-08-31.** El ejecutor actualiza esta sección al
-término. Resultado esperado: «DONE (YYYY-MM-DD). TC-P29-01/02/03 +
-TC-P30-01 verdes; totales write-through verificados sobre el árbol
-IESS sembrado por V004; `git diff --check` limpio; regresión
-APU/capítulos/recalculo/motor verde.»
+**DONE — 2026-09-01.** `RubroResource` implementa crear, editar cantidad
+y eliminar; cada mutación hace write-through con `Alcance.Version` y
+devuelve el árbol completo. `ResumenComponentesResource` es read-only:
+M/N/O/P son contribuciones directas; `totalGeneral` proviene de
+`presupuesto.total` porque puede incluir CI y rounding de frontera; el
+IVA se aplica sobre ese total. Evidencia: `RubroResourceIT` 19/19,
+`ResumenComponentesResourceIT` 12/12, `CapituloResourceIT` 31/31,
+`PresupuestoResourceIT` 9/9 y `ApuCalculoReadOnlyTest` 3/3. Suite
+completa: **411 = 408 verdes + GM-19/GM-20 aceptados + GM-24 omitido,
+0 errores**. `spotlessCheck`, `build -x test` y `git diff --check`
+verdes.
 
 ---
 
@@ -338,20 +343,20 @@ sembrado; regresión APU/capítulos/recalculo/motor verde; `git diff
 
 ## Criterios de terminado
 
-- [ ] CRUD de rubros con UUIDv7, owner-scope, errores canónicos.
-- [ ] Cantidad de obra > 0 validada en DTO.
-- [ ] Vínculo 1:1 APU↔rubro verificado (UNIQUE activo).
-- [ ] APU validado que pertenece a la misma versión.
-- [ ] Write-through de `precio_total`/`capitulo.total`/
+- [x] CRUD de rubros con UUIDv7, owner-scope, errores canónicos.
+- [x] Cantidad de obra > 0 validada en DTO.
+- [x] Vínculo 1:1 APU↔rubro verificado (UNIQUE activo).
+- [x] APU validado que pertenece a la misma versión.
+- [x] Write-through de `precio_total`/`capitulo.total`/
   `presupuesto.total` vía `recalculo` en cada mutación.
-- [ ] Regla workbook-consistent respetada en la frontera
+- [x] Regla workbook-consistent respetada en la frontera
   APU→Rubro (delegada al helper del motor).
-- [ ] Resumen por componente con IVA referencial.
-- [ ] Tests TC-P29-01/02/03 + TC-P30-01 verdes.
-- [ ] Regresión APU/capítulos/recalculo/motor verde.
-- [ ] `git diff --check` limpio.
-- [ ] Plan 024 (versionado) puede hacer deep copy del árbol
-  completo.
+- [x] Resumen por componente con IVA referencial.
+- [x] Tests TC-P29-01/02/03 + TC-P30-01 verdes.
+- [x] Regresión APU/capítulos/recalculo/motor verificada; permanecen
+  únicamente GM-19/GM-20 aceptados y GM-24 omitido.
+- [x] `git diff --check` limpio.
+- [x] Plan 024 (versionado) puede hacer deep copy del árbol completo.
 
 ---
 
