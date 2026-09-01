@@ -62,4 +62,44 @@ public class PresupuestoRepository implements PanacheRepositoryBase<Presupuesto,
         return find("proyectoId = :proyectoId order by version desc", Parameters.with("proyectoId", proyectoId))
                 .list();
     }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Plan 024 (P-31) — versionado, vigente única y comparación
+    // ──────────────────────────────────────────────────────────────────────
+
+    /**
+     * Plan 024 — versión mayor registrada para el proyecto, o {@code null} si
+     * el proyecto todavía no tiene ninguna versión. SQL nativo con
+     * {@code LIMIT 1} para no cargar la lista completa (la práctica IESS
+     * mantiene ≤ 5–10 versiones por proyecto).
+     */
+    public Short maxVersionDeProyecto(Long proyectoId) {
+        Object value = getEntityManager()
+                .createNativeQuery("select max(version) from presupuesto where proyecto_id = ?1")
+                .setParameter(1, proyectoId)
+                .getSingleResult();
+        if (value == null) {
+            return null;
+        }
+        return ((Number) value).shortValue();
+    }
+
+    /**
+     * Plan 024 — bloqueo pesimista de la fila del proyecto
+     * ({@code SELECT id FROM proyecto WHERE id = ?1 FOR UPDATE}) para
+     * serializar la sección crítica «leer max(version) → insertar nueva
+     * versión» del deep copy y evitar que dos POSTs concurrentes del mismo
+     * proyecto elijan el mismo {@code version}. Sin esta guarda, dos
+     * inserciones simultáneas podrían ambas computar {@code max + 1} y
+     * chocar con el índice único {@code UNIQUE (proyecto_id, version)}
+     * (V001 §2.8). La operación es data-access only y vive en este módulo
+     * ({@code presupuesto/repository}) sin necesidad de modificar
+     * {@code proyecto/*}.
+     */
+    public void lockProyectoRow(Long proyectoId) {
+        getEntityManager()
+                .createNativeQuery("select id from proyecto where id = ?1 for update")
+                .setParameter(1, proyectoId)
+                .getSingleResult();
+    }
 }

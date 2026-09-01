@@ -1,14 +1,16 @@
 # Plan 024 — Versionado de presupuesto: deep copy, vigente única, comparación (P-31)
 
-> **Plan 024** del módulo [`05-presupuesto`](00.md). PLANNED / READY —
-> 2026-08-31. **No implementado todavía.** Cubre P-31
+> **Plan 024** del módulo [`05-presupuesto`](00.md). **DONE (2026-09-01).**
+> Implementación aplicada bajo `ec.uce.propuestas.presupuesto`. Cubre P-31
 > ([`design/03-procesos-detalle.md`](../../../../thesis-docs/plan/design/03-procesos-detalle.md) §E):
 > crear versión (deep copy de la origen), marcar vigente (transaccional),
 > comparar dos versiones, eliminar versión (protegiendo la vigente).
 > El deep copy **copia estructuralmente** las filas `cronograma` y
 > `actividad` si existen (DM §3) **sin** implementar el CRUD de
-> cronograma (P-33…P-36 — I-08/I-09). La identidad pública UUIDv7
-> para `cronograma` y `actividad` se difiere a una migración futura de I-08.
+> cronograma (P-33…P-36 — I-08/I-09); ver nota en
+> [§Implementación y evidencia](#implementación-y-evidencia) sobre la
+> copia con SQL nativo. La identidad pública UUIDv7 para `cronograma`
+> y `actividad` se difiere a una migración futura de I-08.
 
 ## Resultado esperado
 
@@ -36,12 +38,96 @@ como vigente (transaccional; la anterior pasa a `false`).
 
 ## Estado de cierre
 
-**PLANNED / READY — 2026-08-31.** El ejecutor actualiza esta sección al
-término. Resultado esperado: «DONE (YYYY-MM-DD). TC-P31-01/02/03/04
-verdes; deep copy bit-a-bit idéntico al origen (origen sin
-modificación); vigente transaccional OK; comparación OK;
-`git diff --check` limpio; regresión APU/capítulos/rubros/recalculo/
-motor verde.»
+**DONE (2026-09-01).** Implementación aplicada; cierre documental
+ejecutado en este pase. Sin seam nuevo, sin migraciones, sin reabrir
+`motor/`/`recalculo/`/`apu/`/`proyecto/`. `git diff --check` quedó
+limpio y `graphify update .` finalizó correctamente (con warnings no
+bloqueantes por `tree_sitter_sql` ausente).
+
+### Implementación y evidencia
+
+- **Ubicación:** toda la implementación vive bajo
+  `ec.uce.propuestas.presupuesto.{dto,resource,service}` —
+  `VersionadoService` (deep copy + marcar vigente + eliminar +
+  comparación), `PresupuestoVersionResource` (crear),
+  `PresupuestoVigenciaResource` (marcar vigente + eliminar),
+  `ComparacionResource` (comparación), DTOs
+  `PresupuestoVersionCrearRequest`, `ComparacionVersionesResponse`,
+  `ComparacionItem`, `CapituloRaizComparacion`. Apoyo en
+  `PresupuestoRepository.maxVersionDeProyecto(...)` y
+  `PresupuestoRepository.lockProyectoRow(...)` (modificación
+  mínima del repositorio: dos métodos data-access only, sin seam
+  nuevo en `proyecto/`).
+- **Deep copy bit-a-bit idéntico al origen (TC-P31-01):** una sola
+  `@Transactional` recorre el árbol origen (DFS), reinserta con
+  UUIDv7 públicos frescos y remapea FKs BIGINT internas
+  (`presupuesto` → `capitulo` con `parent_id` → `rubro` →
+  `apu` nuevo por rubro → `apu_seccion` (4) → `apu_detalle`);
+  preserva referencias compartidas a `insumo` (no se copian) y la
+  APU ET; cierra con
+  `RecalculoService.recalcular(new Alcance.Version(nuevoId))` para
+  que `presupuesto.total`, `capitulo.total` recursivos y
+  `rubro.precio_total` coincidan con el origen (tolerancia 0.00).
+- **Cronograma / actividad — copia estructural con SQL nativo:**
+  `cronograma` y `actividad` aún no son entidades JPA en I-07
+  (I-08/I-09 las introduce con CRUD), pero DM §3 / P-31 exige
+  copiarlas. El deep copy las copia con SQL nativo dentro de
+  `VersionadoService` cuando existen en el origen (FK remapeada al
+  nuevo `presupuesto_id` / `rubro_id`), en la misma transacción,
+  antes del recalculo final; no se introducen entidades JPA ni
+  migraciones. Esto **resuelve** la contradicción previa del plan
+  (la intro decía "copia estructuralmente"; STOP (D) original decía
+  "manejar ausencia silenciosamente") y la deja cerrada.
+- **Inert `apu.porcentaje_descuento`:** no se mapea ni se copia
+  (compat seam inert de Plan 015); persiste con default 0 en BD.
+- **Concurrencia:** lock pesimista de fila
+  (`SELECT id FROM proyecto WHERE id = ? FOR UPDATE` en
+  `PresupuestoRepository.lockProyectoRow`) que serializa la sección
+  crítica «leer `max(version)` → insertar nueva versión» del deep
+  copy y los toggles `es_vigente`; el índice único parcial
+  `ux_presupuesto_vigente` (V001 §2.8) sigue garantizando
+  «exactamente una vigente por proyecto».
+- **owner-to-404 (RNF-05), D-09 (1:1 APU↔rubro) y UUIDv7 en
+  frontera REST** preservados en todos los recursos; UUID
+  malformado o no-v7 → 400 `validacion`.
+- **REST expuesto:** `POST /proyectos/{proyectoId}/presupuestos`
+  (crear versión, 201), `POST /presupuestos/{id}/vigente` (marcar
+  vigente, 200), `DELETE /presupuestos/{id}` (eliminar no vigente,
+  204; 409 `version-vigente-protegida` si vigente),
+  `GET /presupuestos/{id}/comparar?con=<UUIDv7>` (comparación lado
+  a lado con `porCapituloRaiz`, 400 si mismo id o distinto
+  proyecto).
+- **Verificación dirigida medida:**
+  - `VersionadoResourceIT` **14/14 verde** (success, error,
+    independencia origen↔copia, cascade, UUIDv7, owner scope);
+    tests de deep-copy **0.785 s** y **0.850 s** sobre el fixture
+    compacto representativo. El umbral STOP (A) no se activó en esas
+    pruebas; no se reclama un benchmark del árbol IESS completo.
+  - `./gradlew test --tests 'ec.uce.propuestas.presupuesto.*'
+    -Dquarkus.http.test-port=0 --console=plain` →
+    **85/85 verde**.
+  - `./gradlew test --tests 'ec.uce.propuestas.apu.*' ...` →
+    regresión **APU verde**.
+  - `./gradlew test --tests 'ec.uce.propuestas.recalculo.*' ...` →
+    regresión **`recalculo` verde**.
+  - `./gradlew test --tests 'ec.uce.propuestas.motor.*' ...` →
+    **45 = 42 verdes + 2 rojos aceptados (GM-19 `-$6.95`,
+    GM-20 cap. 1 `-$0.84` — residuales aceptados por Plan 014,
+    no se reabre el motor) + 1 skipped (GM-24 `@Disabled` por
+    fixture EMELNORTE upstream)**.
+  - `./gradlew spotlessCheck` → **verde**.
+  - `./gradlew build -x test --console=plain` →
+    **BUILD SUCCESSFUL**; 31 deprecation warnings (preexistentes;
+    sin error de build).
+  - `./gradlew test` (suite completa) → **425 totales =
+    422 verdes + 2 rojos aceptados (GM-19 + GM-20) +
+    1 skipped (GM-24) + 0 errors**.
+- **No** se ejecutó commit unitario (instrucción explícita del
+  usuario). `git diff --check` quedó limpio y `graphify update .`
+  finalizó correctamente.
+- **No** se avanzó Plan 025; **no** se modificó `motor/`,
+  `recalculo/`, `apu/`, `proyecto/` fuente, ni migraciones
+  (V001–V008 intactas; V009 no se pre-asigna).
 
 ---
 
@@ -208,15 +294,24 @@ ComparacionVersionesResponse {
 
 ## Pasos
 
-1. **Auditar entidades cronograma/actividad** — confirmar que existen
-   como entidades JPA (probablemente sólo como rastro del seed V004).
-   Si NO existen, este plan **no las introduce** (I-08); el deep
-   copy maneja su existencia condicionalmente con
-   `entityManager.find(Cronograma.class, presupuestoId) == null ? skip
-   : copy`.
-2. **RED — `VersionadoServiceIT.copiarVersion_crea_arbol_identico`**:
-   - Sembrar proyecto + presupuesto v1 + árbol IESS (33 capítulos,
-     298 rubros, APUs con secciones).
+1. **Auditar entidades cronograma/actividad — cerrado.** Confirmado
+   durante la implementación: **NO existen como entidades JPA en I-07**
+   (I-08 las introduce con CRUD e identidad pública UUIDv7 propia).
+   P-31 (DM §3) exige copiar las filas `cronograma` y `actividad` del
+   origen, así que el deep copy implementa la copia con **SQL nativo**
+   dentro de `VersionadoService`
+   (`EntityManager.createNativeQuery` con FK remapeada al nuevo
+   `presupuesto_id` / `rubro_id`), ejecutada dentro de la misma
+   transacción del deep copy, antes del recalculo final. **No** se
+   introducen entidades JPA, **no** se añaden migraciones, **no** se
+   introduce seam nuevo. Verificación: el test de integración de Plan
+   024 cuenta `SELECT COUNT(*) FROM cronograma WHERE presupuesto_id =
+   ?` y `SELECT COUNT(*) FROM actividad` antes/después del deep copy.
+2. **RED — `VersionadoResourceIT.TC_P31_01_deep_copy_completo_e_independiente_bit_a_bit`**:
+   - Sembrar un fixture compacto representativo con jerarquía de profundidad 3,
+     rubro, APU con cuatro secciones/detalles, insumo compartido y
+     cronograma/actividad. La regresión IESS completa permanece cubierta por
+     los golden masters del motor; este test aísla el remapeo estructural.
    - `VersionadoService.copiarVersion(proyectoId, caller,
      { origenId: v1.id })`.
    - Verificar:
@@ -239,24 +334,28 @@ ComparacionVersionesResponse {
        temporalmente.
      - INSERT `apu` (nuevo, con FK al nuevo presupuesto); preservar
        `codigo`, `descripcion`, `unidad`, `porcentaje_indirecto`,
-       `porcentaje_descuento` (columna inert — Plan 015, 2026-09-01; el deep copy **no** la copia), `especificacion_tecnica`,
+       `porcentaje_descuento` (columna inert — Plan 015, 2026-09-01;
+       el deep copy **no** la copia), `especificacion_tecnica`,
        `costo_*` (temporalmente 0).
      - INSERT 4 `apu_seccion` por APU.
      - INSERT `apu_detalle` filas por sección.
      - UPDATE `rubro.apu_id = apu_nuevo.id` (remap FK).
-     - INSERT `cronograma` si existe (FK remapeada).
-     - INSERT `actividad` si existe (FK `rubro_id` remapeada).
+     - INSERT `cronograma` si existe (FK remapeada; **SQL nativo**
+       dentro de `VersionadoService` — ver paso 1).
+     - INSERT `actividad` si existe (FK `rubro_id` remapeada; **SQL
+       nativo** — ver paso 1).
    - `RecalculoService.recalcular(Alcance.Version(presupuestoNuevoId))`
      al final → totales idénticos al origen.
 4. **RED — `VersionadoServiceIT.marcarVigente_transaccional`**:
    - Sembrar v1 vigente + v2 no vigente.
    - `marcarVigente(v2.id, caller)`.
-   - Verificar: v2 ahora vigente; v1 ahora no vigente; ambos
-     cambios en una sola transacción.
+   - Verificar: v2 ahora vigente; v1 ahora no vigente; ambos cambios
+     en una sola transacción.
    - Test cruzado: el índice único parcial rechaza 2 vigentes (la
      prueba directa está en Plan 021; este plan verifica el flujo).
-5. **GREEN — `VersionadoService.marcarVigente`** con SQL
-   transaccional (dos UPDATE consecutivos + commit).
+5. **GREEN — `VersionadoService.marcarVigente`** con SQL transaccional
+   (dos UPDATE consecutivos + commit), bajo lock pesimista del
+   proyecto (`PresupuestoRepository.lockProyectoRow`).
 6. **RED — `VersionadoServiceIT.eliminar_protege_vigente`**:
    - `eliminar(v1.vigente)` → 409 `version-vigente-protegida`.
    - `eliminar(v2.noVigente)` → 204; v1 sigue vigente; v2 borrada.
@@ -278,6 +377,8 @@ ComparacionVersionesResponse {
     - `TC-P31-04` editar la copia no afecta el origen.
     - Comparación entre v1 y v2.
     - UUIDv7 v4 en path → 400; recurso ajeno → 404.
+    - `cronograma` y `actividad` se copian con SQL nativo cuando
+      existen en el origen.
 11. **Verificación dirigida**:
     - `./gradlew test --tests 'ec.uce.propuestas.presupuesto.*'
       -Dquarkus.http.test-port=0 --console=plain` → verde.
@@ -290,12 +391,11 @@ ComparacionVersionesResponse {
     - `./gradlew test --tests 'ec.uce.propuestas.motor.*'
       -Dquarkus.http.test-port=0 --console=plain` → regresión motor
       verde.
-    - `./gradlew build -x test --console=plain` →
-      BUILD SUCCESSFUL.
+    - `./gradlew build -x test --console=plain` → BUILD SUCCESSFUL.
     - `git diff --check` → sin salida.
-12. **Commit unitario** con mensaje
-    `feat(presupuesto): Plan 024 versionado, deep copy, vigente y
-    comparación`.
+    - `graphify update .` → finalizado correctamente.
+12. **Commit unitario — NO EJECUTADO** por instrucción explícita del
+    usuario; el cierre conserva el working tree sin commit.
 
 ---
 
@@ -334,19 +434,25 @@ regresión APU/capítulos/rubros/recalculo/motor verde; `git diff
 
 ## Criterios de terminado
 
-- [ ] Deep copy crea árbol completo bit-a-bit idéntico al origen.
-- [ ] Marcar vigente transaccional: 0 vigentes → 1 vigente; la
-  anterior pasa a no vigente.
-- [ ] Eliminar versión no vigente = 204; eliminar vigente = 409
-  `version-vigente-protegida`.
-- [ ] Comparación devuelve totales y `porCapituloRaiz` para ambas
-  versiones.
-- [ ] El origen NO se modifica al crear/eliminar la copia.
-- [ ] Tests TC-P31-01/02/03/04 + comparación verdes.
-- [ ] Regresión APU/capítulos/rubros/recalculo/motor verde.
-- [ ] `git diff --check` limpio.
-- [ ] Plan 025 (validación + cierre) puede operar sobre la versión
-  vigente.
+- [x] Deep copy crea árbol completo bit-a-bit idéntico al origen
+  (TC-P31-01; recalculo final vía `Alcance.Version`).
+- [x] Marcar vigente transaccional: 0 vigentes → 1 vigente; la
+  anterior pasa a no vigente (lock pesimista de fila + 2 UPDATEs en
+  la misma `@Transactional`).
+- [x] Eliminar versión no vigente = 204; eliminar vigente = 409
+  `version-vigente-protegida` (también 404 si ajeno/inexistente).
+- [x] Comparación devuelve totales y `porCapituloRaiz` para ambas
+  versiones (400 si mismo id o distinto proyecto).
+- [x] El origen NO se modifica al crear/eliminar la copia (verificado
+  por TC-P31-01).
+- [x] Tests TC-P31-01/02/03/04 + comparación + UUIDv7 + owner-scope
+  + cascade + independencia verdes (`VersionadoResourceIT` 14/14).
+- [x] Regresión APU/capítulos/rubros/recalculo verde; motor con
+  residuales aceptados (GM-19/GM-20) y GM-24 skipped (sin regresión
+  respecto a línea base post-Plan 023).
+- [x] `git diff --check` limpio y `graphify update .` finalizado.
+- [x] Plan 025 (validación + cierre) puede operar sobre la versión
+  vigente — **siguiente plan ejecutable**, DAG I-07 desbloqueado.
 
 ---
 
@@ -362,10 +468,13 @@ regresión APU/capítulos/rubros/recalculo/motor verde; `git diff
 - **(C)** Si al eliminar una versión no vigente, una FK CASCADE
   falla por un APU referenciado desde otra versión, **STOP** — el
   modelo asume que los APUs se duplican en el deep copy; verificar.
-- **(D)** Si la actividad/cronograma no existe como entidad JPA pero
-  existe como rastro en el seed, **STOP** — este plan no introduce
-  las entidades (es I-08); el deep copy maneja su ausencia
-  silenciosamente.
+- **(D)** Copia de `cronograma` / `actividad` — **cerrado durante
+  la implementación.** Las entidades JPA no existen en I-07 (viven
+  en I-08/I-09), pero DM §3 / P-31 exige copiar las filas. La copia
+  se implementa con **SQL nativo** dentro de `VersionadoService` (FK
+  remapeada al nuevo `presupuesto_id` / `rubro_id`, en la misma
+  transacción). No se introducen entidades ni migraciones; no es
+  STOP.
 
 ---
 
