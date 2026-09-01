@@ -42,9 +42,10 @@ Do NOT invent English translations. The following terms are canonical:
 | `HM` / `herramienta menor` | minor tools row in EQUIPO section |
 | `base_insumos` | insumo catalog (CENTRAL or PROYECTO scope) |
 | `plantilla_apu` | APU template (SISTEMA or PERSONAL) |
-| `descuento` | per-APU discount at CD level, %, reversible |
+| `descuento` | **WITHDRAWN per APU** (Plan 015, 2026-09-01). Discount sobrevive únicamente como **FORMA 1** (mutación de las columnas base de los insumos elegibles copiados a la base PROYECTO del proyecto; **MO exenta**, reversible desde la base, regulada por `parametros_sistema.rango_descuento_min/max`) y **FORMA 2** (edición atómica de un insumo ya PROYECTO; sin seam nuevo). |
+| `FORMA 1` / `FORMA 2` | mutually exclusive — FORMA 1 = mutación de la base PROYECTO (`InsumoCrudService.editar` sobre base PROYECTO) con MO exenta; FORMA 2 = edición atómica de un insumo ya PROYECTO. Nunca “monto absoluto”. |
 | `%CI` / `porcentaje_indirecto` | indirect-cost percentage |
-| `CD`, `CD_ajustado`, `CI`, `CT` | direct cost, adjusted direct cost, indirect cost, total cost |
+| `CD`, `CD_ajustado`, `CI`, `CT` | `CD` direct cost; `CI` indirect cost; `CT` total cost. `CD_ajustado` queda como sinónimo internal (`CD` cuando `descuento = 0`); **el campo `ApuCalculado.costoDirectoAjustado` se retira en Plan 015** (la aritmética del motor usa `CI = CD × %CI` y `CT = CD + CI`). Los JSON públicos de `ApuCalculoResumen` ya no exponen `cdAjustado` ni `operacionCdAjustado`. |
 
 Two roles only: `USUARIO`, `SUPER_ADMIN`. No third role. No middleware roles.
 
@@ -110,9 +111,8 @@ Lives in `src/main/java/ec/uce/propuestas/motor/`. Contract:
 - **Golden Masters** (`GM-01`…`GM-25`) are the acceptance test. Any GM
   failing → real bug. Do NOT add tolerance, do NOT adjust expected values.
 
-**Current motor status** (cierre parcial USER-DECIDED 2026-08-28; ver
-[`plans/014-motor-precision-no-links.md`](plans/014-motor-precision-no-links.md)
-y [Plan 02](docs/modulos/planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)):
+**Current motor status** (cierre parcial USER-DECIDED 2026-08-28 — Plan 014;
+[Plan 015 — DONE 2026-09-01](plans/015-retirar-descuento-apu.md)):
 el motor opera con la **precisión natural de `BigDecimal`**; el workbook
 IESS no aplica redondeo intermedio al APU (las 3 dp visibles son formato de
 display). La **única rounding del motor aplicada** es la frontera
@@ -137,25 +137,38 @@ solo en los campos monetarios de DTO del catálogo cerrado del plan
 `InsumoEditarRequest.precioUnitario`; nunca en campos de entidad como
 `tarifaJornal` / `precioUnitarioTarifa`, ni en cantidades, rendimientos
 o porcentajes) — **IMPLEMENTADO** (Plan 014 T4, 2026-08-28, verificado
-por `DigitsValidationCatalogTest` 3/3).
+por `DigitsValidationCatalogTest` 3/3). Plan 015 retiró el *seam* activo de
+descuento por APU: `motor.ParametrosCalculo.porcentajeDescuento` y
+`motor.ApuCalculado.costoDirectoAjustado` eliminados; aritmética del motor
+queda equivalente a `CI = CD × %CI`, `CT = CD + CI` (identidad con
+`descuento = 0`).
 
-**Baseline post-implementación (2026-08-28 — Plan 014 IMPLEMENTATION COMPLETE,
-GM-21 cleanup DEFERRED)**
-`./gradlew test --tests 'ec.uce.propuestas.motor.*' --console=plain`:
-`MotorApuTest` 21/21 verde; `MotorPropiedadesTest` 5/5 verde;
-`ConsolidadorFronteraTest` 5/5 verde (T1 workbook-consistent);
-`SnapshotSinAuxiliaresTest` 6/6 verde (T2 no-links estructural);
-`DisplayConfigResourceTest` 1/1 + `DisplayConfigResourceOverrideTest` 1/1
-verde (T3 display); `DigitsValidationCatalogTest` 3/3 verde (T4
-`@Digits`). GM-21 verde con allowlist de **11 entradas ≤ 0.03 a nivel
-PU** (artefactos de redondeo manual del workbook IESS); **GM-19 y GM-20
-RED** con residual aceptado — GM-19 actual `395108.37` vs esperado
-`395115.32` (delta `-$6.95`); GM-20 cap. 1 actual `158907.21` vs
-esperado `158908.05` (delta `-$0.84`). GM-24 `@Disabled` (fixture
-upstream). DIAG borrado. **No** se reabre el motor para cerrar este
-residual; workbook, golden expected values, tolerancias y fórmulas del
-motor quedan cerradas. Preferencia del usuario: este es **un example
+**Baseline post-implementación (2026-09-01 — Plan 015 DONE + Plan 020
+ACTIVATED; suite completa / Spotless / build siguen pendientes, no se
+reclaman)**
+`./gradlew test --tests 'ec.uce.propuestas.motor.*' --console=plain` →
+**45 tests** totales: **42 verdes** + **2 rojos** (GM-19 `-$6.95`, GM-20
+cap. 1 `-$0.84` — residuales aceptados) + **1 omitido** (GM-24 `@Disabled`
+por fixture upstream EMELNORTE). Desglose: `MotorApuTest` 21/21;
+`MotorConsolidacionTest` 2/4 (GM-21 verde con allowlist 11 ≤ 0.03; GM-19,
+GM-20 rojos); `MotorPropiedadesTest` 5/5
+(`costoIndirecto_aplica_sobre_CD_y_depende_de_pct_ci`);
+`ConsolidadorFronteraTest` 5/5; `SnapshotSinAuxiliaresTest` 6/6;
+`DescuentoRetiradoMotorTest` 4/4. **No** se reabre el motor para cerrar
+los residuales; workbook, golden expected values, tolerancias y fórmulas
+del motor quedan cerradas. Preferencia del usuario: este es **un example
 workbook único**; no se realizan auditorías exhaustivas per-rubro.
+
+**Módulo `recalculo` (Plan 020, DONE 2026-09-01):** módulo profundo
+`ec.uce.propuestas.recalculo` activo con interfaz
+`recalcular(Alcance)`; `Alcance = Version | Apu | Insumo` (sealed
+interface). `Motor` invocado estáticamente (CDI nunca);
+`VersionSnapshotBuilder` permanece en `recalculo/internal` (`public` por
+límite de subpaquete Java, no es seam). `RecalculoServiceIT` 4/4 verdes
+(TDD focal con `@QuarkusTest` + Dev Services; `Motor` real, sin mocks).
+Pre-requisito = Plan 015 DONE.
+
+**Plan 021 (DONE 2026-09-01) — Ciclo de vida del presupuesto (auto-create v1 vigente, listado, read model):** módulo `presupuesto` activo con auto-create de la fila `presupuesto(version=1, es_vigente=true)` orquestado desde `ProyectoService.crear` en la misma `@Transactional` (sin seam nuevo — gap detectado por la auditoría del plan, ejecutado en este mismo plan); `GET /proyectos/{id}/presupuestos` (lista de versiones, owner-scoped) servido por `ProyectoResource`; `GET /presupuestos/{id}` (read model **recursivo** del árbol `Presupuesto → Capitulo → Rubro`) servido por `PresupuestoResource` (split por cohesión); DTOs `PresupuestoVersionResponse` / `PresupuestoResponse` / `CapituloResponse` / `RubroResponse` con mappers estáticos; `alertas` (`PU_CERO`, etc.) **diferido a Plan 025** y por tanto **no** forma parte del shape inicial de `RubroResponse`; `ParametrosProyecto` y `BaseInsumos` permanecen lazy (fuera de scope del read model). **Evidencia (medida tras retoques fixture-only):** `PresupuestoResourceIT` **9/9 verde**, `ProyectoResourceIT` **8/8 verde** (TC-P06-01 verifica el auto-create), `RecalculoServiceIT` **4/4 verde** (sin regresión); `./gradlew spotlessCheck` **verde**, `./gradlew build -x test` **verde**, `git diff --check` **limpio**; suite completa re-ejecutada **346 totales = 343 pass + 2 aceptados (GM-19 `-$6.95`, GM-20 cap. 1 `-$0.84`) + 1 skipped (GM-24 `@Disabled`) + 0 errors**. DAG I-07 sigue desbloqueado; siguiente plan ejecutable = Plan 022 (`04-capitulos.md`).
 
 **Regla de modificación del Motor (Plan 014, 2026-08-28):**
 - **`Motor.calcularApu()` y `internal/CalculadorFila.java`:** el guard "do
@@ -205,13 +218,13 @@ siguiendo el patrón de `plans/006`. Cada cambio debe:
 ./gradlew build -Dquarkus.native.enabled=true -Dquarkus.native.container-build=true   # native (~10 min)
 ```
 
-Expected motor test count (post-cierre-parcial 2026-08-28): **36 tests
-totales** (21 `MotorApuTest` + 5 `MotorConsolidacionTest` + 5 `MotorPropiedadesTest`
-+ 5 `ConsolidadorFronteraTest`); **2 red** (GM-19 `-$6.95`, GM-20 cap. 1
-`-$0.84` — **residual aceptado**, no se reabre el motor); **2 skipped**
-(GM-24 `@Disabled` por fixture EMELNORTE upstream; `DIAG_rubro_expected_vs_actual`
-`@Disabled` — pendiente de borrado en Plan 014). Conteo total de la suite
-se **reporta** desde los XML de `build/test-results/`, no se presupone.
+Expected motor test count (post-Plan 015, 2026-09-01): **45 tests totales**
+(21 `MotorApuTest` + 4 `MotorConsolidacionTest` + 5 `MotorPropiedadesTest` +
+5 `ConsolidadorFronteraTest` + 6 `SnapshotSinAuxiliaresTest` + 4 `DescuentoRetiradoMotorTest`);
+**42 verdes** + **2 rojos** (GM-19 `-$6.95`, GM-20 cap. 1 `-$0.84` — **residual
+aceptado**, no se reabre el motor) + **1 omitido** (GM-24 `@Disabled` por
+fixture EMELNORTE upstream; DIAG borrado por Plan 014). Conteo total de la
+suite se **reporta** desde los XML de `build/test-results/`, no se presupone.
 
 Do **not** hardcode a post-change total. After any run, report the real
 counts from the XML results instead of predicting them:

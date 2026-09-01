@@ -8,6 +8,11 @@ import java.math.BigDecimal;
  * <p>Contrato: {@code hm} viene del proyecto; {@code ciDefault} del proyecto
  * (puede ser null si el proyecto no definió %CI); {@code ciAplicado} =
  * COALESCE(apu.porcentajeIndirecto, proyecto.porcentajeIndirecto), 0 si ambos
- * son null; {@code descuento} = apu.porcentajeDescuento (0 si null).
+ * son null.
+ *
+ * <p>Plan 015 (P-24/S-24 withdrawn): el campo {@code descuento} se retira del
+ * contrato JSON. El motor no aplica descuento por APU; sobrevive FORMA 1 sobre
+ * las columnas base de los insumos PROYECTO (regulada por
+ * {@code rango_descuento_*} en {@code ParametrosSistema}).
  */
-public record ApuCalculoParametros(BigDecimal hm, BigDecimal ciDefault, BigDecimal ciAplicado, BigDecimal descuento) {}
+public record ApuCalculoParametros(BigDecimal hm, BigDecimal ciDefault, BigDecimal ciAplicado) {}

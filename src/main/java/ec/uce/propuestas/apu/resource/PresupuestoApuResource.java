@@ -155,7 +155,6 @@ public class PresupuestoApuResource {
                 base.costoTotal(),
                 base.porcentajeIndirecto(),
                 base.porcentajeIndirectoEfectivo(),
-                base.porcentajeDescuento(),
                 base.secciones(),
                 advertencias);
     }

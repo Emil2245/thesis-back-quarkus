@@ -13,6 +13,10 @@ import java.util.UUID;
  * con códigos no resueltos; el resto de endpoints la omiten (forma estable
  * para los consumidores existentes). {@code @JsonInclude(NON_NULL)} evita
  * que el campo aparezca cuando no aplica.
+ *
+ * <p>Plan 015 (P-24/S-24 withdrawn): el campo {@code porcentajeDescuento} se
+ * retira del contrato JSON. La columna BD {@code apu.porcentaje_descuento}
+ * queda como compatibility seam inert (V001 sin cambios; JPA la ignora).
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ApuResponse(
@@ -25,6 +29,5 @@ public record ApuResponse(
         BigDecimal costoTotal,
         BigDecimal porcentajeIndirecto,
         BigDecimal porcentajeIndirectoEfectivo,
-        BigDecimal porcentajeDescuento,
         List<ApuSeccionResponse> secciones,
         List<AdvertenciaPlantillaResponse> advertencias) {}

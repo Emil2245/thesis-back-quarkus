@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 class MotorApuTest {
 
     private static final ParametrosCalculo P_TULCAN =
-            new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1800"), BigDecimal.ZERO);
+            new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1800"));
 
     private static final String TULCAN_FILE = "apus-sample-apus-cetro-medico-tulcan.json";
 
@@ -330,8 +330,7 @@ class MotorApuTest {
                 null,
                 java.util.List.of(hmFila, moInstalador, moPeon, moMaestro, matVinil, matCordon, matPegamento));
 
-        ParametrosCalculo p =
-                new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1800"), BigDecimal.ZERO);
+        ParametrosCalculo p = new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1800"));
 
         ApuCalculado out = Motor.calcularApu(snap, p);
 

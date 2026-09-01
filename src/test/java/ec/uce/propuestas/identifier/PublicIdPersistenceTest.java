@@ -516,7 +516,7 @@ class PublicIdPersistenceTest {
         apu.codigo = codigo;
         apu.descripcion = "APU de prueba";
         apu.unidad = "u";
-        apu.porcentajeDescuento = BigDecimal.ZERO;
+        apu.porcentajeIndirecto = null;
         apu.costoDirecto = BigDecimal.ZERO;
         apu.costoIndirecto = BigDecimal.ZERO;
         apu.costoTotal = BigDecimal.ZERO;

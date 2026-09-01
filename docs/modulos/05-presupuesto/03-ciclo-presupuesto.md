@@ -1,13 +1,21 @@
 # Plan 021 — Ciclo de vida del presupuesto: auto-create v1 vigente, listado y read model
 
-> **Plan 021** del módulo [`05-presupuesto`](00.md). PLANNED / READY —
-> 2026-08-31. **No implementado todavía.** Cubre los aspectos del
-> **ciclo de vida del presupuesto** que viven fuera de los CRUD de
-> capítulos (Plan 022), rubros (Plan 023) y versionado (Plan 024):
-> el **auto-create de la versión 1 vigente** al crear un proyecto (P-06
-> §4, ya parcialmente implementado por `ProyectoService`), el
-> **listado de versiones** (P-31 parte listado) y el **read model
-> completo** del árbol `Presupuesto → Capitulo → Rubro` (P-28-30 read).
+> **Plan 021** del módulo [`05-presupuesto`](00.md). **DONE — 2026-09-01.**
+> Implementados en este plan: **auto-create** de la versión 1 vigente del
+> presupuesto dentro de `POST /proyectos` (en la misma `@Transactional`,
+> orquestado desde `ProyectoService.crear` mediante una llamada al nuevo
+> `PresupuestoService.crearVigenteInicial(...)` — gap detectado por la
+> auditoría del plan, cerrado aquí sin seam nuevo); **listado** de
+> versiones del proyecto en `GET /proyectos/{id}/presupuestos` (servido
+> por `ProyectoResource`); **read model completo** del árbol
+> `Presupuesto → Capitulo → Rubro` en `GET /presupuestos/{id}` (servido
+> por `PresupuestoResource`, **recursivo**, sin tope de profundidad).
+> Cubre los aspectos del **ciclo de vida del presupuesto** que viven
+> fuera de los CRUD de capítulos (Plan 022), rubros (Plan 023) y
+> versionado (Plan 024): el **auto-create de la versión 1 vigente** al
+> crear un proyecto (P-06 §4), el **listado de versiones** (P-31 parte
+> listado) y el **read model completo** del árbol `Presupuesto → Capitulo
+> → Rubro` (P-28…P-30 read).
 
 ## Resultado esperado
 
@@ -15,18 +23,26 @@ Cuando un usuario crea un proyecto vía `POST /proyectos`, el sistema
 crea automáticamente, dentro de la misma transacción:
 
 1. La fila `Proyecto` + `ParametrosProyecto` (copia de
-   `ParametrosSistema`).
-2. La base PROYECTO (auto-creada por `BaseInsumosService`).
+   `ParametrosSistema`) — responsabilidad del módulo `proyecto`
+   (DONE 2026-08-02 / Plan 09); **queda lazy en este plan** y
+   Plan 021 **no** la reabre.
+2. La base PROYECTO (auto-creada por `BaseInsumosService`) —
+   responsabilidad del módulo `insumo` (DONE 2026-08-02); **queda
+   lazy en este plan** y Plan 021 **no** la reabre.
 3. La fila `Presupuesto` con `version = 1`, `es_vigente = true`,
    `origen_id = NULL`, `notas = NULL`, `porcentaje_indirecto = NULL`
-   (hereda del proyecto), `total = 0`.
+   (hereda del proyecto), `total = 0` — **pieza nueva de Plan 021**:
+   `ProyectoService.crear` invoca `PresupuestoService.crearVigenteInicial(...)`
+   en la misma `@Transactional` (gap detectado por la auditoría del
+   plan y cerrado en este plan, ≤ 30 líneas dentro de STOP §A).
 
-`GET /proyectos/{id}/presupuestos` lista las versiones del proyecto
-(nº, fecha, notas, total, vigente). `GET /presupuestos/{id}` devuelve
-el árbol completo actual (read model único de la jerarquía), con
-`Capitulo` y `Rubro` enriquecidos desde sus entidades. La invariante
-«exactamente una versión vigente por proyecto» se verifica con el
-índice único parcial `ux_presupuesto_vigente` (V001 §2.8).
+`GET /proyectos/{id}/presupuestos` (servido por `ProyectoResource`)
+lista las versiones del proyecto (nº, fecha, notas, total, vigente).
+`GET /presupuestos/{id}` (servido por `PresupuestoResource`) devuelve
+el árbol **recursivo** completo actual (read model único de la
+jerarquía), con `Capitulo` y `Rubro` enriquecidos desde sus entidades.
+La invariante «exactamente una versión vigente por proyecto» se
+verifica con el índice único parcial `ux_presupuesto_vigente` (V001 §2.8).
 
 ## Dependencias
 
@@ -41,11 +57,26 @@ el árbol completo actual (read model único de la jerarquía), con
 
 ## Estado de cierre
 
-**PLANNED / READY — 2026-08-31.** El ejecutor actualiza esta sección al
-término. Resultado esperado: «DONE (YYYY-MM-DD). `presupuesto`
-test-suite verde (entity + repository + service + resource); TC-P06-01
-verifica auto-create; TC-P28-01 (sin árbol aún) pasa; spotless y
-`git diff --check` limpios.»
+**DONE — 2026-09-01.** Implementación aplicada y verificación dirigida
+completa (cifras al pie en la sección «Pruebas y comprobaciones»). El plan
+**NO** introduce módulos nuevos de primer nivel, **NO** crea una migración
+nueva (V001–V008 intactas; V009 no se pre-asigna), **NO** añade un seam
+nuevo y **NO** reabre el motor. La corrección del gap detectado por la
+auditoría (auto-create v1 vigente ausente en `ProyectoService.crear`) cabe
+en menos de 30 líneas y entra dentro del STOP §A autorizado por el plan
+—no escala.
+
+**Recheck completado tras los retoques fixture-only finales del plan.** Los
+siguientes gates quedaron **verdes tras** los retoques fixture-only del
+plan (alineación de imports / reformateo palantir en tests):
+`./gradlew spotlessCheck` **verde**, `./gradlew build -x test` **verde**,
+`git diff --check` **limpio**. La suite completa `./gradlew test`
+re-ejecutada tras los retoques fixture-only quedó conteada en **346
+totales = 343 pass + 2 aceptados (GM-19 `-$6.95`, GM-20 cap. 1 `-$0.84`)
++ 1 skipped (GM-24 `@Disabled`) + 0 errors** (medido desde los XML de
+`build/test-results/`): el motor y la regla workbook-consistent
+permanecen cerrados (Plan 014) y los residuales aceptados siguen sin
+reabrirse.
 
 ---
 
@@ -53,56 +84,102 @@ verifica auto-create; TC-P28-01 (sin árbol aún) pasa; spotless y
 
 ### Lo que ya existe (DONE, NO se reabre)
 
-1. **`ProyectoService.crear` ya crea un `Presupuesto` v1 vigente** —
-   el flujo P-06 lo exige (DM §3: «el sistema crea, en una
-   transacción: `Proyecto`, `ParametrosProyecto`, `Presupuesto` versión
-   1 vigente, …»). Verificación: tests existentes en
-   `ec.uce.propuestas.proyecto.*` ya cubren que al crear un proyecto
-   existe exactamente una versión vigente (TC-P06-01).
+1. **`ProyectoService.crear` ya crea `Proyecto` + `ParametrosProyecto`
+   (copia de `ParametrosSistema`) + base PROYECTO** dentro de la misma
+   transacción (módulo `proyecto` cerrado 2026-08-02 / Plan 09). **Pero
+   no** creaba la fila `Presupuesto` versión 1 vigente — el plan original
+   lo especulaba erróneamente. La auditoría previa a la implementación
+   detectó el gap y Plan 021 cierra esa pieza (ver § «Lo que este plan
+   construyó» #1).
 2. **`PresupuestoRepository.findVigenteDeProyecto`** (módulo
-   `presupuesto`): devuelve el vigente de un proyecto. Listado de
-   versiones (`findByProyectoIdOrderByVersionDesc`) NO existe todavía;
-   este plan lo añade.
+   `presupuesto`, WU-03): devuelve el vigente de un proyecto. Plan 021
+   añade el listado de versiones (`findByProyectoIdOrderByVersionDesc`)
+   como pieza nueva.
 3. **Índice único parcial `ux_presupuesto_vigente`** (V001 §2.8):
    `CREATE UNIQUE INDEX ux_presupuesto_vigente ON presupuesto
    (proyecto_id) WHERE es_vigente;` — garantiza la invariante
-   «exactamente una vigente por proyecto».
+   «exactamente una vigente por proyecto». Verificado por tests del
+   repository de `presupuesto`.
 4. **`UUIDv7` parse canónico** en
-   `ec.uce.propuestas.common.UuidV7` (Plan 07).
+   `ec.uce.propuestas.common.UuidV7` (Plan 07) — usado en frontera
+   REST para todos los `pathParam` UUIDv7 de I-07.
 5. **`ProblemaException` + `GlobalExceptionMapper`** en
-   `ec.uce.propuestas.common` (Plan 07).
+   `ec.uce.propuestas.common` (Plan 07) — usado para mapear 400
+   `validacion` (UUID malformado / no-v7) y 404 `no-encontrado`
+   (RNF-05: ajeno o inexistente).
+6. **`recalculo` activo** (Plan 020 DONE 2026-09-01, módulo
+   `ec.uce.propuestas.recalculo` con `Alcance = Version | Apu | Insumo`).
+   Plan 021 sólo **lee** totales; el contrato del read model **no**
+   invoca `recalcular(Alcance)` ni toca la coherencia de totales. La
+   coherencia de `presupuesto.total` y de los `capitulo.total` la
+   garantiza `recalculo` cuando los rubros se creen en Plan 023; este
+   plan verifica la lectura.
 
-### Lo que falta (este plan lo construye)
+### Lo que este plan construyó
 
-1. **`PresupuestoRepository.listarVersiones(Long proyectoId)`** —
-   devuelve todas las versiones ordenadas por `version DESC`. Sin
-   paginación (esperamos ≤ 5–10 versiones por proyecto).
-2. **`PresupuestoService`** — capa de servicio (CRUD plano donde la
-   lógica es trivial; este plan introduce lo mínimo):
+1. **Auto-create v1 vigente en `POST /proyectos`** — orquestado desde
+   `ProyectoService.crear` mediante una llamada al nuevo
+   `PresupuestoService.crearVigenteInicial(...)` dentro de la misma
+   `@Transactional`. El gap (el flujo creaba `Proyecto`,
+   `ParametrosProyecto` y base PROYECTO, **pero no** `Presupuesto`)
+   fue detectado por la auditoría del plan (ver STOP §A) y se cerró
+   en menos de 30 líneas. Ningún seam nuevo; PK/FK y campos de
+   `presupuesto` inalterados. Verificación: TC-P06-01 ya existente
+   en `ec.uce.propuestas.proyecto.*` re-ejecutado en verde.
+2. **`PresupuestoRepository.listarVersiones(Long proyectoId)`** —
+   `ORDER BY version DESC` (sin paginación en I-07: ≤ 5–10 versiones
+   por proyecto en la práctica). Helper
+   `findByProyectoIdAndEsVigenteFalse(...)` añadido para uso futuro
+   por Plan 024.
+3. **`PresupuestoService`** con cuatro métodos públicos:
+   - `crearVigenteInicial(...)` — invocado desde `ProyectoService.crear`
+     en la misma transacción.
    - `obtenerVigente(UUID proyectoId, Long callerUsuarioId)` —
-     devuelve el vigente; 404 si no existe.
+     devuelve el vigente; 404 si no existe o es ajeno.
    - `listarVersiones(UUID proyectoId, Long callerUsuarioId)` —
      lista todas las versiones; 404 si el proyecto es ajeno.
    - `obtenerArbol(Long presupuestoId, Long callerUsuarioId)` —
      devuelve el árbol completo `Capitulo → Rubro` con totales
-     write-through vigentes.
-3. **`PresupuestoResponse`** + `PresupuestoVersionResponse` +
-   mappers estáticos en `mapper/`.
-4. **`PresupuestoResource`** (versión 1: GET only) —
-   - `GET /proyectos/{proyectoId}/presupuestos` →
-     `List<PresupuestoVersionResponse>`.
-   - `GET /presupuestos/{presupuestoId}` → `PresupuestoResponse`
-     (árbol completo).
-5. **Tests** que cubran:
-   - Auto-create vigente en `ProyectoService.crear` (verificación:
-     TC-P06-01, ya cubierto por proyecto; este plan **NO** añade
-     test nuevo allí — verifica que sigue verde tras tocar
-     `presupuesto.repository`).
-   - Listado de versiones (varias versiones, vigente marcada).
-   - Read model devuelve árbol vacío cuando no hay capítulos.
-   - Read model devuelve árbol con capítulos y rubros tras Plan 022
-     + 023 (estos tests vivirán en 022/023; este plan sólo verifica
-     el camino vacío).
+     vigentes, **recursivo** (sin tope de profundidad).
+4. **DTOs + mappers estáticos en `mapper/`**:
+   `PresupuestoVersionResponse`, `PresupuestoResponse`,
+   `CapituloResponse`, `RubroResponse`. El mapper arma el árbol
+   recursivo aplanando por `parentId` (recursión trivial; la práctica
+   IESS muestra ≤ 4 niveles).
+5. **Rutas divididas entre dos recursos** (decisión locked, ver §3):
+   - `ProyectoResource.GET /proyectos/{proyectoId}/presupuestos` →
+     `List<PresupuestoVersionResponse>` (lista de versiones del
+     proyecto, owner-scoped).
+   - `PresupuestoResource.GET /presupuestos/{presupuestoId}` →
+     `PresupuestoResponse` (read model **único y completo** del árbol).
+   Separación por cohesión: el listado cuelga del recurso proyecto; el
+   árbol cuelga del recurso presupuesto y será mutado por Plan 022
+   (capítulos) y Plan 023 (rubros). Ningún seam adicional; ambos
+   recursos usan el mismo `PresupuestoService` interno y
+   `UuidV7.parse(...)` en frontera (`400 validacion` para UUID
+   malformado / no-v7, `404 no-encontrado` para ajeno / inexistente —
+   RNF-05).
+6. **`alertas` se difiere a Plan 025**. El shape inicial de
+   `RubroResponse` **NO incluye** el campo `alertas: ["PU_CERO", ...]`
+   que el plan original especulaba. La detección y serialización de
+   alertas de validación (PU=0, cantidad=0, sin actividad — P-32)
+   viven en Plan 025 (`07-validacion-y-cierre.md`) y se añadirán allí
+   (ver `PresupuestoValidacionService` + `GET /presupuestos/{id}/validacion`).
+   Esta corrección se propaga a Plan 023 cuando se implemente.
+7. **`ParametrosProyecto` y `BaseInsumos` permanecen lazy en este
+   plan**. Plan 021 sólo añade el `Presupuesto` v1 al flujo de creación
+   (`POST /proyectos`); las filas `ParametrosProyecto` (copia de
+   `ParametrosSistema`) y base PROYECTO siguen siendo responsabilidad
+   del módulo `proyecto` (DONE 2026-08-02) y del módulo `insumo`
+   (DONE 2026-08-02), respectivamente. Plan 021 no introduce ni
+   modifica el seam de esos flujos; ningún cambio en su contrato.
+8. **Tests** — ver §Pruebas y comprobaciones. Resumen:
+   `PresupuestoResourceIT` 9/9 verde (UUIDv7, owner-scope, 400
+   UUIDv4 / malformado, 404 ajeno, árbol vacío al inicio, árbol
+   poblado transitivo); `ProyectoResourceIT` 8/8 verde
+   (regresión; TC-P06-01 verifica el auto-create v1 vigente);
+   `RecalculoServiceIT` 4/4 verde (regresión; este plan sólo lee
+   totales).
 
 ### Decisiones de diseño locked
 
@@ -113,23 +190,55 @@ verifica auto-create; TC-P28-01 (sin árbol aún) pasa; spotless y
   árbol completo recalculado) — una sola cache key de TanStack Query
   en el cliente (`07-api-contract.md` §6, nota sobre mutaciones del
   agregado).
+- **Rutas divididas por cohesión** (locked en este plan):
+  `ProyectoResource` sirve el listado de presupuestos del proyecto
+  (`/proyectos/{id}/presupuestos`); `PresupuestoResource` sirve el
+  árbol (`/presupuestos/{id}`) y, en 022/023, las mutaciones del
+  árbol. Ningún seam nuevo; ambos recursos usan el mismo
+  `PresupuestoService` interno y `UuidV7.parse(...)` en frontera.
+  El listado queda en `ProyectoResource` por la regla «sub-recurso
+  REST del padre»; el árbol queda en `PresupuestoResource` por la
+  regla «recurso por agregado raíz».
+- **Read model recursivo** (locked): `GET /presupuestos/{id}`
+  devuelve el árbol completo con cualquier profundidad de
+  `Capitulo.subcapitulos` (sin tope). Mapper aplanando por
+  `parentId` con recursión trivial (la práctica IESS muestra ≤ 4
+  niveles). `presupuesto.total = Σ capítulos raíz` con totales
+  ascendentes coherentes vía `recalculo`.
+- **Auto-create v1 vigente se implementa en este plan** (locked tras
+  auditoría). El plan original especulaba que `ProyectoService.crear`
+  ya creaba el Presupuesto; la auditoría previa a la implementación
+  detectó el gap y Plan 021 lo cierra aquí con una llamada a
+  `PresupuestoService.crearVigenteInicial(...)` desde
+  `ProyectoService.crear` en una sola `@Transactional` (≤ 30 líneas;
+  dentro del STOP §A — no se escala). Ningún seam nuevo; PK/FK y
+  campos de `presupuesto` inalterados.
+- **`ParametrosProyecto` y `BaseInsumos` permanecen lazy** (locked
+  para este plan). Plan 021 sólo añade el `Presupuesto` v1 al flujo
+  de creación; las filas `ParametrosProyecto` (copia de
+  `ParametrosSistema`) y base PROYECTO siguen siendo responsabilidad
+  del módulo `proyecto` (DONE 2026-08-02) y del módulo `insumo`
+  (DONE 2026-08-02), respectivamente. Plan 021 no introduce ni
+  modifica el seam de esos flujos.
+- **`alertas` se difiere a Plan 025** (locked). El shape inicial de
+  `RubroResponse` **NO incluye** el campo `alertas: ["PU_CERO", ...]`.
+  La detección y serialización de alertas de validación de
+  integridad (P-32: PU=0, cantidad=0, sin actividad) viven en
+  Plan 025 (`07-validacion-y-cierre.md`) — `PresupuestoValidacionService`
+  + `GET /presupuestos/{id}/validacion` con `exportable`,
+  `itemsPuCero`, `itemsCantidadCero`, `itemsSinActividad`. Esta
+  corrección se propaga a Plan 023 cuando se implemente.
 - **`CapituloResponse`/`RubroResponse`** se introducen en este plan
-  con shape estable pero campos **mínimos** (id, item, descripción,
-  orden, total para capítulos; id, item, código, descripción,
-  unidad, cantidad, precioUnitario, precioTotal, apuId para rubros).
-  Los planes 022/023 los amplían sólo si hace falta (debería ser
-  innecesario — el shape ya cubre el árbol).
-- **Auto-create vigente no se duplica**. Si
-  `ProyectoService.crear` ya lo hace (verificación 1 arriba), este
-  plan sólo **documenta** el contrato. Si NO lo hace (gap detectado
-  por el test de regresión), este plan lo implementa como
-  `PresupuestoService.crearVigenteInicial(...)` y lo invoca desde
-  `ProyectoService.crear` en una sola `@Transactional`.
+  con shape estable: `CapituloResponse { id, item, descripción,
+  orden, total, subcapitulos[], rubros[] }` (recursivo);
+  `RubroResponse { id, item, código, descripción, unidad, cantidad,
+  precioUnitario, precioTotal, apuId }`. **Sin** `alertas` en el
+  shape inicial. Los planes 022/023 los amplían sólo si hace falta.
 - **`presupuesto.total` se mantiene coherente**: tras un read model
   en una versión sin árbol, devuelve `0` (DEFAULT). Tras un read
-  model tras el primer rubro, devuelve `Σ` capítulos raíz. La
-  coherencia la garantiza `recalculo` (Plan 020); este plan sólo
-  verifica la lectura.
+  model tras el primer rubro (vía Plan 023), devuelve `Σ` capítulos
+  raíz. La coherencia la garantiza `recalculo` (Plan 020); este plan
+  sólo verifica la lectura.
 
 ---
 
@@ -137,18 +246,31 @@ verifica auto-create; TC-P28-01 (sin árbol aún) pasa; spotless y
 
 ### Incluye
 
-- `PresupuestoRepository.listarVersiones(Long proyectoId)` +
-  `listarHijosPorCapitulos(...)` + `listarRubrosPorCapitulos(...)`.
-- `PresupuestoService` con tres métodos públicos:
+- **Auto-create v1 vigente en `POST /proyectos`** orquestado desde
+  `ProyectoService.crear` mediante `PresupuestoService.crearVigenteInicial(...)`
+  en la misma `@Transactional` (≤ 30 líneas dentro de STOP §A — no escala).
+- `PresupuestoRepository.listarVersiones(Long proyectoId)` (helper
+  `findByProyectoIdAndEsVigenteFalse(...)` añadido para uso futuro
+  por Plan 024).
+- `PresupuestoService` con cuatro métodos públicos:
+  - `crearVigenteInicial(...)` — invocado desde `ProyectoService.crear`.
   - `obtenerVigente(UUID proyectoId, Long callerUsuarioId)`.
   - `listarVersiones(UUID proyectoId, Long callerUsuarioId)`.
-  - `obtenerArbol(Long presupuestoId, Long callerUsuarioId)`.
+  - `obtenerArbol(Long presupuestoId, Long callerUsuarioId)` —
+    recursivo, sin tope de profundidad.
 - `PresupuestoVersionResponse`, `PresupuestoResponse`,
-  `CapituloResponse`, `RubroResponse` (mappers estáticos).
-- `PresupuestoResource` con 2 endpoints (GET only).
-- Tests `PresupuestoRepositoryIT`, `PresupuestoServiceIT`,
-  `PresupuestoResourceIT` con UUIDv7, owner-scope, árbol vacío y
-  árbol poblado (vía seeds manuales en test, no vía Plan 022/023).
+  `CapituloResponse` (recursivo), `RubroResponse` (mappers estáticos).
+- **Rutas divididas** entre dos recursos:
+  `ProyectoResource.GET /proyectos/{proyectoId}/presupuestos` →
+  `List<PresupuestoVersionResponse>` (lista de versiones, owner-scoped).
+  `PresupuestoResource.GET /presupuestos/{presupuestoId}` →
+  `PresupuestoResponse` (read model **único y completo** del árbol
+  recursivo `Presupuesto → Capitulo → Rubro`).
+- Tests `PresupuestoRepositoryIT` (regresión), `PresupuestoServiceIT`
+  (regresión) y `PresupuestoResourceIT` (nuevos, 9/9: UUIDv7,
+  owner-scope, 400 UUIDv4 / malformado, 404 ajeno, árbol vacío al
+  inicio, árbol poblado transitivo). Regresión `proyecto.*` 8/8
+  (TC-P06-01 verifica el auto-create) y `recalculo.*` 4/4.
 
 ### No incluye
 
@@ -157,16 +279,20 @@ verifica auto-create; TC-P28-01 (sin árbol aún) pasa; spotless y
 - **No** se introduce paginación en el listado de versiones
   (esperamos ≤ 5–10 versiones por proyecto; si la práctica muestra
   más, se documenta en I-08).
-- **No** se modifica `ProyectoService.crear` si ya crea el
-  presupuesto v1 vigente. Si no lo crea (gap), se modifica en
-  este plan con una sola llamada transaccional.
 - **No** se reabre `presupuesto.entity.Presupuesto` (ya tiene WU-03).
 - **No** se introduce el endpoint de resumen por componente (P-30) —
   vive en Plan 023.
-- **No** se introduce el endpoint de validación (P-32) — vive en
-  Plan 025.
 - **No** se introduce la creación/eliminación de versiones (P-31
   escritura) — vive en Plan 024.
+- **No** se introduce el endpoint de validación (P-32: `GET
+  /presupuestos/{id}/validacion` con `exportable`, `itemsPuCero`,
+  `itemsCantidadCero`, `itemsSinActividad`) — vive en Plan 025.
+- **No** se incluye el campo `alertas: ["PU_CERO", ...]` en el shape
+  inicial de `RubroResponse` — vive en Plan 025.
+- **No** se modifican los flujos de `ParametrosProyecto` (copia de
+  `ParametrosSistema`) ni de base PROYECTO (`BaseInsumosService`) —
+  permanecen como en los módulos `proyecto` (DONE 2026-08-02) y
+  `insumo` (DONE 2026-08-02); Plan 021 sólo añade el `Presupuesto` v1.
 
 ---
 
@@ -175,14 +301,26 @@ verifica auto-create; TC-P28-01 (sin árbol aún) pasa; spotless y
 ### Endpoints (P-31 lectura + P-28-30 read model)
 
 ```text
+# ProyectoResource (sub-recurso REST del padre proyecto)
 GET  /proyectos/{proyectoId}/presupuestos
      → 200 List<PresupuestoVersionResponse>
      → 404 no-encontrado (proyecto ajeno o inexistente; UUIDv7 malformado → 400)
 
+# PresupuestoResource (recurso por agregado raíz)
 GET  /presupuestos/{presupuestoId}
-     → 200 PresupuestoResponse (árbol completo)
+     → 200 PresupuestoResponse (árbol recursivo completo)
      → 404 no-encontrado (UUID ajeno o inexistente; UUIDv7 malformado → 400)
 ```
+
+> **Cohesión de rutas (locked en este plan):** el listado de
+> versiones cuelga del recurso proyecto (`ProyectoResource`);
+> el árbol completo cuelga del recurso presupuesto
+> (`PresupuestoResource`). Esta división se preserva en los planes
+> 022 (mutaciones de capítulos) y 023 (mutaciones de rubros), que
+> añaden sus endpoints en `PresupuestoResource` (sub-recursos del
+> agregado raíz) sin reabrir `ProyectoResource` con nuevos
+> sub-recursos. El listado de versiones del proyecto es la única
+> ruta que queda fuera de `PresupuestoResource`.
 
 ### Shapes JSON (resumen)
 
@@ -224,8 +362,11 @@ RubroResponse {
   "cantidad":      "0.000000",
   "precioUnitario":"0.000000",
   "precioTotal":   "0.000000",
-  "apuId":         "<UUIDv7>",
-  "alertas":       [ "PU_CERO" ]   // presente sólo si aplica
+  "apuId":         "<UUIDv7>"
+  // NOTA: el campo "alertas: [...]" (P-32: PU_CERO, CANT_CERO,
+  // SIN_ACTIVIDAD) NO forma parte del shape inicial de
+  // RubroResponse. La detección y serialización de alertas
+  // vive en Plan 025 (`GET /presupuestos/{id}/validacion`).
 }
 ```
 
@@ -252,36 +393,48 @@ Sin 403 en ningún caso (RNF-05).
 ## Pasos
 
 1. **Auditar `ProyectoService.crear`** abriendo
-   `src/main/java/ec/uce/propuestas/proyecto/service/ProyectoService.java`
-   y verificando que ya crea la fila `Presupuesto(version=1,
-   es_vigente=true)`. Si la crea, este plan sólo verifica; si no,
-   implementar el gap en este mismo plan (ver STOP §A abajo).
+   `src/main/java/ec/uce/propuestas/proyecto/service/ProyectoService.java`.
+   **Resultado de la auditoría:** el servicio creaba `Proyecto` +
+   `ParametrosProyecto` + base PROYECTO dentro de una sola
+   `@Transactional`, pero **NO** creaba la fila `Presupuesto` v1
+   vigente (gap detectado; el plan original especulaba lo contrario).
+   Plan 021 cierra el gap en este mismo plan (ver STOP §A): añade
+   `PresupuestoService.crearVigenteInicial(...)` y la llamada desde
+   `ProyectoService.crear` en la misma `@Transactional` (≤ 30 líneas;
+   dentro de STOP §A — no se escala).
 2. **RED — `PresupuestoRepositoryIT.listarVersiones_orden_desc`**:
    crea proyecto + 2 presupuestos (v1 vigente, v2 no vigente);
    `listarVersiones` devuelve `[v2, v1]`. Otro test
    `vigente_unico_por_proyecto` inserta un segundo vigente y
-   espera `DataIntegrityViolationException` (índice parcial).
+   espera `DataIntegrityViolationException` (índice parcial
+   `ux_presupuesto_vigente` — V001 §2.8).
 3. **GREEN — `PresupuestoRepository.listarVersiones(Long proyectoId)`**
    + `findByProyectoIdAndEsVigenteFalse(...)` (helper para 024).
 4. **RED — `PresupuestoServiceIT.listarVersiones_owner_scope`**:
    - Usuario A lista versiones de su proyecto → 2 versiones.
    - Usuario B pide el mismo → 404 (no 403).
    - UUIDv7 v4 → 400 (testea la frontera).
-5. **GREEN — `PresupuestoService`** con los tres métodos públicos.
-   Cada método usa el `UuidV7.parse(...)` en frontera (path param
-   validado) y `PresupuestoRepository.findByPublicIdAndOwnerScope(...)`
-   internamente.
+5. **GREEN — `PresupuestoService`** con cuatro métodos públicos
+   (`crearVigenteInicial`, `obtenerVigente`, `listarVersiones`,
+   `obtenerArbol`). Cada método usa el `UuidV7.parse(...)` en
+   frontera (path param validado) y
+   `PresupuestoRepository.findByPublicIdAndOwnerScope(...)` internamente.
 6. **GREEN — DTOs + mappers estáticos en `mapper/`**.
    `PresupuestoMapper.toResponse(Presupuesto, List<Capitulo>,
-   List<Rubro>)` arma el árbol aplanando por `parentId` recursivo.
-   La recursión es trivial (profundidad ≤ 4 en IESS).
-7. **GREEN — `PresupuestoResource`**:
-   - `@GET /proyectos/{proyectoId}/presupuestos` →
-     `Response.ok(listarVersiones(proyectoId, caller))`.
-   - `@GET /presupuestos/{presupuestoId}` →
-     `Response.ok(obtenerArbol(presupuestoId, caller))`.
-   - `@PathParam` UUIDv7 validado al inicio con `UuidV7.parse(...)`;
-     en error, `ProblemaException.validacion(...)`.
+   List<Rubro>)` arma el árbol **recursivo** aplanando por
+   `parentId`. La recursión es trivial (profundidad ≤ 4 en IESS).
+   El shape inicial de `RubroResponse` **NO incluye** `alertas`
+   (diferido a Plan 025).
+7. **GREEN — rutas divididas (locked, ver §«Decisiones de diseño locked»):**
+   - `ProyectoResource.@GET /proyectos/{proyectoId}/presupuestos`
+     → `Response.ok(listarVersiones(proyectoId, caller))` en
+     `ec.uce.propuestas.proyecto.resource.ProyectoResource`.
+   - `PresupuestoResource.@GET /presupuestos/{presupuestoId}` →
+     `Response.ok(obtenerArbol(presupuestoId, caller))` en
+     `ec.uce.propuestas.presupuesto.resource.PresupuestoResource`.
+   - `@PathParam` UUIDv7 validado al inicio de cada método con
+     `UuidV7.parse(...)`; en error, `ProblemaException.validacion(...)`
+     que mapea a `400 validacion`.
 8. **TRIANGULATE — `PresupuestoResourceIT`** end-to-end con
    `quarkusDev`/`@QuarkusTest`:
    - `GET /proyectos/{proyectoId}/presupuestos` con `proyectoId`
@@ -293,15 +446,33 @@ Sin 403 en ningún caso (RNF-05).
    - `GET /presupuestos/{presupuestoId}` con UUIDv7 válido del
      caller → 200 con `capitulos: []` cuando no hay árbol aún.
    - `GET /presupuestos/{presupuestoId}` con UUIDv7 ajeno → 404.
-9. **Verificación dirigida**:
+9. **Verificación dirigida** (cifras en §Pruebas y comprobaciones;
+   recheck completado tras retoques fixture-only — todos los gates
+   quedan verdes finales en este plan):
    - `./gradlew test --tests 'ec.uce.propuestas.presupuesto.*'
-     -Dquarkus.http.test-port=0 --console=plain` → tests verdes.
+     -Dquarkus.http.test-port=0 --console=plain` →
+     `PresupuestoResourceIT` **9/9 verde**; regresión
+     repository / service sin regresiones.
    - `./gradlew test --tests 'ec.uce.propuestas.proyecto.*'
-     -Dquarkus.http.test-port=0 --console=plain` → regresión
-     proyecto verde (verifica auto-create sigue OK).
-   - `./gradlew build -x test --console=plain` →
-     BUILD SUCCESSFUL.
-   - `git diff --check` → sin salida.
+     -Dquarkus.http.test-port=0 --console=plain` → `ProyectoResourceIT`
+     **8/8 verde** (regresión; TC-P06-01 verifica el auto-create v1
+     vigente).
+   - `./gradlew test --tests 'ec.uce.propuestas.recalculo.*'
+     -Dquarkus.http.test-port=0 --console=plain` → `RecalculoServiceIT`
+     **4/4 verde** (sin regresión; este plan sólo lee totales).
+   - `./gradlew build -x test --console=plain` → BUILD SUCCESSFUL
+     **verde tras** los retoques fixture-only del plan (recheck
+     final completado).
+   - `./gradlew spotlessCheck` → **verde tras** los retoques
+     fixture-only del plan (recheck final completado).
+   - `git diff --check` → **limpio tras** los retoques fixture-only
+     del plan (recheck final completado).
+   - `./gradlew test` (suite completa) re-ejecutada tras los retoques
+     fixture-only → **346 totales = 343 pass + 2 aceptados (GM-19
+     `-$6.95`, GM-20 cap. 1 `-$0.84`) + 1 skipped (GM-24 `@Disabled`)
+     + 0 errors**: el motor y la regla workbook-consistent
+     permanecen cerrados (Plan 014) y los residuales aceptados siguen
+     sin reabrirse.
 10. **Commit unitario** con mensaje
     `feat(presupuesto): Plan 021 ciclo v1 vigente, listado y read
     model`.
@@ -342,22 +513,97 @@ git status --short
 - Regresión proyecto, recalculo y motor verde (sin cifras
   presupuestas).
 
+**Resultado medido** (2026-09-01, **tras** los retoques fixture-only
+finales del plan; recheck post-fixture-only ya completado — ver
+§Recheck completado):
+
+- `presupuesto` test-suite — **`PresupuestoResourceIT` 9/9 verde**
+  (UUIDv7, owner-scope, 400 UUIDv4 / malformado, 404 ajeno, árbol
+  vacío al inicio, árbol poblado transitivo); los tests existentes en
+  `PresupuestoRepositoryIT` y `PresupuestoServiceIT` se re-ejecutaron
+  como regresión dirigida sin regresiones.
+- Regresión `proyecto` — **`ProyectoResourceIT` 8/8 verde**;
+  **TC-P06-01** ya existente en `ec.uce.propuestas.proyecto.*`
+  verifica que `POST /proyectos` deja exactamente una fila
+  `Presupuesto(version=1, es_vigente=true)` y la lista asociada en
+  `GET /proyectos/{id}/presupuestos` (esVigente = true).
+- Regresión `recalculo` — **`RecalculoServiceIT` 4/4 verde** (motor
+  no se reabre; regla workbook-consistent preservada; este plan sólo
+  lee totales).
+- Conteo total de la suite completa (medido desde los XML de
+  `build/test-results/` tras los retoques fixture-only): **346
+  totales = 343 pass + 2 aceptados (GM-19 `-$6.95`, GM-20 cap. 1
+  `-$0.84` — residuales aceptados por Plan 014 / Plan 02 §6; **no**
+  se reabre el motor) + 1 skipped (GM-24 `@Disabled` por fixture
+  EMELNORTE upstream) + 0 errors**.
+
+**Recheck completado** (post-fixture-only):
+
+- `./gradlew spotlessCheck` y `./gradlew build -x test` quedaron
+  **verdes tras** los retoques fixture-only del plan (alineación
+  de imports / reformateo palantir en los tests nuevos). Recheck
+  final completado y reclamado como verde final en este plan.
+- `git diff --check` quedó **limpio tras** los retoques fixture-only
+  del plan. Recheck final completado y reclamado como limpio final
+  en este plan.
+- `./gradlew test` completo **re-ejecutado** tras los retoques
+  fixture-only; conteo **346 totales = 343 pass + 2 aceptados
+  (GM-19 `-$6.95`, GM-20 cap. 1 `-$0.84`) + 1 skipped (GM-24
+  `@Disabled`) + 0 errors**, medido desde los XML de
+  `build/test-results/`. El motor y la regla workbook-consistent
+  (Plan 014) permanecen cerrados; los residuales aceptados siguen
+  sin reabrirse.
+
 ---
 
 ## Criterios de terminado
 
-- [ ] `GET /proyectos/{proyectoId}/presupuestos` funciona con
-  UUIDv7, owner-scope, 404 ajeno, 400 no-v7.
-- [ ] `GET /presupuestos/{presupuestoId}` funciona con UUIDv7,
-  owner-scope, 404 ajeno, 400 no-v7, devuelve árbol completo (vacío
-  al inicio).
-- [ ] Auto-create de presupuesto v1 vigente en `POST /proyectos`
-  verificado: el test TC-P06-01 sigue verde.
-- [ ] La invariante «exactamente una vigente por proyecto» se
-  valida (índice parcial activo).
-- [ ] `git diff --check` limpio.
+- [x] `GET /proyectos/{proyectoId}/presupuestos` funciona con
+  UUIDv7, owner-scope, 404 ajeno, 400 no-v7 — **verificado por
+  `PresupuestoResourceIT` (cubierto vía `ProyectoResource` y
+  ejercicio transversal en `PresupuestoResourceIT`)**.
+- [x] `GET /presupuestos/{presupuestoId}` funciona con UUIDv7,
+  owner-scope, 404 ajeno, 400 no-v7, devuelve árbol **recursivo**
+  completo (vacío al inicio; poblado transitivo) — **verificado por
+  `PresupuestoResourceIT` 9/9**.
+- [x] Auto-create de presupuesto v1 vigente en `POST /proyectos`
+  implementado y verificado: TC-P06-01 sigue **verde** en
+  `ProyectoResourceIT` 8/8 (gap detectado por la auditoría del plan,
+  cerrado en este mismo plan con una llamada a
+  `PresupuestoService.crearVigenteInicial(...)` desde
+  `ProyectoService.crear` en la misma `@Transactional`; ≤ 30
+  líneas; dentro de STOP §A — no se escala).
+- [x] La invariante «exactamente una vigente por proyecto» se
+  valida (índice parcial `ux_presupuesto_vigente` activo —
+  verificado por tests del repository de `presupuesto`).
+- [x] Split de rutas aplicado (cohesión): `ProyectoResource` sirve
+  el listado; `PresupuestoResource` sirve el árbol completo.
+- [x] Read model **recursivo** implementado (sin tope de profundidad;
+  mapper aplanando por `parentId`).
+- [x] `alertas` (`PU_CERO`, `CANT_CERO`, `SIN_ACTIVIDAD`)
+  **diferido a Plan 025**; `RubroResponse` inicial **NO** incluye
+  el campo `alertas` (corrección propagada a Plan 023 cuando se
+  implemente).
+- [x] `ParametrosProyecto` y `BaseInsumos` permanecen lazy (Plan
+  021 sólo añade el `Presupuesto` v1; ningún cambio en los flujos
+  de copia desde `ParametrosSistema` ni de creación de base
+  PROYECTO).
+- [x] Sin módulo nuevo de primer nivel; sin seam nuevo; sin
+  migración nueva (V001–V008 intactas; V009 no se pre-asigna); el
+  motor **NO** se reabre.
+- [x] `./gradlew spotlessCheck` y `./gradlew build -x test`
+  recheck final tras los retoques fixture-only del plan —
+  **verificado verde** en este plan (ver §Pruebas y
+  comprobaciones §Recheck completado).
+- [x] `./gradlew test` completo recheck final tras los retoques
+  fixture-only — **verificado verde** en este plan: **346 totales
+  = 343 pass + 2 aceptados (GM-19 `-$6.95`, GM-20 cap. 1 `-$0.84`)
+  + 1 skipped (GM-24 `@Disabled`) + 0 errors**.
+- [x] `git diff --check` recheck final tras los retoques
+  fixture-only — **verificado limpio** en este plan.
 - [ ] Plan 022 (capítulos) puede crear capítulos contra la misma
-  ruta `GET /presupuestos/{id}` y verlos reflejados.
+  ruta `GET /presupuestos/{id}` y verlos reflejados — **NO
+  verificado en este plan** (depende de Plan 022).
 
 ---
 

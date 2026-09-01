@@ -15,7 +15,7 @@
   - **DONE 2026-08-30** (Plan 07) — `presupuestoId`, `apuId`,
     `detalleId`, `plantillaId`, `ApuDetalleResponse.insumoId` ya operan
     con UUIDv7 público en path y JSON.
-  - I-06 (P-23 %CI, P-24 descuento, P-26 plantillas, P-27 desglose + ET)
+  - I-06 (P-23 %CI, **P-24 descuento WITHDRAWN — Plan 015 (2026-09-01); sólo sobreviven FORMA 1 (mutación de insumos PROYECTO, MO exenta) y FORMA 2 (edición atómica) — ver [`../../plans/015-retirar-descuento-apu.md`](../../plans/015-retirar-descuento-apu.md)**, P-26 plantillas, P-27 desglose + ET)
     se cubre en
     [`planes-para-estar-al-dia/04-plantillas-apu.md`](planes-para-estar-al-dia/04-plantillas-apu.md)
     y los planes 04–07 vigentes.
@@ -44,7 +44,7 @@ En alcance (endpoints implementados en esta iteración):
 
 Fuera de alcance (I-06 — [`planes-para-estar-al-dia/04-plantillas-apu.md`](planes-para-estar-al-dia/04-plantillas-apu.md),
 planes 04–07):
-`porcentajeIndirecto` override (P-23), `/apus/{id}/descuento` (P-24),
+`porcentajeIndirecto` override (P-23), **`/apus/{id}/descuento` (P-24) — WITHDRAWN 2026-09-01, ver Plan 015 ([`../../plans/015-retirar-descuento-apu.md`](../../plans/015-retirar-descuento-apu.md)); sólo sobreviven FORMA 1 (mutación de insumos PROYECTO, MO exenta) y FORMA 2 (edición atómica)**,
 plantillas (P-26 — con fallback N04 §B.4), plantilla de proyecto
 (P-46 — N04 §A8, NUEVA), `POST /apus/{id}/duplicar`, **módulo `recalculo`**,
 `/apus/{id}/calculo` (desglose P-27) **cerrado por Plan 03 2026-08-28** (orden

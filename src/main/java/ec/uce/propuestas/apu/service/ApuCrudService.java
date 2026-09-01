@@ -165,17 +165,6 @@ public class ApuCrudService {
         return respuestaCompleta(apu);
     }
 
-    @Transactional
-    public ApuResponse actualizarPorcentajeDescuento(Long apuId, BigDecimal valor) {
-        Apu apu = _validar(apuId);
-        BigDecimal efectivo = valor == null ? BigDecimal.ZERO : valor;
-        validarPorcentaje(efectivo, new BigDecimal("0.5000"), "porcentajeDescuento");
-        apu.porcentajeDescuento = efectivo;
-        apuRepository.persist(apu);
-        calculoService.recalcular(apu);
-        return respuestaCompleta(apu);
-    }
-
     /** P-45 (N04 §ESP). Límite 65 536 bytes UTF-8 (RNF-09). {@code texto} null o "" = limpiar. */
     @Transactional
     public ApuResponse guardarEspecificacionTecnica(Long apuId, String texto) {

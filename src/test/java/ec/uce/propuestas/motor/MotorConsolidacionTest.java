@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 class MotorConsolidacionTest {
 
     private static final ParametrosCalculo P_TULCAN =
-            new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1800"), BigDecimal.ZERO);
+            new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1800"));
 
     private static final String PRES_TULCAN = "presupuesto-apus-cetro-medico-tulcan.json";
     private static final String APUS_TULCAN = "apus-sample-apus-cetro-medico-tulcan.json";

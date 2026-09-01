@@ -4,6 +4,7 @@ import ec.uce.propuestas.presupuesto.entity.Presupuesto;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -49,5 +50,16 @@ public class PresupuestoRepository implements PanacheRepositoryBase<Presupuesto,
     public Optional<Presupuesto> findVigenteDeProyecto(Long proyectoId) {
         return find("proyectoId = :proyectoId and esVigente = true", Parameters.with("proyectoId", proyectoId))
                 .firstResultOptional();
+    }
+
+    /**
+     * Plan 021 — devuelve todas las versiones de un proyecto ordenadas por
+     * {@code version} descendente (la más reciente primero). Sin paginación
+     * (la práctica IESS muestra ≤ 5–10 versiones por proyecto; STOP (D) del plan
+     * si se supera la marca de 200 versiones — no se introduce paginación).
+     */
+    public List<Presupuesto> listarVersiones(Long proyectoId) {
+        return find("proyectoId = :proyectoId order by version desc", Parameters.with("proyectoId", proyectoId))
+                .list();
     }
 }

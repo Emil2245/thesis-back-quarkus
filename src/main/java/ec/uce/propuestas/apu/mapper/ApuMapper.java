@@ -25,7 +25,6 @@ public final class ApuMapper {
                 e.costoTotal,
                 e.porcentajeIndirecto,
                 porcentajeIndirectoEfectivo,
-                e.porcentajeDescuento,
                 secciones,
                 null);
     }

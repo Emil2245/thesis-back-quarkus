@@ -77,8 +77,7 @@ public class ApuCalculoService {
 
         ApuCalculado out = Motor.calcularApu(
                 new ApuSnapshot(apu.codigo, apu.porcentajeIndirecto, filas),
-                new ParametrosCalculo(
-                        params.porcentajeHerramientaMenor, params.porcentajeIndirecto, apu.porcentajeDescuento));
+                new ParametrosCalculo(params.porcentajeHerramientaMenor, params.porcentajeIndirecto));
 
         List<FilaCalculada> calc = out.filas();
         // Layout de out.filas() = [M (HM primero si existe), N, O, P]. Las
@@ -130,7 +129,8 @@ public class ApuCalculoService {
      * la realidad (no se inventa un precio). Para filas HM se sigue el
      * camino habitual (cantidad = %HM, precioInsumo/overridePrecio null).
      */
-    static FilaSnapshot snapshotDeDetalle(ApuDetalle d, SeccionTipo tipo, Insumo insumo, BigDecimal porcentajeHm) {
+    public static FilaSnapshot snapshotDeDetalle(
+            ApuDetalle d, SeccionTipo tipo, Insumo insumo, BigDecimal porcentajeHm) {
         if (d.esHerramientaMenor) {
             return new FilaSnapshot(
                     SeccionTipo.EQUIPO, true, porcentajeHm.multiply(BigDecimal.valueOf(100)), null, null, null);
@@ -147,14 +147,14 @@ public class ApuCalculoService {
         return new FilaSnapshot(tipo, false, d.cantidad, d.rendimiento, precioInsumo, override);
     }
 
-    static BigDecimal overrideDeDetalle(ApuDetalle d, SeccionTipo tipo) {
+    public static BigDecimal overrideDeDetalle(ApuDetalle d, SeccionTipo tipo) {
         return switch (tipo) {
             case EQUIPO, MANO_OBRA -> d.tarifaJornal;
             case MATERIAL, TRANSPORTE -> d.precioUnitarioTarifa;
         };
     }
 
-    static String descripcionHm(BigDecimal porcentajeHm) {
+    public static String descripcionHm(BigDecimal porcentajeHm) {
         String pct = porcentajeHm
                 .multiply(BigDecimal.valueOf(100))
                 .stripTrailingZeros()
@@ -195,8 +195,7 @@ public class ApuCalculoService {
 
         ApuCalculado out = Motor.calcularApu(
                 new ApuSnapshot(apu.codigo, apu.porcentajeIndirecto, filas),
-                new ParametrosCalculo(
-                        params.porcentajeHerramientaMenor, params.porcentajeIndirecto, apu.porcentajeDescuento));
+                new ParametrosCalculo(params.porcentajeHerramientaMenor, params.porcentajeIndirecto));
 
         return new ApuCalculoResponse(
                 apu.publicId,
@@ -211,8 +210,8 @@ public class ApuCalculoService {
         BigDecimal ciAplicado = apu.porcentajeIndirecto != null
                 ? apu.porcentajeIndirecto
                 : (ciDefault != null ? ciDefault : BigDecimal.ZERO);
-        BigDecimal descuento = apu.porcentajeDescuento == null ? BigDecimal.ZERO : apu.porcentajeDescuento;
-        return new ApuCalculoParametros(params.porcentajeHerramientaMenor, ciDefault, ciAplicado, descuento);
+        // Plan 015: descuento por APU retirado. La DTO ya no expone `descuento`.
+        return new ApuCalculoParametros(params.porcentajeHerramientaMenor, ciDefault, ciAplicado);
     }
 
     private List<ApuCalculoSeccion> buildSecciones(
@@ -260,7 +259,7 @@ public class ApuCalculoService {
      * este helper, un HM movido a un orden distinto de 1 mezclaba su
      * costo/costoHora con las filas no-HM (Plan 03 + Plan 04 §3 fix).
      */
-    static Map<Long, Integer> mapearDetallesACalc(List<ApuDetalle> entidades, List<ApuSeccion> secciones) {
+    public static Map<Long, Integer> mapearDetallesACalc(List<ApuDetalle> entidades, List<ApuSeccion> secciones) {
         Map<Long, SeccionTipo> tipoPorSeccion = new HashMap<>();
         for (ApuSeccion s : secciones) tipoPorSeccion.put(s.id, s.tipo);
 
@@ -345,13 +344,11 @@ public class ApuCalculoService {
 
     private ApuCalculoResumen buildResumen(ApuCalculado out, Apu apu) {
         BigDecimal cd = escala6(out.costoDirecto());
-        BigDecimal cdAjustado = escala6(out.costoDirectoAjustado());
         BigDecimal ci = escala6(out.costoIndirecto());
         BigDecimal ct = escala6(out.costoTotal());
-        BigDecimal descuento = apu.porcentajeDescuento == null ? BigDecimal.ZERO : apu.porcentajeDescuento;
-        BigDecimal factor = BigDecimal.ONE.subtract(descuento);
-        String operacionCdAjustado = cd.toPlainString() + " × " + factor.toPlainString();
-        return new ApuCalculoResumen(cd, cdAjustado, operacionCdAjustado, ci, ct);
+        // Plan 015: P-24/S-24 withdrawn — DTO ya no expone cdAjustado ni
+        // operacionCdAjustado. Queda {cd, ci, ct} únicamente.
+        return new ApuCalculoResumen(cd, ci, ct);
     }
 
     private static BigDecimal subtotalDeSeccion(ApuCalculado out, SeccionTipo tipo) {

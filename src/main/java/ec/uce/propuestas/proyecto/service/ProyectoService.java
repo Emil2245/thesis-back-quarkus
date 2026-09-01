@@ -2,6 +2,7 @@ package ec.uce.propuestas.proyecto.service;
 
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.common.dto.Page;
+import ec.uce.propuestas.presupuesto.service.PresupuestoService;
 import ec.uce.propuestas.proyecto.dto.ProyectoCrearRequest;
 import ec.uce.propuestas.proyecto.dto.ProyectoEditarRequest;
 import ec.uce.propuestas.proyecto.dto.ProyectoResponse;
@@ -21,6 +22,9 @@ public class ProyectoService {
 
     @Inject
     ProyectoRepository proyectoRepository;
+
+    @Inject
+    PresupuestoService presupuestoService;
 
     /** Lista los proyectos del usuario autenticado (propietario), paginado. */
     public Page<ProyectoResponse> listarDeUsuario(
@@ -54,6 +58,16 @@ public class ProyectoService {
         p.subdireccionInstitucional = req.subdireccionInstitucional();
         p.estado = EstadoProyecto.BORRADOR;
         proyectoRepository.persist(p);
+        // Plan 021 — auto-create del Presupuesto v1 vigente en la misma
+        // transacción (P-06 §4). La creación de ParametrosProyecto y
+        // BaseInsumos se mantiene lazy/under-demand como hasta ahora — Plan
+        // 021 sólo exige garantizar la fila
+        // {@code presupuesto(version=1, es_vigente=true)} en el commit. Un
+        // fallo aquí aborta el commit completo (rollback de la fila
+        // {@code proyecto} también); la invariante «exactamente una vigente
+        // por proyecto» la protege el índice único parcial
+        // {@code ux_presupuesto_vigente} (V001 §2.8).
+        presupuestoService.crearVigenteInicial(p.id);
         return ProyectoMapper.toResponse(p);
     }
 

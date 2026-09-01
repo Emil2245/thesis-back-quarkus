@@ -77,10 +77,14 @@ class DocumentoResourceIT {
     }
 
     private String insertarPresupuesto(String proyectoId) throws Exception {
+        // Plan 021 — el Presupuesto v1 vigente se crea automáticamente al
+        // crear el proyecto (POST /proyectos → ProyectoService.crear). Este
+        // helper ya no inserta otra fila: la lee para devolver el publicId
+        // UUIDv7 que consume el path del endpoint de documentos.
         Long proyectoIdInterno = internalProyectoId(proyectoId);
         try (Connection con = ds.getConnection();
                 PreparedStatement ps = con.prepareStatement(
-                        "INSERT INTO presupuesto (proyecto_id, version, es_vigente) VALUES (?, 1, TRUE) RETURNING public_id")) {
+                        "SELECT public_id FROM presupuesto WHERE proyecto_id = ? AND version = 1")) {
             ps.setLong(1, proyectoIdInterno);
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();
@@ -358,8 +362,7 @@ class DocumentoResourceIT {
                             || texto.contains("precioUnitario")
                             || texto.contains("precio_unitario")
                             || texto.contains("tarifaJornal")
-                            || texto.contains("porcentajeIndirecto")
-                            || texto.contains("porcentajeDescuento"),
+                            || texto.contains("porcentajeIndirecto"),
                     "el cuerpo del DOCX no debe mencionar campos monetarios del modelo. Texto:\n" + texto);
             // 2) header de sección esperado
             assertTrue(texto.contains("MS-001"), "debe aparecer el código del APU en el header de sección");

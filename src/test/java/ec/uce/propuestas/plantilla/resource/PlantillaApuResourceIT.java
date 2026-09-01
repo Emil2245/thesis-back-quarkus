@@ -101,9 +101,13 @@ class PlantillaApuResourceIT {
     }
 
     private String insertarPresupuesto(String proyectoId) throws Exception {
+        // Plan 021 — el Presupuesto v1 vigente se crea automáticamente al
+        // crear el proyecto (POST /proyectos → ProyectoService.crear). Este
+        // helper ya no inserta otra fila: la lee para devolver el publicId
+        // UUIDv7 que consume el path /presupuestos/{id}/apus.
         try (Connection con = ds.getConnection();
                 PreparedStatement ps = con.prepareStatement(
-                        "INSERT INTO presupuesto (proyecto_id, version, es_vigente) VALUES (?, 1, TRUE) RETURNING public_id")) {
+                        "SELECT public_id FROM presupuesto WHERE proyecto_id = ? AND version = 1")) {
             ps.setLong(1, internalProyectoId(proyectoId));
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();

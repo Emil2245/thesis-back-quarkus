@@ -3,6 +3,8 @@ package ec.uce.propuestas.proyecto.resource;
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.common.UuidV7;
 import ec.uce.propuestas.common.dto.Page;
+import ec.uce.propuestas.presupuesto.dto.PresupuestoVersionResponse;
+import ec.uce.propuestas.presupuesto.service.PresupuestoService;
 import ec.uce.propuestas.proyecto.dto.ParametrosSistemaEditarRequest;
 import ec.uce.propuestas.proyecto.dto.ProyectoCrearRequest;
 import ec.uce.propuestas.proyecto.dto.ProyectoEditarRequest;
@@ -20,6 +22,7 @@ import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -46,6 +49,9 @@ public class ProyectoResource {
 
     @Inject
     ParametrosProyectoService parametrosService;
+
+    @Inject
+    PresupuestoService presupuestoService;
 
     @Inject
     SecurityIdentity identity;
@@ -82,6 +88,14 @@ public class ProyectoResource {
         return Response.status(Response.Status.CREATED)
                 .entity(proyectoService.crear(usuarioId(), req))
                 .build();
+    }
+
+    /** Versiones de presupuesto del proyecto, ordenadas de la más reciente a la inicial. */
+    @GET
+    @Path("/{proyectoId}/presupuestos")
+    @Consumes(MediaType.WILDCARD)
+    public List<PresupuestoVersionResponse> listarPresupuestos(@PathParam("proyectoId") String proyectoId) {
+        return presupuestoService.listarVersiones(UuidV7.parse(proyectoId), usuarioId());
     }
 
     @GET

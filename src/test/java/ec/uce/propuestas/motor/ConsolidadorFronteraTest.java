@@ -49,7 +49,7 @@ class ConsolidadorFronteraTest {
         ApuSnapshot apu = new ApuSnapshot("T1", null, List.of(fila));
         RubroSnapshot rubro = new RubroSnapshot("R-T1", cantidad, apu);
         CapituloSnapshot cap = new CapituloSnapshot("1", "Capitulo frontera", 1, List.of(), List.of(rubro));
-        ParametrosCalculo params = new ParametrosCalculo(HM, ZERO, ZERO);
+        ParametrosCalculo params = new ParametrosCalculo(HM, ZERO);
         return new VersionSnapshot(params, List.of(cap), null);
     }
 
@@ -208,7 +208,7 @@ class ConsolidadorFronteraTest {
 
         CapituloSnapshot cap =
                 new CapituloSnapshot("1", "Cap agreg", 1, List.of(), new ArrayList<>(List.of(rA, rB, rC)));
-        ParametrosCalculo params = new ParametrosCalculo(HM, ZERO, ZERO);
+        ParametrosCalculo params = new ParametrosCalculo(HM, ZERO);
         VersionSnapshot v = new VersionSnapshot(params, List.of(cap), null);
 
         VersionCalculada result = Motor.consolidar(v);

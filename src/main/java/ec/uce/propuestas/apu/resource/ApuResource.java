@@ -145,13 +145,6 @@ public class ApuResource {
         return apuService.actualizarPorcentajeIndirecto(apu.id, valor);
     }
 
-    @PATCH
-    @Path("/porcentaje-descuento")
-    public ApuResponse actualizarPorcentajeDescuento(@PathParam("apuId") String apuId, BigDecimal valor) {
-        Apu apu = resolverApu(apuId);
-        return apuService.actualizarPorcentajeDescuento(apu.id, valor);
-    }
-
     /** P-45 (N04 §ESP). GET retorna la forma JSON estable del ET del APU. */
     @GET
     @Path("/especificacion-tecnica")

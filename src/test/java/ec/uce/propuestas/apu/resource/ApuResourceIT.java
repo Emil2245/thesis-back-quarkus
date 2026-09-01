@@ -93,10 +93,14 @@ class ApuResourceIT {
     }
 
     private String insertarPresupuesto(String proyectoId) throws Exception {
+        // Plan 021 — el Presupuesto v1 vigente se crea automáticamente al
+        // crear el proyecto (POST /proyectos → ProyectoService.crear). Este
+        // helper ya no inserta otra fila: la lee para devolver el publicId
+        // UUIDv7 que necesita el resto del test.
         Long proyectoIdInterno = internalProyectoId(proyectoId);
         try (Connection con = ds.getConnection();
                 PreparedStatement ps = con.prepareStatement(
-                        "INSERT INTO presupuesto (proyecto_id, version, es_vigente) VALUES (?, 1, TRUE) RETURNING public_id")) {
+                        "SELECT public_id FROM presupuesto WHERE proyecto_id = ? AND version = 1")) {
             ps.setLong(1, proyectoIdInterno);
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();
@@ -545,8 +549,8 @@ class ApuResourceIT {
     }
 
     @Test
-    void TC_P23_P24_porcentajes_actualizan_y_restauran() throws Exception {
-        String token = AuthSupport.registrarConToken(mailbox, "p23p24@ex.com");
+    void TC_P23_porcentaje_indirecto_actualiza_y_restaurar() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p23only@ex.com");
         String proyectoId = crearProyecto(token);
         String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(token, presupuestoId, "PCT-001");
@@ -562,30 +566,12 @@ class ApuResourceIT {
 
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
-                .body("0.1000")
-                .when()
-                .patch("/api/v1/apus/" + apuId + "/porcentaje-descuento")
-                .then()
-                .statusCode(200)
-                .body("porcentajeDescuento", comparesTo(new BigDecimal("0.10")));
-
-        given().contentType(JSON)
-                .header("Authorization", "Bearer " + token)
                 .body("null")
                 .when()
                 .patch("/api/v1/apus/" + apuId + "/porcentaje-indirecto")
                 .then()
                 .statusCode(200)
                 .body("porcentajeIndirecto", equalTo(null));
-
-        given().contentType(JSON)
-                .header("Authorization", "Bearer " + token)
-                .body("null")
-                .when()
-                .patch("/api/v1/apus/" + apuId + "/porcentaje-descuento")
-                .then()
-                .statusCode(200)
-                .body("porcentajeDescuento", comparesTo(BigDecimal.ZERO));
     }
 
     @Test
@@ -1176,7 +1162,6 @@ class ApuResourceIT {
                 .body("apuId", equalTo(apuId))
                 .body("codigo", equalTo("P27-SHAPE"))
                 .body("parametros.hm", comparesTo(new BigDecimal("0.0500")))
-                .body("parametros.descuento", comparesTo(new BigDecimal("0.0000")))
                 .body("parametros.ciAplicado", comparesTo(new BigDecimal("0.0000")))
                 .body("secciones.size()", is(4))
                 .body("secciones[0].tipo", equalTo("EQUIPO"))
@@ -1190,7 +1175,6 @@ class ApuResourceIT {
                 .body("secciones[3].lineas.size()", is(0))
                 .body("secciones[3].operacion", equalTo("0"))
                 .body("resumen.cd", comparesTo(new BigDecimal("14.400000")))
-                .body("resumen.cdAjustado", comparesTo(new BigDecimal("14.400000")))
                 .body("resumen.ci", comparesTo(new BigDecimal("0.000000")))
                 .body("resumen.ct", comparesTo(new BigDecimal("14.400000")));
     }
@@ -1226,14 +1210,6 @@ class ApuResourceIT {
                 .patch("/api/v1/apus/" + apuId + "/porcentaje-indirecto")
                 .then()
                 .statusCode(200);
-        given().contentType(JSON)
-                .header("Authorization", "Bearer " + token)
-                .body("0.1000")
-                .when()
-                .patch("/api/v1/apus/" + apuId + "/porcentaje-descuento")
-                .then()
-                .statusCode(200);
-
         given().header("Authorization", "Bearer " + token)
                 .when()
                 .get("/api/v1/apus/" + apuId + "/calculo")
@@ -1242,7 +1218,6 @@ class ApuResourceIT {
                 .body("parametros.hm", comparesTo(new BigDecimal("0.0500")))
                 .body("parametros.ciDefault", equalTo(null))
                 .body("parametros.ciAplicado", comparesTo(new BigDecimal("0.2000")))
-                .body("parametros.descuento", comparesTo(new BigDecimal("0.1000")))
                 .body("secciones[1].lineas[0].operacion", equalTo("2.000000 × 5.000000 × 1.000000"))
                 .body("secciones[1].lineas[0].resultado", comparesTo(new BigDecimal("10.000000")))
                 .body("secciones[1].operacion", equalTo("10.000000"))
@@ -1254,10 +1229,8 @@ class ApuResourceIT {
                 .body("secciones[0].lineas[0].resultado", comparesTo(new BigDecimal("0.500000")))
                 .body("secciones[0].subtotal", comparesTo(new BigDecimal("0.500000")))
                 .body("resumen.cd", comparesTo(new BigDecimal("15.000000")))
-                .body("resumen.cdAjustado", comparesTo(new BigDecimal("13.500000")))
-                .body("resumen.operacionCdAjustado", equalTo("15.000000 × 0.9000"))
-                .body("resumen.ci", comparesTo(new BigDecimal("2.700000")))
-                .body("resumen.ct", comparesTo(new BigDecimal("16.200000")));
+                .body("resumen.ci", comparesTo(new BigDecimal("3.000000")))
+                .body("resumen.ct", comparesTo(new BigDecimal("18.000000")));
     }
 
     @Test
@@ -1295,7 +1268,7 @@ class ApuResourceIT {
         java.util.Set<String> resumenKeys = (java.util.Set<String>)
                 (java.util.Set<?>) json.getMap("resumen").keySet();
         org.junit.jupiter.api.Assertions.assertEquals(
-                java.util.Set.of("cd", "cdAjustado", "operacionCdAjustado", "ci", "ct"),
+                java.util.Set.of("cd", "ci", "ct"),
                 resumenKeys,
                 "resumen expone exactamente los 5 campos del contrato");
 
@@ -1303,9 +1276,7 @@ class ApuResourceIT {
         java.util.Set<String> parametrosKeys = (java.util.Set<String>)
                 (java.util.Set<?>) json.getMap("parametros").keySet();
         org.junit.jupiter.api.Assertions.assertEquals(
-                java.util.Set.of("hm", "ciDefault", "ciAplicado", "descuento"),
-                parametrosKeys,
-                "parametros expone los 4 campos");
+                java.util.Set.of("hm", "ciDefault", "ciAplicado"), parametrosKeys, "parametros expone los 4 campos");
 
         @SuppressWarnings("unchecked")
         java.util.Set<String> seccionKeys = (java.util.Set<String>)

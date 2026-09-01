@@ -26,7 +26,7 @@
 >
 > **Capacidades actuales** (cruzadas con [`estado-actual.md`](estado-actual.md)
 > §4; sincronización Plan 08 — 2026-08-30):
-> %CI y descuento legacy por APU → DONE; duplicar APU → DONE; ET
+> %CI por APU (P-23) → DONE; **descuento legacy por APU (P-24) WITHDRAWN por Plan 015 (2026-09-01) — sólo sobreviven FORMA 1 (mutación de insumos PROYECTO, MO exenta, regulada por `rango_descuento_*`) y FORMA 2 (edición atómica de insumo); columna `apu.porcentaje_descuento` inert**; duplicar APU → DONE; ET
 > (Apache POI) → DONE; rangos configurables → DONE; bases PERSONALES +
 > copia al usar → DONE; desglose de cálculo → DONE (Plan 03, orden
 > persistido, lineas a 6 dp); plantillas APU → **DONE 2026-08-29**
@@ -60,7 +60,7 @@
 | Proceso | Tema | Estado actual |
 |---|---|---|
 | P-23 | %CI override por rubro (heredando default) | **DONE** en `ApuCrudService` (Plan 03 contrato; propagación global = DEFERRED) |
-| P-24 | Descuento CD por rubro (campo legacy `APU.porcentaje_descuento`) | **DONE** (`PATCH /apus/{id}/porcentaje-descuento`) |
+| P-24 | Descuento CD por rubro (campo legacy `APU.porcentaje_descuento`) | **WITHDRAWN — Plan 015 (2026-09-01)**. El seam activo (`PATCH /apus/{id}/porcentaje-descuento`, `Apu.porcentajeDescuento`, `motor.ParametrosCalculo.porcentajeDescuento`, `motor.ApuCalculado.costoDirectoAjustado`, etc.) se retira; sólo sobreviven **FORMA 1** (mutación de las columnas base de los insumos elegibles copiados a la base PROYECTO del proyecto; **MO exenta**, reversible, regulada por `parametros_sistema.rango_descuento_min/max`) y **FORMA 2** (edición atómica de un insumo ya PROYECTO; sin seam nuevo). **Nunca monto absoluto.** Columna BD `apu.porcentaje_descuento` queda como compatibility seam inert (sin V009; JPA la ignora). Historia detallada: [`../../plans/015-retirar-descuento-apu.md`](../../plans/015-retirar-descuento-apu.md) §Decisión de mayor autoridad. |
 | P-25 | Rubro auxiliar (`es_auxiliar`, `apu_auxiliar_id`) — **validación sin anidamiento** | **OBSOLETO/SUPERSEDED** — N04 temporal elimina los enlaces entre APUs |
 | P-26 | Plantillas personales + carga con fallback | **MISSING** — Plan 04 ([planes-para-estar-al-dia/04](planes-para-estar-al-dia/04-plantillas-apu.md)) |
 | P-27 | Desglose de cálculo (`ApuCalculoResponse`) | **PARTIAL** — Plan 03 |
@@ -400,7 +400,7 @@ aritmético**. Cambios futuros requieren
 
 **ApuResource** (ampliado en Plan 03):
 - `PATCH /apus/{id}/porcentaje-indirecto` (P-23) — **DONE**
-- `PATCH /apus/{id}/porcentaje-descuento` (P-24) — **DONE**
+- `PATCH /apus/{id}/porcentaje-descuento` (P-24) — **WITHDRAWN — Plan 015 (2026-09-01).** El seam activo se retira; sobreviven FORMA 1 y FORMA 2. Columna `apu.porcentaje_descuento` queda inert en BD.
 - `GET /apus/{id}/calculo` (P-27 — `ApuCalculoResponse`) — **DONE**
   (Plan 03: lineas ordenadas por `orden` ascendente, sin HM-primero;
   operandos a 6 dp; `precisionDinero` y `precisionPorcentaje` del

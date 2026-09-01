@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.List;
 import net.jqwik.api.*;
@@ -57,46 +58,58 @@ class MotorPropiedadesTest {
         });
     }
 
-    /** Generate a valid ParametrosCalculo with no per-apu override, no discount. */
+    /** Generate a valid ParametrosCalculo with the project default %CI=18% (Plan 015: no discount). */
     private ParametrosCalculo baseParams() {
-        return new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1800"), BigDecimal.ZERO);
+        return new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1800"));
     }
 
     // ── Properties ─────────────────────────────────────────────────────────
 
     /**
-     * descuento=0 → CD does not change; descuento=10% → CD_ajustado < CD.
-     * The costoDirecto is independent of descuento.
+     * Plan 015: the per-APU discount seam is withdrawn. CI is applied on CD
+     * directly: CI = CD × %CI aplicado. The CI depends only on the effective
+     * %CI (per-APU override → default → 0) and on CD.
      */
     @Property(tries = 100)
-    void descuento_no_cambia_CD(@ForAll("apuSnapshots") ApuSnapshot snap) {
-        var p0 = new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1800"), BigDecimal.ZERO);
-        var pDisc = new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1800"), new BigDecimal("0.1000"));
+    void costoIndirecto_aplica_sobre_CD_y_depende_de_pct_ci(@ForAll("apuSnapshots") ApuSnapshot snap) {
+        ParametrosCalculo pBase = baseParams();
+        ApuCalculado rBase = Motor.calcularApu(snap, pBase);
 
-        ApuCalculado r0 = Motor.calcularApu(snap, p0);
-        ApuCalculado rD = Motor.calcularApu(snap, pDisc);
-
-        // CD is independent of descuento
+        // %CI default = 18% → CI = CD × 0.18
+        BigDecimal ciEsperado =
+                rBase.costoDirecto().multiply(new BigDecimal("0.1800"), new MathContext(20, RoundingMode.HALF_UP));
         assertEquals(
                 0,
-                r0.costoDirecto().compareTo(rD.costoDirecto()),
-                "costoDirecto must not change when only descuento changes");
+                ciEsperado.compareTo(rBase.costoIndirecto()),
+                "CI must equal CD × %CI default (18%); got CI=" + rBase.costoIndirecto() + " CD="
+                        + rBase.costoDirecto());
 
-        // CD_ajustado decreases with discount
-        assertTrue(
-                rD.costoDirectoAjustado().compareTo(r0.costoDirectoAjustado()) < 0,
-                "CD_ajustado with 10% descuento must be less than without descuento");
+        // %CI default = 10% → CI = CD × 0.10 (with %HM fijo, sin MO adicional — el CD se mantiene)
+        ParametrosCalculo p10 = new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1000"));
+        ApuCalculado r10 = Motor.calcularApu(snap, p10);
+        BigDecimal ciEsperado10 =
+                r10.costoDirecto().multiply(new BigDecimal("0.1000"), new MathContext(20, RoundingMode.HALF_UP));
+        assertEquals(
+                0,
+                ciEsperado10.compareTo(r10.costoIndirecto()),
+                "CI must equal CD × 10% when default is 10%; got CI=" + r10.costoIndirecto() + " CD="
+                        + r10.costoDirecto());
+
+        // CT = CD + CI (sin CI residual cuando pctCi = 0)
+        ParametrosCalculo p0 = new ParametrosCalculo(new BigDecimal("0.0500"), BigDecimal.ZERO);
+        ApuCalculado r0 = Motor.calcularApu(snap, p0);
+        assertEquals(
+                0,
+                r0.costoTotal().compareTo(r0.costoDirecto()),
+                "CT must equal CD when %CI=0; got CD=" + r0.costoDirecto() + " CT=" + r0.costoTotal());
     }
 
     /**
-     * %CI=0 (both default and per-apu) → costoIndirecto == 0 and CT == CD_ajustado.
+     * %CI=0 (both default and per-apu) → costoIndirecto == 0 and CT == CD.
      */
     @Property(tries = 100)
-    void ci_cero_hace_CT_igual_a_CDajustado(@ForAll("apuSnapshots") ApuSnapshot snap) {
-        var p = new ParametrosCalculo(
-                new BigDecimal("0.0500"),
-                BigDecimal.ZERO, // porcentajeIndirectoDefault = 0
-                BigDecimal.ZERO);
+    void ci_cero_hace_CT_igual_a_CD(@ForAll("apuSnapshots") ApuSnapshot snap) {
+        var p = new ParametrosCalculo(new BigDecimal("0.0500"), BigDecimal.ZERO);
 
         ApuCalculado r = Motor.calcularApu(snap, p);
 
@@ -104,21 +117,17 @@ class MotorPropiedadesTest {
                 0,
                 BigDecimal.ZERO.setScale(6, RoundingMode.HALF_UP).compareTo(r.costoIndirecto()),
                 "costoIndirecto must be 0 when %CI=0");
-        assertEquals(
-                0,
-                r.costoDirectoAjustado().compareTo(r.costoTotal()),
-                "costoTotal must equal costoDirectoAjustado when CI=0");
+        assertEquals(0, r.costoDirecto().compareTo(r.costoTotal()), "costoTotal must equal costoDirecto when CI=0");
     }
 
     /**
-     * For auxiliar APUs: costoIndirecto == 0 always, regardless of %CI.
+     * For auxiliar APUs (Plan 014: %CI override = ZERO on snapshot → CI = 0
+     * regardless of project default).
      */
     @Property(tries = 100)
     void auxiliar_tiene_CI_cero(@ForAll("apuSnapshotsAuxiliares") ApuSnapshot aux) {
         var p = new ParametrosCalculo(
-                new BigDecimal("0.0500"),
-                new BigDecimal("0.2000"), // 20% CI — should still be ignored for auxiliar
-                BigDecimal.ZERO);
+                new BigDecimal("0.0500"), new BigDecimal("0.2000")); // 20% CI — should still be ignored for auxiliar
 
         ApuCalculado r = Motor.calcularApu(aux, p);
 

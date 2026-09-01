@@ -239,7 +239,7 @@ ComparacionVersionesResponse {
        temporalmente.
      - INSERT `apu` (nuevo, con FK al nuevo presupuesto); preservar
        `codigo`, `descripcion`, `unidad`, `porcentaje_indirecto`,
-       `porcentaje_descuento`, `especificacion_tecnica`,
+       `porcentaje_descuento` (columna inert — Plan 015, 2026-09-01; el deep copy **no** la copia), `especificacion_tecnica`,
        `costo_*` (temporalmente 0).
      - INSERT 4 `apu_seccion` por APU.
      - INSERT `apu_detalle` filas por sección.

@@ -16,7 +16,7 @@ El backend ya tiene implementada una parte importante de I-06:
 
 - IDs internos `BIGINT` + `public_id` UUIDv7.
 - Seeds deterministas sin compatibilidad temporal.
-- `%CI` y descuento legacy por APU.
+- `%CI` por APU; **descuento legacy por APU WITHDRAWN — Plan 015 (2026-09-01); sólo sobreviven FORMA 1 (mutación de insumos PROYECTO, MO exenta, regulada por `rango_descuento_*`) y FORMA 2 (edición atómica)**.
 - Duplicación profunda de APU.
 - Desglose de cálculo.
 - Especificaciones técnicas y exportación DOCX con Apache POI.
@@ -178,7 +178,7 @@ siguientes.
 | Capacidad | Estado | Evidencia actual | Falta exacta |
 |---|---|---|---|
 | P-23 `%CI` por APU | **PARTIAL** | `ApuResource` y `ApuCrudService.actualizarPorcentajeIndirecto` | propagación cuando cambia el default del proyecto; depende de write-through global |
-| P-24 descuento legacy por APU | **DONE** | `PATCH /apus/{id}/porcentaje-descuento` | nada dentro del atajo legacy |
+| P-24 descuento legacy por APU | **WITHDRAWN — Plan 015 (2026-09-01)** | seam retirado: `Apu.porcentajeDescuento`, `motor.ParametrosCalculo.porcentajeDescuento`, `motor.ApuCalculado.costoDirectoAjustado`, `ApuResponse.porcentajeDescuento`, `ApuCalculoParametros.descuento`, `ApuCalculoResumen.cdAjustado`/`operacionCdAjustado`, `PATCH /apus/{id}/porcentaje-descuento` | sobreviven **FORMA 1** (mutación de insumos PROYECTO, MO exenta, regulada por `parametros_sistema.rango_descuento_min/max`) y **FORMA 2** (edición atómica de insumo PROYECTO, sin seam nuevo). Columna BD `apu.porcentaje_descuento` queda como compatibility seam inert. |
 | Descuento FORMA 1 global | **DEFERRED** | tablas estructurales de snapshot presentes | servicio de presupuesto + recálculo transaccional |
 | Descuento FORMA 2 | **PARTIAL** | `PUT` de insumos PROYECTO existente | recalcular APUs que heredan el precio; debounce pertenece al frontend |
 | P-25 enlaces auxiliares | **OBSOLETO** | schema/entities actuales correctamente no los tienen | eliminar referencias antiguas de docs y motor; no crear columnas/endpoints |
@@ -212,7 +212,7 @@ siguientes.
 
 ### APU
 
-- `%CI` y descuento legacy.
+- `%CI` y (WITHDRAWN — Plan 015, 2026-09-01) descuento legacy por APU; sobreviven FORMA 1 + FORMA 2 (ver [`../../plans/015-retirar-descuento-apu.md`](../../plans/015-retirar-descuento-apu.md)).
 - duplicación profunda;
 - ET;
 - cálculo/desglose;

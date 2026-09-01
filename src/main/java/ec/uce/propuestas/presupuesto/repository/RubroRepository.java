@@ -2,7 +2,10 @@ package ec.uce.propuestas.presupuesto.repository;
 
 import ec.uce.propuestas.presupuesto.entity.Rubro;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
+import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -29,5 +32,18 @@ public class RubroRepository implements PanacheRepositoryBase<Rubro, Long> {
                 .getResultList()
                 .stream()
                 .findFirst();
+    }
+
+    /**
+     * Plan 021 — devuelve los rubros cuyos capítulos están en la colección
+     * indicada. La query preserva el orden de inserción (lectura por
+     * {@code capituloId}); el orden por {@code item} se aplica en el mapper
+     * al construir el read model.
+     */
+    public List<Rubro> listarPorCapitulos(Collection<Long> capituloIds) {
+        if (capituloIds == null || capituloIds.isEmpty()) {
+            return List.of();
+        }
+        return find("capituloId in :ids", Parameters.with("ids", capituloIds)).list();
     }
 }

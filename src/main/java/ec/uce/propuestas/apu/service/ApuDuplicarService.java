@@ -11,7 +11,6 @@ import ec.uce.propuestas.common.ProblemaException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -61,7 +60,6 @@ public class ApuDuplicarService {
         copia.descripcion = origen.descripcion;
         copia.unidad = origen.unidad;
         copia.porcentajeIndirecto = origen.porcentajeIndirecto;
-        copia.porcentajeDescuento = origen.porcentajeDescuento == null ? BigDecimal.ZERO : origen.porcentajeDescuento;
         copia.especificacionTecnica = copiarET ? origen.especificacionTecnica : null;
         apuRepository.persist(copia);
 

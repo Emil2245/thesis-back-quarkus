@@ -11,6 +11,8 @@ import ec.uce.propuestas.usuario.auth.RecordingEnviadorCorreo;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Map;
 import javax.sql.DataSource;
@@ -93,6 +95,48 @@ class ProyectoResourceIT {
                 .body("items[0].nombreProyecto", equalTo("Puente Tulcán"))
                 .body("items[0].estado", equalTo("BORRADOR"))
                 .body("items[0].id", matchesPattern(UUID_V7));
+    }
+
+    /**
+     * Plan 021 — TC-P06-01 extendido: al crear un proyecto debe existir
+     * exactamente una fila {@code presupuesto(version=1, es_vigente=TRUE)}
+     * con {@code public_id} UUIDv7 (auto-create en la misma transacción).
+     * El listado de versiones de ese proyecto expone la versión recién
+     * creada con {@code esVigente=true} y {@code totalGeneral="0.000000"}.
+     */
+    @Test
+    void TC_P21_auto_create_v1_vigente_en_crear_proyecto() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p21-auto@ex.com");
+        String proyectoId = crearProyecto(token, "Auto-create P21");
+
+        // El listado de versiones del proyecto debe devolver exactamente 1 vigente v1.
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/proyectos/" + proyectoId + "/presupuestos")
+                .then()
+                .statusCode(200)
+                .body("size()", is(1))
+                .body("[0].version", is(1))
+                .body("[0].esVigente", is(true))
+                .body("[0].totalGeneral", equalTo("0.000000"))
+                .body("[0].presupuestoId", matchesPattern(UUID_V7));
+
+        // Lectura directa de BD: la fila existe con los flags contract correctos.
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps =
+                        con.prepareStatement("SELECT version, es_vigente, origen_id, total FROM presupuesto "
+                                + "WHERE proyecto_id = (SELECT id FROM proyecto WHERE public_id = ?)")) {
+            ps.setObject(1, java.util.UUID.fromString(proyectoId));
+            try (ResultSet rs = ps.executeQuery()) {
+                org.junit.jupiter.api.Assertions.assertTrue(rs.next(), "Debe existir la fila presupuesto");
+                org.junit.jupiter.api.Assertions.assertEquals((short) 1, rs.getShort(1));
+                org.junit.jupiter.api.Assertions.assertTrue(rs.getBoolean(2));
+                rs.getLong(3); // origen_id (puede ser 0 si es NULL en BD)
+                org.junit.jupiter.api.Assertions.assertEquals(
+                        0, rs.getBigDecimal(4).compareTo(java.math.BigDecimal.ZERO));
+                org.junit.jupiter.api.Assertions.assertFalse(rs.next(), "No debe existir una segunda fila presupuesto");
+            }
+        }
     }
 
     @Test
