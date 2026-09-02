@@ -6,7 +6,9 @@ import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class PresupuestoRepository implements PanacheRepositoryBase<Presupuesto, Long> {
@@ -101,5 +103,43 @@ public class PresupuestoRepository implements PanacheRepositoryBase<Presupuesto,
                 .createNativeQuery("select id from proyecto where id = ?1 for update")
                 .setParameter(1, proyectoId)
                 .getSingleResult();
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Plan 025 (P-32) — validación de integridad: cobertura por cronograma
+    // ──────────────────────────────────────────────────────────────────────
+
+    /**
+     * Plan 025 — devuelve los IDs internos ({@code BIGINT}) de los rubros del
+     * presupuesto indicado que están cubiertos por una actividad cuyo
+     * cronograma pertenece al MISMO presupuesto. La consulta usa SQL nativo y
+     * queda estrictamente contenida al esquema del presupuesto del path
+     * (cruzando {@code actividad → cronograma → presupuesto_id}); un rubro
+     * vinculado a una actividad de OTRO presupuesto (p. ej. versión hermana
+     * del mismo proyecto) NO entra en el conjunto, preservando el aislamiento
+     * cross-presupuesto del contrato P-32 (TC-P32-12).
+     *
+     * <p>El {@code UNIQUE (actividad.rubro_id)} de V001 §2.13 garantiza que un
+     * rubro tiene a lo sumo una actividad; el {@code DISTINCT} es defensivo y
+     * no cambia el resultado.</p>
+     *
+     * <p>Si el presupuesto no tiene cronograma, no hay filas en
+     * {@code cronograma}, por lo que el conjunto devuelto es vacío: cualquier
+     * rubro del presupuesto queda, por defecto, como {@code sinActividad}.</p>
+     *
+     * <p>Operación data-access only: no introduce entidades JPA
+     * {@code Actividad}/{@code Cronograma} (diferidas a I-08) y no toca
+     * {@code proyecto/*}.</p>
+     */
+    public Set<Long> findRubrosCubiertosPorCronograma(Long presupuestoId) {
+        @SuppressWarnings("unchecked")
+        List<Number> ids = getEntityManager()
+                .createNativeQuery("select distinct a.rubro_id "
+                        + "from actividad a "
+                        + "join cronograma c on c.id = a.cronograma_id "
+                        + "where c.presupuesto_id = ?1")
+                .setParameter(1, presupuestoId)
+                .getResultList();
+        return ids.stream().map(Number::longValue).collect(Collectors.toUnmodifiableSet());
     }
 }

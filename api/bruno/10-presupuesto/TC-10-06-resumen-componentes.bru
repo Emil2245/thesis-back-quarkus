@@ -1,0 +1,56 @@
+meta {
+  name: TC-10-06 — Resumen por componente P-30
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/presupuestos/{{p25PresupuestoId}}/resumen
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Forma JSON estable con porComponente, totalGeneral, ivaReferencial, totalConIva", function() {
+    expect(res.body).to.have.property("porComponente");
+    expect(res.body).to.have.property("totalGeneral");
+    expect(res.body).to.have.property("ivaReferencial");
+    expect(res.body).to.have.property("totalConIva");
+  });
+
+  test("porComponente contiene las 4 secciones canónicas", function() {
+    expect(res.body.porComponente).to.have.property("EQUIPO");
+    expect(res.body.porComponente).to.have.property("MANO_OBRA");
+    expect(res.body.porComponente).to.have.property("MATERIAL");
+    expect(res.body.porComponente).to.have.property("TRANSPORTE");
+  });
+
+  test("Componentes en cero (APU vacío, sin filas M/N/O/P)", function() {
+    expect(res.body.porComponente.EQUIPO).to.equal("0.000000");
+    expect(res.body.porComponente.MANO_OBRA).to.equal("0.000000");
+    expect(res.body.porComponente.MATERIAL).to.equal("0.000000");
+    expect(res.body.porComponente.TRANSPORTE).to.equal("0.000000");
+  });
+
+  test("totalGeneral cadena decimal escala 6", function() {
+    expect(res.body.totalGeneral).to.match(/^-?\d+\.\d{6}$/);
+  });
+}
+
+docs {
+  Caso Plan 025 / Plan 023 — `GET /presupuestos/{id}/resumen`
+  (P-30 read model). Con un APU vacío y cantidad 12.5, las
+  cuatro secciones M/N/O/P son 0 (no hay filas) y
+  `totalGeneral = 0` (sin subtotales directos ni CI). Esta es
+  la versión "vacía de contenido" del resumen; TC-10-06 no
+  verifica IVA (depende de `ParametrosProyecto.iva` y de un
+  totalGeneral positivo). Cobertura P-30 §Forma JSON estable.
+}

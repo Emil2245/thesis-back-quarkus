@@ -1,0 +1,41 @@
+meta {
+  name: TC-10-15 — Caller ajeno (Ana, u2) sobre presupuesto de John → 404 owner-to-404
+  type: http
+  seq: 22
+}
+
+get {
+  url: {{baseUrl}}/presupuestos/{{p25V2Id}}/validacion
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u2_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  test("Status 404 Not Found", function() {
+    expect(res.status).to.equal(404);
+  });
+
+  test("Error tipado `no-encontrado` (RNF-05: nunca 403 — no filtra existencia)", function() {
+    expect(res.body.codigo).to.equal("no-encontrado");
+  });
+}
+
+docs {
+  Caso Plan 025 — Ana de Armas (`u2`, seed V004) intenta leer
+  `/validacion` sobre `p25V2Id` (presupuesto de John Doe, `u1`).
+  `UuidV7.parse` lo acepta (v7 bien formado); el repository
+  resuelve con `findByPublicIdAndOwnerScope` que combina UUID +
+  scope de owner en una sola consulta. El resultado es
+  `Optional.empty()` y el service traduce a 404 `no-encontrado`,
+  NUNCA 403, para no filtrar la existencia del recurso. Esta es
+  la tercera línea de defensa: UUID + scope de owner en la misma
+  consulta. Cobertura TC-P32-11.
+}

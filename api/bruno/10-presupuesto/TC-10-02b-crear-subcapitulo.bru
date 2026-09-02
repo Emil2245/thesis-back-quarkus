@@ -1,0 +1,64 @@
+meta {
+  name: TC-10-02b — Crear subcapítulo bajo el capítulo raíz P-28
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/presupuestos/{{p25PresupuestoId}}/capitulos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "descripcion": "Limpieza y replanteo Plan025",
+    "parentId": "{{p25CapituloRaizId}}"
+  }
+}
+
+script:post-response {
+  // Busca el subcapítulo cuyo `parentId` capturado en el árbol
+  // coincide con el raíz recién creado. Tras este POST, el árbol
+  // tiene `capitulos[0].subcapitulos.length === 1`.
+  if (res.status === 201 && res.body && Array.isArray(res.body.capitulos)
+      && res.body.capitulos.length > 0
+      && Array.isArray(res.body.capitulos[0].subcapitulos)
+      && res.body.capitulos[0].subcapitulos.length > 0) {
+    bru.setVar("p25SubcapituloId", res.body.capitulos[0].subcapitulos[0].id);
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("Subcapítulo aparece bajo el raíz", function() {
+    expect(res.body.capitulos[0].subcapitulos.length).to.be.at.least(1);
+    expect(res.body.capitulos[0].subcapitulos[0].item).to.equal("1.1");
+  });
+
+  test("subcapituloId UUIDv7 capturado", function() {
+    // Contra el árbol de la respuesta actual, no contra
+    // `{{p25SubcapituloId}}`: Bruno interpola antes del post-response.
+    expect(res.body.capitulos[0].subcapitulos[0].id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+}
+
+docs {
+  Caso Plan 025 / Plan 022 — crea un subcapítulo bajo el
+  capítulo raíz del TC-10-02a con
+  `POST /presupuestos/{presupuestoId}/capitulos { descripcion,
+  parentId }`. El backend asigna `item = '1.1'` (jerarquía
+  autogenerada: padre.item + '.' + orden) y devuelve el árbol
+  completo. La descripción es determinista (BD limpia por corrida).
+}

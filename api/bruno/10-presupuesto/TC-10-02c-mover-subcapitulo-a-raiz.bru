@@ -1,0 +1,73 @@
+meta {
+  name: TC-10-02c — Mover subcapítulo a raíz P-28 (renumeración atómica)
+  type: http
+  seq: 8
+}
+
+patch {
+  url: {{baseUrl}}/presupuestos/{{p25PresupuestoId}}/capitulos/{{p25SubcapituloId}}/mover
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "parentId": null,
+    "orden": 2
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("El subcapítulo movido ahora aparece como raíz con item '2'", function() {
+    var matches = res.body.capitulos.filter(function (c) {
+      return c.id === bru.getVar("p25SubcapituloId");
+    });
+    expect(matches.length).to.equal(1);
+    expect(matches[0].item).to.equal("2");
+  });
+
+  test("El capítulo raíz original sigue en item '1'", function() {
+    var matches = res.body.capitulos.filter(function (c) {
+      return c.id === bru.getVar("p25CapituloRaizId");
+    });
+    expect(matches.length).to.equal(1);
+    expect(matches[0].item).to.equal("1");
+  });
+
+  test("Sin subcapítulos colgados tras el movimiento", function() {
+    var matches = res.body.capitulos.filter(function (c) {
+      return c.id === bru.getVar("p25CapituloRaizId");
+    });
+    expect(matches[0].subcapitulos.length).to.equal(0);
+  });
+}
+
+docs {
+  Caso Plan 025 / Plan 022 — mueve el subcapítulo
+  `p25SubcapituloId` (creado en TC-10-02b como `1.1`) a la raíz
+  en posición 2, vía
+  `PATCH /presupuestos/{presupuestoId}/capitulos/{capituloId}/mover`
+  con `{ parentId: null, orden: 2 }`. Verifica la renumeración
+  atómica en dos pasadas: el movido pasa de `1.1` → `2`, el
+  raíz original queda `1`, y ningún subcapítulo cuelga del
+  antiguo padre. Cobertura Plan 022 §Renumeración atómica +
+  §PATCH mover.
+
+  Caveat operacional: tras este caso, los UUIDv7 de `capitulos`
+  se han preservado pero los items han cambiado. Para no romper
+  la secuencia siguiente, los casos posteriores conservan
+  `p25CapituloRaizId` (que sigue siendo raíz en posición 1) para
+  crear y editar el rubro P-29.
+}

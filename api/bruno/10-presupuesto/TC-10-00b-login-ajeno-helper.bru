@@ -1,0 +1,42 @@
+meta {
+  name: TC-10-00b — Login titular ajeno Ana de Armas (helper)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{u2Email}}",
+    "password": "{{u2Password}}",
+    "recordarSesion": false
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("u2_access_token", res.body.accessToken);
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+}
+
+docs {
+  Helper de Plan 025 — captura el access token del titular ajeno
+  Ana de Armas sembrado en V004 (`u2Email = ana.armas@gmail.com`).
+  Lo consume TC-10-15 (`/validacion` contra un presupuesto ajeno
+  → 404 `no-encontrado`, RNF-05: nunca 403).
+}

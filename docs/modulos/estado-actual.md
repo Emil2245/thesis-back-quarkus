@@ -39,17 +39,43 @@ El write-through global que exige un módulo profundo `recalculo` queda
 **diferido**, porque crear ese nuevo módulo contradice el alcance solicitado en
 esta etapa.
 
-> **I-07 — PLANNED / READY (2026-08-31).** La planificación completa del
-> módulo `presupuesto` (P-28, P-29, P-30, P-31, P-32) ya está redacta en
-> [`docs/modulos/05-presupuesto/00.md`](05-presupuesto/00.md): 7 planes ejecutables
-> ejecutables 019–025 que cubren la activación del módulo profundo
+> **I-07 — DONE (2026-09-01).** La planificación completa del módulo
+> `presupuesto` (P-28, P-29, P-30, P-31, P-32) está en
+> [`docs/modulos/05-presupuesto/00.md`](05-presupuesto/00.md): 8 planes
+> 015 + 019–025 que cubren la activación del módulo profundo
 > `recalculo` (Plan 020), la identidad pública UUIDv7 para `capitulo` y
 > `rubro` (Plan 019, V008 estructural), el auto-create de presupuesto v1
 > vigente (Plan 021), CRUD capítulos (Plan 022), CRUD rubros 1:1 APU con
 > write-through (Plan 023), versionado + deep copy + vigente + comparación
-> (Plan 024) y validación de integridad + Bruno + Graphify + cierre (Plan
-> 025). **No implementado todavía** — la ejecución efectiva de cada plan
-> queda pendiente y se hace en orden estricto del DAG.
+> (Plan 024) y validación de integridad + Bruno + cierre (Plan 025).
+> **Plans 015 + 019–025 DONE.** Plan 025 entrega
+> `GET /presupuestos/{id}/validacion` (UUIDv7 validado en frontera,
+> owner-scope), DTOs `ValidacionPresupuestoResponse` +
+> `RubroRefResponse`, `PresupuestoRepository.findRubrosCubiertosPorCronograma`
+> (SQL nativo narrow, sin entidad JPA `Actividad`/`Cronograma`),
+> `PresupuestoValidacionResourceIT` 13/13 escrito primero, Bruno
+> [`api/bruno/10-presupuesto/`](../../api/bruno/10-presupuesto/)
+> autocontenido (23 requests: 5 helpers + 18 casos temáticos cubriendo
+> P-28/P-29/P-30/P-31/P-32 + 3 negativos UUIDv7/owner-scope),
+> corrido dinámicamente contra PostgreSQL 18 limpio + fast-jar con
+> **23/23 requests, 83/83 tests, 0 failures/errors/skips, 4.554 s CLI
+> / 6.070 s wall, Bruno CLI 4.1.0**, y sincronización documental
+> completa. **No** se ejecuta commit unitario ni merge (instrucción
+> explícita del orquestador). **Evidencia medida (2026-09-01):**
+> `PresupuestoValidacionResourceIT` 13/13; `./gradlew test --tests
+> 'ec.uce.propuestas.presupuesto.*'` 98/98; APU 52/52;
+> `recalculo` 4/4; motor 45 = 42 pass + 2 aceptados (GM-19 `-$6.95`,
+> GM-20 cap. 1 `-$0.84`) + 1 skipped (GM-24 `@Disabled`) + 0 errors;
+> suite completa **438 = 435 pass + 2 aceptados + 1 skipped + 0
+> errors**; `./gradlew spotlessCheck` PASS; `./gradlew build -x test`
+> PASS; `git diff --check` limpio; `graphify update .` final
+> **DONE — 2.972 nodos / 9.064 aristas / 141 comunidades**. Sin bloqueos correctivos identificados en
+> los planes 019–024; las dos observaciones de auditoría no son defectos
+> (`TRUNCATE ... CASCADE` cubre reset `cronograma`/`actividad`; D-09
+> significa códigos APU únicos por presupuesto). Tras cierre Plan 025,
+> la **siguiente tarea de planificación** es **Plan 026 (I-08 —
+> cronograma CRUD)**, que aún **no** existe como archivo ejecutable y
+> debe autorarse en su propia sesión.
 
 ---
 

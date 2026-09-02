@@ -1,0 +1,74 @@
+meta {
+  name: TC-10-00e — Crear APU vacío helper (helper)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/presupuestos/{{p25PresupuestoId}}/apus
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "codigo": "APU-P25-VACIO-01",
+    "descripcion": "APU vacío Plan 025 — usado por TC-10-03 / TC-10-04",
+    "unidad": "u"
+  }
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("p25ApuVacioId", res.body.id);
+  }
+}
+
+tests {
+  test("Status 201 Created (sin plantilla, sin advertencias)", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("APU creado con 4 secciones vacías M/N/O/P", function() {
+    expect(res.body.secciones.length).to.equal(4);
+    expect(res.body.secciones[0].tipo).to.equal("EQUIPO");
+    expect(res.body.secciones[1].tipo).to.equal("MANO_OBRA");
+    expect(res.body.secciones[2].tipo).to.equal("MATERIAL");
+    expect(res.body.secciones[3].tipo).to.equal("TRANSPORTE");
+  });
+
+  test("apuId es UUIDv7", function() {
+    // Contra `res.body`, no contra `{{p25ApuVacioId}}`: la interpolación
+    // de plantillas ocurre antes de `script:post-response`.
+    expect(res.body.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+
+  test("codigo determinista APU-P25-VACIO-01 (lo consume TC-10-12)", function() {
+    expect(res.body.codigo).to.equal("APU-P25-VACIO-01");
+  });
+}
+
+docs {
+  Helper de Plan 025 — crea un APU sin plantilla, sin filas, con
+  código determinista `APU-P25-VACIO-01` (la colección asume una BD
+  limpia por corrida; sobre una BD reutilizada el código puede
+  colisionar).
+  Se consume en:
+  - TC-10-03 (crear rubro bajo capítulo raíz).
+  - TC-10-04 (intentar duplicar el mismo APU en otro rubro → 409
+    `apu-referenciado`, D-09 1:1).
+  - TC-10-12 (validación: PU=0 porque costo_total=0 al no tener
+    filas → `itemsPuCero` poblado).
+
+  Forma de respuesta: `ApuResponse { id, codigo, descripcion,
+  unidad, secciones[4], advertencias? }`. `costo_total = 0` por
+  default (sin filas M/N/O/P).
+}

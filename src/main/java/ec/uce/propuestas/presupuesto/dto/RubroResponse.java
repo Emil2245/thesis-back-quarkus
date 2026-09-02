@@ -13,10 +13,12 @@ import java.util.UUID;
  * cantidades se serializan como cadena decimal a escala 6 (P-30 contrato
  * canónico).</p>
  *
- * <p>El campo {@code alertas} queda diferido a Plan 025 (P-32); no se
- * introduce en este plan para evitar inventar un catálogo sin cita canónica.
- * Cuando se introduzca, se hará con {@code @JsonInclude(NON_NULL)} para
- * preservar la forma estable de los consumidores existentes.</p>
+ * <p>Plan 025 (P-32) NO introduce un campo {@code alertas} por rubro en este
+ * read model; la validación de integridad del presupuesto se expone como tres
+ * listas top-level independientes de referencias reducidas
+ * ({@code RubroRefResponse}) en
+ * {@code GET /presupuestos/{presupuestoId}/validacion}. Esto preserva la forma
+ * estable de los consumidores existentes: no hay cambios de JSON shape.</p>
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record RubroResponse(

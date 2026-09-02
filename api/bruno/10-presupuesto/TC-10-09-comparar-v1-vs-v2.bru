@@ -1,0 +1,67 @@
+meta {
+  name: TC-10-09 — Comparar v1 vs v2 P-31 (lado a lado)
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{baseUrl}}/presupuestos/{{p25PresupuestoId}}/comparar?con={{p25V2Id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Respuesta con `versiones[]` de dos entradas", function() {
+    expect(res.body.versiones).to.be.an("array");
+    expect(res.body.versiones.length).to.equal(2);
+  });
+
+  test("Primera entrada corresponde a v1 (presupuestoId del path)", function() {
+    expect(res.body.versiones[0].presupuestoId).to.equal(bru.getVar("p25PresupuestoId"));
+  });
+
+  test("Segunda entrada corresponde a v2 (query `con`)", function() {
+    expect(res.body.versiones[1].presupuestoId).to.equal(bru.getVar("p25V2Id"));
+  });
+
+  test("Ambos totalGeneral cadena decimal escala 6", function() {
+    expect(res.body.versiones[0].totalGeneral).to.match(/^-?\d+\.\d{6}$/);
+    expect(res.body.versiones[1].totalGeneral).to.match(/^-?\d+\.\d{6}$/);
+  });
+
+  test("totales idénticos al origen (deep copy bit-a-bit)", function() {
+    // Tras TC-10-07 el origen y la copia deben tener los mismos
+    // totales (TC-P31-01 tolerancia 0.00). Como el APU está
+    // vacío (PU=0), totalGeneral=0 en ambas versiones.
+    expect(res.body.versiones[0].totalGeneral).to.equal("0.000000");
+    expect(res.body.versiones[1].totalGeneral).to.equal("0.000000");
+  });
+
+  test("Cada entrada expone `porCapituloRaiz` con capítulos del primer nivel", function() {
+    expect(res.body.versiones[0].porCapituloRaiz).to.be.an("array");
+    expect(res.body.versiones[1].porCapituloRaiz).to.be.an("array");
+  });
+}
+
+docs {
+  Caso Plan 025 / Plan 024 — comparación lado a lado de las dos
+  versiones del proyecto:
+  `GET /presupuestos/{presupuestoId}/comparar?con={v2Id}`. La
+  respuesta es `ComparacionVersionesResponse { versiones: [
+    ComparacionItem { presupuestoId, version, esVigente,
+    totalGeneral, porCapituloRaiz } x2 ] }`. El orden es
+  estable: path primero, query después. Como el deep copy es
+  bit-a-bit idéntico, `totalGeneral=0` en ambas (APU vacío).
+}

@@ -1,0 +1,41 @@
+meta {
+  name: TC-10-10 — Eliminar v1 (no vigente) P-31 → 204
+  type: http
+  seq: 17
+}
+
+delete {
+  url: {{baseUrl}}/presupuestos/{{p25PresupuestoId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  test("Status 204 No Content", function() {
+    expect(res.status).to.equal(204);
+  });
+}
+
+docs {
+  Caso Plan 025 / Plan 024 — borra la versión 1 (NO vigente
+  tras TC-10-08) vía
+  `DELETE /presupuestos/{presupuestoId}`. La cascade de V001
+  barre capítulos, rubros, APUs del subárbol de esa versión y
+  cronograma/actividad (no JPA, vía FK con `ON DELETE
+  CASCADE`). La versión 2 (vigente) permanece intacta —
+  Plan 024 §P-31 cascade §X.
+
+  Caveat operacional irreversible: tras TC-10-10 el `p25PresupuestoId`
+  deja de existir. Los casos siguientes que intenten leer
+  sobre v1 deben esperar 404. La lista de versiones queda con
+  sólo v2; TC-10-11 lo confirma intentando borrar v2 (que SÍ
+  es vigente).
+}

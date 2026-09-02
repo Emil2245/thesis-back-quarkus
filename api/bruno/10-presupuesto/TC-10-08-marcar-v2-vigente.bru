@@ -1,0 +1,50 @@
+meta {
+  name: TC-10-08 — Marcar v2 como vigente P-31 (toggle transaccional)
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{baseUrl}}/presupuestos/{{p25V2Id}}/vigente
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("v2 ahora esVigente=true", function() {
+    expect(res.body.esVigente).to.equal(true);
+  });
+
+  test("v2.version sigue siendo 2", function() {
+    expect(res.body.version).to.equal(2);
+  });
+}
+
+docs {
+  Caso Plan 025 / Plan 024 — marca la versión 2 (no-vigente
+  tras TC-10-07) como vigente vía
+  `POST /presupuestos/{presupuestoId}/vigente`. Plan 024 toggle
+  transaccional con lock pesimista de fila `proyecto`:
+  `update presupuesto set es_vigente=false where proyecto_id=?1
+  and es_vigente=true and id<>?2` seguido de `update set
+  es_vigente=true where id=?1`. El índice único parcial
+  `ux_presupuesto_vigente` (V001 §2.8) garantiza "exactamente
+  una vigente por proyecto".
+
+  Después de este caso, v1 pasa a `es_vigente=false` y v2 a
+  `es_vigente=true`. TC-10-09 lo verifica consultando la lista
+  de versiones; TC-10-10 intenta borrar v1 (no-vigente) y
+  TC-10-11 intenta borrar v2 (vigente → 409).
+}

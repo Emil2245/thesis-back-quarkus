@@ -1,0 +1,54 @@
+meta {
+  name: TC-10-01 — Leer árbol completo del presupuesto v1 (read model P-28/P-29)
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/presupuestos/{{p25PresupuestoId}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Read model con presupuestoId UUIDv7", function() {
+    expect(res.body.presupuestoId).to.equal(bru.getVar("p25PresupuestoId"));
+    expect(res.body.presupuestoId).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+
+  test("Versión 1 vigente", function() {
+    expect(res.body.version).to.equal(1);
+    expect(res.body.esVigente).to.equal(true);
+  });
+
+  test("totalGeneral cadena decimal escala 6", function() {
+    expect(res.body.totalGeneral).to.match(/^-?\d+\.\d{6}$/);
+  });
+
+  test("Sin capítulos aún (auto-create deja árbol vacío)", function() {
+    expect(res.body.capitulos).to.be.an("array");
+    expect(res.body.capitulos.length).to.equal(0);
+  });
+
+  test("No expone BIGINTs internos (Plan 07 / WU-03)", function() {
+    var body = JSON.stringify(res.body);
+    expect(body).to.not.match(/\"id\":\s*\d{2,}/);
+  });
+}
+
+docs {
+  Caso Plan 025 — read model completo del árbol P-28/P-29/P-30
+  (`GET /presupuestos/{presupuestoId}`). Tras el auto-create v1
+  vigente de Plan 021, el árbol arranca vacío (sin capítulos, sin
+  rubros); TC-10-02 lo puebla. La respuesta cumple contrato:
+  `PresupuestoResponse { presupuestoId, version, esVigente,
+  totalGeneral, capitulos[] }`. `presupuestoId` es el UUIDv7
+  público; no se filtra el BIGINT interno en ningún nivel.
+}

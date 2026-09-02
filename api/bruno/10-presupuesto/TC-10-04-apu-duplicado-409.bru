@@ -1,0 +1,51 @@
+meta {
+  name: TC-10-04 — Vincular APU ya referenciado por otro rubro → 409 D-09
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/presupuestos/{{p25PresupuestoId}}/capitulos/{{p25CapituloRaizId}}/rubros
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "apuId": "{{p25ApuVacioId}}",
+    "cantidad": "1.000000"
+  }
+}
+
+tests {
+  test("Status 409 Conflict", function() {
+    expect(res.status).to.equal(409);
+  });
+
+  test("Error tipado `apu-referenciado` (D-09 1:1)", function() {
+    expect(res.body.codigo).to.equal("apu-referenciado");
+  });
+}
+
+docs {
+  Caso Plan 025 / Plan 023 — intenta crear un segundo rubro
+  vinculado al MISMO `p25ApuVacioId` ya consumido por TC-10-03.
+  D-09 (1:1 APU↔rubro por versión) rechaza con 409
+  `apu-referenciado`. El test nunca llega a crear el segundo
+  rubro (BIGINT UNIQUE en `rubro.apu_id` lo impide), pero el
+  contrato se valida en la frontera REST antes de cualquier
+  INSERT.
+
+  Caveat operacional: el test NO requiere `cantidad > 0` para
+  detectar el 409 (D-09 prevalece sobre validación de cantidad).
+  Si el backend evoluciona para validar cantidad primero, este
+  caso seguirá pasando porque usamos `cantidad = 1.000000 > 0`.
+}

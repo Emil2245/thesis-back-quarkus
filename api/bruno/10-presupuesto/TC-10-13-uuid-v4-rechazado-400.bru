@@ -1,0 +1,39 @@
+meta {
+  name: TC-10-13 — UUIDv4 (no v7) → 400 validacion (frontera Plan 07 / WU-03)
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{baseUrl}}/presupuestos/550e8400-e29b-41d4-a716-446655440000/validacion
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  test("Status 400 Bad Request", function() {
+    expect(res.status).to.equal(400);
+  });
+
+  test("Error tipado `validacion` (UuidV7.parse rechaza versión ≠ 7)", function() {
+    expect(res.body.codigo).to.equal("validacion");
+  });
+}
+
+docs {
+  Caso Plan 025 — UUIDv4 bien formado (550e8400-e29b-41d4-a716...)
+  cuyo nibble de versión es `4`, no `7`. El parser canónico
+  `ec.uce.propuestas.common.UuidV7.parse` lo rechaza con 400
+  `validacion` antes de cualquier acceso al repositorio. Esta es
+  la primera línea de defensa del contrato UUIDv7 público
+  (Plan 07 / WU-03): ningún caller puede enviar BIGINTs disfrazados,
+  UUIDs v4 aleatorios ni UUIDs v7 malformados. Cobertura TC-P32-09.
+}

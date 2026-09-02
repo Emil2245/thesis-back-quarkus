@@ -1,0 +1,50 @@
+meta {
+  name: TC-10-00a — Login titular John Doe (helper)
+  type: http
+  seq: 0
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{u1Email}}",
+    "password": "{{u1Password}}",
+    "recordarSesion": true
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("u1_access_token", res.body.accessToken);
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("accessToken con forma JWT (header.payload.signature)", function() {
+    // Se asserta sobre la respuesta actual: Bruno interpola `{{var}}`
+    // ANTES de `script:post-response`, por lo que `{{u1_access_token}}`
+    // aún tendría el valor previo (`empty`) en este mismo request.
+    expect(res.body.accessToken).to.match(/^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/);
+  });
+}
+
+docs {
+  Helper inicial de Plan 025 — captura el access token del titular
+  John Doe sembrado en V004 (`u1Email = john.doe@uce.edu.ec`).
+  Debe ejecutarse antes que cualquier caso autenticado de esta
+  carpeta. NO re-registra al titular: el seed V004 ya contiene la
+  fila `usuario` con ese email.
+}

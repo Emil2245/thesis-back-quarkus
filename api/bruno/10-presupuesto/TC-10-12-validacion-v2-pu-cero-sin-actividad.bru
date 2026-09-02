@@ -1,0 +1,107 @@
+meta {
+  name: TC-10-12 — Validación P-32 sobre v2 (PU=0 + sin actividad, exportable=false)
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{baseUrl}}/presupuestos/{{p25V2Id}}/validacion
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Forma JSON estable (4 campos top-level)", function() {
+    expect(res.body).to.have.property("exportable");
+    expect(res.body).to.have.property("itemsPuCero");
+    expect(res.body).to.have.property("itemsCantidadCero");
+    expect(res.body).to.have.property("itemsSinActividad");
+  });
+
+  test("exportable=false (defectos presentes)", function() {
+    expect(res.body.exportable).to.equal(false);
+  });
+
+  test("itemsPuCero poblado (1 rubro con PU=0 por APU vacío)", function() {
+    expect(res.body.itemsPuCero).to.be.an("array");
+    expect(res.body.itemsPuCero.length).to.equal(1);
+    // El deep copy de Plan 024 asigna UUIDv7 público FRESCO al rubro
+    // clonado — no se conserva el `p25RubroId` de v1. Verificamos por
+    // código (determinista, TC-10-00e) y por shape, no por id capturado.
+    expect(res.body.itemsPuCero[0].codigo).to.equal("APU-P25-VACIO-01");
+  });
+
+  test("itemsCantidadCero vacío (REST P-29 exige cantidad>0 al crear)", function() {
+    expect(res.body.itemsCantidadCero).to.be.an("array");
+    expect(res.body.itemsCantidadCero.length).to.equal(0);
+  });
+
+  test("itemsSinActividad poblado (presupuesto sin cronograma ⇒ todos los rubros sin actividad)", function() {
+    expect(res.body.itemsSinActividad).to.be.an("array");
+    expect(res.body.itemsSinActividad.length).to.equal(1);
+    // Mismo rationale que itemsPuCero: deep copy genera UUIDv7
+    // público fresco; verificamos por código APU determinista.
+    expect(res.body.itemsSinActividad[0].codigo).to.equal("APU-P25-VACIO-01");
+  });
+
+  test("RubroRefResponse exactamente 4 campos (id, item, codigo, descripcion)", function() {
+    var keys = Object.keys(res.body.itemsPuCero[0]).sort();
+    expect(keys).to.deep.equal(["codigo", "descripcion", "id", "item"]);
+  });
+
+  test("Sin fugas de BIGINT interno en RubroRefResponse", function() {
+    var keys = Object.keys(res.body.itemsPuCero[0]);
+    expect(keys).to.not.include("apuId");
+    expect(keys).to.not.include("cantidad");
+    expect(keys).to.not.include("precioUnitario");
+    expect(keys).to.not.include("precioTotal");
+    expect(keys).to.not.include("unidad");
+    expect(keys).to.not.include("alertas");
+  });
+}
+
+docs {
+  Caso Plan 025 (P-32) — `GET /presupuestos/{id}/validacion`
+  sobre la v2 vigente (post TC-10-08 y post TC-10-10). El árbol
+  heredó el deep copy de TC-10-07: 1 rubro PU=0 + cantidad=12.5.
+  Sin cronograma (no se ha creado vía API), así que el rubro aparece
+  en `itemsSinActividad` por defecto. Cobertura ortogonal:
+
+  Nota importante sobre UUIDs en el deep copy: Plan 024 asigna
+  UUIDv7 públicos FRESCOS al rubro clonado (no conserva el
+  `p25RubroId` capturado en v1). Las aserciones verifican por
+  `codigo` APU (`APU-P25-VACIO-01`, determinista desde TC-10-00e),
+  no por id.
+
+  - `itemsPuCero` poblado por PU=0 (APU vacío sin filas M/N/O/P).
+  - `itemsCantidadCero` vacío por la política REST P-29 (cantidad>0
+    en creación); la cobertura del caso `cantidad=0` vive en el
+    IT `PresupuestoValidacionResourceIT.TC_P32_05`, que siembra
+    `cantidad=0` por SQL nativo. Esta separación se mantiene
+    honestamente: la API no permite reproducir el caso cantidad=0
+    sin bypassear contratos.
+  - `itemsSinActividad` poblado porque no hay cronograma (regla:
+    presupuesto sin cronograma ⇒ todos los rubros sin actividad,
+    TC-P32-04).
+  - `exportable=false` por la presencia de ambos defectos.
+  - `RubroRefResponse` exactamente 4 campos, sin fugas de BIGINT
+    ni de campos del `RubroResponse` (cantidad, precios, unidad,
+    apuId, alertas).
+
+  Caveat I-08: cuando exista CRUD de `cronograma`/`actividad`,
+  crear un cronograma y una actividad que cubra este rubro lo
+  desplazará de `itemsSinActividad` (y `exportable` sólo seguirá
+  false por PU=0). Plan 025 no lo cubre (I-08).
+}
