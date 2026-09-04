@@ -7,6 +7,36 @@ Read this before touching anything. Terse on purpose; every line pays rent.
 Quarkus backend for a thesis project — a SERCOP propuestas técnico-económicas
 platform. See [`README.md`](README.md) for the human overview.
 
+## Cronograma reference project (I-08 planning only)
+
+For the planning and clarification of I-08 and later cronograma work, use
+`../ingepresupuestos/` as a complementary functional reference. The upstream
+project is <https://github.com/ingelibre/ingepresupuestos>.
+
+This reference is **only an example of cronograma behavior and UX**. It is not
+a normative source and does not authorize copying its Python/PySide6/SQLite
+architecture, code, schema, naming, or complete feature set. This repository
+remains a Quarkus + PostgreSQL backend for the Ecuadorian SERCOP domain, with
+public UUIDv7, internal BIGINT PK/FK, and the canonical decisions in
+`../thesis-docs/`.
+
+Read together with:
+
+- `../thesis-docs/DOCUMENTOS/entrevistas/05/N05_entrevista-cronograma.md` —
+  current business clarifications.
+- `../ingepresupuestos/core/cronograma.py` — CPM, dependencies, lag,
+  non-consecutive segments, and auto-programming examples.
+- `../ingepresupuestos/views/cronograma_view.py` — Gantt, valued schedule,
+  S-curve, editing UX, and MSPDI XML export examples.
+
+Functional ideas to evaluate, not blindly replicate: non-consecutive activity
+periods, editable Gantt bars, a valued spreadsheet-like view, a separate S-curve
+view, incomplete distributions saved as drafts, automatic recalculation with
+visible discrepancy warnings, budget chapter grouping, and Microsoft Project
+interoperability through standard MSPDI XML rather than the proprietary `.mpp`
+binary. Any conflict between the interview, `thesis-docs/`, and this reference
+is a stop condition: document and resolve the decision before coding.
+
 ## The One Rule
 
 **All design decisions live in `../thesis-docs/`.** This repo *implements*
