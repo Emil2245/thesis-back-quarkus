@@ -1,17 +1,15 @@
 # 026 — Sincronizar el contrato canónico de Cronograma
 
-**Estado:** TODO — gate documental bloqueante; no es una implementación.
+**Estado:** DONE — 04-09-2026; gate documental cerrado, sin implementación.
 
 **Iteración:** I-08 (configuración y avance), I-09 (vistas y sincronía) e I-10
 (exportación).
 
 **Procesos:** P-33, P-34, P-35, P-36 y P-37.
 
-> Este plan se ejecuta antes de escribir entidades, migraciones, recursos REST,
-> pruebas de integración, colecciones Bruno o código frontend. Su producto es
-> una decisión documental única y trazable en `../thesis-docs/`. La presente
-> sesión solo redacta este archivo: no modifica el índice, `thesis-docs` ni el
-> código de aplicación.
+> Ejecutado antes de escribir entidades, migraciones, recursos REST, pruebas de
+> integración, Bruno o frontend. El producto es una decisión documental única y
+> trazable en `../thesis-docs/`; no se modificó código de aplicación.
 
 ## Resultado medible del gate
 
@@ -28,18 +26,18 @@ puede comprobar, sin interpretar ni completar huecos, que:
 3. `SEMANA`, `MES`, `numeroPeriodos`, sus límites, la indexación 1-based, la
    representación de mapas y la semántica de reemplazo atómico tienen un solo
    nombre y una sola regla en todos los documentos.
-4. Se evalúan, se conservan o se retiran expresamente las cinco rutas del
-   contrato vigente, sin agregar aliases no aprobados:
+4. Las rutas legacy se evaluaron sin aliases. El contrato activo queda en
    `GET/POST /presupuestos/{id}/cronograma`,
-   `PUT /cronogramas/{id}`,
-   `PATCH /cronogramas/{id}/actividades/{aid}` y
+   `PUT /cronogramas/{id}/configuracion`,
+   `PATCH /cronogramas/{id}/actividades/{aid}`,
+   `GET /cronogramas/{id}/vistas` y
    `POST /cronogramas/{id}/revisado`.
 5. El contrato distingue tres conceptos que no se pueden colapsar: distribución
-   `BORRADOR`, distribución `COMPLETA` y alerta `desactualizado`. La alerta
+   `BORRADOR`, distribución `COMPLETO` y alerta `desactualizado`. La alerta
    detecta los cambios presupuestarios relevantes para pesos/proyección —incluidos
    cambios compensados que conserven el total general— y no bloquea por sí sola la
-   exportación. El gate debe decidir si los campos legacy de total revisado bastan
-   o si hace falta un marcador/fingerprint de revisión adicional.
+   exportación. El gate decidió complementar el total revisado con un fingerprint
+   SHA-256 canónico.
 6. Las fórmulas y la precisión son ejecutables: por actividad,
    `Σ avances de períodos = peso ponderado` exactamente a escala 4 y
    `desviacion = 0.0000`; el total global requerido para exportar es
@@ -57,9 +55,9 @@ puede comprobar, sin interpretar ni completar huecos, que:
 9. La coordinación frontend queda explícita: tipos derivados de la fuente
    OpenAPI, períodos 1-based, ninguna fórmula en TypeScript, una clave de
    TanStack Query para el read model y comandos de Gantt alineados con el backend.
-10. `Plan 027` y `Plan 028` pueden citar una forma estable sin reabrir estas
-    decisiones. Mientras falte cualquiera de los puntos, ambos permanecen
-    bloqueados.
+10. Los Planes 027–031 citan una forma estable sin reabrir estas decisiones.
+    El cierre de este gate desbloquea 027; los demás conservan su dependencia
+    secuencial.
 
 ## Dependencias y gates de ejecución
 
@@ -88,8 +86,8 @@ pueden usar una forma provisional para “avanzar”.
 | `../thesis-docs/plan/architecture/08-codebase-design.md` | §3–§6 y §8: costura `recalculo`, deep copy, separación del motor, módulo `cronograma` del frontend y regla de no duplicar fórmulas. |
 | `../thesis-docs/plan/domain/02-data-model.md` | §3, §5, §13 y §16–§17: modelo, copia de versión, fórmulas, precisión y campos derivados. |
 | `../thesis-docs/plan/design/03-procesos-detalle.md` | §F (P-33…P-36), §G (P-37), §J (decisiones D-01…D-13) y las notas de S-33/S-34/S-35. |
-| `../thesis-docs/plan/design/04-export-sercop-spec.md` | §4, §6 y §8: layout propuesto y CHK-22…CHK-31. Es una propuesta, no una fuente oficial del formato de cronograma. |
-| `../thesis-docs/plan/quality/02-catalogo-pruebas.md` | TC-P33-01…03, TC-P34-01…03, TC-P35-01, TC-P36-01, TC-P37-01…05 y CHK-22…CHK-31. Los casos se ajustan; no se inventa conformidad. |
+| `../thesis-docs/plan/design/04-export-sercop-spec.md` | §4, §6 y §8: layout adaptable, fuente LICO oficial, MSPDI y CHK-22…CHK-36. |
+| `../thesis-docs/plan/quality/02-catalogo-pruebas.md` | TC-P33-01…10, TC-P34-01…12, TC-P35-01…04, TC-P36-01…05, TC-P37-01…12 y CHK-22…CHK-36. |
 | `../thesis-docs/plan/roadmap/01-plan-iteraciones-xp.md` | Orden I-08/I-09/I-10, hitos y gate GM previo a exportación. |
 | `../thesis-docs/DOCUMENTOS/entrevistas/05/N05_entrevista-cronograma.md` | Aclaraciones de negocio del cronograma; solo se usa como fuente humana si el canon remite a ella y se conserva la trazabilidad. |
 | `src/main/resources/db/migration/V001__baseline.sql` | DDL vigente de las tablas y función `fn_assert_public_id_immutable()`. No se edita. |
@@ -167,20 +165,25 @@ pueden usar una forma provisional para “avanzar”.
 
 ## Archivos candidatos para la reconciliación documental
 
-> Son superficies **posibles** para una sesión autorizada que ejecute este gate.
-> No son archivos definitivos de la presente sesión ni autorizan sus cambios.
-> Si una edición necesita otro archivo, se detiene antes de escribir y se
-> presenta el candidato exacto para autorización.
+> Superficies ejecutadas. Durante la reconciliación se comprobó que los índices,
+> requisitos, pantallas, diagramas y trazabilidad contenían referencias activas al
+> contrato anterior; se incorporaron al mismo gate documental. El usuario autorizó
+> la ejecución secuencial y la inclusión de N05; `.atl/*` quedó excluido.
 
 | Repositorio | Archivo posible | Motivo |
 |---|---|---|
+| `../thesis-docs` | `README.md`, `PROJECT_SPEC.md`, `plan/README.md` | Mantener los índices y el scope canónico sincronizados. |
+| `../thesis-docs` | `DOCUMENTOS/entrevistas/05/N05_entrevista-cronograma.md` | Fuente humana autorizada; conservar respuestas y corregir solo formato. |
+| `../thesis-docs` | `DOCUMENTOS/requerimientos/v1.3-functional-requirements.md` | Propagar N05 al requisito funcional acumulativo vigente. |
 | `../thesis-docs` | `plan/architecture/06-database-schema.md` | Ajustar identidad pública, tipos y notas de `cronograma`/`actividad`. |
 | `../thesis-docs` | `plan/architecture/07-api-contract.md` | Dejar una tabla de rutas, DTOs, errores y shapes sin IDs numéricos. |
 | `../thesis-docs` | `plan/architecture/08-codebase-design.md` | Fijar la costura `recalculo`, el deep copy y el módulo frontend sin fórmulas duplicadas. |
 | `../thesis-docs` | `plan/domain/02-data-model.md` | Reconciliar §13, §16–§17, estados, segmentos y precisión. |
-| `../thesis-docs` | `plan/design/03-procesos-detalle.md` | Reconciliar P-33…P-37, S-33/S-34/S-35 y decisiones de reducción/revisión. |
-| `../thesis-docs` | `plan/design/04-export-sercop-spec.md` | Marcar el layout como propuesto u oficial con procedencia; separar MSPDI XML. |
-| `../thesis-docs` | `plan/quality/02-catalogo-pruebas.md` | Alinear TC/CHK, casos exactos, igualdad a escala 4 y el gate formal. |
+| `../thesis-docs` | `plan/design/02-pantallas-flujos.md` | Alinear S-33/S-34/S-35, tres vistas y Gantt editable. |
+| `../thesis-docs` | `plan/design/03-procesos-detalle.md` | Reconciliar P-33…P-37 y decisiones de reducción/revisión. |
+| `../thesis-docs` | `plan/design/04-export-sercop-spec.md` | Trazar layout oficial/adaptable y separar MSPDI XML. |
+| `../thesis-docs` | `plan/design/05-diagramas.md`, `plan/design/06-casos-de-uso.md` | Actualizar secuencias, estados y referencias CHK. |
+| `../thesis-docs` | `plan/quality/02-catalogo-pruebas.md`, `plan/quality/03-trazabilidad.md` | Alinear TC/CHK, igualdad a escala 4, rutas y matriz. |
 | `../thesis-docs` | `plan/roadmap/01-plan-iteraciones-xp.md` | Alinear dependencias 026→027→028→029→030→031 y el gate GM. |
 
 ## Ledger de decisiones que el gate debe dejar cerrado
@@ -227,53 +230,34 @@ pueden usar una forma provisional para “avanzar”.
 
 ### 3. Rutas y contrato REST/DTO
 
-La siguiente tabla es el inventario cerrado que el gate debe evaluar contra el
-canon. No autoriza rutas nuevas ni una segunda ruta “legacy”.
+El gate cerró el inventario siguiente. No existen aliases legacy:
 
-| Operación a evaluar | Contrato que debe quedar documentado | Resultado mínimo |
+| Operación canónica | Contrato | Resultado mínimo |
 |---|---|---|
-| `GET /presupuestos/{id}/cronograma` | `id` de presupuesto UUIDv7; read model completo; no configuración todavía = 404 `no-encontrado`. | 200 o 404, roles `USUARIO`/`SUPER_ADMIN`. |
-| `POST /presupuestos/{id}/cronograma` | Body de creación con `unidadTiempo` y `numeroPeriodos`; crea el agregado 1:1 e importa todos los rubros. | 201; duplicado = 409 con código canónico. |
-| `PUT /cronogramas/{id}` | Reemplazo de configuración del cronograma; body y campo de confirmación solo si están canonizados. | 200; body inválido = 400; reducción peligrosa = el conflicto exacto decidido en el gate. |
-| `PATCH /cronogramas/{id}/actividades/{aid}` | Operación de avance sobre una actividad; UUIDv7 en ambos paths; mapa 1-based y reemplazo atómico. | 200; período/decimal inválido = 400; ajeno/inexistente = 404. |
-| `POST /cronogramas/{id}/revisado` | Comando semántico sin body inventado; fija el marcador/snapshot canónico de los datos realmente revisados y la fecha. | 200; ajeno/inexistente = 404. |
+| `GET /presupuestos/{id}/cronograma` | presupuesto UUIDv7; agregado completo; sin fila = 404 | 200/400/404; `USUARIO|SUPER_ADMIN` + owner-to-404 |
+| `POST /presupuestos/{id}/cronograma` | `CronogramaCrearRequest`; crea 1:1 e importa rubros | 201; duplicado 409 `cronograma-ya-existe` |
+| `PUT /cronogramas/{id}/configuracion` | reemplaza unidad/número; `confirmarPerdida` solo para el reintento | 200/400/404; pérdida/cambio de unidad 409 |
+| `PATCH /cronogramas/{id}/actividades/{aid}` | `ActividadProgramarRequest`; cuatro operaciones semánticas | 200/400/404/409; mapa atómico y actividad cross-cronograma 404 |
+| `GET /cronogramas/{id}/vistas` | una proyección con `gantt`, `valorizado`, `curvaS` | 200/400/404; ninguna fórmula cliente |
+| `POST /cronogramas/{id}/revisado` | sin body; captura total+fingerprint+fecha | 200/400/404; no toca avances |
 
-El gate debe escoger una forma final para cada record, con nombres camelCase,
-strings decimales y campos opcionales explícitos. Como mínimo debe reconciliar:
-
-- `CronogramaCrearRequest`: unidad y número de períodos.
-- `CronogramaConfigurarRequest`: unidad, número y la política exacta cuando
-  reducir elimina datos.
-- `ActividadAvanceRequest`: `avancePorPeriodo` y ninguna cantidad monetaria o
-  ID interno.
-- `CronogramaResponse`: identidad UUIDv7, `presupuestoId` UUIDv7, configuración,
-  marcador/snapshot de revisión y fecha cuando existan, estado de distribución,
-  `desactualizado`, actividades, totales por período y acumulados.
-- Actividad de respuesta: identidad UUIDv7, `rubroId` UUIDv7, derivados del
-  rubro, `pesoPonderado`, mapa de avances, `desviacion` y la proyección de
-  segmentos si el canon la conserva.
-
-No se presentan estos nombres como definitivos antes del gate 026. Se debe
-eliminar cualquier ejemplo `{ "id": 1 }` o `{ "rubroId": 1 }` en las secciones
-activas; los ejemplos históricos se marcan como históricos y no se usan como
-contrato.
+Los records usan camelCase, decimales string y UUIDv7. `CronogramaResponse` contiene
+configuración, marcadores visibles pertinentes, `BORRADOR|COMPLETO`, stale,
+actividades, avance parcial/acumulado y segmentos derivados. La actividad expone
+`rubroId`, derivados del rubro, peso, mapa y desviación. `CronogramaVistasResponse`
+agrupa las tres vistas sin crear tres endpoints ni tres fuentes de verdad. No queda
+ningún ejemplo numérico de identidad pública.
 
 ### 4. Estados de distribución y desactualización
 
-El gate debe documentar dos ejes independientes:
+El contrato tiene dos ejes independientes:
 
 - **Distribución:** `BORRADOR` cuando falta asignación o alguna actividad tiene
-  desviación distinta de cero; `COMPLETA` solo cuando todas las actividades
-  satisfacen la igualdad a escala 4 y la suma global de avances es exactamente
-  `100.0000`. Si el canon elige otro nombre de campo o `COMPLETO` en vez de
-  `COMPLETA`, ese nombre se usa de forma uniforme; no se mantienen dos aliases.
-- **Desactualización:** booleano derivado mediante el marcador/snapshot que 026
-  canonice para detectar cualquier cambio relevante del presupuesto, incluso si
-  dos cambios compensados dejan el mismo total general. Debe definirse el caso sin
-  revisión previa (`NULL`) y decidir explícitamente si `totalGeneralRevisado` es
-  suficiente o debe complementarse/reemplazarse. La alerta puede coexistir con
-  cualquier estado de distribución, informa que los pesos fueron recalculados y
-  ofrece marcar como revisado.
+  desviación distinta de cero; `COMPLETO` solo cuando todas satisfacen igualdad a
+  escala 4 y el avance final es `100.0000`.
+- **Desactualización:** compara total y fingerprint SHA-256 del snapshot canónico.
+  Detecta cambios compensados con igual total; sin marcador (`NULL`) es `true`.
+  Puede coexistir con cualquier distribución y revisar no cambia avances.
 
 Guardar un borrador es válido. La lectura debe mostrarlo como borrador y no
 fingir conformidad. La exportación de cronograma solo puede pasar el gate
@@ -316,17 +300,15 @@ El gate debe fijar la representación exacta de un segmento y trasladar la
 
 ### 6. Fórmulas y precisión exactas
 
-El gate debe dejar una fórmula única y ejecutable, conservando las escalas del
-DDL y la precisión natural de `BigDecimal`:
+El gate dejó fórmulas únicas y ejecutables, conservando escalas y sin añadir
+redondeo al motor:
 
 - Dinero: `NUMERIC(14,6)`, transportado como string decimal; nunca `double`,
   `float`, `parseFloat` ni `toFixed` para dominio.
-- Peso por actividad `i`:
-  `peso_i = (rubro.precioTotal_i / presupuesto.totalGeneral) × 100`.
-  El canon debe precisar contexto de división, cuantización a cuatro decimales,
-  comportamiento para total cero y cómo se asigna un residual para que el
-  conjunto exportable cierre en `100.0000`. La asignación debe ser determinista
-  por orden presupuestario, no depender del orden accidental del ORM.
+- Peso por actividad `i`: base del motor a escala 4. Fuera del motor se convierte
+  a unidades `0.0001`; residual positivo se suma a la primera actividad ordenada
+  por precio descendente/orden presupuestario y residual negativo se consume sin
+  bajar de cero siguiendo ese orden. Total cero conserva pesos cero.
 - Avance por actividad:
   `avanceTotal_i = Σ_{p=1..numeroPeriodos} avance_{i,p}`.
 - Desviación: el canon debe fijar si es firmada o absoluta y su forma JSON; la
@@ -340,6 +322,10 @@ DDL y la precisión natural de `BigDecimal`:
   `avancePeriodo_t = Σ_i avance_{i,t}` y
   `avanceAcumulado_t = Σ_{k=1..t} avancePeriodo_k`; ambos se derivan en
   lectura, ordenados por período 1..n.
+- Montos: racional entero con dinero scale-6 y porcentaje scale-4; target HALF_UP,
+  bases floor y micro-unidades restantes por residuo fraccionario descendente.
+  Peso cero con precio positivo exige clave activa y reparte su precio entre esas
+  claves; nunca se usa división decimal sin escala.
 
 Si el reparto de residuales, el signo de `desviacion`, el tratamiento de un
 presupuesto sin rubros o el tratamiento de total cero no queda escrito en todas
@@ -445,10 +431,9 @@ número de lugares que un ejecutor debe memorizar.
 | Export sin fuente | No se encuentra fuente oficial verificable. | STOP solo SERCOP/I-10; no se presenta maqueta como conforme. |
 | Interoperabilidad | Solicitud MSPDI XML o `.mpp`. | MSPDI XML se evalúa como XML estándar; `.mpp` queda explícitamente fuera, nunca se confunden. |
 
-Los casos existentes TC-P33-01…TC-P36-01 y TC-P37-01…05 se actualizan en el
-catálogo conservando sus identificadores; los casos de Gantt, precisión y
-procedencia se añaden allí con la convención vigente, no como una segunda lista
-privada.
+Los casos existentes conservaron sus identificadores y el catálogo se amplió a
+TC-P33-01…10, TC-P34-01…12, TC-P35-01…04, TC-P36-01…05 y TC-P37-01…12;
+Gantt, precisión, procedencia y MSPDI viven allí, no en una lista privada.
 
 ## Owner-to-404 y autorización
 
@@ -498,9 +483,9 @@ condiciones:
 
 ## Verificaciones focales, regresiones y cierre
 
-Estas órdenes pertenecen a la ejecución futura del gate o de sus planes
-posteriores. En esta redacción no se ejecutan y no deben rellenarse con cifras
-presupuestas.
+Estas órdenes se ejecutaron para cerrar el gate; las focales de cronograma que aún
+no existen quedan reservadas a los planes posteriores. Solo se registran cifras
+observadas.
 
 ### Documentación y diff
 
@@ -571,89 +556,65 @@ errors y skipped. Los dos residuales aceptados del motor (GM-19/GM-20) siguen la
 política de Plan 014; no se corrigen ni se cuentan como una señal para reabrir
 `motor/` en este plan.
 
-## Criterios de aceptación
+## Criterios de aceptación — cierre 04-09-2026
 
-- [ ] El estado de este archivo continúa `TODO — gate documental bloqueante`.
-- [ ] La tabla de fuentes y el ledger identifican la autoridad de cada decisión.
-- [ ] Las cinco rutas evaluadas tienen método, path UUIDv7, DTO, roles, códigos y
-      error de ownership.
-- [ ] No queda un ejemplo activo con `BIGINT` en la frontera pública.
-- [ ] `SEMANA/MES`, límites, períodos 1-based y reemplazo atómico están
-      descritos una sola vez.
-- [ ] La fórmula de peso, residual, avance, desviación, acumulado y total global
-      es reproducible a escala 4; `100.0000` es el gate cuantitativo de export.
-- [ ] `BORRADOR`/completo y `desactualizado` son ejes separados; stale no bloquea
-      export por sí solo.
-- [ ] Segmentos no consecutivos y las operaciones semánticas de mover/redimensionar
-      del Gantt editable tienen contrato explícito y casos negativos.
-- [ ] La copia de versión, el seam de SQL nativo y el builder nullable están
-      trazados sin tocar el motor.
-- [ ] La búsqueda de formato oficial SERCOP deja procedencia o bloquea solo
-      SERCOP/I-10; MSPDI XML no se presenta como `.mpp`.
-- [ ] API, dominio, codebase, procesos, roadmap y catálogo quedan alineados en
-      `../thesis-docs/` y sus diffs pasan `diff --check`.
-- [ ] Las verificaciones focales, regresiones, Spotless, build y `graphify update .`
-      se reportan con salida observada; los conteos provienen de XML.
-- [ ] No se ejecuta commit sin autorización explícita.
+- [x] Estado `DONE`; fuentes y ledger identifican autoridad y procedencia.
+- [x] Rutas, DTOs, UUIDv7/ownership, períodos 1-based y reemplazo atómico tienen
+      un único contrato; ningún `BIGINT` cruza HTTP/JSON.
+- [x] Peso, residual, avance, desviación, parciales/acumulados y `100.0000` son
+      reproducibles a escala 4.
+- [x] `BORRADOR|COMPLETO` y `desactualizado` son ejes ortogonales; stale no bloquea.
+- [x] Segmentos no consecutivos y Gantt editable usan comandos semánticos con
+      negativos de rango/solape.
+- [x] Deep copy, SQL nativo, `cronograma_actividad` inerte y builder nullable están
+      trazados sin modificar `motor/`.
+- [x] Fuente SERCOP oficial localizada; XLSX/PDF adaptables y MSPDI XML separado
+      de `.mpp`.
+- [x] Requerimientos, DB, API, codebase, dominio, pantallas, procesos, export,
+      diagramas, calidad, trazabilidad, roadmap e índices quedaron alineados.
+- [x] Verificaciones documentales/backend, Spotless, build, XML y Graphify tienen
+      salida observada.
+- [x] Commits autorizados explícitamente por el usuario, uno por plan y repositorio.
 
-## Plantilla de evidencia — completar al ejecutar, sin inventar resultados
+## Evidencia de ejecución
 
 ```text
 Plan: 026
 Estado al iniciar: TODO — gate documental bloqueante
-Fecha/hora:
-Ejecutor/revisor:
+Fecha: 04-09-2026
 
-Fuentes leídas y secciones:
--
+Fuente oficial SERCOP:
+- Catálogo: https://portal.compraspublicas.gob.ec/sercop/cat_normativas/licitacion
+- Documento: FORMULARIO-LICO-V-2023-001.doc
+- Emisión/estado: 2023-11-21 / Vigente
+- Sección: 1.8 Cronograma valorado de trabajos
+- SHA-256: 89baa330499a265fb99b28a5bdd086bce6549f40f8e45cead803e3bf6a15cd08
+- Descarga revalidada: Composite Document File V2
+- PDF aceptado SHA-256: 9dbf4bb0d063d9cedf5b61ef1f7b2c4d471bd92174625a37733eaf4db79078de
 
-Archivos de ../thesis-docs modificados tras aprobación del gate:
--
+Documentación:
+- git diff --check (backend y thesis-docs): PASS
+- enlaces relativos de 23 Markdown modificados: 0 rotos
+- catálogo: 209 TC únicos, 25 GM únicos, 36 CHK; sin TC/CHK duplicados
+- búsqueda de legacy activa: sin ≈/tolerancia, total-only stale, rutas retiradas,
+  Gantt read-only, S-curve opcional ni bloqueo por stale
+- revisión adversarial: 3 hallazgos de residual/división/peso-cero corregidos y
+  re-juzgados como verified
 
-Ledger aprobado:
-- identidad pública:
-- límites y períodos:
-- rutas/DTOs:
-- estados:
-- segmentos/Gantt:
-- fórmulas/escala/residual:
-- exportación:
-- fuente oficial SERCOP (procedencia/versión/hash o NO ENCONTRADA):
-- MSPDI XML frente a .mpp:
-- coordinación frontend:
+Backend (sin cambios de aplicación):
+- focal presupuesto + recalculo + identifier: PASS
+- suite: 438 tests, 2 failures aceptados (GM-19/GM-20), 0 errors, 1 skipped (GM-24)
+- XML: files=45 tests=438 failures=2 errors=0 skipped=1
+- spotlessCheck: PASS
+- build -x test: PASS
+- graphify update .: 3185 nodos, 9287 aristas, 134 comunidades
 
-RED observado (salida literal):
--
-GREEN observado (salida literal):
--
-TRIANGULACIÓN/REFACTOR:
--
-
-Focales ejecutadas y resultado:
-- comando:
-  resultado:
-
-Regresiones/suite:
-- comando:
-  resultado:
-
-Conteo XML real:
-- files=
-- tests=
-- failures=
-- errors=
-- skipped=
-
-STOP activo (si aplica):
--
-
-Aprobación para Plan 027/028: pendiente / concedida por ______
-Commit: no realizado; requiere autorización explícita.
+STOP activo: ninguno
+Siguiente plan: 027
 ```
 
-## Regla de no commit
+## Commit
 
-La redacción o ejecución del gate no autoriza `git add`, `git commit`, merge,
-push ni publicación. El plan permanece en `TODO` o en un STOP específico hasta
-que el gate documental sea revisado y la siguiente sesión reciba autorización
-expresa para implementar.
+El usuario autorizó ejecutar secuencialmente los planes y crear un commit por cada
+avance. Plan 026 se entrega con stage selectivo: N05 incluido por autorización;
+`.atl/*` excluido; sin push ni publicación.

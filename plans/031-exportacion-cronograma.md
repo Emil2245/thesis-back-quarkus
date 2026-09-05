@@ -40,14 +40,16 @@ Una ejecución futura debe entregar una exportación server-side que:
 | G2 — integridad | Reglas P-32 y distribución final evaluables en una sola respuesta de preflight. | Errores tipados y deterministas. |
 | G3 — GM | Baseline vigente del motor ejecutado y tratado según Plan 014/CLAUDE.md. | No se reabren GM-19/20 ni GM-24. |
 | G4 — formato documental | Layout de proyecto aprobado y casos parse-back definidos. | Habilita writer genérico sin afirmar conformidad externa. |
-| G5 — SERCOP | Fuente oficial con organismo, URL/archivo, versión/fecha, hash y alcance. | Solo entonces habilita el lane/etiqueta SERCOP. |
-| G6 — MSPDI | Perfil mínimo MSPDI, versión de esquema y capacidades mapeables aprobados en 026. | Habilita XML estándar; nunca `.mpp`. |
+| G5 — SERCOP | Fuente oficial ya localizada: catálogo Licitación, Formulario LICO V-2023-001, emisión 2023-11-21, sección 1.8, hash y alcance registrados. | Habilita la trazabilidad del lane; la afirmación final depende de CHK-22…CHK-36. |
+| G6 — MSPDI | Perfil básico aprobado en 026; durante 031 se fija y verifica una fuente/XSD compatible con namespace `http://schemas.microsoft.com/project`. | Habilita XML estándar; sin XSD verificable se bloquea solo este lane; nunca `.mpp`. |
 | G7 — cierre | Focales, parse-back, seguridad, regresiones, calidad y Graphify medidos. | Evidencia literal y conteos XML reales. |
 
-La ausencia de G5 bloquea únicamente una **afirmación de conformidad SERCOP**. El
-Plan 026 debe decidir si puede entregarse un formato documental propio basado en el
-ejemplo aceptado, rotulado como tal. Si no lo decidió, detener todo el lane
-documental; no cambiar el nombre para eludir el gate.
+G5 ya tiene una fuente oficial verificable para los campos y la sección 1.8 del
+cronograma: el catálogo SERCOP de Licitación y su Formulario LICO V-2023-001. Esto
+habilita la trazabilidad del lane, pero no convierte automáticamente el layout propio
+en una plantilla oficial: la matriz y los CHK-22…CHK-36 siguen siendo obligatorios.
+La ausencia futura de una fuente verificable bloquearía únicamente la afirmación de
+conformidad SERCOP; no se cambia el nombre del formato para eludir ese gate.
 
 ## Fuentes que deben releerse
 
@@ -57,30 +59,34 @@ documental; no cambiar el nombre para eludir el gate.
 - `../thesis-docs/plan/architecture/08-codebase-design.md` boundary de documento/export.
 - `../thesis-docs/plan/domain/02-data-model.md` §13 y §16–§17.
 - `../thesis-docs/plan/design/03-procesos-detalle.md` §G/P-37.
-- `../thesis-docs/plan/design/04-export-sercop-spec.md` completo, distinguiendo
-  propuesta de regla normativa.
-- `../thesis-docs/plan/quality/02-catalogo-pruebas.md` TC-P37 y CHK-22…CHK-31.
+- `../thesis-docs/plan/design/04-export-sercop-spec.md` completo, distinguiendo la
+  fuente oficial de campos de la decisión de layout adaptable.
+- `../thesis-docs/plan/quality/02-catalogo-pruebas.md` TC-P37-01…12 y CHK-01…CHK-36
+  (cronograma: CHK-22…CHK-36).
 - `../thesis-docs/plan/roadmap/01-plan-iteraciones-xp.md` I-10 y gate GM.
 - `../thesis-docs/DOCUMENTOS/entrevistas/05/N05_entrevista-cronograma.md` §§5–7.
-- PDF de cronograma valorizado aceptado, como guía visual, no fuente normativa.
+- PDF de cronograma valorizado aceptado `res/ESTANCIA-ACADEMICA/CRONOGRAMA VALORADO-signed.pdf`, SHA-256 `9dbf4bb0d063d9cedf5b61ef1f7b2c4d471bd92174625a37733eaf4db79078de`; guía visual, no plantilla normativa.
 - Implementación y dependencias actuales del módulo de documentos/exportación y
   `build.gradle.kts`; no añadir librerías sin que este plan/canon lo autorice.
-- Fuente oficial SERCOP localizada por el Plan 026, si existe.
-- Especificación MSPDI exacta aprobada por 026, si ese lane sigue incluido.
+- **Fuente oficial SERCOP confirmada:** catálogo de [Licitación](https://portal.compraspublicas.gob.ec/sercop/cat_normativas/licitacion), entrada vigente emitida el 2023-11-21; [`FORMULARIO-LICO-V-2023-001.doc`](https://portal.compraspublicas.gob.ec/sercop/wp-content/uploads/2023/11/FORMULARIO-LICO-V-2023-001.doc), sección 1.8 «Cronograma valorado de trabajos», SHA-256 `89baa330499a265fb99b28a5bdd086bce6549f40f8e45cead803e3bf6a15cd08`.
+- Contrato MSPDI básico de 026 + fuente/XSD oficial o verificable que Plan 031
+  debe fijar antes de escribir el writer.
 
 `../ingepresupuestos/` solo puede ilustrar que la interoperabilidad se realiza con
 MSPDI XML; su código, XML concreto y decisiones no se copian.
 
 ## Estado inicial esperado
 
-Al iniciar 031, Plan 030 debe ofrecer una proyección común con jerarquía, rubros,
-períodos, montos/porcentajes parciales y acumulados, estado, exportabilidad y
-warning stale. Antes de los planes, el backend no tiene exportador de cronograma.
+Al iniciar 031, Plan 030 debe ofrecer una proyección común mediante
+`GET /cronogramas/{id}/vistas`, con jerarquía, rubros, períodos, montos/porcentajes
+parciales y acumulados, estado, exportabilidad y warning stale. Antes de los planes,
+el backend no tiene exportador de cronograma.
 
-El documento `04-export-sercop-spec.md` actual es una propuesta y el PDF aceptado
-es una guía. Ninguno demuestra por sí mismo un formato obligatorio oficial. La
-suite del motor mantiene el baseline vigente documentado en `CLAUDE.md`; este plan
-no cambia fórmulas ni tolerancias para ajustar un archivo.
+`04-export-sercop-spec.md` registra la fuente oficial de campos de la sección 1.8 del
+Formulario LICO 2023-001 y separa esa autoridad de un layout propio adaptable. La
+referencia aceptada `CRONOGRAMA VALORADO-signed.pdf` aporta forma/UX, no coordenadas
+normativas. La suite del motor mantiene el baseline vigente documentado en
+`CLAUDE.md`; este plan no cambia fórmulas ni tolerancias para ajustar un archivo.
 
 ## Alcance
 
@@ -93,17 +99,23 @@ exista fuente canónica para ellos.
 
 ### Lane B — conformidad SERCOP
 
-Añadir etiqueta, endpoint o variante SERCOP solo con fuente oficial verificable y
-una matriz requisito→celda/bloque→CHK. Si la investigación concluye que no existe
-un formato fijo, documentar esa conclusión y mantener el producto como formato del
-proyecto basado en ejemplo aceptado, sin promesa de conformidad inexistente.
+La fuente oficial confirmada —catálogo SERCOP de Licitación, Formulario
+`FORMULARIO-LICO-V-2023-001.doc`, emisión 2023-11-21, sección 1.8, SHA-256
+`89baa330499a265fb99b28a5bdd086bce6549f40f8e45cead803e3bf6a15cd08`— se usa para
+trazar requisito→celda/bloque→CHK-22…CHK-36. La referencia aceptada de forma es el
+PDF con SHA-256 `9dbf4bb0d063d9cedf5b61ef1f7b2c4d471bd92174625a37733eaf4db79078de`.
+El layout sigue siendo adaptable; no se promete una plantilla binaria universal ni
+conformidad más allá de los checks aplicables.
 
 ### Lane C — MSPDI XML
 
-Implementar solo si el canon aprueba interoperabilidad y define el subconjunto
-mapeable del cronograma básico. El resultado es `.xml` con media type y esquema
-MSPDI acordados. Los campos fuera del dominio (CPM, dependencias, calendarios) no se
-fabrican; se omiten o usan defaults explícitamente permitidos por el perfil.
+El canon aprobó el subconjunto básico. Antes del writer, Plan 031 debe localizar,
+fijar y hashear/versionar una fuente o XSD verificable compatible con el namespace
+`http://schemas.microsoft.com/project`. El resultado es `.xml` con media type
+`application/xml`; sin esa evidencia se bloquea solo MSPDI. Requiere `Proyecto.fechaInicio`; si falta,
+el preflight bloquea únicamente MSPDI. Los campos fuera del dominio (CPM,
+dependencias, calendarios) no se fabrican; se omiten o usan defaults explícitamente
+permitidos por el perfil, y nunca se devuelve ni se renombra como `.mpp`.
 
 ### Transversal
 
@@ -174,7 +186,7 @@ Usar solo endpoints aprobados por 026. El contrato debe fijar:
 
 - formato en path/query/`Accept`, sin combinaciones ambiguas;
 - media types exactos (`application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`,
-  `application/pdf`, y el XML aprobado para MSPDI);
+  `application/pdf` y `application/xml` para MSPDI);
 - `Content-Disposition` seguro con filename ASCII/UTF-8 canonizado;
 - respuesta tipada de preflight/bloqueo y mecanismo para warning stale;
 - 400 para UUID malformado/no-v7 o formato inválido;
@@ -238,7 +250,8 @@ canonizado y se parsea con entidades externas deshabilitadas.
 3. Fixtures pequeños de una jerarquía y profundidad 3 con resultados manuales.
 4. Tests parse-back XLSX/PDF para contenido, fórmulas materializadas y totales.
 5. Casos de injection, Unicode, texto largo, límites y concurrencia.
-6. Solo si G5/G6 están cerrados, CHK SERCOP y MSPDI/XSD.
+6. Con G5/G6 cerrados, ejecutar CHK-01…CHK-36 (cronograma: CHK-22…CHK-36)
+   y la validación MSPDI/XSD cuando aplique.
 7. Capturar RED por capacidad ausente; un fallo de dependencia o infraestructura no
    es RED válido.
 
@@ -288,8 +301,8 @@ reemplaza parse-back JUnit.
 | Mutación concurrente | Snapshot coherente o conflicto, nunca archivo híbrido. |
 | Presupuesto representativo | Tiempo/memoria dentro del umbral medido por 026. |
 | Sin fuente SERCOP | Lane formal bloqueado; formato propio no usa etiqueta SERCOP. |
-| Fuente SERCOP válida | CHK trazables a requisito oficial y parse-back verde. |
-| MSPDI XML válido | XML contra perfil/XSD, IDs públicos/propios según mapeo aprobado. |
+| Fuente SERCOP válida | Formulario LICO 2023-001 §1.8, SHA-256 registrado, CHK-22…CHK-36 trazables y parse-back verde. |
+| MSPDI XML válido | XML estándar `application/xml` contra perfil/XSD, `Proyecto.fechaInicio` presente e IDs según mapeo aprobado. |
 | Solicitud `.mpp` | No soportada; nunca se devuelve XML renombrado. |
 | XXE | Parser no resuelve entidades externas. |
 | Motor/GM | Baseline vigente; sin cambios de tolerancia o fórmula. |
@@ -352,9 +365,10 @@ con el baseline vigente.
 - [ ] Formato documental reconcilia jerarquía, períodos, parciales y acumulados.
 - [ ] Parse-back prueba contenido, no solo existencia de bytes.
 - [ ] Owner-to-404, UUIDv7, roles, headers y seguridad están cubiertos.
-- [ ] SERCOP solo se afirma con fuente oficial trazable; de otro modo el lane queda
-      bloqueado o el producto se rotula como formato propio aprobado.
-- [ ] MSPDI XML, si existe, está validado y separado de `.mpp`.
+- [ ] SERCOP usa la fuente oficial LICO 2023-001 §1.8, sus hashes y CHK-22…CHK-36;
+      no se afirma más que lo demostrado por la matriz y el parse-back.
+- [ ] MSPDI es XML estándar `application/xml`, exige `Proyecto.fechaInicio` y está
+      validado y separado de `.mpp`.
 - [ ] Concurrencia, límites, memoria y reproducibilidad tienen evidencia medida.
 - [ ] Motor/GM permanecen intactos y todas las verificaciones reportan conteos XML.
 - [ ] No se ejecutó commit sin autorización explícita.
@@ -366,8 +380,8 @@ Plan: 031
 Gates 026–030:
 Fecha/ejecutor:
 Lanes habilitados: documental / SERCOP / MSPDI
-Fuente SERCOP: organismo, URL/archivo, versión, fecha, hash, alcance / NO ENCONTRADA
-Perfil MSPDI/XSD: / NO INCLUIDO
+Fuente SERCOP: SERCOP, catálogo Licitación + `FORMULARIO-LICO-V-2023-001.doc`, emisión 2023-11-21, §1.8, SHA-256 `89baa330499a265fb99b28a5bdd086bce6549f40f8e45cead803e3bf6a15cd08`; referencia PDF SHA-256 `9dbf4bb0d063d9cedf5b61ef1f7b2c4d471bd92174625a37733eaf4db79078de`
+Perfil MSPDI/XSD: XML estándar `application/xml`, esquema/perfil Microsoft Project 2007; requiere `Proyecto.fechaInicio`
 Archivos/dependencias creados o modificados:
 RED/GREEN/TRIANGULACIÓN/REFACTOR:
 Preflight (comando/casos/salida):

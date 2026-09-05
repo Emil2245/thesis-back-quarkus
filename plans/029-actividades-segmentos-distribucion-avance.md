@@ -56,7 +56,7 @@ la semántica de mover/redimensionar o el tratamiento de cambio de peso, detener
 - `../thesis-docs/plan/architecture/08-codebase-design.md` §3–§6.
 - `../thesis-docs/plan/domain/02-data-model.md` §13 y §16–§17.
 - `../thesis-docs/plan/design/03-procesos-detalle.md` §F/P-34 y §J.
-- `../thesis-docs/plan/quality/02-catalogo-pruebas.md` TC-P34 y casos añadidos
+- `../thesis-docs/plan/quality/02-catalogo-pruebas.md` TC-P34-01…12 y casos añadidos
   por el Plan 026.
 - `../thesis-docs/DOCUMENTOS/entrevistas/05/N05_entrevista-cronograma.md` §§1–4.
 - `src/main/java/ec/uce/propuestas/motor/{CronogramaSnapshot,ActividadSnapshot,AvancePeriodo,PesoPonderado}.java`.
@@ -158,14 +158,19 @@ completa_i ⇔ avanceTotal_i = pesoPonderado_i a escala 4
 desviacion_i = fórmula/signo canonizado en 026
 ```
 
-Una distribución uniforme divide el peso entre los períodos activos con precisión
-natural y cuantiza a escala 4 según 026. El residual se asigna de forma
-determinista por orden canónico para que la suma sea exactamente el peso; nunca se
-pierde ni se reparte mediante `double`.
+El cierre de pesos consume la salida scale-4 del motor como unidades enteras: un
+residual global positivo se añade a la primera actividad por precio descendente;
+un residual negativo se consume, sin bajar de cero, siguiendo ese orden. Probar
+explícitamente `[1,1,4]` (bases `100.0001`).
 
-El cronograma está completo solo si todas las actividades están completas y el
-avance final global es `100.0000`. Un presupuesto vacío o de total cero sigue la
-regla explícita de 026; no se considera completo por vacuidad sin esa decisión.
+Una distribución uniforme divide el peso entre períodos activos y cuantiza a escala
+4; el residual firmado se asigna al último período numérico para cerrar exactamente.
+Nunca se usa `double`.
+
+El cronograma está completo solo si todas las desviaciones son `0.0000`, el final es
+`100.0000` y cada actividad de precio positivo tiene una clave activa. Un rubro cuyo
+peso redondea `0.0000` requiere una clave presente con valor cero. Presupuesto vacío
+o total cero permanece borrador.
 
 ### Cambio de presupuesto
 
@@ -185,9 +190,10 @@ error revierte mapa, pesos y sincronización.
 ## Contrato REST y DTO
 
 Implementar únicamente las rutas y records congelados por 026. La ruta
-inventariada para evaluación es `PATCH /cronogramas/{id}/actividades/{aid}`;
-mover/redimensionar pueden ser comandos dentro de ese PATCH o rutas separadas
-**solo si 026 las aprobó**.
+canónica de mutación es `PATCH /cronogramas/{id}/actividades/{aid}`, con los cuatro
+comandos discriminados; mover/redimensionar no crean aliases ni rutas adicionales.
+La proyección de Gantt, valorizado y curva S se consulta únicamente mediante
+`GET /cronogramas/{id}/vistas` y pertenece al Plan 030.
 
 Invariantes públicas:
 

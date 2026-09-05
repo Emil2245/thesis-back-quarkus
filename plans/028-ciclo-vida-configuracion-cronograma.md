@@ -30,10 +30,10 @@ acotado y verificable:
 4. La repetición de una configuración ya existente es idempotente en el sentido
    aprobado por 026; un POST duplicado y dos altas concurrentes respetan el
    conflicto 1:1 y nunca duplican cronograma o actividades.
-5. `PUT /cronogramas/{id}` reemplaza la configuración con la semántica exacta
-   del canon: ampliar no pierde mapas; reducir con datos fuera del rango no
-   borra silenciosamente y solo procede con la confirmación/política que 026
-   haya fijado. Si 026 no lo canoniza, el paso queda en STOP.
+5. `PUT /cronogramas/{id}/configuracion` reemplaza la configuración con la semántica
+   exacta del canon: ampliar no pierde mapas; reducir con datos fuera del rango no
+   borra silenciosamente y solo procede con la confirmación/política que 026 haya
+   fijado. Si 026 no lo canoniza, el paso queda en STOP.
 6. La alta inicial crea mapas de avance vacíos y pesos/derivados según la fórmula
    canónica, incluidos los casos de presupuesto sin rubros o total cero. No
    inventa una distribución ni edita segmentos.
@@ -74,7 +74,7 @@ antes de escribir código.
 | `../thesis-docs/plan/architecture/08-codebase-design.md` §3, §5, §6 y §8 | Costura `recalculo`, versionado, límite del motor y coordinación frontend. |
 | `../thesis-docs/plan/domain/02-data-model.md` §3, §13 y §16–§17 | 1:1, autoimport, copy, fórmulas, peso y precisión. |
 | `../thesis-docs/plan/design/03-procesos-detalle.md` §F/P-33/P-34, §G/P-37 y §J/D-10 | Flujo de configuración, reducción con datos, avance y relación con exportación. |
-| `../thesis-docs/plan/quality/02-catalogo-pruebas.md` TC-P31-01, TC-P32-03/04, TC-P33-01…03 y TC-P34-01…03 | Casos de alta, copia, presupuesto vacío, reducción, avance y sincronía; se ajustan al canon 026. |
+| `../thesis-docs/plan/quality/02-catalogo-pruebas.md` TC-P31-01…04, TC-P32-01, TC-P33-01…10 y TC-P34-01…12 | Casos de alta, copia, presupuesto vacío, reducción, avance y sincronía; se ajustan al canon 026. |
 | `../thesis-docs/plan/roadmap/01-plan-iteraciones-xp.md` | Orden I-08/I-09/I-10 y gate de calidad. |
 | `src/main/resources/db/migration/V001__baseline.sql` y `V008__capitulo_rubro_public_id.sql` | Baseline/constraints y patrón de identidad; no se editan. |
 | `src/main/java/ec/uce/propuestas/presupuesto/service/VersionadoService.java` | `copiarVersion` y `copiarCronogramaYActividad`; la copia existente es SQL nativa. |
@@ -232,7 +232,7 @@ de 026 y no se improvisa en este plan.
   redondeo/residual y sumatoria global se consume del canon, no de una
   constante local.
 - La creación no asigna avances automáticamente. Un mapa vacío puede ser
-  `BORRADOR`; no se marca `COMPLETA` ni exportable solo porque la alta fue 201.
+  `BORRADOR`; no se marca `COMPLETO` ni exportable solo porque la alta fue 201.
 - `item`, `descripcion` y `precioTotal` se leen desde el rubro; no se aceptan ni
   persisten copias editables en la actividad. `avanceAcumulado` y segmentos se
   derivan en el read model posterior.
@@ -269,15 +269,17 @@ alternativos.
 |---|---|---|---|
 | `GET /presupuestos/{presupuestoId}/cronograma` | Ninguno. `presupuestoId` UUIDv7. | 200 `CronogramaResponse`; 404 `no-encontrado` si no existe o es ajeno. | Sí. |
 | `POST /presupuestos/{presupuestoId}/cronograma` | `CronogramaCrearRequest` canónico: unidad y número. | 201 `CronogramaResponse`; 400 validación; 404 owner; 409 1:1. | Sí. |
-| `PUT /cronogramas/{cronogramaId}` | `CronogramaConfigurarRequest` canónico, incluida reducción/confirmación si 026 la aprobó. | 200; 400; 404; 409 de pérdida/configuración según canon. | Sí. |
-| `PATCH /cronogramas/{cronogramaId}/actividades/{actividadId}` | `ActividadAvanceRequest`. | 200/400/404 según 026. | No: Plan 029. |
+| `PUT /cronogramas/{id}/configuracion` | `CronogramaConfigurarRequest` canónico, incluida reducción/confirmación si 026 la aprobó. | 200; 400; 404; 409 de pérdida/configuración según canon. | Sí. |
+| `PATCH /cronogramas/{cronogramaId}/actividades/{actividadId}` | `ActividadProgramarRequest`, unión de comandos canónicos. | 200/400/404 según 026. | No: Plan 029. |
 | `POST /cronogramas/{cronogramaId}/revisado` | Body según canon, normalmente ninguno. | 200/404. | No: Plan 030/guard. |
 
-El response de lectura debe usar los nombres definitivos de 026 para
-`id`, `presupuestoId`, `rubroId`, estado de distribución,
-`desactualizado`, `actividades`, mapas, segmentos y totales. En ningún ejemplo
-se escribe `id: 1`. Si 026 cambia el recurso a varios recursos por cohesión, se
-adopta ese cambio antes del GREEN.
+La lectura agregada de Gantt, valorizado y curva S queda fuera de este plan y se
+sirve únicamente mediante `GET /cronogramas/{id}/vistas`; no se agrega una ruta
+alternativa por vista. El response de lectura debe usar los nombres definitivos de
+026 para `id`, `presupuestoId`, `rubroId`, estado de distribución, `desactualizado`,
+`actividades`, mapas, segmentos y totales. En ningún ejemplo se escribe `id: 1`. Si
+026 cambia el recurso a varios recursos por cohesión, se adopta ese cambio antes del
+GREEN.
 
 ## Secuencia ejecutable futura
 
@@ -403,7 +405,7 @@ entidades de 027 cumplan el contrato:
 | TC-P33-01 alta con rubros | Presupuesto propio con `n > 0` rubros y sin cronograma. | 201; 1 cronograma; `n` actividades; UUIDv7; mapas vacíos; pesos según 026. |
 | Caso complementario — alta vacía | Presupuesto propio sin rubros. | 201 con `actividades=[]`, estado/peso según la política de total cero; no se inventan rubros. |
 | TC-P33-02 duplicado | POST de creación dos veces para la misma versión. | Primer 201; segundo 409 canónico; conteo de cronogramas y actividades no aumenta. |
-| TC-P33-03 reducción segura | Configuración con reducción sin datos fuera del nuevo rango. | Resultado 200 solo si 026 lo permite; mapa no pierde claves válidas. |
+| TC-P33-04 reducción segura | Configuración con reducción sin datos fuera del nuevo rango. | Resultado 200 solo si 026 lo permite; mapa no pierde claves válidas. |
 | TC-P33-03 reducción peligrosa | Actividades con entradas en períodos que salen del rango. | 409 con lista determinista de actividad/período/valor a perder; no hay mutación. |
 | Confirmación canónica | Reintento con el campo/valor de confirmación aprobado por 026. | 200; solo se eliminan los datos enumerados; el resto del mapa queda intacto. |
 | Reducción sin confirmación | Mismo caso peligroso sin confirmación. | 409 y estado anterior intacto; nunca borrado silencioso. |
@@ -430,9 +432,9 @@ entidades de 027 cumplan el contrato:
 | Read-only de GET | Leer varias veces sin mutar. | Mismos conteos/bytes semánticos; no se crean filas ni se actualiza revisión. |
 | Exportabilidad | Cronograma recién creado/borrador. | 028 no exporta ni afirma conformidad; el estado queda disponible para 029–031. |
 
-Los identificadores TC-P33/TC-P34 se conservan en el catálogo canónico; los casos
-de locking y exactitud pueden mapearse allí con la convención vigente. No se
-crea una colección Bruno en este plan.
+Los identificadores canónicos TC-P33-01…10 y TC-P34-01…12 se conservan en el
+catálogo; los casos de locking y exactitud se trazan allí con la convención vigente.
+No se crea una colección Bruno en este plan.
 
 ## Owner-to-404 y roles
 

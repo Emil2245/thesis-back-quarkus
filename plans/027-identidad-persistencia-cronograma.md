@@ -1,16 +1,14 @@
 # 027 — Identidad pública y persistencia de Cronograma/Actividad
 
-**Estado:** TODO — bloqueado por el gate documental del Plan 026; no es una
-implementación.
+**Estado:** TODO — gate 026 cerrado; listo para ejecución autorizada.
 
 **Iteración:** I-08 (persistencia base del cronograma).
 
 **Procesos:** P-33 y P-34 parcial; habilita la base técnica para P-35/P-36 y el
 lane de exportación de P-37, sin implementarlos.
 
-> Este plan se ejecuta solo después de que Plan 026 haya dejado un contrato
-> canónico aprobado. La presente sesión únicamente redacta planes y no crea la
-> migración, entidades, repositorios, tests ni cambios en `thesis-docs`.
+> Plan 026 dejó el contrato canónico aprobado. Este plan es la siguiente unidad
+> ejecutable; no autoriza adelantar CRUD/vistas/export ni tocar `thesis-docs`.
 
 ## Objetivo medible
 
@@ -19,11 +17,11 @@ deben demostrar, sin cambiar las tablas ya aplicadas ni el motor, que:
 
 1. Existe una migración Flyway **aditiva posterior a V008**, con el número real
    elegido al ejecutar, que añade `public_id UUIDv7` inmutable a `cronograma` y
-   `actividad` para filas existentes y futuras.
-2. Se mantienen intactos los PK/FK `BIGINT`, los nombres de tablas y las
-   constraints de negocio: `UNIQUE (cronograma.presupuesto_id)` para 1:1 y
-   `UNIQUE (actividad.rubro_id)` para 1:1; `actividad.cronograma_id` continúa
-   siendo FK a `cronograma`.
+   `actividad`, y `cronograma.presupuesto_fingerprint_revisado CHAR(64)` nullable.
+2. Se mantienen intactos los PK/FK `BIGINT`, nombres, FKs y unicidades. La misma
+   migración reemplaza únicamente el CHECK histórico `numero_periodos > 0` por
+   el límite canónico `SEMANA 1..520 | MES 1..120` y añade el CHECK lowercase
+   SHA-256 del fingerprint.
 3. Las entidades JPA y repositorios siguen el patrón vigente
    `PanacheEntityBase` + `IDENTITY`, mapean la identidad pública generada por la
    BD sin permitir insertarla o actualizarla desde Java y no filtran el
@@ -32,8 +30,9 @@ deben demostrar, sin cambiar las tablas ya aplicadas ni el motor, que:
    devuelve 404 para inexistente o ajeno; el contrato de entrada rechaza UUID
    malformado/no-v7 con 400 y solo permite `USUARIO` y `SUPER_ADMIN`.
 5. `VersionadoService.copiarCronogramaYActividad` conserva el seam de SQL
-   nativo: sus `INSERT` omiten `public_id`, remapean los FK internos y la copia
-   recibe UUIDs nuevos, sin compartir identidad ni filas con el origen.
+   nativo: sus `INSERT` omiten `public_id`, copian el fingerprint junto con los
+   marcadores ya existentes, remapean los FK internos y la copia recibe UUIDs
+   nuevos, sin compartir identidad ni filas con el origen.
 6. `findRubrosCubiertosPorCronograma` sigue resolviendo por `BIGINT` y sus
    resultados no cambian por la nueva identidad pública.
 7. El límite profundo queda claro: el módulo de cronograma traduce UUIDv7 ↔
@@ -70,7 +69,7 @@ segura en el árbol y en `flyway_schema_history`, se activa `STOP-027-NUMBER`.
 | `../thesis-docs/plan/architecture/08-codebase-design.md` §3, §5, §6 y §8 | Costura `recalculo`, deep copy, módulos profundos, frontera frontend/backend y prohibición de fórmulas en el motor. |
 | `../thesis-docs/plan/domain/02-data-model.md` §3, §13, §16–§17 | Deep copy, campos derivados, avance JSONB, fórmulas y precisión. |
 | `../thesis-docs/plan/design/03-procesos-detalle.md` §F, §G y §J/D-09/D-10 | P-33/P-34, copia de versiones, 1:1 y confirmación de pérdida una vez canonizada. |
-| `../thesis-docs/plan/quality/02-catalogo-pruebas.md` TC-P31-01, TC-P32-04, TC-P33-01…03 y TC-P34-02…03 | Casos de copia, cobertura, alta, conflicto, sincronía y períodos. Se amplía la evidencia de identidad sin cambiar el motor. |
+| `../thesis-docs/plan/quality/02-catalogo-pruebas.md` TC-P31-01…04, TC-P32-01, TC-P33-01…10 y TC-P34-01…12 | Casos de copia, cobertura, alta, conflicto, sincronía y períodos. Se amplía la evidencia de identidad sin cambiar el motor. |
 | `../thesis-docs/plan/roadmap/01-plan-iteraciones-xp.md` | Orden I-08/I-09/I-10 y gate de pruebas. |
 | `src/main/resources/db/migration/V001__baseline.sql` | Patrón `uuidv7()`, función `fn_assert_public_id_immutable()`, PK/FK y DDL baseline. No se edita. |
 | `src/main/resources/db/migration/V008__capitulo_rubro_public_id.sql` | Patrón real de migración aditiva y triggers por tabla. No se edita. |
@@ -87,7 +86,8 @@ segura en el árbol y en `flyway_schema_history`, se activa `STOP-027-NUMBER`.
   no toca `cronograma` ni `actividad`.
 - V001 ya declara `cronograma` y `actividad` con PK/FK `BIGINT`, la unicidad de
   `presupuesto_id` y `rubro_id`, el mapa JSONB de avances y la función común de
-  inmutabilidad. V001–V008 son historia aplicada: no se reescriben.
+  inmutabilidad. También conserva `cronograma_actividad`, seam histórico inerte
+  que I-08 no usa. V001–V008 son historia aplicada: no se reescriben.
 - El backend no contiene `Cronograma.java`, `Actividad.java`,
   `CronogramaRepository.java` ni `ActividadRepository.java`. Los únicos tipos
   de cronograma en Java son los snapshots puros del paquete `motor`.
@@ -113,7 +113,8 @@ segura en el árbol y en `flyway_schema_history`, se activa `STOP-027-NUMBER`.
 
 - Una migración nueva, aditiva y posterior a V008, con `public_id` para ambas
   tablas, defaults UUIDv7 y triggers de inmutabilidad reutilizando la función de
-  V001.
+  V001; `presupuesto_fingerprint_revisado` nullable con CHECK SHA-256 lowercase;
+  y reemplazo focal del CHECK de períodos por los límites 520/120.
 - Entidades `Cronograma` y `Actividad`, repositorios separados y el mapeo
   JSONB/decimal necesario para que `hibernate-orm` valide el esquema real.
 - Métodos de repositorio para resolución por UUID público, por presupuesto o
@@ -142,19 +143,17 @@ segura en el árbol y en `flyway_schema_history`, se activa `STOP-027-NUMBER`.
 
 ## Archivos posibles de una ejecución autorizada
 
-> La lista es deliberadamente condicional. Los nombres públicos y cualquier
-> archivo de servicio/DTO se congelan en Plan 026; antes de ese gate no se deben
-> presentar como definitivos ni escribirlos. Esta sesión solo crea los tres
-> archivos de planes autorizados por el orquestador.
+> Los nombres públicos quedaron congelados por Plan 026. La lista mantiene
+> superficies condicionales para no ampliar el cambio durante la implementación.
 
 | Acción posible | Archivo | Condición |
 |---|---|---|
-| Crear | `src/main/resources/db/migration/V<next>__cronograma_actividad_public_id.sql` | `<next>` se determina después de V008 y del historial real; nunca se preasigna. El nombre final puede variar según la convención aprobada en 026. |
+| Crear | `src/main/resources/db/migration/V<next>__cronograma_persistencia.sql` | `<next>` se determina después de V008; añade identidades, fingerprint y CHECKs canónicos. El nombre puede variar sin reducir el alcance. |
 | Crear | `src/main/java/ec/uce/propuestas/cronograma/entity/Cronograma.java` | Entidad cuyo nombre final fue cerrado por 026. |
 | Crear | `src/main/java/ec/uce/propuestas/cronograma/entity/Actividad.java` | Entidad cuyo nombre final fue cerrado por 026. |
 | Crear | `src/main/java/ec/uce/propuestas/cronograma/repository/CronogramaRepository.java` | Resolución 1:1, UUID y owner sin exponer IDs internos. |
 | Crear | `src/main/java/ec/uce/propuestas/cronograma/repository/ActividadRepository.java` | Resolución por cronograma/UUID, cobertura y lectura interna ordenada. |
-| Modificar condicionalmente | `src/main/java/ec/uce/propuestas/presupuesto/service/VersionadoService.java` | Preferencia: **no modificar**; solo si una prueba demuestra que el SQL explícito necesita un ajuste para el nuevo esquema, manteniendo omisión de `public_id` y remapeo BIGINT. |
+| Modificar | `src/main/java/ec/uce/propuestas/presupuesto/service/VersionadoService.java` | Incluir el fingerprint en la copia explícita, mantener omisión de `public_id`, marcadores y remapeo BIGINT; no usar `SELECT *`. |
 | Modificar condicionalmente | `src/main/java/ec/uce/propuestas/presupuesto/repository/PresupuestoRepository.java` | Preferencia: **no modificar**; solo adaptar tipos internos si no cambia `findRubrosCubiertosPorCronograma`. |
 | Modificar condicionalmente | `src/main/java/ec/uce/propuestas/recalculo/internal/VersionSnapshotBuilder.java` | Solo si el alcance aprobado de 027 lo exige para leer persistencia; no tocar `src/main/java/ec/uce/propuestas/motor/`. |
 | Crear/modificar | `src/test/java/ec/uce/propuestas/schema/<siguiente>SchemaIT.java` | El nombre final depende de la numeración de migración y del patrón de suites existente. |
@@ -172,6 +171,10 @@ editar migraciones aplicadas:
 
 - Añadir `public_id UUID NOT NULL UNIQUE DEFAULT uuidv7()` a `cronograma` y
   `actividad`.
+- Añadir `cronograma.presupuesto_fingerprint_revisado CHAR(64) NULL` y CHECK
+  `NULL OR ~ '^[0-9a-f]{64}$'`; las filas históricas quedan NULL/stale hasta revisión.
+- Reemplazar el CHECK histórico de períodos por `SEMANA 1..520 | MES 1..120`,
+  verificando primero que los datos existentes lo satisfacen; si no, STOP.
 - Crear por tabla el trigger `BEFORE UPDATE OF public_id` que reutiliza
   `fn_assert_public_id_immutable()` de V001. No crear una función paralela ni
   una generación Java.
@@ -179,7 +182,8 @@ editar migraciones aplicadas:
   migración y filas nuevas al insertarlas. Verificar versión y variante de cada
   UUID, no solo que sea parseable.
 - No cambiar `id`, `presupuesto_id`, `cronograma_id`, `rubro_id`, FKs,
-  `ON DELETE`, unicidades, JSONB ni columnas de negocio.
+  `ON DELETE`, unicidades ni JSONB. No tocar ni empezar a usar la tabla inerte
+  `cronograma_actividad`.
 - No agregar `public_id` a las tablas relacionadas como condición de este plan;
   `presupuesto` y `rubro` ya tienen identidad pública vigente.
 - No agregar una segunda constraint para simular 1:1: la unicidad existente es
@@ -239,9 +243,11 @@ repositorios deben permitir a los planes siguientes:
 - `GET /presupuestos/{id}/cronograma` y
   `POST /presupuestos/{id}/cronograma` resolverán el presupuesto público; la
   ausencia o ajenidad será 404 y la constraint 1:1 será 409.
-- `PUT /cronogramas/{id}`, `PATCH /cronogramas/{id}/actividades/{aid}` y
+- `PUT /cronogramas/{id}/configuracion`, `PATCH /cronogramas/{id}/actividades/{aid}` y
   `POST /cronogramas/{id}/revisado` resolverán ambos UUID públicos con
   ownership; no reciben `Long` en DTOs.
+- La proyección agregada de Gantt, valorizado y curva S se leerá únicamente mediante
+  `GET /cronogramas/{id}/vistas`, fuera del alcance de persistencia de este plan.
 - El mapeo interno UUID→`Long` ocurre en repository/service, después del parse
   de frontera y del ownership. El motor y las queries nativas continúan con
   `Long`.
@@ -267,22 +273,25 @@ Escribir primero un test de esquema aislado que espere:
 
 - `cronograma.public_id` y `actividad.public_id` UUID, NOT NULL, UNIQUE y con
   default UUIDv7;
+- `presupuesto_fingerprint_revisado` nullable + CHECK SHA-256 lowercase;
+- CHECK de períodos dependiente de unidad (520/120);
 - trigger de inmutabilidad por tabla;
 - PK/FK BIGINT y unicidades 1:1 intactas;
+- `cronograma_actividad` intacta e inerte;
 - una fila existente y una fila nueva con UUIDv7 distinto.
 
 Ejecutar el test contra V001…V008 antes de crear la migración nueva. El RED debe
-ser observado y guardado literalmente: faltan las dos columnas/triggers, no se
-simula el resultado con mocks ni con una base ya migrada.
+ser observado y guardado literalmente: faltan identidades, fingerprint, CHECKs y
+triggers; no se simula el resultado con mocks ni con una base ya migrada.
 
 ### Paso 2 — GREEN de migración
 
 1. Elegir el número siguiente real y crear una única migración aditiva con nombre
    conforme a la convención, sin editar V001–V008.
-2. Añadir los defaults/triggers y ejecutar la migración sobre base vacía y base
-   con filas existentes.
-3. Verificar que todos los UUID generados son v7, únicos e inmutables, y que los
-   `BIGINT` y constraints previos son byte/semánticamente equivalentes.
+2. Añadir identidades/defaults/triggers, fingerprint y CHECKs; ejecutar sobre base
+   vacía y base con filas existentes válidas.
+3. Verificar UUIDv7 únicos/inmutables, fingerprint/límites y que `BIGINT`, FKs,
+   unicidades, mapas y seam histórico permanecen semánticamente equivalentes.
 4. Repetir el test de esquema y registrar GREEN.
 
 No se agrega backfill manual con UUIDs inventados, no se reutilizan IDs de otra
@@ -395,8 +404,8 @@ copiar UUIDs del origen y no crear un nuevo módulo de persistencia dentro de
 
 | Caso | Entrada | Resultado verificable |
 |---|---|---|
-| M-027-01 migración poblada | Base V008 con cronograma/actividad existentes. | Dos columnas `public_id` pobladas, UUIDv7 únicos; PK/FK/valores de negocio sin cambio. |
-| M-027-02 migración vacía | Base limpia hasta V008. | Inserts posteriores reciben UUIDv7 sin intervención Java. |
+| M-027-01 migración poblada | Base V008 con cronograma/actividad válidos. | `public_id` poblados; fingerprint NULL; CHECKs nuevos activos; PK/FK/mapas intactos. |
+| M-027-02 migración vacía | Base limpia hasta V008. | Inserts posteriores reciben UUIDv7; fingerprint válido/null; límites 520/120 se aplican. |
 | M-027-03 trigger cronograma | UPDATE del `public_id` de una fila. | Error de inmutabilidad; valor anterior permanece. |
 | M-027-04 trigger actividad | UPDATE del `public_id` de una fila. | Error de inmutabilidad; valor anterior permanece. |
 | M-027-05 1:1 presupuesto | Dos cronogramas para el mismo presupuesto. | Violación de `UNIQUE (presupuesto_id)`; no se relaja con repository. |
@@ -415,6 +424,9 @@ copiar UUIDs del origen y no crear un nuevo módulo de persistencia dentro de
 | M-027-18 copia sin cronograma | Versión origen sin fila de cronograma. | No se inserta cronograma/actividad hijo por accidente. |
 | M-027-19 cobertura P-32 | Dos versiones con actividades distintas. | `findRubrosCubiertosPorCronograma` distingue cada `presupuesto_id` usando IDs internos. |
 | M-027-20 precisión | Peso/avance y totales revisados con escala del DDL. | `BigDecimal`/JSONB sin `double`/`float`; no se agrega redondeo de negocio. |
+| M-027-21 fingerprint | NULL, hash lowercase válido y variantes inválidas. | NULL/válido aceptados; longitud, mayúscula o no-hex rechazados por CHECK. |
+| M-027-22 límites por unidad | SEMANA 520/521 y MES 120/121. | bordes válidos aceptados; excedentes rechazados por CHECK. |
+| M-027-23 seam histórico | `cronograma_actividad` poblada o vacía. | migración no altera ni usa la tabla; agregado canónico opera solo con `actividad`. |
 
 Los casos P-31, P-32, P-33 y P-34 existentes se conservan y se cruzan con
 estos casos de persistencia. Los nombres finales de DTO/endpoint y la forma de
@@ -545,6 +557,9 @@ predicción de la suite final.
       por evidencia, y V001–V008 permanecen intactas.
 - [ ] `cronograma.public_id` y `actividad.public_id` son UUIDv7 NOT NULL UNIQUE
       con default de BD y trigger de inmutabilidad compartido.
+- [ ] Fingerprint nullable/validado y CHECKs 520/120 quedan activos; datos
+      históricos incompatibles activan STOP antes de migrar.
+- [ ] `cronograma_actividad` permanece inerte e intacta.
 - [ ] PK/FK siguen siendo `BIGINT`; `UNIQUE (presupuesto_id)` y
       `UNIQUE (rubro_id)` siguen protegiendo las dos relaciones 1:1.
 - [ ] Las entidades pasan `hibernate-orm.database.generation: validate` y
@@ -600,6 +615,9 @@ Evidencia de esquema:
 - public_id actividad:
 - defaults UUIDv7:
 - triggers:
+- fingerprint + CHECK:
+- límites SEMANA/MES:
+- seam `cronograma_actividad` intacta:
 - PK/FK/UNIQUE preservadas:
 
 Evidencia de copy/ownership:

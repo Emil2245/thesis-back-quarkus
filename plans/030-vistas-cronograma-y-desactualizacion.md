@@ -53,7 +53,7 @@ marcador/revisión canónica suficiente, activar `STOP-030-STALE` antes de codif
 - `../thesis-docs/plan/architecture/08-codebase-design.md` §3–§6 y frontend §8.
 - `../thesis-docs/plan/domain/02-data-model.md` §13 y §16–§17.
 - `../thesis-docs/plan/design/03-procesos-detalle.md` §F/P-35/P-36.
-- `../thesis-docs/plan/quality/02-catalogo-pruebas.md` TC-P35/TC-P36 y casos de 026.
+- `../thesis-docs/plan/quality/02-catalogo-pruebas.md` TC-P35-01…04, TC-P36-01…05 y casos de 026.
 - `../thesis-docs/DOCUMENTOS/entrevistas/05/N05_entrevista-cronograma.md` §§2, 4–6.
 - `../thesis-docs/res/ESTANCIA-ACADEMICA/CRONOGRAMA VALORADO-signed.pdf` o la
   ubicación que el canon confirme, solo como ejemplo aceptado de presentación.
@@ -143,9 +143,9 @@ probado en 029. Leer Gantt no escribe ni marca revisado.
 
 ### Cronograma valorizado
 
-El Plan 026 debe fijar una fórmula única para convertir el avance ponderado global
-en monto por actividad/período. La fórmula no puede inferirse solo del PDF. Debe
-cumplir simultáneamente:
+Plan 026 fijó el cálculo racional entero de DM §16 para convertir avance global en
+monto actividad/período. No se infiere del PDF ni usa `BigDecimal.divide()` sin
+escala. Debe cumplir simultáneamente:
 
 - para una actividad completa, la suma monetaria por períodos reconcilia con el
   precio total del rubro según la regla de display/export;
@@ -157,10 +157,11 @@ cumplir simultáneamente:
 - el último acumulado completo reconcilia con el total del presupuesto y
   `100.0000` bajo las reglas canónicas.
 
-El cálculo usa `BigDecimal` y precisión natural. `app.display.precision` y
-`precision-porcentaje` afectan serialización/presentación cuando el contrato lo
-indique, no almacenamiento ni estado de completitud. Cualquier residual monetario
-debe tener asignación determinista documentada.
+El cálculo convierte dinero scale-6 y porcentaje scale-4 a unidades enteras. Para
+peso positivo calcula target HALF_UP y bases floor; reparte micro-unidades restantes
+por residuo fraccionario descendente (empate por período). Para peso cero/precio
+positivo exige claves activas y reparte el precio entre ellas. Probar `1/3` y el
+rubro positivo con peso `0.0000`. `app.display.*` solo afecta presentación.
 
 ### Curva S
 
@@ -199,10 +200,11 @@ distribución borrador no puede exportarse aunque esté revisada.
 
 ## Contrato REST y seguridad
 
-Usar únicamente las rutas aprobadas por 026, incluido
-`POST /cronogramas/{id}/revisado` si fue conservado. Cada read model es explícito;
-no usar un query parameter ambiguo que cambie silenciosamente el shape salvo que
-así lo haya canonizado 026.
+Usar únicamente la ruta de vistas aprobada por 026:
+`GET /cronogramas/{id}/vistas` devuelve la proyección común con los bloques de Gantt,
+valorizado y curva S. La acción `POST /cronogramas/{id}/revisado` también forma parte
+del contrato canónico. No usar un query parameter ambiguo que cambie silenciosamente
+el shape ni agregar una ruta alternativa por vista.
 
 - UUID malformado/no-v7 → 400 `validacion`.
 - UUIDv7 inexistente o de otro owner → 404 `no-encontrado`.
