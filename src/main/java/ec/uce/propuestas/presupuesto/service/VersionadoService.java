@@ -395,11 +395,18 @@ public class VersionadoService {
     }
 
     /**
-     * Plan 024 — copia cronograma y actividad usando SQL nativo porque no
+     * Plan 024/027 — copia cronograma y actividad usando SQL nativo porque
      * existen entidades JPA para esas tablas (I-08 las introduce). Se
      * conservan {@code unidad_tiempo}, {@code numero_periodos},
-     * {@code total_general_revisado} y {@code fecha_revision} del origen;
+     * {@code total_general_revisado}, {@code fecha_revision} y {@code presupuesto_fingerprint_revisado}
+     * (añadido por V009) del origen;
      * {@code updated_at} lo refresca el disparador DDL ({@code DEFAULT now()}).
+     *
+     * <p>{@code public_id} se omite explícitamente: el DEFAULT
+     * {@code uuidv7()} de la BD genera una identidad fresca para el
+     * cronograma y para cada actividad copiada. El trigger de
+     * inmutabilidad de V009 bloquea cualquier intento de reescribir el
+     * {@code public_id} desde SQL posterior.</p>
      *
      * <p>Si el origen no tiene cronograma, no se hace nada. Para actividad, el
      * FK {@code rubro_id} se remite al rubro del destino con el mismo
@@ -418,9 +425,10 @@ public class VersionadoService {
 
         Object nuevoCronogramaIdObj = em().createNativeQuery(
                         "insert into cronograma (presupuesto_id, unidad_tiempo, numero_periodos, "
-                                + "total_general_revisado, fecha_revision, updated_at) "
+                                + "total_general_revisado, fecha_revision, presupuesto_fingerprint_revisado, "
+                                + "updated_at) "
                                 + "select ?1, unidad_tiempo, numero_periodos, total_general_revisado, "
-                                + "       fecha_revision, now() "
+                                + "       fecha_revision, presupuesto_fingerprint_revisado, now() "
                                 + "from cronograma where id = ?2 "
                                 + "returning id")
                 .setParameter(1, nuevoPresupuestoId)

@@ -357,8 +357,8 @@ class VersionadoResourceIT {
             }
         }
 
-        // Actividad referenciando el rubro (UNIQUE por rubro). El campo
-        // avance_por_periodo es JSONB con 12 entradas para preservar periodos + progreso.
+        // Actividad referenciando el rubro (UNIQUE por rubro). El mapa JSONB
+        // canónico conserva claves 1-based no consecutivas y decimales como strings.
         long actividadId;
         try (Connection con = ds.getConnection();
                 PreparedStatement ps = con.prepareStatement(
@@ -366,7 +366,7 @@ class VersionadoResourceIT {
                                 + "VALUES (?, ?, 0.5000, ?::jsonb) RETURNING id")) {
             ps.setLong(1, cronogramaId);
             ps.setLong(2, rubroId);
-            ps.setString(3, "[\"P1\",\"P2\",\"P3\",\"P4\",\"P5\",\"P6\",\"P7\",\"P8\",\"P9\",\"P10\",\"P11\",\"P12\"]");
+            ps.setString(3, "{\"1\":\"0.1250\",\"3\":\"0.3750\"}");
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();
                 actividadId = rs.getLong(1);
@@ -481,9 +481,9 @@ class VersionadoResourceIT {
     }
 
     /**
-     * Huella observable de cronograma + actividad: tipo + unidad_tiempo +
-     * numero_periodos o tipo + peso_ponderado + longitud del array JSONB.
-     * El deep copy debe producir la misma huella (forma preservada).
+     * Huella observable de cronograma + actividad: configuración, peso y el
+     * contenido JSONB canónico completo. El deep copy debe preservar exactamente
+     * la semántica del mapa, incluidas claves no consecutivas y valores decimales.
      */
     private List<String> huellaCronogramaActividad(String presupuestoPublicId) throws Exception {
         Long pId = internalPresupuestoId(presupuestoPublicId);
@@ -494,7 +494,7 @@ class VersionadoResourceIT {
                                 + "FROM cronograma c WHERE c.presupuesto_id = ? "
                                 + "UNION ALL "
                                 + "SELECT 'actividad' AS t, a.peso_ponderado::text || ':' || "
-                                + "       jsonb_array_length(a.avance_por_periodo)::text AS shape "
+                                + "       a.avance_por_periodo::text AS shape "
                                 + "FROM actividad a JOIN cronograma c ON c.id = a.cronograma_id "
                                 + "WHERE c.presupuesto_id = ? ORDER BY 1")) {
             ps.setLong(1, pId);
@@ -664,10 +664,13 @@ class VersionadoResourceIT {
         assertEquals(1L, contarCronogramas(nuevoPresupuestoId), "1 cronograma copiado en el destino");
         assertEquals(1L, contarActividades(nuevoPresupuestoId), "1 actividad copiada en el destino");
 
-        // Forma preservada: unidad_tiempo = SEMANA, numero_periodos = 12, y
-        // la actividad mantiene el mismo numero de periodos en JSONB.
+        // Semántica preservada: configuración y contenido JSONB exacto, no solo
+        // tamaño/forma del valor.
+        assertTrue(
+                huellaOrigen.contains("actividad|0.5000:{\"1\": \"0.1250\", \"3\": \"0.3750\"}"),
+                "El origen conserva el mapa JSONB canónico completo");
         List<String> huellaNuevo = huellaCronogramaActividad(nuevoPresupuestoId);
-        assertEquals(huellaOrigen, huellaNuevo, "Forma del cronograma/actividad identica al origen");
+        assertEquals(huellaOrigen, huellaNuevo, "Cronograma y JSONB de actividad idénticos al origen");
 
         // La actividad copiada referencia el NUEVO rubro, no el original (FK remapeada)
         Long actividadNuevoRubroFk = readActividadRubroFkPorCronograma(nuevoPresupuestoId);
@@ -1058,6 +1061,79 @@ class VersionadoResourceIT {
         assertEquals(0, cap1Origen.compareTo(leerCapituloTotalPorItem(origenId, "1")), "cap 1 origen intacto");
     }
 
+    // ── Plan 027 — fingerprint copy + UUID freshness ───────────────────
+
+    /**
+     * Plan 027 — el deep copy conserva el {@code presupuesto_fingerprint_revisado}
+     * del cronograma origen (la columna se copió explícitamente en V009).
+     * El cronograma/actividad copiados reciben {@code public_id}s frescos
+     * (el SQL nativo omite {@code public_id} en el INSERT, el DEFAULT los
+     * regenera). Las dos copias son bit-a-bit idénticas en su forma pero
+     * totalmente independientes en identidad.
+     */
+    @Test
+    void TC_P31_27_deep_copy_conserva_fingerprint_y_renueva_uuids() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p27-c1@ex.com");
+        String proyectoId = crearProyecto(token, "Fingerprint copy");
+        String origenId = vigenteDeProyecto(proyectoId);
+        ArbolCompacto orig = sembrarArbolCompacto(origenId);
+
+        String fingerprintOrigen = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+        String origenCronogramaPublicId = readCronogramaPublicIdPorPresupuesto(origenId);
+        String origenActividadPublicId = readActividadPublicIdPorCronograma(origenId);
+        assertNotNull(origenCronogramaPublicId, "Origen debe tener cronograma con public_id");
+        assertNotNull(origenActividadPublicId, "Origen debe tener actividad con public_id");
+
+        try (java.sql.Connection con = ds.getConnection();
+                java.sql.PreparedStatement ps =
+                        con.prepareStatement("UPDATE cronograma SET presupuesto_fingerprint_revisado = ?::char(64) "
+                                + "WHERE presupuesto_id = ?")) {
+            ps.setString(1, fingerprintOrigen);
+            ps.setLong(2, internalPresupuestoId(origenId));
+            ps.executeUpdate();
+        }
+
+        // POST /proyectos/{proyectoId}/presupuestos con origenId
+        String nuevoPresupuestoId = given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("origenId", origenId))
+                .when()
+                .post("/api/v1/proyectos/" + proyectoId + "/presupuestos")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("presupuestoId");
+
+        String nuevoCronogramaPublicId = readCronogramaPublicIdPorPresupuesto(nuevoPresupuestoId);
+        String nuevoActividadPublicId = readActividadPublicIdPorCronograma(nuevoPresupuestoId);
+        String fingerprintCopia = readCronogramaFingerprint(nuevoPresupuestoId);
+
+        assertNotNull(nuevoCronogramaPublicId, "Copia debe tener cronograma con public_id");
+        assertNotNull(nuevoActividadPublicId, "Copia debe tener actividad con public_id");
+        assertNotEquals(
+                origenCronogramaPublicId,
+                nuevoCronogramaPublicId,
+                "El cronograma copiado debe recibir un public_id fresco");
+        assertNotEquals(
+                origenActividadPublicId,
+                nuevoActividadPublicId,
+                "La actividad copiada debe recibir un public_id fresco");
+        assertTrue(
+                nuevoCronogramaPublicId.matches(UUID_V7),
+                "public_id del cronograma copiado debe ser UUIDv7: " + nuevoCronogramaPublicId);
+        assertTrue(
+                nuevoActividadPublicId.matches(UUID_V7),
+                "public_id de la actividad copiada debe ser UUIDv7: " + nuevoActividadPublicId);
+        assertEquals(
+                fingerprintOrigen,
+                fingerprintCopia,
+                "El fingerprint del cronograma copiado debe coincidir bit-a-bit con el origen");
+
+        // El origen mantiene su propio publicId y fingerprint intacto.
+        assertEquals(origenCronogramaPublicId, readCronogramaPublicIdPorPresupuesto(origenId));
+        assertEquals(fingerprintOrigen, readCronogramaFingerprint(origenId));
+    }
+
     // ── GET /presupuestos/{id}/comparar?con={id2} ───────────────────────
 
     /**
@@ -1270,6 +1346,47 @@ class VersionadoResourceIT {
                 rs.next();
                 BigDecimal val = rs.getBigDecimal(1);
                 return val == null ? BigDecimal.ZERO : val;
+            }
+        }
+    }
+
+    private String readCronogramaPublicIdPorPresupuesto(String presupuestoPublicId) throws Exception {
+        Long pId = internalPresupuestoId(presupuestoPublicId);
+        try (java.sql.Connection con = ds.getConnection();
+                java.sql.PreparedStatement ps =
+                        con.prepareStatement("SELECT public_id::text FROM cronograma WHERE presupuesto_id = ?")) {
+            ps.setLong(1, pId);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getString(1) : null;
+            }
+        }
+    }
+
+    private String readActividadPublicIdPorCronograma(String presupuestoPublicId) throws Exception {
+        Long pId = internalPresupuestoId(presupuestoPublicId);
+        try (java.sql.Connection con = ds.getConnection();
+                java.sql.PreparedStatement ps = con.prepareStatement("SELECT a.public_id::text FROM actividad a "
+                        + "JOIN cronograma c ON c.id = a.cronograma_id "
+                        + "WHERE c.presupuesto_id = ?")) {
+            ps.setLong(1, pId);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getString(1) : null;
+            }
+        }
+    }
+
+    private String readCronogramaFingerprint(String presupuestoPublicId) throws Exception {
+        Long pId = internalPresupuestoId(presupuestoPublicId);
+        try (java.sql.Connection con = ds.getConnection();
+                java.sql.PreparedStatement ps = con.prepareStatement(
+                        "SELECT btrim(presupuesto_fingerprint_revisado) FROM cronograma WHERE presupuesto_id = ?")) {
+            ps.setLong(1, pId);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String value = rs.getString(1);
+                    return value == null ? null : value.trim();
+                }
+                return null;
             }
         }
     }

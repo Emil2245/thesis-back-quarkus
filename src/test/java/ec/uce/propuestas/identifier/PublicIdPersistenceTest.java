@@ -11,6 +11,10 @@ import ec.uce.propuestas.apu.entity.ApuDetalle;
 import ec.uce.propuestas.apu.entity.ApuSeccion;
 import ec.uce.propuestas.apu.repository.ApuDetalleRepository;
 import ec.uce.propuestas.apu.repository.ApuRepository;
+import ec.uce.propuestas.cronograma.entity.Actividad;
+import ec.uce.propuestas.cronograma.entity.Cronograma;
+import ec.uce.propuestas.cronograma.repository.ActividadRepository;
+import ec.uce.propuestas.cronograma.repository.CronogramaRepository;
 import ec.uce.propuestas.insumo.entity.BaseInsumos;
 import ec.uce.propuestas.insumo.entity.Insumo;
 import ec.uce.propuestas.insumo.entity.TipoBase;
@@ -81,7 +85,9 @@ class PublicIdPersistenceTest {
             PlantillaApu.class,
             PlantillaProyecto.class,
             Capitulo.class,
-            Rubro.class);
+            Rubro.class,
+            Cronograma.class,
+            Actividad.class);
 
     private static final List<Class<?>> INTERNAL_ENTITIES =
             List.of(ParametrosSistema.class, ParametrosProyecto.class, ApuSeccion.class);
@@ -132,12 +138,19 @@ class PublicIdPersistenceTest {
     @Inject
     RubroRepository rubroRepository;
 
+    @Inject
+    CronogramaRepository cronogramaRepository;
+
+    @Inject
+    ActividadRepository actividadRepository;
+
     @BeforeEach
     void reset() throws Exception {
         try (Connection connection = dataSource.getConnection();
                 Statement statement = connection.createStatement()) {
-            statement.execute("TRUNCATE TABLE apu_detalle, apu_seccion, apu, rubro, capitulo, presupuesto, "
-                    + "insumo, base_insumos, plantilla_apu, plantilla_proyecto, "
+            statement.execute("TRUNCATE TABLE cronograma, actividad, apu_detalle, apu_seccion, apu, "
+                    + "rubro, capitulo, presupuesto, insumo, base_insumos, "
+                    + "plantilla_apu, plantilla_proyecto, "
                     + "parametros_proyecto, firmante, proyecto, "
                     + "token_usuario, refresh_token, usuario RESTART IDENTITY CASCADE");
         }
@@ -181,6 +194,8 @@ class PublicIdPersistenceTest {
         assertRepositoryHasOwnerScopeResolver(plantillaProyectoRepository, "PlantillaProyecto");
         assertRepositoryHasOwnerScopeResolver(capituloRepository, "Capitulo");
         assertRepositoryHasOwnerScopeResolver(rubroRepository, "Rubro");
+        assertRepositoryHasOwnerScopeResolver(cronogramaRepository, "Cronograma");
+        assertRepositoryHasOwnerScopeResolver(actividadRepository, "Actividad");
     }
 
     @Test
@@ -194,6 +209,8 @@ class PublicIdPersistenceTest {
 
     @Test
     void foreign_key_columns_remain_bigint_not_uuid() {
+        assertFkLong(Actividad.class, "cronogramaId");
+        assertFkLong(Actividad.class, "rubroId");
         assertFkLong(Apu.class, "presupuestoId");
         assertFkLong(ApuDetalle.class, "seccionId");
         assertFkLong(ApuDetalle.class, "insumoId");
@@ -201,6 +218,7 @@ class PublicIdPersistenceTest {
         assertFkLong(BaseInsumos.class, "usuarioId");
         assertFkLong(Capitulo.class, "presupuestoId");
         assertFkLong(Capitulo.class, "parentId");
+        assertFkLong(Cronograma.class, "presupuestoId");
         assertFkLong(Firmante.class, "proyectoId");
         assertFkLong(Insumo.class, "baseId");
         assertFkLong(PlantillaApu.class, "usuarioId");
@@ -314,6 +332,8 @@ class PublicIdPersistenceTest {
         PlantillaProyecto plantillaProyecto = persistPlantillaProyecto(owner.id);
         Capitulo capitulo = persistCapitulo(presupuesto.id, "1");
         Rubro rubro = persistRubro(capitulo.id, apu.id, "1.1", "APU-1");
+        Cronograma cronograma = persistCronograma(presupuesto.id);
+        Actividad actividad = persistActividad(cronograma.id, rubro.id);
 
         // Every repository must resolve its own row for the legitimate owner.
         assertOwnerScopePresent(firmanteRepository, firmante.publicId, owner.id, "Firmante");
@@ -326,6 +346,8 @@ class PublicIdPersistenceTest {
         assertOwnerScopePresent(plantillaProyectoRepository, plantillaProyecto.publicId, owner.id, "PlantillaProyecto");
         assertOwnerScopePresent(capituloRepository, capitulo.publicId, owner.id, "Capitulo");
         assertOwnerScopePresent(rubroRepository, rubro.publicId, owner.id, "Rubro");
+        assertOwnerScopePresent(cronogramaRepository, cronograma.publicId, owner.id, "Cronograma");
+        assertOwnerScopePresent(actividadRepository, actividad.publicId, owner.id, "Actividad");
 
         // Every repository must hide its row from a foreign caller.
         assertOwnerScopeEmpty(firmanteRepository, firmante.publicId, foreign.id, "Firmante");
@@ -338,6 +360,8 @@ class PublicIdPersistenceTest {
         assertOwnerScopeEmpty(plantillaProyectoRepository, plantillaProyecto.publicId, foreign.id, "PlantillaProyecto");
         assertOwnerScopeEmpty(capituloRepository, capitulo.publicId, foreign.id, "Capitulo");
         assertOwnerScopeEmpty(rubroRepository, rubro.publicId, foreign.id, "Rubro");
+        assertOwnerScopeEmpty(cronogramaRepository, cronograma.publicId, foreign.id, "Cronograma");
+        assertOwnerScopeEmpty(actividadRepository, actividad.publicId, foreign.id, "Actividad");
     }
 
     @Test
@@ -379,6 +403,51 @@ class PublicIdPersistenceTest {
         Optional<Rubro> rubro = rubroRepository.findByPublicIdAndOwnerScope(invented, owner.id);
         assertTrue(capitulo.isEmpty(), "An invented UUIDv7 must not resolve any Capitulo row");
         assertTrue(rubro.isEmpty(), "An invented UUIDv7 must not resolve any Rubro row");
+    }
+
+    @Test
+    @TestTransaction
+    void cronograma_and_actividad_are_generated_as_uuidv7_after_persist() {
+        // Plan 027 — Cronograma y Actividad deben recibir publicId UUIDv7 desde la
+        // columna DEFAULT uuidv7() añadida por V009, exactamente como Presupuesto/Apu.
+        Usuario owner = persistUsuario("crono-act-owner@ex.com");
+        Proyecto proyecto = persistProyecto(owner.id, "Cronograma Actividad");
+        Presupuesto presupuesto = persistPresupuesto(proyecto.id, (short) 1);
+        Apu apu = persistApu(presupuesto.id, "APU-CR-ACT");
+        Capitulo capitulo = persistCapitulo(presupuesto.id, "1");
+        Rubro rubro = persistRubro(capitulo.id, apu.id, "1.1", "APU-CR-ACT");
+        Cronograma cronograma = persistCronograma(presupuesto.id);
+        Actividad actividad = persistActividad(cronograma.id, rubro.id);
+
+        assertNotNull(cronograma.publicId, "Cronograma.publicId must be populated after persist");
+        assertNotNull(actividad.publicId, "Actividad.publicId must be populated after persist");
+        assertTrue(
+                UUID_V7.matcher(cronograma.publicId.toString()).matches(),
+                "Cronograma.publicId must be a UUIDv7: " + cronograma.publicId);
+        assertTrue(
+                UUID_V7.matcher(actividad.publicId.toString()).matches(),
+                "Actividad.publicId must be a UUIDv7: " + actividad.publicId);
+        assertEquals(7, cronograma.publicId.version(), "Cronograma UUIDv7 version nibble must be 7");
+        assertEquals(7, actividad.publicId.version(), "Actividad UUIDv7 version nibble must be 7");
+        assertEquals(2, cronograma.publicId.variant(), "Cronograma UUIDv7 must use RFC 4122 variant");
+        assertEquals(2, actividad.publicId.variant(), "Actividad UUIDv7 must use RFC 4122 variant");
+        assertFalse(
+                cronograma.publicId.equals(actividad.publicId),
+                "Cronograma and Actividad must receive distinct publicIds");
+    }
+
+    @Test
+    @TestTransaction
+    void owner_scope_returns_empty_for_nonexistent_cronograma_and_actividad_publicIds() {
+        // Plan 027 — un UUIDv7 inexistente devuelve Optional.empty() para ambas
+        // entidades públicas (404 semantics, RNF-05).
+        Usuario owner = persistUsuario("only-crono-act@ex.com");
+        UUID invented = UUID.fromString("0192f6c4-7c8a-7000-8000-000000000000");
+
+        Optional<Cronograma> cronograma = cronogramaRepository.findByPublicIdAndOwnerScope(invented, owner.id);
+        Optional<Actividad> actividad = actividadRepository.findByPublicIdAndOwnerScope(invented, owner.id);
+        assertTrue(cronograma.isEmpty(), "An invented UUIDv7 must not resolve any Cronograma row");
+        assertTrue(actividad.isEmpty(), "An invented UUIDv7 must not resolve any Actividad row");
     }
 
     // =========================================================================
@@ -622,5 +691,27 @@ class PublicIdPersistenceTest {
         rubro.precioTotal = BigDecimal.ZERO;
         rubroRepository.persist(rubro);
         return rubro;
+    }
+
+    private Cronograma persistCronograma(Long presupuestoId) {
+        Cronograma cronograma = new Cronograma();
+        cronograma.presupuestoId = presupuestoId;
+        cronograma.unidadTiempo = "SEMANA";
+        cronograma.numeroPeriodos = 12;
+        cronograma.totalGeneralRevisado = null;
+        cronograma.fechaRevision = null;
+        cronograma.presupuestoFingerprintRevisado = null;
+        cronogramaRepository.persist(cronograma);
+        return cronograma;
+    }
+
+    private Actividad persistActividad(Long cronogramaId, Long rubroId) {
+        Actividad actividad = new Actividad();
+        actividad.cronogramaId = cronogramaId;
+        actividad.rubroId = rubroId;
+        actividad.pesoPonderado = new BigDecimal("0.5000");
+        actividad.avancePorPeriodo = "{}";
+        actividadRepository.persist(actividad);
+        return actividad;
     }
 }

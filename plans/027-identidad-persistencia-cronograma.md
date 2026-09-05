@@ -1,6 +1,7 @@
 # 027 — Identidad pública y persistencia de Cronograma/Actividad
 
-**Estado:** TODO — gate 026 cerrado; listo para ejecución autorizada.
+**Estado:** DONE 05-09-2026 — identidad, fingerprint, constraints, copia y
+verificación integral entregados; Plan 028 habilitado.
 
 **Iteración:** I-08 (persistencia base del cronograma).
 
@@ -549,104 +550,179 @@ predicción de la suite final.
 
 ## Criterios de aceptación
 
-- [ ] El estado permanece `TODO — bloqueado por Plan 026`; no se marca como
-      realizado ni se ejecuta CRUD funcional completo.
-- [ ] El gate 026 está aprobado y los nombres de entidades, repositorios,
-      campos/DTOs y errores usados en el plan coinciden con el canon.
-- [ ] La migración nueva es posterior a V008, aditiva, con número determinado
-      por evidencia, y V001–V008 permanecen intactas.
-- [ ] `cronograma.public_id` y `actividad.public_id` son UUIDv7 NOT NULL UNIQUE
-      con default de BD y trigger de inmutabilidad compartido.
-- [ ] Fingerprint nullable/validado y CHECKs 520/120 quedan activos; datos
-      históricos incompatibles activan STOP antes de migrar.
-- [ ] `cronograma_actividad` permanece inerte e intacta.
-- [ ] PK/FK siguen siendo `BIGINT`; `UNIQUE (presupuesto_id)` y
-      `UNIQUE (rubro_id)` siguen protegiendo las dos relaciones 1:1.
-- [ ] Las entidades pasan `hibernate-orm.database.generation: validate` y
-      mapean JSONB/BigDecimal sin `double`/`float` ni columnas derivadas nuevas.
-- [ ] Los repositories resuelven UUID público con owner-to-404 y solo
-      `USUARIO`/`SUPER_ADMIN`; los `Long` quedan internos.
-- [ ] El deep copy conserva el SQL nativo o un ajuste explícito equivalente,
-      omite `public_id`, remapea FKs y genera UUIDs nuevos/aislados.
-- [ ] `findRubrosCubiertosPorCronograma` continúa devolviendo IDs internos y
-      distingue versiones sin filtrar identidad pública.
-- [ ] Tests de migración, mapeo, identidad, constraints, ownership y copia pasan
-      mediante los seams públicos previstos, con RED/GREEN observado.
-- [ ] Regresiones de `presupuesto`, `recalculo`, `identifier` y `schema`, suite,
-      Spotless, build, `git diff --check` y `graphify update .` tienen salida
-      literal reportada.
-- [ ] Los conteos se extraen de XML y se separan tests, failures, errors y
-      skipped; no se inventan cifras.
-- [ ] No se ejecuta commit sin autorización explícita.
+- [x] El estado es `DONE`; no se ejecutó CRUD funcional y Plan 028 quedó habilitado.
+- [x] El gate 026 y los nombres canónicos fueron respetados.
+- [x] V009 es aditiva, determinada tras confirmar Flyway v008; V001–V008 están intactas.
+- [x] Ambos `public_id` son UUIDv7 NOT NULL UNIQUE con default y trigger compartido.
+- [x] Fingerprint nullable/lowercase y límites SEMANA 520/MES 120 están activos.
+- [x] `cronograma_actividad` permanece inerte e intacta.
+- [x] PK/FK `BIGINT` y las dos unicidades 1:1 permanecen.
+- [x] ORM valida y el JSONB/BigDecimal no usa `double`/`float`.
+- [x] Repositories resuelven UUID con owner y scope del cronograma anidado.
+- [x] Deep copy omite `public_id`, remapea FKs y conserva fingerprint/mapa.
+- [x] `findRubrosCubiertosPorCronograma` permanece sobre IDs internos.
+- [x] Tests de migración poblada/vacía, mapping, identidad, constraints, owner y copia pasan.
+- [x] Suite, Spotless, build, diff y Graphify tienen evidencia literal.
+- [x] Conteos extraídos de 48 XML: 465 tests, 2 fallos aceptados, 0 errores, 1 omitido.
+- [x] El commit unitario fue autorizado explícitamente por el usuario.
 
 ## Plantilla de evidencia — sin resultados inventados
 
 ```text
 Plan: 027
-Estado al iniciar: TODO — bloqueado por Plan 026
-Fecha/hora:
-Ejecutor/revisor:
+Estado actual: DONE — gate final verificado; Plan 028 habilitado
+Fecha/hora: 05-09-2026 (ejecución y commit autorizados por el usuario)
+Ejecutor/revisor: parent-orchestrator / Gentle-AI writer
 
-Gate 026 aprobado por / referencia:
-Número Flyway real posterior a V008:
-Nombre de migración:
-Base de prueba (vacía/poblada):
+Gate 026 aprobado por / referencia: commit backend 078eb11 / plan 026
+Número Flyway real posterior a V008: V009
+Nombre de migración: `V009__cronograma_persistencia.sql`
+Base de prueba: PostgreSQL 18 (Quarkus Dev Services) — V008 con seed V004 (poblada)
 
 RED migración observado (salida literal):
--
-GREEN migración observado (salida literal):
--
+- Compile-time RED: 75 errores de compilación en
+  `CronogramaJpaIT`/`ActividadJpaIT`/`PublicIdPersistenceTest`
+  (`cannot find symbol: class Cronograma / Actividad /
+  CronogramaRepository / ActividadRepository`).
+- La BD previa a V009 no tiene `cronograma.public_id` /
+  `actividad.public_id`, lo que el validador Hibernate confirma.
+
+GREEN focal observado: ver comando único y conteo XML de 65/65 más abajo.
+
 RED mapeo/identidad observado:
--
+- `SchemaManagementException: wrong column type encountered in column
+  [presupuesto_fingerprint_revisado] in table [cronograma]; found [bpchar
+  (Types#CHAR)], but expecting [varchar(64) (Types#VARCHAR)]`.
+- Solucionado con `@JdbcTypeCode(SqlTypes.CHAR) + columnDefinition = "char(64)"`
+  en `Cronograma.presupuestoFingerprintRevisado`.
+
 GREEN mapeo/identidad observado:
--
+- `hibernate-orm.database.generation=validate` no detecta diferencias.
+- Las entidades `Cronograma` y `Actividad` pasan validación
+  contra el esquema físico V001..V009.
+
 TRIANGULACIÓN/REFACTOR:
--
+- Los 13 tests previos limpian y crean su propio grafo mínimo con sufijo UUID;
+  no dependen de filas dejadas por otra clase.
+- El replay test #14 (único test que ejercita el camino pre-V009 → V009 con
+  población real) usa un esquema temporal PostgreSQL dedicado
+  (`v009_replay_<nanoTime>`) que se crea al inicio y se elimina en `finally` con
+  `DROP SCHEMA ... CASCADE`; migra ese esquema hasta V008, conserva la fila inerte
+  sembrada por V004 e inserta cronograma/actividad antes de V009; luego captura IDs
+  y el `avance_por_periodo` JSONB y aplica V009 sobre esa población,
+  y vuelve a `public` antes de cerrar cada conexión (vía `resetSchemaQuietly`)
+  para no contaminar el pool ni a los demás tests.
+- `bpchar` vs `character` (PostgreSQL ≥ 16): el assert acepta ambos nombres.
+- Fingerprint CHAR(64): el CHECK rechaza longitudes distintas de 64 (CHAR padding)
+  y mayúsculas, conservando lowercase exact semantics.
 
 Archivos de implementación realmente tocados tras autorización:
--
+- src/main/resources/db/migration/V009__cronograma_persistencia.sql (nuevo)
+- src/main/java/ec/uce/propuestas/cronograma/entity/Cronograma.java (nuevo)
+- src/main/java/ec/uce/propuestas/cronograma/entity/Actividad.java (nuevo)
+- src/main/java/ec/uce/propuestas/cronograma/repository/CronogramaRepository.java (nuevo)
+- src/main/java/ec/uce/propuestas/cronograma/repository/ActividadRepository.java (nuevo)
+- src/main/java/ec/uce/propuestas/presupuesto/service/VersionadoService.java (SQL del deep copy preserva fingerprint y omite public_id)
+- src/test/java/ec/uce/propuestas/schema/V009SchemaIT.java (nuevo, 14 tests; el #14 es `v009_applies_over_populated_v008_state_assigning_distinct_uuidv7_public_ids`)
+- src/test/java/ec/uce/propuestas/cronograma/CronogramaJpaIT.java (nuevo, 5 tests)
+- src/test/java/ec/uce/propuestas/cronograma/ActividadJpaIT.java (nuevo, 5 tests)
+- src/test/java/ec/uce/propuestas/identifier/PublicIdPersistenceTest.java (extendido para cronograma/actividad)
+- src/test/java/ec/uce/propuestas/presupuesto/resource/VersionadoResourceIT.java (TC_P31_27 fingerprint + UUID fresh)
+- plans/027-identidad-persistencia-cronograma.md (status DONE + evidencia)
+- docs/modulos/06-cronograma/00.md (índice refleja 027 DONE / 028 habilitado)
+
 Archivos deliberadamente no tocados:
-- V001–V008:
-- motor/:
-- CRUD/DTO/Bruno/frontend:
+- V001–V008: intactos (verificado por `./gradlew test --tests 'ec.uce.propuestas.schema.SchemaBaselineIT'`).
+- motor/: sin cambios.
+- CRUD/DTO/Bruno/frontend: sin cambios.
+- `PresupuestoRepository`: sin cambios (`findRubrosCubiertosPorCronograma` sigue usando BIGINT).
+- `recalculo`/`VersionSnapshotBuilder`: sin cambios (gap conocido para 029).
+- `PresupuestoRepository.java` (no fue necesario crear `PresupuestoRepository` nuevo — ya existía).
 
 Evidencia de esquema:
-- public_id cronograma:
-- public_id actividad:
-- defaults UUIDv7:
-- triggers:
-- fingerprint + CHECK:
-- límites SEMANA/MES:
-- seam `cronograma_actividad` intacta:
-- PK/FK/UNIQUE preservadas:
+- public_id cronograma: UUID NOT NULL UNIQUE DEFAULT uuidv7() — verificado
+  en `flyway_schema_history` (success=009) y por los 14 tests de V009SchemaIT (incluido el replay test #14).
+- public_id actividad: mismo contrato.
+- defaults UUIDv7 sobre filas existentes: evidencia empírica del replay test
+  `v009_applies_over_populated_v008_state_assigning_distinct_uuidv7_public_ids`,
+  que migra un esquema temporal únicamente a través de V008, inserta un
+  cronograma + actividad (cronograma `SEMANA 12` y actividad con
+  `avance_por_periodo = {"1":"0.5000","3":"0.5000"}` no consecutivo), aplica V009
+  sobre esa población y comprueba que cada fila de cronograma/actividad recibe
+  un `public_id` UUIDv7 distinto, `presupuesto_fingerprint_revisado` permanece
+  NULL en todas las filas pre-existentes, los PK/FKs BIGINT y el JSONB del mapa
+  de avance no cambian, y la tabla inerte `cronograma_actividad` mantiene su
+  conteo y la constraint `UNIQUE(presupuesto_id)` intactas. Los 13 tests previos
+  NO cubrían este camino: truncaban en `@BeforeEach` y solo insertaban filas
+  nuevas, por lo que la afirmación anterior sobre el DEFAULT rellenando filas
+  V001–V007 carecía de evidencia observada.
+- triggers: `trg_public_id_immutable` (BEFORE UPDATE OF public_id) en
+  `cronograma` y `actividad`, ambos usando la función compartida
+  `fn_assert_public_id_immutable()` de V001 §5.
+- fingerprint + CHECK: CHAR(64) NULL con regex anclada
+  `^[0-9a-f]{64}$`; acepta lowercase 64-hex y NULL; rechaza uppercase,
+  longitudes distintas y no-hex (cubierto por `cronograma_fingerprint_check_accepts_lowercase_sha256_and_rejects_invalid_forms`).
+- límites SEMANA/MES: CHECK `(SEMANA 1..520) | (MES 1..120)` reemplaza el
+  histórico `numero_periodos > 0`; bordes aceptados, excedentes rechazados.
+- seam `cronograma_actividad` intacta: BIGINT PK IDENTITY, UNIQUE(presupuesto_id, rubro_id)
+  preservados.
+- PK/FK/UNIQUE preservadas: cronograma.id/rubro_id/cronograma_id BIGINT;
+  UNIQUE(cronograma.presupuesto_id), UNIQUE(actividad.rubro_id),
+  ON DELETE CASCADE.
 
 Evidencia de copy/ownership:
-- UUIDs nuevos:
-- FKs remapeados:
-- origen aislado:
-- owner-to-404:
-- roles:
+- UUIDs nuevos: TC_P31_27 verifica que el cronograma/actividad copiados
+  reciben UUIDs frescos, distintos del origen, ambos UUIDv7.
+- FKs remapeados: TC_P31_01 mantiene la verificación de
+  `actividad.rubro_id → rubro copiado` (no el rubro origen).
+- origen aislado: TC_P31_27 confirma que el origen conserva su `public_id`
+  y `presupuesto_fingerprint_revisado` intactos tras el deep copy.
+- owner-to-404: `cronograma_owner_scope_returns_row_for_owner_and_hides_from_foreign`
+  + `actividad_owner_scope_returns_row_for_owner_and_hides_from_foreign` +
+  `cronograma_repository_resolves_by_presupuesto_and_hides_from_foreign_owner`.
+- roles: el contrato canónico (USUARIO + SUPER_ADMIN) sigue vigente — no
+  se introdujeron nuevos roles ni rutas administrativas para cronograma.
 
-Comandos focales y resultados observados:
-- comando:
-  resultado:
+Comando focal y resultado observado:
+- `./gradlew test --tests 'ec.uce.propuestas.schema.V009SchemaIT' --tests
+  'ec.uce.propuestas.identifier.PublicIdPersistenceTest' --tests
+  'ec.uce.propuestas.cronograma.*' --tests
+  'ec.uce.propuestas.presupuesto.resource.VersionadoResourceIT' --tests
+  'ec.uce.propuestas.presupuesto.resource.PresupuestoValidacionResourceIT'
+  -Dquarkus.http.test-port=0 --console=plain`
+  → BUILD SUCCESSFUL; XML: 65 tests, 0 failures, 0 errors, 0 skipped.
+- `./gradlew spotlessApply` → BUILD SUCCESSFUL.
+- `./gradlew spotlessCheck --console=plain` → BUILD SUCCESSFUL.
+- `git diff --check` → salida vacía, exit 0.
 
-Regresiones/suite/Spotless/build/diff/Graphify:
-- comando:
-  resultado:
+Gate final:
+- `./gradlew test -Dquarkus.http.test-port=0 --console=plain` → 465 tests,
+  2 fallos aceptados (GM-19/GM-20), 0 errores y 1 omitido (GM-24).
+- `./gradlew spotlessCheck --console=plain` → BUILD SUCCESSFUL.
+- `./gradlew build -x test --console=plain` → BUILD SUCCESSFUL.
+- `git diff --check` → limpio.
+- `graphify update .` → 3277 nodos, 9677 aristas.
+- El primer intento focal sin puerto aleatorio encontró 8081 ocupado; no ejecutó
+  casos. La repetición con puerto efímero produjo 65/65.
 
-Conteo XML real:
-- files=
-- tests=
-- failures=
-- errors=
-- skipped=
+Conteo XML real de la suite final:
+- files=48
+- tests=465
+- failures=2 (GM-19/GM-20, baseline aceptado)
+- errors=0
+- skipped=1 (GM-24)
 
 STOP activo (si aplica):
--
+- STOP-027-NUMBER: no aplicable (V009 determinado por inspección del árbol).
+- STOP-027-IMMUTABLE: no aplicable (trigger compartido y `@Column(updatable=false)`).
+- STOP-027-OWNER: no aplicable (repositorios devuelven `Optional.empty()` para ajeno).
+- STOP-027-SCHEMA: no aplicable (PK/FK/UNIQUE preservadas, sin `ALTER` implícito).
+- STOP-027-SQL: no aplicable (deep copy omite `public_id`, conserva fingerprint).
+- STOP-027-MOTOR: no aplicable (no se tocó `motor/`).
+- STOP-027-SCOPE: no aplicable (sin CRUD/DTO/Bruno/frontend/export).
 
-Estado de salida: TODO / bloqueado por ______
-Commit: no realizado; requiere autorización explícita.
+Estado de salida: DONE — Plan 028 habilitado.
+Commit: autorizado; se materializa en el commit unitario que contiene este cierre.
 ```
 
 ## Regla de no commit
