@@ -8,10 +8,13 @@ import ec.uce.propuestas.apu.repository.ApuRepository;
 import ec.uce.propuestas.apu.repository.ApuSeccionRepository;
 import ec.uce.propuestas.apu.service.ApuCalculoService;
 import ec.uce.propuestas.common.ProblemaException;
+import ec.uce.propuestas.cronograma.service.AvancePatchParser;
 import ec.uce.propuestas.insumo.entity.Insumo;
 import ec.uce.propuestas.insumo.repository.InsumoRepository;
+import ec.uce.propuestas.motor.ActividadSnapshot;
 import ec.uce.propuestas.motor.ApuSnapshot;
 import ec.uce.propuestas.motor.CapituloSnapshot;
+import ec.uce.propuestas.motor.CronogramaSnapshot;
 import ec.uce.propuestas.motor.FilaSnapshot;
 import ec.uce.propuestas.motor.ParametrosCalculo;
 import ec.uce.propuestas.motor.RubroSnapshot;
@@ -26,6 +29,7 @@ import ec.uce.propuestas.proyecto.service.ParametrosProyectoService;
 import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -71,11 +75,18 @@ public class VersionSnapshotBuilder {
     @Inject
     ParametrosProyectoService parametrosService;
 
+    @Inject
+    ec.uce.propuestas.cronograma.repository.ActividadRepository actividadRepoBuilder;
+
+    @Inject
+    ec.uce.propuestas.cronograma.repository.CronogramaRepository cronogramaRepoBuilder;
+
     /**
      * Construye el {@link VersionSnapshot} de la versión indicada. Carga el árbol
      * completo de capítulos (raíz → subcapítulos), los rubros de cada capítulo,
-     * el APU vinculado a cada rubro y las filas de cada APU. El cronograma es
-     * nullable (I-08 todavía no existe).
+     * el APU vinculado a cada rubro y las filas de cada APU. El cronograma, si
+     * existe, se mapea a {@link CronogramaSnapshot} cargando actividades
+     * persistidas (mapa numérico por rubro codigo) — Plan 029.
      */
     public VersionSnapshot build(Long presupuestoId) {
         Presupuesto presupuesto = presupuestoRepository.findById(presupuestoId);
@@ -90,7 +101,61 @@ public class VersionSnapshotBuilder {
         for (Capitulo raiz : capitulosRaicesDe(presupuestoId)) {
             raices.add(construirCapitulo(raiz, presupuestoId, motorParams));
         }
-        return new VersionSnapshot(motorParams, raices, null);
+        CronogramaSnapshot cronogramaSnap = cargarCronogramaSnapshot(presupuestoId);
+        return new VersionSnapshot(motorParams, raices, cronogramaSnap);
+    }
+
+    /**
+     * Carga el cronograma persistido (cronograma + actividades) y lo mapea al
+     * {@link CronogramaSnapshot} del motor. Devuelve {@code null} cuando el
+     * presupuesto aún no tiene cronograma (P-32 + I-08); en ese caso el
+     * {@link ec.uce.propuestas.motor.internal.Consolidador} omite el cálculo de
+     * avances por período y el presupuesto se mantiene completo por totales.
+     *
+     * <p>El mapa se reconstruye leyendo {@code actividad.avance_por_periodo}
+     * (JSONB) y proyectándolo al formato {@code Map<Integer, BigDecimal>} con
+     * valores normalizados a escala 4; el join con el rubro se hace por el
+     * {@code rubroCodigo} de la fila del rubro. El mapa vacío {@code {}} se
+     * traduce a un mapa vacío para que el motor determine correctamente los
+     * acumulados por período (incluida la participación cero de la actividad
+     * en su rubro).</p>
+     */
+    private CronogramaSnapshot cargarCronogramaSnapshot(Long presupuestoId) {
+        var cronograma = cronogramaRepoBuilder
+                .find("presupuestoId = :pid", io.quarkus.panache.common.Parameters.with("pid", presupuestoId))
+                .firstResult();
+        if (cronograma == null) {
+            return null;
+        }
+        int numeroPeriodos = cronograma.numeroPeriodos == null ? 0 : cronograma.numeroPeriodos.intValue();
+        var entidadesActividad = actividadRepoBuilder.listarPorCronograma(cronograma.id);
+        List<ActividadSnapshot> snaps = new ArrayList<>();
+        for (var actividad : entidadesActividad) {
+            var rubro = rubroRepository.findById(actividad.rubroId);
+            if (rubro == null) {
+                continue;
+            }
+            String codigo = rubro.codigo == null ? "" : rubro.codigo;
+            java.util.Map<Integer, BigDecimal> mapaNumerico = new java.util.LinkedHashMap<>();
+            String jsonb = actividad.avancePorPeriodo == null ? "{}" : actividad.avancePorPeriodo;
+            try {
+                var root = new com.fasterxml.jackson.databind.ObjectMapper().readTree(jsonb);
+                if (root == null || !root.isObject()) {
+                    throw ProblemaException.validacion("actividad.avance_por_periodo debe ser un objeto JSON");
+                }
+                var mapaValidado = AvancePatchParser.validarYNormalizarMapa(root, numeroPeriodos);
+                for (var entrada : mapaValidado.entrySet()) {
+                    mapaNumerico.put(Integer.parseInt(entrada.getKey()), new BigDecimal(entrada.getValue()));
+                }
+            } catch (ProblemaException ex) {
+                throw ex;
+            } catch (Exception ex) {
+                throw ProblemaException.validacion(
+                        "actividad.avance_por_periodo no es JSON válido: " + ex.getMessage());
+            }
+            snaps.add(new ActividadSnapshot(codigo, mapaNumerico));
+        }
+        return new CronogramaSnapshot(numeroPeriodos, snaps);
     }
 
     private List<Capitulo> capitulosRaicesDe(Long presupuestoId) {

@@ -1,6 +1,7 @@
 package ec.uce.propuestas.cronograma.service;
 
 import ec.uce.propuestas.common.ProblemaException;
+import ec.uce.propuestas.cronograma.dto.ActividadProgramarRequest;
 import ec.uce.propuestas.cronograma.dto.CronogramaConfigurarRequest;
 import ec.uce.propuestas.cronograma.dto.CronogramaCrearRequest;
 import ec.uce.propuestas.cronograma.dto.CronogramaResponse;
@@ -60,6 +61,25 @@ import java.util.UUID;
  *       canónico y fecha en la misma transacción, por lo que nace no stale. La
  *       configuración no refresca esos marcadores; el comando explícito de
  *       revisión continúa fuera del alcance de este plan.</li>
+ * </ul>
+ *
+ * <p>Plan 029 (P-34) — extiende con programación de actividades:
+ * <ul>
+ *   <li><strong>Atomicidad.</strong> Cada PATCH adquiere el lock del
+ *       presupuesto, refresca el cronograma y la actividad bajo el lock,
+ *       revalida el mapa completo bajo el {@code numeroPeriodos} vigente,
+ *       persiste una sola vez y devuelve la respuesta canónica completa. Un
+ *       4xx deja el agregado intacto.</li>
+ *   <li><strong>Operaciones semánticas.</strong> Las cuatro operaciones
+ *       congeladas por Plan 026 ({@code REEMPLAZAR_AVANCES},
+ *       {@code DISTRIBUIR_UNIFORME}, {@code MOVER_SEGMENTO},
+ *       {@code REDIMENSIONAR_SEGMENTO}) se sirven aquí sin aliases; la
+ *       frontera común de validación es
+ *       {@link AvancePatchParser}; los algoritmos puros viven en
+ *       {@link AvancePatchCalculos}.</li>
+ *   <li><strong>Borrador válido.</strong> Un mapa incompleto, sobreasignado
+ *       o vacío se persiste como borrador con desviación visible; no se
+ *       rechaza automáticamente.</li>
  * </ul>
  */
 @ApplicationScoped
@@ -155,6 +175,119 @@ public class CronogramaService {
         cronogramaRepository.flush();
 
         return respuesta(cronograma, presupuesto, actividades);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // PATCH /cronogramas/{cronogramaId}/actividades/{actividadId}
+    // ──────────────────────────────────────────────────────────────────────
+
+    /**
+     * Lee el {@code numeroPeriodos} vigente del cronograma. Usado por la
+     * frontera ({@link ec.uce.propuestas.cronograma.resource.ActividadProgramarResource})
+     * para validar que las claves del body caigan en {@code 1..n} antes de
+     * delegar a {@link #programarActividad}. Lanza 404 si el cronograma es
+     * ajeno o no existe.
+     */
+    public int numeroPeriodosDe(UUID cronogramaPublicId, Long callerUsuarioId) {
+        Cronograma cronograma = cronogramaRepository
+                .findByPublicIdAndOwnerScope(cronogramaPublicId, callerUsuarioId)
+                .orElseThrow(() -> ProblemaException.noEncontrado("Cronograma no encontrado"));
+        return cronograma.numeroPeriodos == null ? 0 : cronograma.numeroPeriodos.intValue();
+    }
+
+    /**
+     * Punto de entrada del PATCH: las cuatro operaciones semánticas se
+     * evalúan bajo lock pesimista de la fila del {@code presupuesto},
+     * refrescan la actividad, revalidan y persisten el mapa completo en una
+     * sola transacción. El error 4xx deja el estado intacto (atomicidad de
+     * validación).
+     */
+    @Transactional
+    public CronogramaResponse programarActividad(
+            UUID cronogramaPublicId,
+            UUID actividadPublicId,
+            ActividadProgramarRequest operacion,
+            Long callerUsuarioId) {
+        Cronograma cronograma = cronogramaRepository
+                .findByPublicIdAndOwnerScope(cronogramaPublicId, callerUsuarioId)
+                .orElseThrow(() -> ProblemaException.noEncontrado("Cronograma no encontrado"));
+
+        // Serializa contra la sincronización central (CronogramaSincronizacionService)
+        // y contra otras mutaciones PATCH/PUT que ya usan el mismo lock.
+        presupuestoRepository.lockPresupuestoRow(cronograma.presupuestoId);
+        cronogramaRepository.getEntityManager().refresh(cronograma);
+        Presupuesto presupuesto = presupuestoRepository.findById(cronograma.presupuestoId);
+        presupuestoRepository.getEntityManager().refresh(presupuesto);
+
+        Actividad actividad = actividadRepository
+                .findByPublicIdAndCronogramaAndOwnerScope(actividadPublicId, cronogramaPublicId, callerUsuarioId)
+                .orElseThrow(() -> ProblemaException.noEncontrado("Actividad no encontrada"));
+        actividadRepository.getEntityManager().refresh(actividad);
+
+        int numeroPeriodos = cronograma.numeroPeriodos == null ? 0 : cronograma.numeroPeriodos.intValue();
+        revalidarRangosVigentes(operacion, numeroPeriodos);
+        Map<String, String> mapaActual = CronogramaMapper.leerMapa(actividad.avancePorPeriodo);
+
+        Map<String, String> mapaDestino =
+                aplicarOperacion(mapaActual, operacion, numeroPeriodos, actividad.pesoPonderado);
+
+        actividad.avancePorPeriodo = CronogramaMapper.escribirMapa(mapaDestino);
+        actividadRepository.persist(actividad);
+        actividadRepository.flush();
+
+        List<ActividadConRubro> actualizadas = cargarActividades(cronograma.id);
+        return respuesta(cronograma, presupuesto, actualizadas);
+    }
+
+    /**
+     * Revalida bajo el lock los rangos que el recurso parseó antes de entrar
+     * a la sección crítica, usando el {@code numeroPeriodos} ya refrescado.
+     */
+    private static void revalidarRangosVigentes(ActividadProgramarRequest operacion, int numeroPeriodos) {
+        if (operacion instanceof ActividadProgramarRequest.Reemplazar r) {
+            for (String clave : r.avancePorPeriodo().keySet()) {
+                try {
+                    int periodo = Integer.parseInt(clave);
+                    if (periodo < 1 || periodo > numeroPeriodos) {
+                        throw ProblemaException.validacion(
+                                "Clave de período fuera del rango 1.." + numeroPeriodos + ": " + clave);
+                    }
+                } catch (NumberFormatException ex) {
+                    throw ProblemaException.validacion("Clave de período debe ser un entero positivo: " + clave);
+                }
+            }
+        } else if (operacion instanceof ActividadProgramarRequest.Distribuir d) {
+            for (int periodo : d.periodos()) {
+                if (periodo < 1 || periodo > numeroPeriodos) {
+                    throw ProblemaException.validacion("Período fuera del rango 1.." + numeroPeriodos);
+                }
+            }
+        }
+    }
+
+    private static Map<String, String> aplicarOperacion(
+            Map<String, String> mapaActual,
+            ActividadProgramarRequest operacion,
+            int numeroPeriodos,
+            BigDecimal pesoPonderado) {
+        if (operacion instanceof ActividadProgramarRequest.Reemplazar r) {
+            return r.avancePorPeriodo();
+        }
+        if (operacion instanceof ActividadProgramarRequest.Distribuir d) {
+            BigDecimal base = pesoPonderado == null ? BigDecimal.ZERO : pesoPonderado;
+            return AvancePatchCalculos.distribucionUniforme(base, d.periodos(), numeroPeriodos);
+        }
+        if (operacion instanceof ActividadProgramarRequest.Mover m) {
+            AvancePatchCalculos.ResultadoMap r =
+                    AvancePatchCalculos.mover(mapaActual, m.inicio(), m.fin(), m.delta(), numeroPeriodos);
+            return r.mapa();
+        }
+        if (operacion instanceof ActividadProgramarRequest.Redimensionar rz) {
+            AvancePatchCalculos.ResultadoMap r = AvancePatchCalculos.redimensionar(
+                    mapaActual, rz.inicio(), rz.fin(), rz.nuevoInicio(), rz.nuevoFin(), numeroPeriodos);
+            return r.mapa();
+        }
+        throw ProblemaException.validacion("Operación no reconocida");
     }
 
     // ──────────────────────────────────────────────────────────────────────

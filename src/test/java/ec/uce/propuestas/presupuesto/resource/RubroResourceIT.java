@@ -3,6 +3,7 @@ package ec.uce.propuestas.presupuesto.resource;
 import static io.restassured.RestAssured.given;
 import static io.restassured.http.ContentType.JSON;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.hamcrest.Matchers.notNullValue;
@@ -1121,6 +1122,114 @@ class RubroResourceIT {
                 .then()
                 .statusCode(400)
                 .body("codigo", equalTo("validacion"));
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Plan 029 (P-34) — sincronización 1:1 rubro↔actividad en el recálculo
+    // ──────────────────────────────────────────────────────────────────────
+
+    /**
+     * Crear un rubro a través del endpoint POST en un presupuesto con
+     * cronograma pre-existente debe crear su actividad automáticamente
+     * porque la sincronización central corre al final del recálculo de
+     * versión que invoca {@code RubroService.crear()}.
+     */
+    @Test
+    void crear_rubro_con_cronograma_crea_actividad_en_recálculo() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p29-sync-crear@ex.com");
+        String proyectoId = crearProyecto(token, "P29 sync crear");
+        String presupuestoId = vigenteDeProyecto(proyectoId);
+        String capId = crearCapituloRaiz(token, presupuestoId, "Capitulo unico");
+        String apuPublicId = insertarApu(presupuestoId, "APU-1", "APU", "u");
+
+        // Crear cronograma primero (con 0 rubros)
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("unidadTiempo", "SEMANA", "numeroPeriodos", 4))
+                .when()
+                .post("/api/v1/presupuestos/" + presupuestoId + "/cronograma")
+                .then()
+                .statusCode(201)
+                .body("actividades", hasSize(0));
+
+        long antes = contarActividadesSync(presupuestoId);
+        assertEquals(0L, antes);
+
+        // POST del rubro bajo el capítulo
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("apuId", apuPublicId, "cantidad", "10"))
+                .when()
+                .post("/api/v1/presupuestos/" + presupuestoId + "/capitulos/" + capId + "/rubros")
+                .then()
+                .statusCode(201);
+
+        long despues = contarActividadesSync(presupuestoId);
+        assertEquals(1L, despues, "1 actividad creada para 1 rubro (cobertura 1:1 tras sync central)");
+    }
+
+    /**
+     * Borrar un rubro a través del endpoint DELETE en un presupuesto
+     * con cronograma pre-existente debe eliminar la actividad por FK
+     * CASCADE; la sincronización no requiere borrado explícito.
+     */
+    @Test
+    void eliminar_rubro_con_cronograma_borra_actividad_por_fk_cascade() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p29-sync-del@ex.com");
+        String proyectoId = crearProyecto(token, "P29 sync del");
+        String presupuestoId = vigenteDeProyecto(proyectoId);
+        String capId = crearCapituloRaiz(token, presupuestoId, "Capitulo unico");
+        String apuPublicId = insertarApu(presupuestoId, "APU-1", "APU", "u");
+
+        // Alta del rubro primero
+        String rubroPublicId = given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("apuId", apuPublicId, "cantidad", "5"))
+                .when()
+                .post("/api/v1/presupuestos/" + presupuestoId + "/capitulos/" + capId + "/rubros")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("capitulos[0].rubros[0].id");
+
+        // Crear el cronograma (las actividades se generan vía alta de
+        // cronograma; el rubro ya tiene su actividad por autoimport al
+        // crear el cronograma).
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("unidadTiempo", "SEMANA", "numeroPeriodos", 4))
+                .when()
+                .post("/api/v1/presupuestos/" + presupuestoId + "/cronograma")
+                .then()
+                .statusCode(201)
+                .body("actividades", hasSize(1));
+
+        assertEquals(1L, contarActividadesSync(presupuestoId));
+
+        // Borrar el rubro.
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .delete("/api/v1/presupuestos/" + presupuestoId + "/capitulos/" + capId + "/rubros/" + rubroPublicId)
+                .then()
+                .statusCode(200)
+                .body("presupuestoId", equalTo(presupuestoId));
+
+        // Actividad borrada por la FK CASCADE.
+        assertEquals(0L, contarActividadesSync(presupuestoId), "FK CASCADE elimina la actividad huérfana");
+    }
+
+    /** Helper: cuenta actividades del cronograma de un presupuesto (uso sync IT). */
+    private long contarActividadesSync(String presupuestoPublicId) throws Exception {
+        Long pId = internalPresupuestoId(presupuestoPublicId);
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT COUNT(*) FROM actividad a "
+                        + "JOIN cronograma c ON c.id = a.cronograma_id WHERE c.presupuesto_id = ?")) {
+            ps.setLong(1, pId);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        }
     }
 
     private String readRubroPublicIdPorItem(String presupuestoPublicId, String item) throws Exception {

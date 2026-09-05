@@ -8,6 +8,8 @@ import ec.uce.propuestas.insumo.entity.Insumo;
 import ec.uce.propuestas.insumo.entity.TipoInsumo;
 import ec.uce.propuestas.insumo.mapper.InsumoMapper;
 import ec.uce.propuestas.insumo.repository.InsumoRepository;
+import ec.uce.propuestas.recalculo.Alcance;
+import ec.uce.propuestas.recalculo.RecalculoService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -28,6 +30,9 @@ public class InsumoCrudService {
 
     @Inject
     InsumoRepository insumoRepository;
+
+    @Inject
+    RecalculoService recalculoService;
 
     @Transactional
     public InsumoResponse crear(Long baseId, InsumoCrearRequest req) {
@@ -57,6 +62,8 @@ public class InsumoCrudService {
         aplicarUnidad(e, e.tipo, req.unidad());
         e.precioUnitario = req.precioUnitario();
         insumoRepository.persist(e);
+        insumoRepository.flush();
+        recalculoService.recalcular(new Alcance.Insumo(e.id));
         return InsumoMapper.toResponse(e);
     }
 

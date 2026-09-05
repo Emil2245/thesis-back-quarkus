@@ -82,6 +82,9 @@ public class RecalculoService {
     @Inject
     VersionSnapshotBuilder snapshotBuilder;
 
+    @Inject
+    ec.uce.propuestas.cronograma.service.CronogramaSincronizacionService cronogramaSincronizacionService;
+
     @Transactional
     public void recalcular(Alcance alcance) {
         switch (alcance) {
@@ -222,6 +225,13 @@ public class RecalculoService {
         Presupuesto presupuesto = presupuestoRepository.findById(presupuestoId);
         presupuesto.total = calc.totalGeneral();
         presupuestoRepository.persist(presupuesto);
+
+        // Plan 029 — sincronización 1:1 rubro↔actividad dentro de la misma
+        // transacción. La ausencia de cronograma es un no-op; los rubros
+        // eliminados borran su actividad por FK CASCADE; los rubros nuevos
+        // reciben una actividad con mapa {}; los pesos se recalculan con el
+        // totalGeneral que acabamos de persistir.
+        cronogramaSincronizacionService.sincronizar(presupuestoId);
     }
 
     /**

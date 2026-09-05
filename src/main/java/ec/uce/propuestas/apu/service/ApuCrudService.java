@@ -23,6 +23,8 @@ import ec.uce.propuestas.plantilla.entity.PlantillaApu;
 import ec.uce.propuestas.plantilla.service.PlantillaApuService;
 import ec.uce.propuestas.proyecto.entity.ParametrosProyecto;
 import ec.uce.propuestas.proyecto.service.ParametrosProyectoService;
+import ec.uce.propuestas.recalculo.Alcance;
+import ec.uce.propuestas.recalculo.RecalculoService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -57,6 +59,9 @@ public class ApuCrudService {
 
     @Inject
     ApuCalculoService calculoService;
+
+    @Inject
+    RecalculoService recalculoService;
 
     @Inject
     PlantillaApuService plantillaApuService;
@@ -99,7 +104,7 @@ public class ApuCrudService {
             advertencias = plantillaApuService.aplicarPlantilla(apu, plantilla);
         }
 
-        calculoService.recalcular(apu);
+        recalculoService.recalcular(new Alcance.Apu(apu.id));
         return new ResultadoCrear(respuestaCompleta(apu), advertencias);
     }
 
@@ -161,7 +166,7 @@ public class ApuCrudService {
         validarPorcentaje(valor, BigDecimal.ONE, "porcentajeIndirecto");
         apu.porcentajeIndirecto = valor;
         apuRepository.persist(apu);
-        calculoService.recalcular(apu);
+        recalculoService.recalcular(new Alcance.Apu(apu.id));
         return respuestaCompleta(apu);
     }
 
@@ -247,7 +252,7 @@ public class ApuCrudService {
         };
         detalleRepository.persist(d);
 
-        calculoService.recalcular(apu);
+        recalculoService.recalcular(new Alcance.Apu(apu.id));
         return respuestaCompleta(apu);
     }
 
@@ -303,7 +308,7 @@ public class ApuCrudService {
         }
         detalleRepository.persist(d);
 
-        calculoService.recalcular(apu);
+        recalculoService.recalcular(new Alcance.Apu(apu.id));
         return respuestaCompleta(apu);
     }
 
@@ -369,7 +374,7 @@ public class ApuCrudService {
             throw ProblemaException.filaProtegida("La fila de Herramienta Menor no se puede eliminar");
         }
         detalleRepository.delete(d);
-        calculoService.recalcular(apu);
+        recalculoService.recalcular(new Alcance.Apu(apu.id));
         return respuestaCompleta(apu);
     }
 

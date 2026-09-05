@@ -167,6 +167,17 @@ class ApuResourceIT {
         }
     }
 
+    private BigDecimal precioTotalRubroDeApu(Long apuId) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT precio_total FROM rubro WHERE apu_id = ?")) {
+            ps.setLong(1, apuId);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getBigDecimal(1);
+            }
+        }
+    }
+
     /** Resuelve el {@code publicId} UUIDv7 del insumo a partir de su {@code BIGINT} interno. */
     private String publicIdDeInsumo(Long insumoId) throws Exception {
         try (Connection con = ds.getConnection();
@@ -382,6 +393,96 @@ class ApuResourceIT {
     }
 
     @Test
+    void mutaciones_apu_e_insumo_propagan_rubro_y_peso_sin_borrar_avance() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p29-apu-insumo@ex.com");
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
+        String material = crearInsumo(token, proyectoId, "MAT-P29", "MATERIAL", "Material", "kg", 2.0);
+        String apu1 = crearApu(token, presupuestoId, "P29-A");
+        String apu2 = crearApu(token, presupuestoId, "P29-B");
+
+        String detalle1 = given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("seccionTipo", "MATERIAL", "insumoId", material, "cantidad", 1.0))
+                .when()
+                .post("/api/v1/apus/" + apu1 + "/detalles")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("secciones[2].detalles[0].id");
+        String detalle2 = given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("seccionTipo", "MATERIAL", "insumoId", material, "cantidad", 1.0))
+                .when()
+                .post("/api/v1/apus/" + apu2 + "/detalles")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("secciones[2].detalles[0].id");
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("precioOverride", 3.0))
+                .when()
+                .patch("/api/v1/apus/" + apu2 + "/detalles/" + detalle2)
+                .then()
+                .statusCode(200);
+
+        insertarRubroVinculado(presupuestoId, internalApuId(apu1), "1", "P29-A");
+        insertarRubroVinculado(presupuestoId, internalApuId(apu2), "2", "P29-B");
+        String cronogramaId = given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("unidadTiempo", "SEMANA", "numeroPeriodos", 4))
+                .when()
+                .post("/api/v1/presupuestos/" + presupuestoId + "/cronograma")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps =
+                        con.prepareStatement("UPDATE actividad a SET avance_por_periodo = '{\"1\":\"40.0000\"}'::jsonb "
+                                + "FROM rubro r WHERE a.rubro_id = r.id AND r.apu_id = ?")) {
+            ps.setLong(1, internalApuId(apu1));
+            ps.executeUpdate();
+        }
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("cantidad", 2.0))
+                .when()
+                .patch("/api/v1/apus/" + apu1 + "/detalles/" + detalle1)
+                .then()
+                .statusCode(200);
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/presupuestos/" + presupuestoId + "/cronograma")
+                .then()
+                .statusCode(200)
+                .body("actividades[0].pesoPonderado", equalTo("57.1429"))
+                .body("actividades[0].avancePorPeriodo.1", equalTo("40.0000"));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                0, new BigDecimal("4.000000").compareTo(precioTotalRubroDeApu(internalApuId(apu1))));
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("descripcion", "Material actualizado", "unidad", "kg", "precioUnitario", 4.0))
+                .when()
+                .put("/api/v1/proyectos/" + proyectoId + "/insumos/" + material)
+                .then()
+                .statusCode(200);
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/presupuestos/" + presupuestoId + "/cronograma")
+                .then()
+                .statusCode(200)
+                .body("id", equalTo(cronogramaId))
+                .body("actividades[0].pesoPonderado", equalTo("72.7273"))
+                .body("actividades[0].avancePorPeriodo.1", equalTo("40.0000"));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                0, new BigDecimal("8.000000").compareTo(precioTotalRubroDeApu(internalApuId(apu1))));
+    }
+
+    @Test
     void TC_P19_apu_vinculado_a_rubro_no_se_elimina_409() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "del@ex.com");
         String proyectoId = crearProyecto(token);
@@ -518,6 +619,42 @@ class ApuResourceIT {
                 rs.next();
                 org.junit.jupiter.api.Assertions.assertEquals(
                         1, rs.getLong(1), "la base PROYECTO del proyecto tiene exactamente 1 copia WC-CENT-1");
+            }
+        }
+    }
+
+    private void insertarRubroVinculado(String presupuestoPublicId, Long apuId, String item, String codigo)
+            throws Exception {
+        Long presupuestoId = internalPresupuestoId(presupuestoPublicId);
+        try (Connection con = ds.getConnection();
+                PreparedStatement cap =
+                        con.prepareStatement("INSERT INTO capitulo (presupuesto_id, item, descripcion, orden, total) "
+                                + "VALUES (?, ?, ?, ?, 0) RETURNING id")) {
+            cap.setLong(1, presupuestoId);
+            cap.setString(2, item);
+            cap.setString(3, "Capitulo " + item);
+            cap.setInt(4, Integer.parseInt(item));
+            long capituloId;
+            try (ResultSet rs = cap.executeQuery()) {
+                rs.next();
+                capituloId = rs.getLong(1);
+            }
+            try (PreparedStatement rubro = con.prepareStatement(
+                    "INSERT INTO rubro (capitulo_id, apu_id, item, codigo, descripcion, unidad, cantidad, "
+                            + "precio_unitario, precio_total) SELECT ?, id, ?, ?, descripcion, unidad, 1, "
+                            + "costo_total, costo_total FROM apu WHERE id = ?")) {
+                rubro.setLong(1, capituloId);
+                rubro.setString(2, item + ".1");
+                rubro.setString(3, codigo);
+                rubro.setLong(4, apuId);
+                rubro.executeUpdate();
+            }
+            try (PreparedStatement total = con.prepareStatement(
+                    "UPDATE presupuesto SET total = (SELECT COALESCE(SUM(r.precio_total), 0) FROM rubro r "
+                            + "JOIN capitulo c ON c.id = r.capitulo_id WHERE c.presupuesto_id = ?) WHERE id = ?")) {
+                total.setLong(1, presupuestoId);
+                total.setLong(2, presupuestoId);
+                total.executeUpdate();
             }
         }
     }

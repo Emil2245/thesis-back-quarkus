@@ -363,7 +363,7 @@ class VersionadoResourceIT {
         try (Connection con = ds.getConnection();
                 PreparedStatement ps = con.prepareStatement(
                         "INSERT INTO actividad (cronograma_id, rubro_id, peso_ponderado, avance_por_periodo) "
-                                + "VALUES (?, ?, 0.5000, ?::jsonb) RETURNING id")) {
+                                + "VALUES (?, ?, 100.0000, ?::jsonb) RETURNING id")) {
             ps.setLong(1, cronogramaId);
             ps.setLong(2, rubroId);
             ps.setString(3, "{\"1\":\"0.1250\",\"3\":\"0.3750\"}");
@@ -667,7 +667,7 @@ class VersionadoResourceIT {
         // Semántica preservada: configuración y contenido JSONB exacto, no solo
         // tamaño/forma del valor.
         assertTrue(
-                huellaOrigen.contains("actividad|0.5000:{\"1\": \"0.1250\", \"3\": \"0.3750\"}"),
+                huellaOrigen.contains("actividad|100.0000:{\"1\": \"0.1250\", \"3\": \"0.3750\"}"),
                 "El origen conserva el mapa JSONB canónico completo");
         List<String> huellaNuevo = huellaCronogramaActividad(nuevoPresupuestoId);
         assertEquals(huellaOrigen, huellaNuevo, "Cronograma y JSONB de actividad idénticos al origen");

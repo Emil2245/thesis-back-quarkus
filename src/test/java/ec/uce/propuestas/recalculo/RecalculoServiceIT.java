@@ -2,7 +2,9 @@ package ec.uce.propuestas.recalculo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import ec.uce.propuestas.common.ProblemaException;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import java.math.BigDecimal;
@@ -543,5 +545,216 @@ class RecalculoServiceIT {
                 0,
                 ctOverrideInicial.compareTo(leerApuCostoTotal(apuOverride).setScale(6, java.math.RoundingMode.HALF_UP)),
                 "APU con override explícito no absorbe la mutación del insumo");
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Plan 029 — sincronización 1:1 y cronograma snapshot persistente
+    // ──────────────────────────────────────────────────────────────────────
+
+    private long insertarRubroConCodigo(
+            long capituloId,
+            long apuId,
+            String item,
+            String codigo,
+            String unidad,
+            BigDecimal cantidad,
+            BigDecimal precio)
+            throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement(
+                        "INSERT INTO rubro (capitulo_id, apu_id, item, codigo, descripcion, unidad, cantidad, "
+                                + "precio_unitario, precio_total) "
+                                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id")) {
+            ps.setLong(1, capituloId);
+            ps.setLong(2, apuId);
+            ps.setString(3, item);
+            ps.setString(4, codigo);
+            ps.setString(5, codigo);
+            ps.setString(6, unidad);
+            ps.setBigDecimal(7, cantidad);
+            ps.setBigDecimal(8, precio);
+            ps.setBigDecimal(9, precio);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        }
+    }
+
+    private long insertarCronograma(long presupuestoId, short numeroPeriodos) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps =
+                        con.prepareStatement("INSERT INTO cronograma (presupuesto_id, unidad_tiempo, numero_periodos) "
+                                + "VALUES (?, 'SEMANA', ?) RETURNING id")) {
+            ps.setLong(1, presupuestoId);
+            ps.setShort(2, numeroPeriodos);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        }
+    }
+
+    private void insertarActividad(long cronogramaId, long rubroId, BigDecimal peso, String jsonbAvance)
+            throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement(
+                        "INSERT INTO actividad (cronograma_id, rubro_id, peso_ponderado, avance_por_periodo) "
+                                + "VALUES (?, ?, ?, ?::jsonb)")) {
+            ps.setLong(1, cronogramaId);
+            ps.setLong(2, rubroId);
+            ps.setBigDecimal(3, peso);
+            ps.setString(4, jsonbAvance);
+            ps.executeUpdate();
+        }
+    }
+
+    private long contarActividades(long presupuestoId) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement(
+                        "SELECT COUNT(*) FROM actividad a JOIN cronograma c ON c.id = a.cronograma_id "
+                                + "WHERE c.presupuesto_id = ?")) {
+            ps.setLong(1, presupuestoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        }
+    }
+
+    private void actualizarAvance(long cronogramaId, String jsonb) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement(
+                        "UPDATE actividad SET avance_por_periodo = ?::jsonb WHERE cronograma_id = ?")) {
+            ps.setString(1, jsonb);
+            ps.setLong(2, cronogramaId);
+            ps.executeUpdate();
+        }
+    }
+
+    private String leerAvance(long cronogramaId) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement(
+                        "SELECT avance_por_periodo::text FROM actividad WHERE cronograma_id = ?")) {
+            ps.setLong(1, cronogramaId);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getString(1).replace(" ", "");
+            }
+        }
+    }
+
+    /**
+     * Plan 029: tras un {@link Alcance.Version}, la sincronización central
+     * mantiene 1 actividad por rubro, con {@code avance_por_periodo} y
+     * {@code peso_ponderado} consistentes con el totalGeneral y los rubros
+     * vigentes. La FK CASCADE ya borró las huérfanas al eliminar el rubro;
+     * un nuevo rubro sembrado por SQL recibe actividad con mapa "{}" y el
+     * peso se determina por {@code PrecioPonderadoCalculador}.
+     */
+    @Test
+    void consolidar_version_crea_actividad_para_rubro_nuevo_si_hay_cronograma() throws Exception {
+        long usuarioId = insertarUsuario();
+        long proyectoId = insertarProyecto(usuarioId);
+        long presupuestoId = insertarPresupuesto(proyectoId);
+        insertarParametros(proyectoId);
+        long baseId = insertarBaseProyecto(proyectoId);
+        long insumoId = insertarInsumo(baseId, "MO-001", "MANO_OBRA", "h", new BigDecimal("4.00"));
+        long apuId = insertarApu(presupuestoId, "APU-1");
+        insertarEquipoConHm(apuId, 1);
+        long moSeccionId = insertarSeccion(apuId, "MANO_OBRA", 2);
+        insertarDetalleMo(moSeccionId, insumoId, new BigDecimal("2"), new BigDecimal("1"), null);
+        long capituloId = insertarCapitulo(presupuestoId, null, "1", "Root", 1);
+        long cronogramaId = insertarCronograma(presupuestoId, (short) 4);
+
+        // Antes del recálculo no hay actividad porque no había rubro.
+        assertEquals(0L, contarActividades(presupuestoId));
+
+        // Insertar el rubro directo (sin pasar por POST).
+        long rubroId = insertarRubroConCodigo(
+                capituloId, apuId, "1.1", "APU-1", "u", new BigDecimal("3"), new BigDecimal("9.912"));
+        // Activar la sincronización vía recálculo del alcance.Version.
+        recalculoService.recalcular(new Alcance.Version(presupuestoId));
+
+        // Actividad creada con mapa {} y un peso coherente con el total.
+        assertEquals(1L, contarActividades(presupuestoId), "1 actividad para 1 rubro (regla de cobertura 1:1)");
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement(
+                        "SELECT peso_ponderado::text, avance_por_periodo::text FROM actividad WHERE cronograma_id = ?")) {
+            ps.setLong(1, cronogramaId);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                // peso 100.0000 (único rubro).
+                assertEquals(
+                        new BigDecimal("100.0000"), rs.getBigDecimal(1).setScale(4, java.math.RoundingMode.HALF_UP));
+                // mapa {}
+                assertEquals("{}", rs.getString(2));
+            }
+        }
+        // Mutar el rubro y volver a calcular; el peso se conserva con el
+        // nuevo totalGeneral (siempre 100.0000% por haber un solo rubro).
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("UPDATE rubro SET precio_total = ? WHERE id = ?")) {
+            ps.setBigDecimal(1, new BigDecimal("5.5"));
+            ps.setLong(2, rubroId);
+            ps.executeUpdate();
+        }
+        recalculoService.recalcular(new Alcance.Version(presupuestoId));
+        assertEquals(1L, contarActividades(presupuestoId), "sigue habiendo 1 sola actividad tras la mutación");
+
+        actualizarAvance(cronogramaId, "{\"1\":\"40.0000\",\"3\":\"60.0000\"}");
+        recalculoService.recalcular(new Alcance.Version(presupuestoId));
+        assertEquals("{\"1\":\"40.0000\",\"3\":\"60.0000\"}", leerAvance(cronogramaId));
+    }
+
+    @Test
+    void consolidar_version_rechaza_mapa_persistido_malformado_y_no_escribe_totales() throws Exception {
+        long usuarioId = insertarUsuario();
+        long proyectoId = insertarProyecto(usuarioId);
+        long presupuestoId = insertarPresupuesto(proyectoId);
+        insertarParametros(proyectoId);
+        long apuId = insertarApu(presupuestoId, "APU-MAL");
+        insertarEquipoConHm(apuId, 1);
+        long capituloId = insertarCapitulo(presupuestoId, null, "1", "Root", 1);
+        long rubroId = insertarRubroConCodigo(capituloId, apuId, "1.1", "APU-MAL", "u", BigDecimal.ONE, BigDecimal.ONE);
+        long cronogramaId = insertarCronograma(presupuestoId, (short) 4);
+        insertarActividad(cronogramaId, rubroId, new BigDecimal("100.0000"), "{\"x\":\"1.0000\"}");
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("UPDATE presupuesto SET total = 77 WHERE id = ?")) {
+            ps.setLong(1, presupuestoId);
+            ps.executeUpdate();
+        }
+
+        assertThrows(ProblemaException.class, () -> recalculoService.recalcular(new Alcance.Version(presupuestoId)));
+        assertEquals(
+                0,
+                new BigDecimal("77.000000")
+                        .compareTo(leerPresupuestoTotal(presupuestoId).setScale(6, java.math.RoundingMode.HALF_UP)));
+        assertEquals("{\"x\":\"1.0000\"}", leerAvance(cronogramaId));
+    }
+
+    /**
+     * Plan 029 — el alcance.Version sin cronograma es no-op para la
+     * sincronización (no crea actividades espurias).
+     */
+    @Test
+    void consolidar_version_sin_cronograma_no_crea_actividades() throws Exception {
+        long usuarioId = insertarUsuario();
+        long proyectoId = insertarProyecto(usuarioId);
+        long presupuestoId = insertarPresupuesto(proyectoId);
+        insertarParametros(proyectoId);
+        long baseId = insertarBaseProyecto(proyectoId);
+        long insumoId = insertarInsumo(baseId, "MO-001", "MANO_OBRA", "h", new BigDecimal("4.00"));
+        long apuId = insertarApu(presupuestoId, "APU-1");
+        insertarEquipoConHm(apuId, 1);
+        long moSeccionId = insertarSeccion(apuId, "MANO_OBRA", 2);
+        insertarDetalleMo(moSeccionId, insumoId, new BigDecimal("2"), new BigDecimal("1"), null);
+        long capituloId = insertarCapitulo(presupuestoId, null, "1", "Root", 1);
+        insertarRubroConCodigo(capituloId, apuId, "1.1", "APU-1", "u", new BigDecimal("3"), new BigDecimal("9.912"));
+
+        recalculoService.recalcular(new Alcance.Version(presupuestoId));
+
+        // Sin cronograma, ninguna actividad. El contrato es no-op aquí.
+        assertEquals(0L, contarActividades(presupuestoId));
     }
 }

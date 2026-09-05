@@ -1,6 +1,7 @@
 # 029 — Actividades, segmentos, distribución y avance
 
-**Estado:** TODO — bloqueado por los Planes 026, 027 y 028; no es una implementación.
+**Estado:** DONE 05-09-2026 — programación semántica, sincronización 1:1 y
+snapshot persistente verificados; Plan 030 habilitado.
 
 **Iteración:** I-08. **Proceso:** P-34.
 
@@ -307,37 +308,40 @@ grep -ho 'tests="[0-9]*"\|failures="[0-9]*"\|errors="[0-9]*"\|skipped="[0-9]*"' 
 
 ## Criterios de aceptación
 
-- [ ] Los Planes 026–028 están cerrados y sus decisiones no se reabren.
-- [ ] Cobertura rubro–actividad 1:1 se mantiene en alta, baja, carrera y rollback.
-- [ ] Períodos no consecutivos y segmentos derivados son deterministas.
-- [ ] Reemplazo, uniforme, mover y redimensionar son atómicos y canonizados.
-- [ ] Cada actividad completa suma exactamente su peso a escala 4; global final
+- [x] Los Planes 026–028 están cerrados y sus decisiones no se reabrieron.
+- [x] Cobertura rubro–actividad 1:1 se mantiene en alta, baja, carrera y rollback.
+- [x] Períodos no consecutivos y segmentos derivados son deterministas.
+- [x] Reemplazo, uniforme, mover y redimensionar son atómicos y canonizados.
+- [x] Cada actividad completa suma exactamente su peso a escala 4; global final
       `100.0000`; borradores válidos conservan desviación.
-- [ ] Builder carga snapshots reales y `motor/` permanece sin cambios.
-- [ ] UUIDv7/owner-to-404/cross-cronograma están cubiertos.
-- [ ] Deep copy produce filas e identidades independientes.
-- [ ] Focales, suite, calidad y Graphify tienen evidencia observada y conteos XML.
-- [ ] No se ejecutó commit sin autorización explícita.
+- [x] Builder carga snapshots reales y `motor/` permanece sin cambios.
+- [x] UUIDv7/owner-to-404/cross-cronograma están cubiertos.
+- [x] Deep copy produce filas e identidades independientes.
+- [x] Focales, suite, calidad y Graphify tienen evidencia observada y conteos XML.
+- [x] El commit unitario fue autorizado explícitamente por el usuario.
 
-## Evidencia de cierre — completar al ejecutar
+## Evidencia de cierre observada
 
 ```text
 Plan: 029
-Estado inicial/gates 026–028:
-Fecha y ejecutor:
-Archivos creados/modificados:
-RED observado:
-GREEN observado:
-Triangulación/refactor:
-Casos focales (comando y salida):
-Regresiones (comando y salida):
-Conteo XML real: tests= failures= errors= skipped=
-Precisión/residual comprobados:
-Cobertura/copia/concurrencia comprobadas:
-Motor diff: sin cambios / STOP
-STOP activos:
-Spotless/build/diff/graphify:
-Commit: no realizado; requiere autorización explícita.
+Estado inicial: Planes 026–028 DONE
+Fecha: 05-09-2026
+Operaciones: REEMPLAZAR_AVANCES, DISTRIBUIR_UNIFORME, MOVER_SEGMENTO,
+             REDIMENSIONAR_SEGMENTO
+Focal pre-review: 201/201
+Focal final cronograma+recalculo+presupuesto+apu+insumo: 314/314
+Revisión JD-A-001..010: verified/corroborated; JD-A-004 aclarado verified
+Suite completa: files=55 tests=557 failures=2 errors=0 skipped=1
+Fallos: GM-19 y GM-20, residuales aceptados por Plan 014
+Omitido: GM-24, fixture upstream EMELNORTE
+Precisión: base HALF_UP scale-4 + residual firmado al último período numérico
+Cobertura: sincronización central tras recalcular precios; mapas preservados
+Motor diff: sin cambios
+STOP activos: ninguno
+Spotless: BUILD SUCCESSFUL
+Build -x test: BUILD SUCCESSFUL
+git diff --check: limpio
+Graphify: 3557 nodos, 10977 aristas, 155 comunidades
+Estado de salida: DONE; Plan 030 habilitado
+Commit: autorizado; se materializa en el commit unitario de este cierre
 ```
-
-Este plan permanece TODO hasta que una ejecución futura registre toda la evidencia.
