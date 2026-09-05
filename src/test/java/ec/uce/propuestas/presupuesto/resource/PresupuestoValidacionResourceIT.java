@@ -900,4 +900,70 @@ class PresupuestoValidacionResourceIT {
                 contarActividadesPorRubro(rubroInterno),
                 "GET /validacion no crea actividad para un rubro PU=0");
     }
+
+    /**
+     * Plan 028 — cobertura P-32 antes y después de crear el cronograma por la
+     * ruta canónica {@code POST /presupuestos/{id}/cronograma}. La consulta
+     * nativa {@code findRubrosCubiertosPorCronograma} no cambia: antes del alta
+     * todos los rubros están {@code sinActividad}; después de la
+     * autoimportación 1:1 la lista queda vacía y no se altera ningún otro
+     * defecto (PU=0 / cantidad=0 siguen siendo ortogonales).
+     */
+    @Test
+    void TC_P32_14_alta_de_cronograma_cubre_todos_los_rubros() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p25-c14@ex.com");
+        String proyectoId = crearProyecto(token, "Cobertura tras alta 028");
+        String presupuestoId = vigenteDeProyecto(proyectoId);
+
+        String apuA = insertarApu(presupuestoId, "APU-28A", "A");
+        String apuB = insertarApu(presupuestoId, "APU-28B", "B");
+        crearCapituloRaiz(token, presupuestoId, "Cobertura 028");
+        insertarRubro(
+                presupuestoId,
+                apuA,
+                "1.1",
+                "APU-28A",
+                "A",
+                "u",
+                new BigDecimal("2.000000"),
+                new BigDecimal("10.000000"));
+        insertarRubro(
+                presupuestoId,
+                apuB,
+                "1.2",
+                "APU-28B",
+                "B",
+                "u",
+                new BigDecimal("3.000000"),
+                new BigDecimal("10.000000"));
+
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/presupuestos/" + presupuestoId + "/validacion")
+                .then()
+                .statusCode(200)
+                .body("itemsSinActividad", hasSize(2))
+                .body("exportable", equalTo(false));
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("unidadTiempo", "SEMANA", "numeroPeriodos", 12))
+                .when()
+                .post("/api/v1/presupuestos/" + presupuestoId + "/cronograma")
+                .then()
+                .statusCode(201);
+
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/presupuestos/" + presupuestoId + "/validacion")
+                .then()
+                .statusCode(200)
+                .body("itemsSinActividad", hasSize(0))
+                .body("itemsPuCero", hasSize(0))
+                .body("itemsCantidadCero", hasSize(0))
+                .body("exportable", equalTo(true));
+
+        assertEquals(1, contarCronogramas(presupuestoId));
+        assertEquals(2, contarActividades(presupuestoId));
+    }
 }

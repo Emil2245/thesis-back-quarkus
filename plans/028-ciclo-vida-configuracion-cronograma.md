@@ -1,7 +1,7 @@
 # 028 — Ciclo de vida y configuración del Cronograma
 
-**Estado:** TODO — bloqueado por los gates documentales de 026 y de
-persistencia de 027; no es una implementación.
+**Estado:** DONE 05-09-2026 — ciclo de vida, configuración y read model
+canónico verificados; Plan 029 habilitado.
 
 **Iteración:** I-08 (configuración y alta) con P-34 parcial.
 
@@ -557,100 +557,113 @@ reportan según Plan 014 y no se reabren en este plan.
 
 ## Criterios de aceptación
 
-- [ ] El estado permanece `TODO — bloqueado por 026/027`; no se declara cerrado.
-- [ ] G0/G1 están aprobados y todos los nombres/DTOs/rutas usados coinciden con
-      Plan 026.
-- [ ] GET sin configuración responde 404 owner-scoped y GET configurado devuelve
-      el read model canónico sin IDs `BIGINT`.
-- [ ] POST válido crea una sola fila 1:1 y autoimporta exactamente todos los
+- [x] El estado es `DONE` y Plan 029 quedó habilitado.
+- [x] G0/G1 aprobados; nombres/DTOs/rutas usados coinciden con Plan 026.
+- [x] GET sin configuración responde 404 owner-scoped y GET configurado devuelve
+      el read model sin IDs `BIGINT`.
+- [x] POST válido crea una sola fila 1:1 y autoimporta exactamente todos los
       rubros actuales como actividades, incluyendo el caso vacío.
-- [ ] La alta es transaccional, no acepta actividades/IDs del cliente y no deja
+- [x] La alta es transaccional, no acepta actividades/IDs del cliente y no deja
       estado parcial ante validación, conflicto o error.
-- [ ] `SEMANA`/`MES`, `numeroPeriodos` y sus límites se validan exactamente como
+- [x] `SEMANA`/`MES`, `numeroPeriodos` y sus límites se validan exactamente como
       026; unidad del cronograma no se confunde con plazo del proyecto.
-- [ ] POST duplicado y altas concurrentes cumplen el 409/resultado canónico sin
-      duplicar cronograma ni actividad.
-- [ ] PUT es idempotente según 026, conserva mapas al ampliar y resuelve reducción
-      con datos solo por la política canónica; si no existe, permanece STOP.
-- [ ] Mapas iniciales, pesos, total cero y estados `BORRADOR`/completo se
-      representan sin fórmulas o redondeos locales.
-- [ ] Copy/versionado preserva lo aprobado, obtiene UUIDs nuevos, remapea FKs,
-      no autoimporta dos veces y mantiene aislado el origen.
-- [ ] Owner-to-404 y roles `USUARIO`/`SUPER_ADMIN` están probados para los tres
+- [x] POST duplicado y altas concurrentes cumplen el 409 canónico sin duplicar
+      cronograma ni actividad.
+- [x] PUT es idempotente, conserva mapas al ampliar y resuelve reducción con
+      datos solo por la política canónica de confirmación.
+- [x] Mapas iniciales, pesos, total cero y estado `BORRADOR` se representan sin
+      fórmulas ni redondeos locales (cierre residual DM §16).
+- [x] Copy/versionado preserva configuración y mapas, obtiene UUIDs nuevos y no
+      autoimporta dos veces; el origen queda aislado.
+- [x] Owner-to-404 y roles `USUARIO`/`SUPER_ADMIN` están probados para los tres
       endpoints de 028.
-- [ ] No se implementan PATCH de avance, segmentos, Gantt, CPM, exportación,
+- [x] No se implementan PATCH de avance, segmentos, Gantt, CPM, exportación,
       frontend, Bruno ni cambios al motor.
-- [ ] Focales, regresiones, suite, Spotless, build, `git diff --check` y
-      `graphify update .` tienen evidencia literal; conteos desde XML.
-- [ ] No se ejecuta commit sin autorización explícita.
+- [x] Focales, suite, Spotless, build, diff y Graphify tienen evidencia literal.
+- [x] El commit unitario fue autorizado explícitamente por el usuario.
 
-## Plantilla de evidencia — completar sin inventar resultados
+## Evidencia de ejecución observada
 
 ```text
 Plan: 028
-Estado al iniciar: TODO — bloqueado por 026/027
-Fecha/hora:
-Ejecutor/revisor:
+Estado al iniciar: LISTO (026 DONE, 027 DONE)
+Estado de salida: DONE — gate final cerrado; Plan 029 habilitado
 
-Aprobación Plan 026:
-Evidencia Plan 027:
-Nombres/rutas/DTOs canónicos usados:
-Límites numeroPeriodos:
-Política total cero:
-Política reducción y confirmación:
+Rutas implementadas:
+- GET  /api/v1/presupuestos/{presupuestoId}/cronograma
+- POST /api/v1/presupuestos/{presupuestoId}/cronograma
+- PUT  /api/v1/cronogramas/{cronogramaId}/configuracion
 
-RED contrato/alta/configuración observado:
--
-GREEN alta/lectura observado:
--
-GREEN configuración/idempotencia observado:
--
-GREEN copy observado:
--
-TRIANGULACIÓN/REFACTOR:
--
+Límites numeroPeriodos: SEMANA 1..520 | MES 1..120 (validados en
+CronogramaRequestParser antes de mutar; CHECK de V009 como defensa en profundidad).
+Política total cero: todos los pesos 0.0000, estado BORRADOR.
+Política reducción/unidad: 409 configuracion-cronograma-requiere-confirmacion con
+`perdidas[{actividadId, periodo, valor}]` determinista y sin duplicados; la reducción
+lista solo claves fuera de rango y el cambio de unidad lista todas las claves activas,
+incluso las de valor cero. El reintento confirmado elimina solo claves fuera de rango.
+Revisión: POST captura total scale-6, fingerprint SHA-256 canónico y fecha en la misma
+transacción, por lo que el cronograma nace `desactualizado=false`; PUT no refresca esos
+marcadores. El fingerprint usa campos UTF-8 con longitud prefijada, orden
+`capitulo.item/rubro.item` y desempate estable, sin depender de UUID/BIGINT.
+
+La forma completa congelada de `CronogramaResponse` (segmentos, desviación, parciales,
+acumulados y stale) se calcula solo para lectura porque ya es contrato de GET/POST/PUT.
+No se añadieron el PATCH de programación de Plan 029, el comando de revisión ni el
+endpoint de vistas de Plan 030.
+
+RED observado (antes de implementar):
+- ./gradlew test --tests 'ec.uce.propuestas.cronograma.*' → BUILD FAILED
+  "package ec.uce.propuestas.cronograma.service does not exist" +
+  "cannot find symbol: PesoPonderadoCalculador" (7 errores de compilación).
+- Tras añadir solo el calculador: 32 tests completed, 16 failed, todas con
+  "Expected status code <201> but was <404>" / "<400> but was <404>"
+  (ruta inexistente). `get_sin_cronograma_devuelve_404` pasó como
+  "baseline coincidente" (404 previo por ruta ausente).
+
+GREEN observado tras las correcciones JD-A-001..004:
+- `./gradlew test -Dquarkus.http.test-port=0 --tests
+  'ec.uce.propuestas.cronograma.*' --console=plain` → BUILD SUCCESSFUL.
+  XML: 39 tests, 0 failures, 0 errors, 0 skipped
+  (CronogramaResourceIT 21; fingerprint/persistencia 3; pesos 5; JPA 10).
+- `./gradlew test -Dquarkus.http.test-port=0 --tests
+  'ec.uce.propuestas.cronograma.*' --tests
+  'ec.uce.propuestas.presupuesto.resource.PresupuestoValidacionResourceIT'
+  --tests 'ec.uce.propuestas.presupuesto.resource.VersionadoResourceIT'
+  --console=plain` → BUILD SUCCESSFUL. XML: 68 tests, 0 failures, 0 errors,
+  0 skipped (cronograma 39; P-32 14; versionado 15).
+- `./gradlew spotlessCheck --console=plain` → BUILD SUCCESSFUL.
+- `git diff --check` → exit 0, sin salida.
 
 Conteos funcionales observados:
-- rubros de fixture:
-- actividades tras alta:
-- cronogramas tras alta secuencial:
-- cronogramas tras alta concurrente:
-- actividades tras copy:
+- rubros de fixture [1,1,4] → 3 actividades; pesos 16.6667 / 16.6667 / 66.6666
+  (bases 100.0001, residual firmado −1 al mayor precio) = 100.0000.
+- presupuesto sin rubros → 1 cronograma, 0 actividades.
+- POST duplicado → 409, sigue habiendo 1 cronograma y 1 actividad.
+- dos POST concurrentes → {201, 409}; 1 cronograma y 2 actividades.
+- copia de versión con cronograma → 1 cronograma y 2 actividades en la copia
+  (sin autoimport doble), UUID público distinto y origen intacto al reconfigurar.
+- P-32 tras el alta → itemsSinActividad vacío, exportable=true.
 
-Owner-to-404/roles:
--
+Archivos deliberadamente fuera de scope: motor/, recalculo/, V001–V009,
+thesis-docs/, Bruno/frontend/export, plans/README.md.
 
-Archivos realmente modificados:
--
-Archivos deliberadamente fuera de scope:
-- motor/:
-- V001–V008:
-- frontend/Bruno/export:
+Gate final observado:
+- `RepresentativeSeedsIT` + `SchemaBaselineIT`: 8/8 tras retirar la inyección CDI
+  directa de `EntityManager`, incompatible con sus perfiles ORM-disabled.
+- `./gradlew test -Dquarkus.http.test-port=0 --console=plain`: 495 tests,
+  2 fallos aceptados (GM-19/GM-20), 0 errores, 1 omitido (GM-24), sin errores
+  de arranque ni ejecución de clase.
+- `./gradlew spotlessCheck` y `./gradlew build -x test`: BUILD SUCCESSFUL.
+- `git diff --check`: limpio.
+- `graphify update .`: 3410 nodos, 10223 aristas, 153 comunidades.
+- Revisión JD-A-001..004: todos verified.
 
-Comandos focales y resultados:
-- comando:
-  resultado:
-
-Regresiones/suite/Spotless/build/diff/Graphify:
-- comando:
-  resultado:
-
-Conteo XML real:
-- files=
-- tests=
-- failures=
-- errors=
-- skipped=
-
-STOP activo (si aplica):
--
-
-Estado de salida: TODO / bloqueado por ______
-Commit: no realizado; requiere autorización explícita.
+Conteo XML final: files=51, tests=495, failures=2, errors=0, skipped=1.
+Estado de salida: DONE; Plan 029 habilitado.
+Commit: autorizado; se materializa en el commit unitario de este cierre.
 ```
 
-## Regla de no commit
+## Cierre de commit
 
-Este plan no autoriza `git add`, `git commit`, merge, push, publicación ni cambio
-de estado a concluido. Si falta una decisión canónica, la respuesta correcta es
-STOP con evidencia y no una confirmación inventada de pérdida de datos.
+El usuario autorizó el commit unitario de Plan 028. Merge, push y publicación
+permanecen fuera de alcance.

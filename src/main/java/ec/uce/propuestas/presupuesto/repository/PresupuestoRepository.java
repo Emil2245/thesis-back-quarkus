@@ -106,6 +106,27 @@ public class PresupuestoRepository implements PanacheRepositoryBase<Presupuesto,
     }
 
     // ──────────────────────────────────────────────────────────────────────
+    // Plan 028 (P-33) — sección crítica del alta/configuración de cronograma
+    // ──────────────────────────────────────────────────────────────────────
+
+    /**
+     * Plan 028 — bloqueo pesimista de la fila del presupuesto
+     * ({@code SELECT id FROM presupuesto WHERE id = ?1 FOR UPDATE}) para
+     * serializar «comprobar 1:1 → insertar cronograma» y la revalidación de
+     * una reconfiguración. La fila del cronograma no sirve como lock en el
+     * alta porque todavía no existe; la {@code UNIQUE (presupuesto_id)} de
+     * V001 §2.13 sigue siendo la defensa final. Data-access only: no cambia
+     * {@link #findRubrosCubiertosPorCronograma(Long)} ni el módulo
+     * {@code proyecto}.
+     */
+    public void lockPresupuestoRow(Long presupuestoId) {
+        getEntityManager()
+                .createNativeQuery("select id from presupuesto where id = ?1 for update")
+                .setParameter(1, presupuestoId)
+                .getSingleResult();
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
     // Plan 025 (P-32) — validación de integridad: cobertura por cronograma
     // ──────────────────────────────────────────────────────────────────────
 

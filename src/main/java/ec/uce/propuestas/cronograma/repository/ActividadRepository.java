@@ -47,6 +47,36 @@ public class ActividadRepository implements PanacheRepositoryBase<Actividad, Lon
     }
 
     /**
+     * Lista {@code [Actividad, Rubro, capitulo.item]} en orden canónico e
+     * independiente de IDs. El item del capítulo se incluye para construir el fingerprint
+     * presupuestario sin columnas espejo ni una consulta N+1.
+     */
+    public List<Object[]> listarConRubroPorCronograma(Long cronogramaId) {
+        return getEntityManager()
+                .createQuery(
+                        "select a, r, c.item from Actividad a, Rubro r, Capitulo c "
+                                + "where a.cronogramaId = :cronogramaId and a.rubroId = r.id "
+                                + "and r.capituloId = c.id "
+                                + "order by c.item, r.item, r.codigo, r.precioTotal",
+                        Object[].class)
+                .setParameter("cronogramaId", cronogramaId)
+                .getResultList();
+    }
+
+    /** Filas presupuestarias completas para el fingerprint, incluso sin actividad. */
+    public List<Object[]> listarSnapshotPresupuesto(Long presupuestoId) {
+        return getEntityManager()
+                .createQuery(
+                        "select c.item, r.item, r.codigo, r.precioTotal "
+                                + "from Rubro r, Capitulo c "
+                                + "where r.capituloId = c.id and c.presupuestoId = :presupuestoId "
+                                + "order by c.item, r.item, r.codigo, r.precioTotal",
+                        Object[].class)
+                .setParameter("presupuestoId", presupuestoId)
+                .getResultList();
+    }
+
+    /**
      * Lista las actividades del cronograma dado (uso interno de write-through
      * y deep copy). El Long interno no se filtra al exterior — el recurso
      * 028+ expone UUIDv7.
