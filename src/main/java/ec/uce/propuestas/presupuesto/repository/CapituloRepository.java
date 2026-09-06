@@ -93,6 +93,20 @@ public class CapituloRepository implements PanacheRepositoryBase<Capitulo, Long>
     }
 
     /**
+     * Plan 030 (P-35/P-36) — variante acotada y ordenada por {@code item}
+     * ascendente del listado de capítulos. La unicidad de
+     * {@code (presupuesto_id, item)} (V001 §2.9) garantiza un orden total
+     * estable: el árbol se reconstruye en memoria sin colisiones ni
+     * desempates arbitrarios. Se usa exclusivamente desde
+     * {@code VistasCronogramaService} para componer la jerarquía recursiva
+     * de la respuesta única de {@code GET /cronogramas/{id}/vistas}.
+     */
+    public List<Capitulo> listarPorPresupuestoOrdenado(Long presupuestoId) {
+        return find("presupuestoId = :presupuestoId order by item", Parameters.with("presupuestoId", presupuestoId))
+                .list();
+    }
+
+    /**
      * Plan 022 — devuelve los hermanos directos de un padre en un presupuesto,
      * ordenados por {@code orden} ascendente. Pasar {@code parentId = null}
      * lista los capítulos raíz. La lista (entidades gestionadas) es la secuencia
