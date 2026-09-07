@@ -1,0 +1,46 @@
+meta {
+  name: TC-31-00c — Crear proyecto + presupuesto v1 (helper)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/proyectos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombreProyecto": "P31 Bruno {{u1Email}}",
+    "codigo": "P31BRU",
+    "anio": 2026,
+    "plazoEjecucion": 4,
+    "plazoUnidad": "MES",
+    "direccionInstitucional": "Universidad Central del Ecuador"
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setVar("p31ProyectoId", res.body.id);
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("id es UUIDv7", function() {
+    expect(res.body.id).to.match(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/);
+  });
+}

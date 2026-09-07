@@ -1,0 +1,32 @@
+meta {
+  name: TC-31-07 — Descarga MSPDI: media type application/xml + filename .xml
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{baseUrl}}/documentos/cronograma/{{p31PresupuestoId}}?formato=mspdi
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Content-Type application/xml (no .mpp)", function() {
+    expect(res.headers["content-type"]).to.match(/^application\/xml/);
+  });
+
+  test("Content-Disposition attachment .xml (no .mpp)", function() {
+    expect(res.headers["content-disposition"]).to.match(/attachment.*\.xml"/);
+  });
+
+  test("body empieza con firma XML (no binario)", function() {
+    expect(res.body).to.match(/^<\?xml/);
+  });
+}

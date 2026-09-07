@@ -126,6 +126,41 @@ public class PresupuestoRepository implements PanacheRepositoryBase<Presupuesto,
                 .getSingleResult();
     }
 
+    /**
+     * Plan 031 (P-37, audit closure) — variante owner-scoped del bloqueo
+     * pesimista. Resuelve primero por {@code publicId} (UUIDv7) cruzando
+     * {@code presupuesto → proyecto → caller}; si la fila no pertenece al
+     * caller devuelve {@link Optional#empty()} (404 — nunca 403 ni 500). Si
+     * pertenece al caller, adquiere el lock pesimista de esa fila y devuelve
+     * la entidad administrada. Cierra la grieta «owner-check / lock deletion
+     * race» del audit: el caller puede borrar el presupuesto entre el
+     * {@code findByPublicIdAndOwnerScope} y el {@code lockPresupuestoRow} y,
+     * sin este helper, el bloqueo tira {@code NoResultException} → 500.
+     *
+     * <p>Operación data-access only — vive en el repository del módulo
+     * {@code presupuesto} y NO se acopla al módulo {@code cronograma}.</p>
+     */
+    public Optional<Presupuesto> findByPublicIdOwnerScopeForUpdate(UUID publicId, Long callerUsuarioId) {
+        Optional<Presupuesto> hit = findByPublicIdAndOwnerScope(publicId, callerUsuarioId);
+        if (hit.isEmpty()) {
+            return Optional.empty();
+        }
+        Presupuesto presupuesto = hit.get();
+        // SELECT ... FOR UPDATE: si la fila fue borrada por otra tx entre
+        // el findByPublicIdAndOwnerScope y este lock, getSingleResult()
+        // tira NoResultException → mapeamos a empty (404) para no exponer 500.
+        try {
+            getEntityManager()
+                    .createNativeQuery("select id from presupuesto where id = ?1 for update")
+                    .setParameter(1, presupuesto.id)
+                    .getSingleResult();
+        } catch (jakarta.persistence.NoResultException nre) {
+            return Optional.empty();
+        }
+        getEntityManager().refresh(presupuesto);
+        return Optional.of(presupuesto);
+    }
+
     // ──────────────────────────────────────────────────────────────────────
     // Plan 025 (P-32) — validación de integridad: cobertura por cronograma
     // ──────────────────────────────────────────────────────────────────────

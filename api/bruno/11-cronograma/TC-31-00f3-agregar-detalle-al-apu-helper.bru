@@ -1,0 +1,75 @@
+meta {
+  name: TC-31-00f3 — Agregar insumo como detalle MATERIAL del APU (helper)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/apus/{{p31ApuVacioId}}/detalles
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "seccionTipo": "MATERIAL",
+    "insumoId": "{{p31InsumoId}}",
+    "cantidad": 1.0
+  }
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && typeof res.body.costoTotal !== "undefined") {
+    bru.setVar("p31ApuCostoTotal", res.body.costoTotal);
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("APU con 4 secciones tras el detalle", function() {
+    expect(res.body.secciones.length).to.equal(4);
+  });
+
+  test("Sección MATERIAL poblada con 1 fila", function() {
+    var material = res.body.secciones.find(function (s) {
+      return s.tipo === "MATERIAL";
+    });
+    expect(material).to.be.an("object");
+    expect(material.detalles.length).to.equal(1);
+  });
+
+  test("costoTotal del APU > 0 (5.00 exacto a 6dp)", function() {
+    expect(res.body.costoTotal).to.equal(5.000000);
+  });
+
+  test("Detalle expone insumoId UUIDv7 (no BIGINT)", function() {
+    var material = res.body.secciones.find(function (s) {
+      return s.tipo === "MATERIAL";
+    });
+    expect(material.detalles[0].insumoId).to.equal(bru.getVar("p31InsumoId"));
+    expect(material.detalles[0].insumoId).to.match(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/);
+  });
+}
+
+docs {
+  Helper de Plan 031 — agrega `p31InsumoId` (MATERIAL, PU=5.00) como
+  `detalle` de la sección MATERIAL del APU `p31ApuVacioId`. Dispara
+  `recalculoService.recalcular(new Alcance.Apu(apu.id))` que persiste
+  `apu.costo_total = 5.000000`, propaga `rubro.precio_unitario = 5.0`
+  y `presupuesto.total = 50.0` (cantidad=10). Sin esta materialización
+  el APU sigue con PU=0 (ver `TC-31-00f`) y el preflight de
+  `TC-31-01` reporta `presupuesto-pu-cero` (regla P-32 preservada).
+  Tras `TC-31-00f3` el APU ya no está vacío: el nombre de la variable
+  `p31ApuVacioId` se mantiene por compatibilidad con `TC-31-00h`.
+}

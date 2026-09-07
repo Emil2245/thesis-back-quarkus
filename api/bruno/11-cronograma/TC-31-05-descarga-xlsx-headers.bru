@@ -1,0 +1,38 @@
+meta {
+  name: TC-31-05 — Descarga XLSX: media type + attachment + filename + header stale
+  type: http
+  seq: 17
+}
+
+get {
+  url: {{baseUrl}}/documentos/cronograma/{{p31PresupuestoId}}?formato=xlsx
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Content-Type XLSX oficial", function() {
+    expect(res.headers["content-type"]).to.match(/^application\/vnd\.openxmlformats-officedocument\.spreadsheetml\.sheet/);
+  });
+
+  test("Content-Disposition attachment .xlsx", function() {
+    expect(res.headers["content-disposition"]).to.match(/attachment.*\.xlsx"/);
+  });
+
+  test("X-Cronograma-Desactualizado true|false", function() {
+    var stale = res.headers["x-cronograma-desactualizado"];
+    expect(stale === "true" || stale === "false").to.equal(true);
+  });
+
+  test("body con bytes no triviales (>100B)", function() {
+    var contentLength = Number(res.headers["content-length"] || 0);
+    expect(contentLength).to.be.at.least(100);
+  });
+}

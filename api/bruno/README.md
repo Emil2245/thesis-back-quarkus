@@ -20,6 +20,7 @@ de los titulares sembrados por V004).
 | [`08-apu`](08-apu/) | I-05 | `apu` | activa | Plan 011 — CRUD + filas M/N/O/P + HM |
 | [`09-i02-i06`](09-i02-i06/) | I-06 | `apu`/`insumo`/`plantilla`/`documento` | activa | Plan 08 — nueve temas canónicos I-02…I-06 |
 | **`10-presupuesto`** | **I-07** | **`presupuesto`** | **activa · verificada (Plan 025 — DONE 2026-09-01, 23/23 requests verde dinámico contra PostgreSQL 18 limpio + fast-jar)** | Esta carpeta: P-28/P-29/P-30/P-31/P-32 + validación |
+| [`11-cronograma`](11-cronograma/) | I-10 | `cronograma` | activa (Plan 031 — export XLSX/PDF/MSPDI, P-37) | Esta carpeta: preflight + descarga por formato + UUIDv7 + owner-to-404 |
 
 > **Nota sobre los archivos legacy 01–05:** no se borran para conservar
 > auditoría; los planes I-06+I-07 (`06-proyecto/`, `07-insumo/`, `08-apu/`,

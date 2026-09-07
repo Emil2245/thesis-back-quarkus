@@ -1,0 +1,43 @@
+meta {
+  name: TC-31-00d — Capturar presupuesto v1 vigente auto-creado (helper)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/proyectos/{{p31ProyectoId}}/presupuestos
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+script:post-response {
+  if (res.status === 200 && Array.isArray(res.body) && res.body.length >= 1) {
+    var v1 = res.body.find(function (p) {
+      return p.version === 1 && p.esVigente === true;
+    });
+    if (v1) {
+      bru.setVar("p31PresupuestoId", v1.presupuestoId);
+    }
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Lista no vacía (auto-create v1 vigente)", function() {
+    expect(res.body.length).to.be.at.least(1);
+  });
+
+  test("presupuestoId capturado es UUIDv7", function() {
+    var v1 = res.body.find(function (p) {
+      return p.version === 1 && p.esVigente === true;
+    });
+    expect(v1).to.be.an("object");
+    expect(v1.presupuestoId).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+}

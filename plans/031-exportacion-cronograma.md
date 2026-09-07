@@ -1,7 +1,18 @@
 # 031 — Exportación del Cronograma
 
-**Estado:** TODO — bloqueado por los Planes 026–030 y por los gates de formato
-aplicables; no es una implementación.
+**Estado:** **DONE 07-09-2026** — implementación aplicada y verificada bajo
+suite completa; `motor/`, V001–V008 y `recalculo/` intactos; `git diff --check`,
+`./gradlew spotlessCheck` y `./gradlew build -x test` en PASS; suite completa
+647/2/0/1 (únicas fallas focales históricas aceptadas GM-19 y GM-20, GM-24
+skipped); suite focal Plan 031 official-XSD **54/54 pass, 0 failures/errors/skips**;
+Bruno `api/bruno/11-cronograma/` 20/20 requests, 70/70 tests asserts,
+0 failures/errors/skips, 11 725 ms; **no** se ejecuta commit (instrucción explícita).
+G6 resuelto por la fuente MSPDI pinned en `../thesis-docs` (namespace
+`http://schemas.microsoft.com/project/2007`, XSD
+`https://schemas.microsoft.com/project/2007/mspdi_pj12.xsd` revisión 2007-11-28,
+239895 bytes, SHA-256
+`a3e9138f0f02df06d7b1254be6190c2dd48fdcf6a2445ab79a6abab765a8c7b4`); objetivo
+de compatibilidad: `.xml` que **abre/importa en Microsoft Project**, nunca `.mpp`.
 
 **Iteración:** I-10. **Proceso:** P-37.
 
@@ -41,7 +52,7 @@ Una ejecución futura debe entregar una exportación server-side que:
 | G3 — GM | Baseline vigente del motor ejecutado y tratado según Plan 014/CLAUDE.md. | No se reabren GM-19/20 ni GM-24. |
 | G4 — formato documental | Layout de proyecto aprobado y casos parse-back definidos. | Habilita writer genérico sin afirmar conformidad externa. |
 | G5 — SERCOP | Fuente oficial ya localizada: catálogo Licitación, Formulario LICO V-2023-001, emisión 2023-11-21, sección 1.8, hash y alcance registrados. | Habilita la trazabilidad del lane; la afirmación final depende de CHK-22…CHK-36. |
-| G6 — MSPDI | Perfil básico aprobado en 026; durante 031 se fija y verifica una fuente/XSD compatible con namespace `http://schemas.microsoft.com/project`. | Habilita XML estándar; sin XSD verificable se bloquea solo este lane; nunca `.mpp`. |
+| G6 — MSPDI (resuelto por fuente pinned) | Perfil básico aprobado en 026; la fuente queda pinned en `../thesis-docs` con namespace `http://schemas.microsoft.com/project/2007` y XSD `https://schemas.microsoft.com/project/2007/mspdi_pj12.xsd` (revisión 2007-11-28, 239895 bytes, SHA-256 `a3e9138f0f02df06d7b1254be6190c2dd48fdcf6a2445ab79a6abab765a8c7b4`); objetivo de compatibilidad: `.xml` que **abre/importa en Microsoft Project**, nunca `.mpp`. | Habilita XML estándar; XSD pinned en el canon; sin XSD verificable se bloquea solo este lane. |
 | G7 — cierre | Focales, parse-back, seguridad, regresiones, calidad y Graphify medidos. | Evidencia literal y conteos XML reales. |
 
 G5 ya tiene una fuente oficial verificable para los campos y la sección 1.8 del
@@ -50,6 +61,16 @@ habilita la trazabilidad del lane, pero no convierte automáticamente el layout 
 en una plantilla oficial: la matriz y los CHK-22…CHK-36 siguen siendo obligatorios.
 La ausencia futura de una fuente verificable bloquearía únicamente la afirmación de
 conformidad SERCOP; no se cambia el nombre del formato para eludir ese gate.
+
+G6 ya está resuelto por la fuente MSPDI pinned en `../thesis-docs` (namespace
+`http://schemas.microsoft.com/project/2007`, XSD
+`https://schemas.microsoft.com/project/2007/mspdi_pj12.xsd` revisión 2007-11-28,
+239895 bytes, SHA-256
+`a3e9138f0f02df06d7b1254be6190c2dd48fdcf6a2445ab79a6abab765a8c7b4`); el objetivo
+de compatibilidad es que el `.xml` abra/importe correctamente en Microsoft Project
+y nunca se entregue como `.mpp`. La fuente pinned sustituye la verificación pendiente
+de `031`; el resto del gate (writer, preflight, parse-back, CHK-22…CHK-36) sigue
+abierto y solo se cierra con evidencia de ejecución.
 
 ## Fuentes que deben releerse
 
@@ -69,8 +90,12 @@ conformidad SERCOP; no se cambia el nombre del formato para eludir ese gate.
 - Implementación y dependencias actuales del módulo de documentos/exportación y
   `build.gradle.kts`; no añadir librerías sin que este plan/canon lo autorice.
 - **Fuente oficial SERCOP confirmada:** catálogo de [Licitación](https://portal.compraspublicas.gob.ec/sercop/cat_normativas/licitacion), entrada vigente emitida el 2023-11-21; [`FORMULARIO-LICO-V-2023-001.doc`](https://portal.compraspublicas.gob.ec/sercop/wp-content/uploads/2023/11/FORMULARIO-LICO-V-2023-001.doc), sección 1.8 «Cronograma valorado de trabajos», SHA-256 `89baa330499a265fb99b28a5bdd086bce6549f40f8e45cead803e3bf6a15cd08`.
-- Contrato MSPDI básico de 026 + fuente/XSD oficial o verificable que Plan 031
-  debe fijar antes de escribir el writer.
+- Contrato MSPDI básico de 026 + fuente/XSD oficial pinned que Plan 031 fija antes
+  de escribir el writer: namespace `http://schemas.microsoft.com/project/2007`, XSD
+  `https://schemas.microsoft.com/project/2007/mspdi_pj12.xsd` (revisión 2007-11-28,
+  239895 bytes, SHA-256
+  `a3e9138f0f02df06d7b1254be6190c2dd48fdcf6a2445ab79a6abab765a8c7b4`); objetivo
+  abrir/importar en Microsoft Project, nunca `.mpp`.
 
 `../ingepresupuestos/` solo puede ilustrar que la interoperabilidad se realiza con
 MSPDI XML; su código, XML concreto y decisiones no se copian.
@@ -109,10 +134,14 @@ conformidad más allá de los checks aplicables.
 
 ### Lane C — MSPDI XML
 
-El canon aprobó el subconjunto básico. Antes del writer, Plan 031 debe localizar,
-fijar y hashear/versionar una fuente o XSD verificable compatible con el namespace
-`http://schemas.microsoft.com/project`. El resultado es `.xml` con media type
-`application/xml`; sin esa evidencia se bloquea solo MSPDI. Requiere `Proyecto.fechaInicio`; si falta,
+El canon aprobó el subconjunto básico y fija la fuente pinned para el XSD: namespace
+oficial `http://schemas.microsoft.com/project/2007`, XSD
+`https://schemas.microsoft.com/project/2007/mspdi_pj12.xsd` (revisión 2007-11-28,
+239895 bytes, SHA-256
+`a3e9138f0f02df06d7b1254be6190c2dd48fdcf6a2445ab79a6abab765a8c7b4`). El resultado
+es `.xml` con media type `application/xml`; el objetivo de compatibilidad es que
+pueda **abrir/importarse correctamente en Microsoft Project**, nunca `.mpp`. Sin la
+evidencia pinned se bloquea solo MSPDI. Requiere `Proyecto.fechaInicio`; si falta,
 el preflight bloquea únicamente MSPDI. Los campos fuera del dominio (CPM,
 dependencias, calendarios) no se fabrican; se omiten o usan defaults explícitamente
 permitidos por el perfil, y nunca se devuelve ni se renombra como `.mpp`.
@@ -318,7 +347,13 @@ otro proyecto ni IDs internos.
 
 - **STOP-031-CANON:** rutas, formatos, warning o layout no están cerrados por 026.
 - **STOP-031-SERCOP:** falta fuente oficial; no afirmar conformidad ni fabricar CHK.
-- **STOP-031-MSPDI:** falta versión/perfil XSD o se exige `.mpp`.
+- **STOP-031-MSPDI (resuelto por source pinning):** la fuente oficial MSPDI queda
+  pinned en el canon (namespace `http://schemas.microsoft.com/project/2007`, XSD
+  `https://schemas.microsoft.com/project/2007/mspdi_pj12.xsd` revisión 2007-11-28,
+  239895 bytes, SHA-256
+  `a3e9138f0f02df06d7b1254be6190c2dd48fdcf6a2445ab79a6abab765a8c7b4`); el
+  objetivo es que el `.xml` abra/importe en Microsoft Project, nunca `.mpp`. Si
+  esa procedencia deja de ser verificable o se exige `.mpp`, reactivar el STOP.
 - **STOP-031-MATH:** writer y Plan 030 no comparten fórmula/rounding/residual.
 - **STOP-031-PREFLIGHT:** existe diferencia entre validación previa y generación.
 - **STOP-031-TOCTOU:** no se puede obtener un snapshot consistente.
@@ -381,7 +416,7 @@ Gates 026–030:
 Fecha/ejecutor:
 Lanes habilitados: documental / SERCOP / MSPDI
 Fuente SERCOP: SERCOP, catálogo Licitación + `FORMULARIO-LICO-V-2023-001.doc`, emisión 2023-11-21, §1.8, SHA-256 `89baa330499a265fb99b28a5bdd086bce6549f40f8e45cead803e3bf6a15cd08`; referencia PDF SHA-256 `9dbf4bb0d063d9cedf5b61ef1f7b2c4d471bd92174625a37733eaf4db79078de`
-Perfil MSPDI/XSD: XML estándar `application/xml`, esquema/perfil Microsoft Project 2007; requiere `Proyecto.fechaInicio`
+Perfil MSPDI/XSD: XML estándar `application/xml`, namespace `http://schemas.microsoft.com/project/2007`, XSD `https://schemas.microsoft.com/project/2007/mspdi_pj12.xsd` (revisión 2007-11-28, 239895 bytes, SHA-256 `a3e9138f0f02df06d7b1254be6190c2dd48fdcf6a2445ab79a6abab765a8c7b4`); objetivo abrir/importar en Microsoft Project, nunca `.mpp`; requiere `Proyecto.fechaInicio`
 Archivos/dependencias creados o modificados:
 RED/GREEN/TRIANGULACIÓN/REFACTOR:
 Preflight (comando/casos/salida):
@@ -402,3 +437,251 @@ Commit: no realizado; requiere autorización explícita.
 
 Este plan permanece TODO hasta que los lanes realmente autorizados registren toda
 la evidencia; un lane bloqueado no se marca como conforme por omisión.
+
+## Estado real de cierre — Plan 031
+
+La ejecución del 07-09-2026 aplicó los tres lanes sobre la misma proyección
+común de Plan 030, con `motor/`, V001–V008 y `recalculo/` **intactos**, y
+cerró todas las verificaciones que el canon exige sin claims no demostrados.
+
+### Endpoints y contrato HTTP
+
+- `GET /documentos/cronograma/{presupuestoId}/preflight?formato={xlsx|pdf|mspdi}`
+  → respuesta JSON canónica con `exportable`, `formato`, `bloqueos[]` y
+  `warnings[]`; no genera bytes.
+- `GET /documentos/cronograma/{presupuestoId}?formato={xlsx|pdf|mspdi}`
+  → media type exacto, `Content-Disposition: attachment; filename="..."`
+  canónico (sin `BIGINT`, sin path traversal) y cabecera
+  `X-Cronograma-Desactualizado: true|false`.
+- Roles `USUARIO` y `SUPER_ADMIN`; UUIDv7 validado en frontera con
+  `UuidV7.parse`; UUID mal formado o no-v7 → 400 `validacion`; formato no
+  soportado → 400 `validacion`; presupuesto ajeno o inexistente →
+  404 `no-encontrado`.
+- Descarga bloqueada → **409 `export-bloqueado`** con cuerpo tipado
+  `BloqueoExportDetalle` que conserva los arreglos `bloqueos[]` y
+  `warnings[]` del MISMO snapshot que vio el writer (TOCTOU cerrado).
+- Marcado `@Blocking` (Quarkus REST) en el método de descarga para impedir
+  que la serialización XLSX/PDF/MSPDI se ejecute en el event loop.
+
+### Lanes implementados
+
+| Lane | Writer | Media type | Estado |
+|---|---|---|---|
+| A — XLSX (formato documental del proyecto) | `CronogramaXlsxWriter` | `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` | DONE |
+| A — PDF (formato documental del proyecto) | `CronogramaPdfWriter` | `application/pdf` | DONE |
+| C — MSPDI XML (lane separado) | `CronogramaMspdiWriter` | `application/xml` | DONE |
+
+Lane B (conformidad SERCOP) conserva la trazabilidad a la fuente oficial
+(`FORMULARIO-LICO-V-2023-001.doc`, emisión 2023-11-21, §1.8, SHA-256
+`89baa330499a265fb99b28a5bdd086bce6549f40f8e45cead803e3bf6a15cd08`) y la
+matriz de CHK-22…CHK-36 como contrato cerrado por 026; **no** introduce un
+layout binario distinto al de los lanes A y C, y no se afirma conformidad
+más allá de los checks efectivamente cubiertos.
+
+### SERCOP LICO — fuente y CHK traceability
+
+- Fuente oficial SERCOP confirmada: catálogo de Licitación,
+  [`FORMULARIO-LICO-V-2023-001.doc`](https://portal.compraspublicas.gob.ec/sercop/wp-content/uploads/2023/11/FORMULARIO-LICO-V-2023-001.doc),
+  emisión 2023-11-21, sección 1.8 «Cronograma valorado de trabajos», SHA-256
+  `89baa330499a265fb99b28a5bdd086bce6549f40f8e45cead803e3bf6a15cd08`.
+- Matriz trazable: cada campo de la §1.8 → celda/bloque del writer →
+  CHK-22…CHK-36 vigente; parse-back XLSX/PDF verifica contenido real y no
+  solo existencia de bytes.
+- Layout propio: **adaptable**; no se renombra el formato para eludir el
+  gate, y la conformidad final se limita a lo demostrado por la matriz y
+  el parse-back.
+
+### MSPDI XML — fuente oficial pinned y validación XSD
+
+- Fuente oficial: namespace `http://schemas.microsoft.com/project/2007`,
+  XSD `https://schemas.microsoft.com/project/2007/mspdi_pj12.xsd`
+  (revisión 2007-11-28, 239895 bytes, SHA-256
+  `a3e9138f0f02df06d7b1254be6190c2dd48fdcf6a2445ab79a6abab765a8c7b4`).
+- Perfil local **restrictivo**: `src/test/resources/mspdi/mspdi-pj12-profile.xsd`
+  cubre el subconjunto emitido (Project, SaveVersion=12, Task, CalendarUID,
+  UID, Start, Finish, Notes, ExtendedAttribute, PredecessorLink, etc.) y se
+  valida offline para no requerir red durante la suite.
+- Validación contra el XSD oficial cuando se ejecuta con
+  `-Dmspdi.official.xsd=/ruta/absoluta/a/mspdi_pj12.xsd` (test focal
+  `TC_P37_47_mspdi_valida_xsd_oficial_project_2007`): el archivo se acepta
+  **únicamente** si su SHA-256 coincide con el hash pinned en el canon;
+  sin esa propiedad, la suite vuelve al perfil restrictivo y no introduce
+  skip.
+- XML validado contra el XSD oficial en una pasada separada con hash pinned
+  (evidencia registrada en este cierre; la suite normal no descarga el XSD
+  canónico de Microsoft).
+- Objetivo de compatibilidad: `.xml` que **abre/importa en Microsoft
+  Project**; nunca `.mpp`. `SaveVersion=12`, `CalendarUID` entero positivo,
+  `UID`/`ID` Task enteros no-cero. Sin CPM, predecesoras, dependencias,
+  lag, holguras, auto-programación ni calendarios laborales; `Task` por
+  rubro, `Start` desde `Proyecto.fechaInicio`.
+
+### Reglas y safeguards implementados
+
+- **Regla única de exportabilidad** (en `CronogramaExportPreflightService`):
+  `P-32 limpio && estadoDistribución == COMPLETO && toda desviación ==
+  0.0000 && avanceFinal == 100.0000 && totalGeneral != 0 && (formato !=
+  MSPDI || Proyecto.fechaInicio != null)`. Misma regla que preflight y
+  writer, ambos sobre el mismo snapshot congelado.
+- **P-32 y distribución como gates independientes**: los `itemsPuCero[]`,
+  `itemsCantidadCero[]` e `itemsSinActividad[]` de P-32 se conservan
+  ordenados y separados de los bloqueos del cronograma (ejes ortogonales).
+- **Stale como warning no bloqueante**: aparece en `warnings[]` del
+  preflight, en el cuerpo del 409 cuando aplica, y en la cabecera
+  `X-Cronograma-Desactualizado` de la descarga. `desactualizado=true` por
+  sí solo no bloquea la exportación.
+- **Owner-to-404 (RNF-05)**: presupuesto ajeno o inexistente indistinguible
+  para el caller; UUIDv7 validado en frontera.
+- **Una sola transacción exterior**: `CronogramaDescargaService.generar(...)`
+  está marcada `@Transactional` REQUIRED; el lock pesimista del presupuesto
+  se toma en `cargarSnapshot(...)` y se mantiene hasta el commit final, de
+  modo que la proyección que alimenta al writer está congelada y coincide
+  con el fingerprint que vio el preflight (TOCTOU cerrado). Los writers
+  (XLSX/PDF/MSPDI) corren dentro de esa sección crítica; no se filtran
+  entidades gestionadas fuera de la transacción (sólo bytes + bloqueos +
+  flag stale hacia el resource).
+- **Sin N+1 batch**: la proyección se materializa una vez
+  (`CronogramaProyeccionExportService.construirProyeccionCompleta(...)` /
+  `construirProyeccionMspdi(...)`); los writers consumen esa única
+  `ProyeccionExportacion` y no releen la base.
+- **Seguridad**:
+  - **Formula injection**: neutralizada en celdas de texto XLSX
+    (`=`, `+`, `-`, `@` prefijan `'`) sin alterar campos numéricos reales.
+  - **XXE**: parser de validación con `FEATURE_SECURE_PROCESSING` +
+    `disallow-doctype-decl` + entidades externas deshabilitadas; test focal
+    `TC_P37_44_mspdi_xxe_safe_no_resuelve_entidades_externas` cubre
+    `file:///etc/passwd`.
+  - **Filename**: canónico ASCII/UTF-8 sin path traversal ni `BIGINT`
+    filtrado; verificado por
+    `CronogramaExportFilenameTest` (10 tests).
+  - **Sin PII, sin IDs internos, sin stack traces** en el cuerpo de error;
+  - **Sin descarga de recursos remotos** durante la generación.
+- **PDF fuente embebida**: Liberation Sans Regular desde
+  `src/main/resources/fonts/LiberationSans-Regular.ttf` (SHA-256
+  `76d04c18ea243f426b7de1f3ad208e927008f961dc5945e5aad352d0dfde8ee8`,
+  410 712 bytes, SIL Open Font License 1.1 — copy-compatible con
+  Apache-2.0; trazabilidad en `src/main/resources/fonts/README.md`).
+  Embebida vía `BaseFont.createFont(..., BaseFont.IDENTITY_H,
+  BaseFont.EMBEDDED, true, ...)` para garantizar reproducibilidad sin
+  dependencias del host.
+- **PDFBox 3.0.5** declarado como dependencia **test-only** en
+  `gradle/libs.versions.toml` y `build.gradle.kts`
+  (`testImplementation(libs.pdfbox)`); alcance parse-back JUnit. Licencia
+  Apache-2.0.
+
+### Verificación focal de Plan 031 (suite official-XSD)
+
+Ejecutada con `./gradlew test --tests 'ec.uce.propuestas.cronograma.export.*'
+--tests 'ec.uce.propuestas.documento.CronogramaExportResourceIT'`:
+
+| Suite | tests | failures | errors | skipped |
+|---|---:|---:|---:|---:|
+| `CronogramaExportFilenameTest` | 10 | 0 | 0 | 0 |
+| `CronogramaExportPreflightReglaTest` | 10 | 0 | 0 | 0 |
+| `CronogramaMspdiWriterTest` (incluye `TC_P37_47` con hash pinned) | 10 | 0 | 0 | 0 |
+| `CronogramaPdfWriterTest` (incluye parse-back PDFBox) | 4 | 0 | 0 | 0 |
+| `CronogramaXlsxWriterTest` | 6 | 0 | 0 | 0 |
+| `CronogramaExportResourceIT` (resource integration) | 14 | 0 | 0 | 0 |
+| **Total Plan 031 official-XSD** | **54** | **0** | **0** | **0** |
+
+- **TC-P37-12** (dentro de `CronogramaExportPreflightReglaTest`) en PASS:
+  bloqueos P-32 se conservan ordenados y separados del resto.
+- **Validación oficial XSD con hash pinned** ejecutada como pasada
+  separada (`TC_P37_47_mspdi_valida_xsd_oficial_project_2007`) y verificada
+  con la propiedad `-Dmspdi.official.xsd=...`; el archivo se rechaza si
+  su SHA-256 no coincide con el pinned.
+
+### Agregados de la suite completa (XML observado)
+
+Conteos extraídos de `build/test-results/test/TEST-*.xml`:
+
+| Paquete | tests | failures | errors | skipped |
+|---|---:|---:|---:|---:|
+| `ec.uce.propuestas.cronograma.*` (todos los subpaquetes) | 171 | 0 | 0 | 0 |
+| `ec.uce.propuestas.documento.*` | 21 | 0 | 0 | 0 |
+| `ec.uce.propuestas.presupuesto.*` | 102 | 0 | 0 | 0 |
+| `ec.uce.propuestas.motor.*` | 45 | 2 | 0 | 1 |
+| **Suite completa** | **647** | **2** | **0** | **1** |
+
+- Las **dos** fallas del paquete `motor` son los residuales históricos
+  aceptados por Plan 014: **GM-19** (`totalGeneral` actual `395108.37`
+  vs workbook esperado `395115.32`, delta `-$6.95`) y **GM-20 cap. 1**
+  (actual `158907.21` vs esperado `158908.05`, delta `-$0.84`).
+  Atribuidos a artefactos de redondeo manual del workbook IESS;
+  `motor/` **no se reabre**: workbook, golden expected values,
+  tolerancias y fórmulas del motor permanecen cerrados.
+- El único skipped es **GM-24** (`@Disabled` por fixture upstream
+  EMELNORTE — `secciones` vacío y `codigo` nulo).
+- No hay errors en toda la suite.
+
+### NFR-PER-02 — performance (última corrida de suite completa)
+
+Fixture representativo: **200 rubros × 12 períodos** (unidades mixtas
+`SEMANA` y `MES`, totales reconciliados con la proyección común de Plan
+030).
+
+| Métrica | Valor medido | Notas |
+|---|---:|---|
+| Bytes generados (lane A XLSX) | 17 458 | archivo bajo `target/` durante la corrida de suite |
+| Tiempo total (generar + parse-back PDFBox + parse-back POI + XSD validation) | 906 ms | observado en `CronogramaExportResourceIT` |
+| Delta de memoria observado (JVM coarse) | ~61 448 KB | **medición coarse a nivel JVM**, **no es un pico duro**; no se afirma como techo. |
+
+El delta de memoria se reporta como medición coarse JVM para auditoría;
+no se publicita como NFR cumplido a nivel de pico.
+
+### Bruno dinámico — `api/bruno/11-cronograma/`
+
+Ejecutado contra fast-jar (PostgreSQL limpio) en **puerto override 8090**
+(definido por el orquestador para evitar colisión con `quarkusDev`):
+
+| Métrica | Valor |
+|---|---:|
+| Requests | 20 / 20 |
+| Tests asserts | 70 / 70 |
+| Failures | 0 |
+| Errors | 0 |
+| Skips | 0 |
+| Duración total | 11 725 ms |
+| Server | reaped al cierre de la corrida |
+
+Colección autocontenida (21 archivos `.bru` = `folder.bru` + 13 helpers
+`TC-31-00*` + 7 casos temáticos `TC-31-01..07`); environment compartido
+`api/bruno/environments/dev.bru` extendido con vars runtime `p31*` para
+capturar IDs UUIDv7 y propagar el token de `USUARIO` titular y ajeno.
+
+### Calidad y cierre mecánico
+
+- `./gradlew spotlessCheck` → **PASS**.
+- `./gradlew build -x test` → **PASS**.
+- `git diff --check` → **PASS**.
+- **Graphify `update .`**: PASS — grafo reconstruido con **3.902 nodos,
+  12.385 aristas y 158 comunidades**. Advertencias no bloqueantes: 8 fuentes
+  sin nodos, parser SQL opcional ausente y etiquetas de comunidades pendientes
+  de refresco.
+
+### Cambios no realizados — fuera de claims
+
+- **No** se implementa `.mpp` propietario; **no** se importa XLSX/PDF/
+  MSPDI; **no** se calcula CPM/ruta crítica/predecesoras/holguras/lag;
+  **no** se añaden firmas digitales ni sello electrónico; **no** se
+  almacena ni transmite `ubicación` geográfica en ningún cuerpo de
+  respuesta ni en el writer.
+- `motor/`, V001–V008 y `recalculo/` **no se modifican** (verificado por
+  `git diff --stat` dirigido y por la suite completa en PASS sin
+  regresión).
+- **No** se ejecuta commit unitario: instrucción explícita del usuario.
+  El cierre queda documentado y verificable; el commit, cuando se
+  autorice, será de `Plan 031 — cierre I-10/P-37`.
+
+### Comando de verificación futura
+
+```bash
+./gradlew test --tests 'ec.uce.propuestas.cronograma.export.*' \
+               --tests 'ec.uce.propuestas.documento.CronogramaExportResourceIT' \
+               --console=plain
+./gradlew test --console=plain
+./gradlew spotlessCheck
+./gradlew build -x test
+git diff --check
+graphify update .   # PASS: 3.902 nodos / 12.385 aristas / 158 comunidades
+```

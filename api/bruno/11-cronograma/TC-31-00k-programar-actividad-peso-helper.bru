@@ -1,0 +1,59 @@
+meta {
+  name: TC-31-00k — Programar actividad 100% en periodo 1 (helper)
+  type: http
+  seq: 12
+}
+
+patch {
+  url: {{baseUrl}}/cronogramas/{{p31CronogramaId}}/actividades/{{p31ActividadId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "operacion": "REEMPLAZAR_AVANCES",
+    "avancePorPeriodo": {
+      "1": "100.0000"
+    }
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Actividad programada al 100% en periodo 1 (suma = peso)", function() {
+    var act = res.body.actividades.find(function (a) {
+      return a.id === bru.getVar("p31ActividadId");
+    });
+    expect(act).to.be.an("object");
+    expect(act.desviacion).to.equal("0.0000");
+  });
+
+  test("avanceFinal global = 100.0000 (exportable)", function() {
+    expect(res.body.avanceFinal).to.equal("100.0000");
+  });
+}
+
+docs {
+  Helper de Plan 031 — programa la actividad al 100% en el período 1
+  vía `PATCH /cronogramas/{cronogramaId}/actividades/{actividadId}`
+  con `REEMPLAZAR_AVANCES` y `avancePorPeriodo = { "1": "100.0000" }`.
+  El backend distribuye el peso por la regla del motor canónico
+  (Plan 029) y devuelve el cronograma completo con
+  `avanceFinal = 100.0000`. Tras este helper, los casos positivos
+  (`TC-31-01`, `TC-31-05/06/07`) deben pasar contra el cronograma
+  exportable. Plan 031 §Preflight canónico exige
+  `desviacion = 0.0000` y `avanceFinal = 100.0000` para emitir el
+  archivo.
+}

@@ -1,0 +1,64 @@
+meta {
+  name: TC-31-00i — Crear cronograma SEMANA 4 periodos (helper)
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/presupuestos/{{p31PresupuestoId}}/cronograma
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "unidadTiempo": "SEMANA",
+    "numeroPeriodos": 4
+  }
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("p31CronogramaId", res.body.id);
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("Cronograma con 1 actividad autoimportada del rubro", function() {
+    expect(res.body.actividades).to.be.an("array");
+    expect(res.body.actividades.length).to.equal(1);
+  });
+
+  test("cronogramaId UUIDv7 capturado", function() {
+    expect(res.body.id).to.match(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/);
+  });
+
+  test("numeroPeriodos = 4", function() {
+    expect(res.body.numeroPeriodos).to.equal(4);
+  });
+
+  test("unidadTiempo = SEMANA", function() {
+    expect(res.body.unidadTiempo).to.equal("SEMANA");
+  });
+}
+
+docs {
+  Helper de Plan 031 — crea el cronograma vía
+  `POST /presupuestos/{presupuestoId}/cronograma` con
+  `unidadTiempo=SEMANA` y `numeroPeriodos=4`. El backend autoimporta
+  una actividad por rubro existente (Plan 028 §P-33) — el rubro
+  sembrado por `TC-31-00h` produce exactamente 1 actividad, cuya
+  distribución se cierra en `TC-31-00k` (programar al 100%).
+}

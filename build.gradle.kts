@@ -44,6 +44,9 @@ dependencies {
     testImplementation(libs.rest.assured)
     testImplementation(libs.jackson.databind)
     testImplementation(libs.jqwik)
+    // Plan 031 (P-37) - PDFBox 3 API para parse-back del writer PDF.
+    // Apache-2.0; solo usado en tests (writer sigue siendo OpenPDF 2.0.3).
+    testImplementation(libs.pdfbox)
 }
 
 tasks.withType<JavaCompile>().configureEach {
@@ -57,6 +60,13 @@ tasks.withType<Test>().configureEach {
     include("**/*Test.class")
     include("**/*IT.class")
     systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
+    // Plan 031 (P-37, audit closure) — propiedad para activar la validación
+    // focal contra el XSD oficial Project 2007 descargado a /tmp. Por defecto
+    // NO se pasa (los tests focales usan el profile XSD offline); en CI/local
+    // se activa con -Dmspdi.official.xsd=/ruta/al/mspdi_pj12.xsd.
+    if (project.findProperty("mspdi.official.xsd") != null) {
+        systemProperty("mspdi.official.xsd", project.findProperty("mspdi.official.xsd"))
+    }
 }
 
 spotless {
