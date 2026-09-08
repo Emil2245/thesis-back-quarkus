@@ -14,7 +14,7 @@
 
 ## 0. Convenciones del inventario
 
-- **Estado actual** (corte 2026-09-08, con 032–033 cerrados):
+- **Estado actual** (corte 2026-09-08, con 032–035 cerrados):
   - **DONE / PARITY:** capacidad implementada y verificada en el árbol de
     trabajo; no implica commit.
   - **GAP parcial:** capacidad existe pero requiere un ajuste estrecho
@@ -25,8 +25,8 @@
 - **TC:** identificador del catálogo
   `thesis-docs/plan/quality/02-catalogo-pruebas.md`.
 - **Acción de cada fila:** `crear`, `modificar` o `reusar`.
-- **Evidencia medida:** 033 registra sus conteos exactos; el inventario no
-  predice resultados para 034–040.
+- **Evidencia medida:** 033–035 registran sus conteos exactos; el inventario no
+  predice resultados para 036–040.
 
 ## 1. Plan 033 — Log de actividad — base (P-42 foundation) — DONE / PARITY
 
@@ -149,32 +149,43 @@
 - Cambio de email admin (`PUT /admin/usuarios/{id}` para email).
 - Primer SUPER_ADMIN bootstrap.
 
-## 3. Plan 035 — Bases centrales — cierre (P-39)
+## 3. Plan 035 — Bases centrales — cierre (P-39) — DONE / PARITY
 
-**Prioridad:** 3.
+**Cierre:** DONE con verificación focal y amplia (2026-09-08), sin commit.
+**Prioridad histórica:** 3.
 **Proceso / historia:** P-39 / US-36 / TC-P39-01..03.
 **Dependencias previas:** 033 cerrado.
 
 ### Capacidades actuales vs gap
 
-- `AdminBaseCentralResource` (P-39): **DONE / PARITY**
-  (`src/main/java/ec/uce/propuestas/insumo/resource/AdminBaseCentralResource.java`).
-- DELETE base activa → 409 `base-no-archivada`: **DONE / PARITY**
-  (`BaseInsumosService.java:156`).
-- DELETE insumo con FK real → 409 `insumo-en-uso`: **GAP parcial** —
-  stub `conteoUsosApu() = 0L` (`InsumoCrudService.java`); hoy
-  devuelve 400 `validacion` (rama que nunca se ejecuta porque el
-  conteo es siempre 0).
-- Emisión `admin.base_editada`: **MISSING**.
+- `AdminBaseCentralResource` (P-39): **DONE / PARITY**.
+- Listado admin con `Page<T>`, defaults `page=0`/`size=25`, máximo 200 y
+  validación de parámetros: **DONE / PARITY**.
+- DELETE base activa → 409 `base-no-archivada`: **DONE / PARITY**.
+- DELETE insumo con referencia real en `apu_detalle` → 409
+  `insumo-en-uso`: **DONE / PARITY**.
+- Emisión `admin.base_editada` para ocho mutaciones exitosas, sin emisión en
+  GET, dry-run ni rechazos: **DONE / PARITY**.
+- Reporte por fila P-39: **DONE / PARITY** en
+  [`035-auditoria-p39.md`](./035-auditoria-p39.md).
 
-### Archivos candidatos
+### Evidencia de cierre
 
-| Acción | Archivo | Condición |
-|---|---|---|
-| Modificar | `src/main/java/ec/uce/propuestas/insumo/service/InsumoCrudService.java` | Reemplazar `conteoUsosApu() = 0L` por consulta real a `apu_detalle` (o equivalente). Cambiar `ProblemaException.validacion(...)` por `ProblemaException.conflicto("insumo-en-uso", ...)` para la rama con `usos > 0`. **RED-first:** test rojo previo que reproduzca 400 actual. |
-| Modificar | `src/main/java/ec/uce/propuestas/insumo/resource/AdminBaseCentralResource.java` | Instrumentar `admin.base_editada` en operaciones exitosas; **no** modificar el contrato existente. |
-| Crear | `src/test/java/ec/uce/propuestas/insumo/service/InsumoCrudServiceIT.java` | **Test rojo previo** que reproduce 400 `validacion` actual; segundo test que verifica 409 `insumo-en-uso` tras el cambio (RED → GREEN). |
-| Crear | `src/test/java/ec/uce/propuestas/insumo/resource/AdminBaseCentralResourceIT.java` | Cubre TC-P39-01..03 + emisión `admin.base_editada` solo en operaciones exitosas. |
+- RED focal contra baseline: **41 tests**, **18 failures**, **0 errors** y
+  **0 skips**; 9 fallos de auditoría y 9 del recurso por forma `List`,
+  paginación/parámetros inválidos y DELETE referenciado.
+- GREEN fresco:
+  `./gradlew test --tests 'ec.uce.propuestas.insumo.resource.AdminBaseCentral*IT' -Dquarkus.http.test-port=0 --console=plain --rerun-tasks`
+  → **41/41 pass**: `AdminBaseCentralResourceIT` 29 y
+  `AdminBaseCentralLogAuditoriaIT` 12.
+- Regresión dirigida fresca `ec.uce.propuestas.insumo.*`: **74/74 pass**, 0 failures/errors/skips.
+- El primer `spotlessCheck` detectó solo cuatro archivos Java de Plan 035; `spotlessApply` los normalizó y el check posterior pasó como parte de `build -x test`.
+- `build -x test`: **PASS**.
+- Suite completa fresca: **715 = 712 pass + 2 failures aceptados** (GM-19/GM-20) **+ 1 skipped** (GM-24), 0 errors.
+- `git diff --check` limpio; sin cambios en migraciones, `motor/` ni `recalculo/`.
+- `graphify update .` finalizado: 4.453 nodos, 13.555 aristas y 182 comunidades.
+- El fixture `apu_detalle → CENTRAL` cubre defensivamente corrupción o datos
+  heredados; el flujo normal A9 copia a PROYECTO.
 
 ### TCs
 
@@ -371,5 +382,6 @@ de 033).
 ---
 
 **Inventario firmado al cierre de Plan 032 el 2026-09-07 y actualizado al
-cierre de Plan 033 el 2026-09-08. La siguiente tarea es Plan 034; 034–040
-permanecen pendientes según el DAG. No se creó commit en este cierre.**
+cierre completo de Plan 035 el 2026-09-08. La siguiente tarea es Plan 036;
+036–040 permanecen pendientes según el DAG. No se creó commit ni se reclama
+Graphify final en este cierre.**

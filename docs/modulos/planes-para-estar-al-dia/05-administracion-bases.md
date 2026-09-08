@@ -19,6 +19,8 @@ APU/plantillas; todos los archivos Java modificados por este plan fueron
 formateados aisladamente con el hook IDE de Spotless y ninguno aparece en el
 reporte de violaciones.
 
+**Referencia I-11:** Plan 035 agrega paginación canónica, protección defensiva `insumo-en-uso` y emisión D-13 `admin.base_editada`; ver [`035-auditoria-p39.md`](../panel-admin/035-auditoria-p39.md). Quedó **DONE** con evidencia final medida: focal fresca **41/41** (`AdminBaseCentralResourceIT` 29 + `AdminBaseCentralLogAuditoriaIT` 12), regresión dirigida `insumo.*` fresca **74/74**, `build -x test` y Spotless **PASS**, suite completa fresca **715 = 712 pass + GM-19/GM-20 aceptados + GM-24 skipped, 0 errors**, y `git diff --check` limpio. El primer `spotlessCheck` señaló únicamente cuatro archivos Java de Plan 035; `spotlessApply` los normalizó y el check posterior pasó dentro del build. Sin cambios en migraciones, `motor/` ni `recalculo/`; `graphify update .` finalizado con 4.453 nodos, 13.555 aristas y 182 comunidades.
+
 ### Implementación aplicada
 
 1. **Borrado PERSONAL con owner-to-404** — `BasesPersonalesService.borrar(publicId, usuarioId)` reutiliza la seam existente `buscarPorPublicId(...)` (filtrada a `tipo = PERSONAL && usuarioId = caller`) y borra físicamente la fila. El recurso `BasesPersonalesResource.borrar(@PathParam("id") UUID)` devuelve 204 si la base es del caller; cualquier otro caso (base ajena, CENTRAL o PROYECTO) devuelve 404 (nunca 403, RNF-05). Los `insumo` asociados se eliminan por la FK CASCADE `insumo.base_id → base_insumos(id)` ya presente en V001. **No** se introduce ninguna migración: V001 ya soporta la operación (la FK CASCADE existía desde el baseline).

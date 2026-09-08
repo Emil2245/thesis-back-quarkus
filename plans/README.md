@@ -55,8 +55,11 @@ bloque I-11 (panel Super-Admin y piloto SUS) está cubierto bajo
 inventario en
 [`docs/modulos/panel-admin/00-inventario-trabajo.md`](../docs/modulos/panel-admin/00-inventario-trabajo.md));
 **Plan 033 DONE (2026-09-08)** (fundación P-42: V010, catálogo cerrado,
-emisor `MANDATORY` y consulta admin); planes **034–040 PLANNED / TODO**,
-con 034 como siguiente tarea autorizada. I-12
+emisor `MANDATORY` y consulta admin); **Planes 034–035 DONE** (035 con
+verificación focal y amplia medida: 41/41 focal, 74/74 `insumo.*`,
+build/Spotless PASS y suite completa 715 con solo GM-19/GM-20 aceptados y
+GM-24 omitido); planes **036–040 PLANNED / TODO**, con 036 como siguiente
+tarea autorizada. I-12
 (medición SUS `n ≥ 5` + baseline RNF-06 + cierre de
 variables de tesis) **no** está planificada aún: se
 autoriza en su propia sesión tras ejecutar 033–040.
@@ -122,7 +125,9 @@ autoriza en su propia sesión tras ejecutar 033–040.
 > matriz canónica `evento → detalle`;
 > 10 CLOSED + 4 DEFERRED a I-12 + 1 CLOSED con gate RED-first en 035).
 > Plan 033 cerró la fundación P-42 el 2026-09-08 con evidencia medida y
-> sin commit. **Planes 034–040 PLANNED / TODO**; 034 es el siguiente.
+> sin commit. **Planes 034–035 DONE** (035 con verificación focal 41/41,
+> `insumo.*` 74/74, build/Spotless PASS y suite completa 715 con solo
+> GM-19/GM-20 aceptados y GM-24 omitido); **036–040 PLANNED / TODO**; 036 es el siguiente.
 > Los cambios de Plan 031 permanecen preservados.
 > Secuencia completa de 9 planes ejecutables en
 > [`./panel-admin/`](./panel-admin/README.md): 032 (gate documental +
@@ -177,7 +182,7 @@ autoriza en su propia sesión tras ejecutar 033–040.
 | 032 | [Sincronizar contrato e inventario admin](./panel-admin/032-sincronizar-contrato-inventario-admin.md) | I-11 | **DONE (2026-09-07)** (gate documental cerrado; acta firmada + inventario publicado; 21 decisiones locked (20 originales + adenda firmada D-21); 15 STOP con disposición (10 CLOSED + 4 DEFERRED a I-12 + 1 CLOSED con gate RED-first en 035); **033 autorizado tras 032**) |
 | 033 | [Log de actividad — base](./panel-admin/033-log-actividad-base.md) | I-11 | **DONE (2026-09-08)** — V010 añade `public_id` y `entidad_public_id` sin FK; enum/validador con 26 eventos; emisor `MANDATORY` con `TransactionalException` estándar; JSONB persistido como `String` vía `ObjectMapper`; `GET /admin/logs` paginado `SUPER_ADMIN`. Evidencia: audit 26/26, usuario 51/51; suite 673 con solo GM-19/GM-20 aceptados y GM-24 omitido; Spotless/build/diff estáticos PASS; sin commit. |
 | 034 | [Gestión de usuarios e invitaciones](./panel-admin/034-gestion-usuarios-invitaciones.md) | I-11 | **DONE (2026-09-08)** — `UsuarioAdminService` + `UsuarioAdminResource` (`/admin/usuarios` con `@RolesAllowed("SUPER_ADMIN")`); invitación 72 h sin contraseña temporal (contrato acta 032 D-04: 32 bytes SecureRandom → Base64URL sin padding → bcrypt único vía `PasswordService`; sin `RandomUtil`); desactivar/reactivar/delete con FK RESTRICT → 409 `usuario-con-proyectos-impedido` (test focal); emisión D-13 (`usuario.invitado` con `detalle.tokenExpiraEn` ISO-8601; `usuario.desactivado`/`usuario.activado` con `detalle.origen=admin`) vía 033 `MANDATORY`. Evidencia focal admin 18/18 + log emisión 6/6 + sin contraseña temporal 1/1; regresión `usuario.*` verde; suite 698 con solo GM-19/GM-20 aceptados y GM-24 omitido; Spotless/build/diff PASS; sin commit. |
-| 035 | [Bases centrales — cierre](./panel-admin/035-bases-centrales-cierre.md) | I-11 | **PLANNED / TODO** (P-39 / US-36 / TC-P39-01..03; divergencias DELETE base/insumo resueltas por acta 032; sin marcas de paridad fabricadas) |
+| 035 | [Bases centrales — cierre](./panel-admin/035-bases-centrales-cierre.md) | I-11 | **DONE (2026-09-08)** — RED focal 41 tests / 18 failures / 0 errors / 0 skips (9 auditoría y 9 recurso); GREEN focal fresco 41/41 (`AdminBaseCentralResourceIT` 29 + `AdminBaseCentralLogAuditoriaIT` 12); `insumo.*` fresco 74/74; build/Spotless PASS; suite completa fresca 715 = 712 pass + GM-19/GM-20 aceptados + GM-24 skipped, 0 errors; diff limpio; sin cambios en migraciones/motor/recalculo; Graphify final 4.453 nodos / 13.555 aristas / 182 comunidades; siguiente plan 036 |
 | 036 | [Plantillas APU de sistema](./panel-admin/036-plantillas-apu-sistema.md) | I-11 | **PLANNED / TODO** (P-40 / US-37 / TC-P40-01; longitud `descripcionRubro` confirmada contra columna real — sin tope arbitrario) |
 | 037 | [Parámetros del sistema y valores de referencia](./panel-admin/037-parametros-valores-referencia.md) | I-11 | **PLANNED / TODO** (P-41 / US-38 / TC-P41-01..02; DTO de `GET` decide acta 032; `valor_referencia` con `fuente` no blank — sin allowlist vacío que bloquee) |
 | 038 | [Instrumentación D-13: identidad y catálogos](./panel-admin/038-instrumentacion-d13-identidad-catalogos.md) | I-11 | **PLANNED / TODO** (16 nombres únicos + 1 camino emisor adicional `usuario.activado` origen `invitacion`; `auth.password_cambiada` perfil+reset; 4 legacy V004 excluidos) |

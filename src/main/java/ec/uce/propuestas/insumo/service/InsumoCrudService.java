@@ -71,17 +71,13 @@ public class InsumoCrudService {
     @Transactional
     public void eliminar(Long baseId, UUID insumoPublicId) {
         Insumo e = validarExistencia(baseId, insumoPublicId);
-        long usos = conteoUsosApu(e.id);
+        long usos = insumoRepository.contarUsosEnApuDetalle(e.id);
         if (usos > 0) {
-            throw ProblemaException.validacion(
+            throw ProblemaException.conflicto(
+                    "insumo-en-uso",
                     "No se puede eliminar el insumo: está referenciado en " + usos + " parte(s) de APU");
         }
         insumoRepository.delete(e);
-    }
-
-    /** stub: 0 hasta el módulo APU (P-18). */
-    private long conteoUsosApu(Long insumoId) {
-        return 0L;
     }
 
     private Insumo validarExistencia(Long baseId, UUID insumoPublicId) {

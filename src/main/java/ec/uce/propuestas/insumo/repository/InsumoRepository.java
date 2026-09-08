@@ -60,6 +60,13 @@ public class InsumoRepository implements PanacheRepositoryBase<Insumo, Long> {
         return count("baseId = :baseId", Parameters.with("baseId", baseId));
     }
 
+    public long contarUsosEnApuDetalle(Long insumoId) {
+        return getEntityManager()
+                .createQuery("select count(d) from ApuDetalle d where d.insumoId = :insumoId", Long.class)
+                .setParameter("insumoId", insumoId)
+                .getSingleResult();
+    }
+
     /** Listado con filtros (tipo, texto, desactualizados) y paginación. */
     public List<Insumo> listarDeBaseConFiltros(
             Long baseId,

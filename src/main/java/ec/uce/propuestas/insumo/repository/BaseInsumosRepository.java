@@ -3,6 +3,7 @@ package ec.uce.propuestas.insumo.repository;
 import ec.uce.propuestas.insumo.entity.BaseInsumos;
 import ec.uce.propuestas.insumo.entity.TipoBase;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
+import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.List;
 import java.util.Optional;
@@ -25,12 +26,18 @@ public class BaseInsumosRepository implements PanacheRepositoryBase<BaseInsumos,
      * usuarios) oculta las archivadas; cuando es {@code true} las expone para
      * que el administrador mantenga la visibilidad del catálogo completo.
      */
-    public List<BaseInsumos> listarCentralesAdmin(boolean incluirArchivadas) {
-        if (incluirArchivadas) {
-            return find("tipo = ?1 order by nombre", TipoBase.CENTRAL).list();
-        }
-        return find("tipo = ?1 and archivada = false order by nombre", TipoBase.CENTRAL)
+    public List<BaseInsumos> listarCentralesAdmin(boolean incluirArchivadas, int page, int size) {
+        String filtro = incluirArchivadas ? "tipo = ?1" : "tipo = ?1 and archivada = false";
+        return find(filtro + " order by nombre, publicId", TipoBase.CENTRAL)
+                .page(Page.of(page, size))
                 .list();
+    }
+
+    public long contarCentralesAdmin(boolean incluirArchivadas) {
+        if (incluirArchivadas) {
+            return count("tipo = ?1", TipoBase.CENTRAL);
+        }
+        return count("tipo = ?1 and archivada = false", TipoBase.CENTRAL);
     }
 
     /**

@@ -1,6 +1,6 @@
 # 035 — Bases centrales — cierre (P-39)
 
-**Estado:** TODO · I-11 · P-39 / US-36 / TC-P39-01..03.
+**Estado:** DONE (implementación + verificación focal y amplia, 2026-09-08) · I-11 · P-39 / US-36 / TC-P39-01..03. Siguiente plan: 036.
 
 > P-39 ya está **DONE 2026-08-29** por
 > [`docs/modulos/planes-para-estar-al-dia/05-administracion-bases.md`](../../docs/modulos/planes-para-estar-al-dia/05-administracion-bases.md)
@@ -29,6 +29,33 @@
 > mutaciones **exitosas**; no existen emisiones para operaciones
 > rechazadas en este proceso.
 
+## Estado de cierre
+
+Plan 035 quedó **DONE con verificación focal y amplia medida**. La auditoría
+exigida está publicada en
+[`docs/modulos/panel-admin/035-auditoria-p39.md`](../../docs/modulos/panel-admin/035-auditoria-p39.md).
+
+Evidencia TDD medida:
+
+- RED contra la línea base: **41 tests**, **18 failures**, **0 errors** y
+  **0 skips**. Fueron 9 fallos de auditoría D-13 y 9 fallos del recurso por la
+  forma antigua `List`, paginación/parámetros inválidos y DELETE de insumo
+  referenciado.
+- GREEN fresco:
+  `./gradlew test --tests 'ec.uce.propuestas.insumo.resource.AdminBaseCentral*IT' -Dquarkus.http.test-port=0 --console=plain --rerun-tasks`
+  → **41/41 pass** (`AdminBaseCentralResourceIT` 29;
+  `AdminBaseCentralLogAuditoriaIT` 12), sin failures/errors/skips.
+- Regresión dirigida fresca `ec.uce.propuestas.insumo.*`: **74/74 pass**, sin failures/errors/skips.
+- El primer `./gradlew spotlessCheck` detectó únicamente violaciones de formato en cuatro archivos Java de Plan 035; `spotlessApply` los normalizó. El `spotlessCheck` posterior pasó como parte de `./gradlew build -x test`.
+- `./gradlew build -x test`: **PASS**.
+- Suite completa fresca: **715 tests = 712 pass + 2 failures aceptados** (GM-19 y GM-20) **+ 1 skipped** (GM-24), **0 errors**.
+- `git diff --check`: **limpio**. Sin cambios en migraciones, `motor/` ni `recalculo/`.
+- `graphify update .`: **DONE** — grafo actualizado a 4.453 nodos, 13.555 aristas y 182 comunidades.
+
+La cobertura de referencia directa `apu_detalle → insumo CENTRAL` es un
+fixture defensivo de corrupción o datos heredados. El flujo normal A9 copia el
+insumo a una base PROYECTO antes de asociarlo a una fila APU.
+
 ## Proceso / historia / criterios
 
 - **Proceso:** P-39.
@@ -47,7 +74,7 @@
 
 ## Objetivo medible
 
-Una ejecución futura debe demostrar que:
+La ejecución demostró que:
 
 1. `AdminBaseCentralResource` (Plan 015bis) cumple, **tras la
    reconciliación del acta 032**, la tabla `07-api-contract.md §9`
@@ -406,29 +433,30 @@ git diff --name-only -- 'src/main/java/ec/uce/propuestas/motor/**' \
 # esperado: vacío.
 ```
 
-No se predicen conteos de suite completa. El orquestador decide.
+El conteo final medido de la suite completa fue **715 tests = 712 pass + GM-19/GM-20 aceptados + GM-24 skipped, 0 errors**.
 
 ## Completion checklist (035)
 
-- [ ] `AdminBaseCentralResource` intacto en firma y orden de
-      endpoints (reuso estricto).
-- [ ] Emisión `admin.base_editada` desde las 8 operaciones
-      mutantes **exitosas** (decisión 37) con la clave de
-      operación correcta.
-- [ ] No emisión en operaciones de lectura.
-- [ ] No emisión en operaciones rechazadas.
-- [ ] `035-auditoria-p39.md` firmado: filas verificadas con test
-      rojo previo; sin marcas `✔`/`⚠`/`✗` fabricadas.
-- [ ] Reconciliación de `DELETE` base e `DELETE` insumo según
-      acta 032, con test rojo previo.
-- [ ] `InsumoResource` no-admin intacto (la emisión `insumo.*`
-      es de 038).
-- [ ] Ninguna migración nueva; motor intacto.
-- [ ] `git diff --check` limpio.
+- [x] `AdminBaseCentralResource` conserva rutas y orden de endpoints.
+- [x] Emisión `admin.base_editada` desde las 8 operaciones mutantes
+      **exitosas** (decisión 37) con la clave correcta.
+- [x] No emisión en operaciones de lectura.
+- [x] No emisión en operaciones rechazadas.
+- [x] `035-auditoria-p39.md` publicado con cada fila clasificada como
+      `paridad`, `divergencia` o `gap`, sin símbolos visuales.
+- [x] Reconciliación de DELETE base e insumo según acta 032, con RED previo.
+- [x] `InsumoResource` no-admin intacto; la emisión `insumo.*` sigue en 038.
+- [x] Ninguna migración nueva; motor intacto.
+- [x] GREEN focal 41/41 medido con `--rerun-tasks`.
+- [x] Regresión amplia `ec.uce.propuestas.insumo.*`: 74/74.
+- [x] Suite completa: 715 = 712 pass + GM-19/GM-20 aceptados + GM-24 skipped, 0 errors.
+- [x] `./gradlew build -x test`: PASS.
+- [x] `./gradlew spotlessCheck`: PASS tras normalizar con `spotlessApply` los cuatro archivos Java de Plan 035 señalados inicialmente.
+- [x] `git diff --check` limpio en el cierre documental.
 
 ## Handoff al siguiente plan
 
-Cuando 035 cierre, el orquestador puede iniciar **036** (P-40
-plantillas APU de sistema) o cualquier otro de 035–037. 036
-agrega el flujo admin de plantillas SISTEMA reusando
-`SnapshotApuMapper` price-free.
+Plan 035 está completamente **DONE**. La siguiente tarea es **Plan 036**
+(P-40, plantillas APU de sistema), que agrega el flujo admin de plantillas
+SISTEMA reusando `SnapshotApuMapper` price-free. `graphify update .` quedó
+completado al cierre (4.453 nodos, 13.555 aristas, 182 comunidades).

@@ -124,8 +124,12 @@ class AdminBaseCentralResourceIT {
                 .get("/api/v1/admin/bases-centrales")
                 .then()
                 .statusCode(200)
-                .body("nombre", hasItem("MOP 2026"))
-                .body("size()", equalTo(1));
+                .body("items.nombre", hasItem("MOP 2026"))
+                .body("items", hasSize(1))
+                .body("total", equalTo(1))
+                .body("page", equalTo(0))
+                .body("size", equalTo(25))
+                .body("totalPaginas", equalTo(1));
     }
 
     @Test
@@ -237,8 +241,8 @@ class AdminBaseCentralResourceIT {
                 .get("/api/v1/admin/bases-centrales?incluirArchivadas=true")
                 .then()
                 .statusCode(200)
-                .body("$", hasSize(1))
-                .body("[0].archivada", equalTo(true));
+                .body("items", hasSize(1))
+                .body("items[0].archivada", equalTo(true));
 
         // Y la oculta con el default incluirArchivadas=false.
         given().header("Authorization", "Bearer " + adminToken)
@@ -246,7 +250,7 @@ class AdminBaseCentralResourceIT {
                 .get("/api/v1/admin/bases-centrales")
                 .then()
                 .statusCode(200)
-                .body("$", hasSize(0));
+                .body("items", hasSize(0));
     }
 
     // ========================================================================
@@ -280,7 +284,7 @@ class AdminBaseCentralResourceIT {
                 .get("/api/v1/admin/bases-centrales")
                 .then()
                 .statusCode(200)
-                .body("$", hasSize(1));
+                .body("items", hasSize(1));
     }
 
     @Test
@@ -314,7 +318,7 @@ class AdminBaseCentralResourceIT {
                 .get("/api/v1/admin/bases-centrales?incluirArchivadas=true")
                 .then()
                 .statusCode(200)
-                .body("$", hasSize(0));
+                .body("items", hasSize(0));
     }
 
     @Test
@@ -367,7 +371,7 @@ class AdminBaseCentralResourceIT {
                 .get("/api/v1/admin/bases-centrales")
                 .then()
                 .statusCode(200)
-                .body("[0].totalInsumos", equalTo(1));
+                .body("items[0].totalInsumos", equalTo(1));
     }
 
     @Test
@@ -517,7 +521,7 @@ class AdminBaseCentralResourceIT {
                 .get("/api/v1/admin/bases-centrales")
                 .then()
                 .statusCode(200)
-                .body("[0].totalInsumos", equalTo(0));
+                .body("items[0].totalInsumos", equalTo(0));
     }
 
     // ========================================================================
@@ -599,6 +603,86 @@ class AdminBaseCentralResourceIT {
                 "La copia PROYECTO persiste aunque la CENTRAL original se elimine");
     }
 
+    @Test
+    void TC_035_listado_admin_devuelve_page_con_metadata_y_defaults() {
+        String adminToken = registrarSuperAdmin("admin-page-defaults@ex.com");
+        crearBaseCentral(adminToken, "Default page");
+
+        given().header("Authorization", "Bearer " + adminToken)
+                .when()
+                .get("/api/v1/admin/bases-centrales")
+                .then()
+                .statusCode(200)
+                .body("items", hasSize(1))
+                .body("items[0].nombre", equalTo("Default page"))
+                .body("total", equalTo(1))
+                .body("page", equalTo(0))
+                .body("size", equalTo(25))
+                .body("totalPaginas", equalTo(1));
+    }
+
+    @Test
+    void TC_035_listado_admin_aplica_paginacion_y_orden_estable() {
+        String adminToken = registrarSuperAdmin("admin-page@ex.com");
+        for (String nombre : java.util.List.of("Zulu", "Alfa", "Beta")) {
+            crearBaseCentral(adminToken, nombre);
+        }
+
+        given().header("Authorization", "Bearer " + adminToken)
+                .when()
+                .get("/api/v1/admin/bases-centrales?page=1&size=2")
+                .then()
+                .statusCode(200)
+                .body("items", hasSize(1))
+                .body("items[0].nombre", equalTo("Zulu"))
+                .body("total", equalTo(3))
+                .body("page", equalTo(1))
+                .body("size", equalTo(2))
+                .body("totalPaginas", equalTo(2));
+    }
+
+    @Test
+    void TC_035_listado_admin_rechaza_page_negativa() {
+        String adminToken = registrarSuperAdmin("admin-page-invalid@ex.com");
+
+        given().header("Authorization", "Bearer " + adminToken)
+                .when()
+                .get("/api/v1/admin/bases-centrales?page=-1")
+                .then()
+                .statusCode(400)
+                .body("codigo", equalTo("validacion"));
+    }
+
+    @Test
+    void TC_035_listado_admin_rechaza_size_fuera_de_limites() {
+        String adminToken = registrarSuperAdmin("admin-size-invalid@ex.com");
+
+        for (int size : new int[] {0, 201}) {
+            given().header("Authorization", "Bearer " + adminToken)
+                    .when()
+                    .get("/api/v1/admin/bases-centrales?size=" + size)
+                    .then()
+                    .statusCode(400)
+                    .body("codigo", equalTo("tamano-pagina-invalido"));
+        }
+    }
+
+    @Test
+    void TC_035_borrar_insumo_central_referenciado_directamente_devuelve_409() throws Exception {
+        String email = "admin-ref@ex.com";
+        String adminToken = registrarSuperAdmin(email);
+        String idBase = crearBaseCentral(adminToken, "Base defensiva");
+        String idInsumo = crearInsumoCentral(adminToken, idBase, "REF-1");
+        insertarReferenciaApu(email, idInsumo);
+
+        given().header("Authorization", "Bearer " + adminToken)
+                .when()
+                .delete("/api/v1/admin/bases-centrales/" + idBase + "/insumos/" + idInsumo)
+                .then()
+                .statusCode(409)
+                .body("codigo", equalTo("insumo-en-uso"));
+    }
+
     // ========================================================================
     // Helpers
     // ========================================================================
@@ -650,6 +734,85 @@ class AdminBaseCentralResourceIT {
                         + "JOIN base_insumos b ON b.id = i.base_id "
                         + "WHERE b.tipo = 'PROYECTO' AND b.proyecto_id = ?")) {
             ps.setLong(1, proyectoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        }
+    }
+
+    private String crearBaseCentral(String token, String nombre) {
+        return given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("nombre", nombre))
+                .when()
+                .post("/api/v1/admin/bases-centrales")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
+    }
+
+    private String crearInsumoCentral(String token, String baseId, String codigo) {
+        return given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of(
+                        "codigo", codigo,
+                        "tipo", "MATERIAL",
+                        "descripcion", "Referencia defensiva",
+                        "unidad", "kg",
+                        "precioUnitario", 1.0))
+                .when()
+                .post("/api/v1/admin/bases-centrales/" + baseId + "/insumos")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
+    }
+
+    private void insertarReferenciaApu(String email, String insumoPublicId) throws Exception {
+        try (Connection con = ds.getConnection()) {
+            long usuarioId = scalar(con, "SELECT id FROM usuario WHERE email = ?", email);
+            long insumoId = scalar(con, "SELECT id FROM insumo WHERE public_id = ?::uuid", insumoPublicId);
+            long proyectoId = insertarRetornandoId(
+                    con,
+                    "INSERT INTO proyecto(usuario_id,nombre_proyecto,anio,direccion_institucional) "
+                            + "VALUES (?, 'Fixture defensivo', 2026, 'UCE') RETURNING id",
+                    usuarioId);
+            long presupuestoId = insertarRetornandoId(
+                    con,
+                    "INSERT INTO presupuesto(proyecto_id,version,es_vigente) VALUES (?, 1, true) RETURNING id",
+                    proyectoId);
+            long apuId = insertarRetornandoId(
+                    con,
+                    "INSERT INTO apu(presupuesto_id,codigo,descripcion,unidad) "
+                            + "VALUES (?, 'DEF-1', 'Defensivo', 'u') RETURNING id",
+                    presupuestoId);
+            long seccionId = insertarRetornandoId(
+                    con, "INSERT INTO apu_seccion(apu_id,tipo,orden) VALUES (?, 'MATERIAL', 1) RETURNING id", apuId);
+            try (PreparedStatement ps = con.prepareStatement(
+                    "INSERT INTO apu_detalle(seccion_id,insumo_id,descripcion,orden,cantidad,unidad) "
+                            + "VALUES (?, ?, 'Defensivo', 1, 1, 'kg')")) {
+                ps.setLong(1, seccionId);
+                ps.setLong(2, insumoId);
+                ps.executeUpdate();
+            }
+        }
+    }
+
+    private long scalar(Connection con, String sql, Object value) throws Exception {
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setObject(1, value);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        }
+    }
+
+    private long insertarRetornandoId(Connection con, String sql, long parentId) throws Exception {
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setLong(1, parentId);
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();
                 return rs.getLong(1);

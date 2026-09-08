@@ -2,6 +2,7 @@ package ec.uce.propuestas.insumo.resource;
 
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.common.UuidV7;
+import ec.uce.propuestas.common.dto.Page;
 import ec.uce.propuestas.insumo.dto.AdminBaseCentralCrearRequest;
 import ec.uce.propuestas.insumo.dto.AdminBaseCentralEditarRequest;
 import ec.uce.propuestas.insumo.dto.AdminBaseCentralResponse;
@@ -16,8 +17,11 @@ import ec.uce.propuestas.insumo.service.BaseInsumosService;
 import ec.uce.propuestas.insumo.service.ImportacionInsumoService;
 import ec.uce.propuestas.insumo.service.InsumoCrudService;
 import ec.uce.propuestas.insumo.service.importacion.CsvInsumoParser;
+import ec.uce.propuestas.usuario.audit.EventoLogActividad;
+import ec.uce.propuestas.usuario.audit.service.LogActividadService;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -34,6 +38,7 @@ import jakarta.ws.rs.core.Response;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -76,6 +81,8 @@ import java.util.UUID;
 @RolesAllowed("SUPER_ADMIN")
 public class AdminBaseCentralResource {
 
+    private static final int PAGE_SIZE_MAX = 200;
+
     @Inject
     BaseInsumosService baseInsumosService;
 
@@ -88,6 +95,9 @@ public class AdminBaseCentralResource {
     @Inject
     InsumoRepository insumoRepository;
 
+    @Inject
+    LogActividadService logActividadService;
+
     // ========================================================================
     // Bases
     // ========================================================================
@@ -99,16 +109,20 @@ public class AdminBaseCentralResource {
      */
     @GET
     @Consumes(MediaType.WILDCARD)
-    public List<AdminBaseCentralResponse> listar(
-            @QueryParam("incluirArchivadas") @DefaultValue("false") boolean incluirArchivadas) {
-        return baseInsumosService.listarCentralesAdminEntidades(incluirArchivadas).stream()
-                .map(this::aAdminResponse)
-                .toList();
+    public Page<AdminBaseCentralResponse> listar(
+            @QueryParam("incluirArchivadas") @DefaultValue("false") boolean incluirArchivadas,
+            @QueryParam("page") @DefaultValue("0") int page,
+            @QueryParam("size") @DefaultValue("25") int size) {
+        validarPaginacion(page, size);
+        Page<BaseInsumos> resultado = baseInsumosService.listarCentralesAdminEntidades(incluirArchivadas, page, size);
+        return Page.of(resultado.items().stream().map(this::aAdminResponse).toList(), resultado.total(), page, size);
     }
 
     @POST
+    @Transactional
     public Response crear(@Valid AdminBaseCentralCrearRequest req) {
         BaseInsumos creada = baseInsumosService.crearCentral(req.nombre());
+        emitir(creada, "crear", 0L);
         return Response.status(Response.Status.CREATED)
                 .entity(aAdminResponse(creada))
                 .build();
@@ -116,9 +130,12 @@ public class AdminBaseCentralResource {
 
     @PUT
     @Path("/{id}")
+    @Transactional
     public AdminBaseCentralResponse renombrar(@PathParam("id") String id, @Valid AdminBaseCentralEditarRequest req) {
         UUID publicId = UuidV7.parse(id);
-        return aAdminResponse(baseInsumosService.renombrarCentral(publicId, req.nombre()));
+        BaseInsumos base = baseInsumosService.renombrarCentral(publicId, req.nombre());
+        emitir(base, "renombrar", insumoRepository.contarDeBase(base.id));
+        return aAdminResponse(base);
     }
 
     /**
@@ -132,9 +149,12 @@ public class AdminBaseCentralResource {
     @POST
     @Path("/{id}/archivar")
     @Consumes(MediaType.WILDCARD)
+    @Transactional
     public AdminBaseCentralResponse archivar(@PathParam("id") String id) {
         UUID publicId = UuidV7.parse(id);
-        return aAdminResponse(baseInsumosService.archivarCentral(publicId));
+        BaseInsumos base = baseInsumosService.archivarCentral(publicId);
+        emitir(base, "archivar", insumoRepository.contarDeBase(base.id));
+        return aAdminResponse(base);
     }
 
     /**
@@ -145,9 +165,13 @@ public class AdminBaseCentralResource {
      */
     @DELETE
     @Path("/{id}")
+    @Transactional
     public Response eliminar(@PathParam("id") String id) {
         UUID publicId = UuidV7.parse(id);
+        BaseInsumos base = baseInsumosService.obtenerCentralPorPublicId(publicId);
+        long cantidad = insumoRepository.contarDeBase(base.id);
         baseInsumosService.eliminarCentralArchivada(publicId);
+        emitir(base, "borrar", cantidad);
         return Response.noContent().build();
     }
 
@@ -157,30 +181,38 @@ public class AdminBaseCentralResource {
 
     @POST
     @Path("/{id}/insumos")
+    @Transactional
     public Response crearInsumo(@PathParam("id") String id, @Valid InsumoCrearRequest req) {
         UUID publicId = UuidV7.parse(id);
-        Long baseId = baseInsumosService.obtenerCentralPorPublicId(publicId).id;
-        InsumoResponse body = insumoCrudService.crear(baseId, req);
+        BaseInsumos base = baseInsumosService.obtenerCentralPorPublicId(publicId);
+        InsumoResponse body = insumoCrudService.crear(base.id, req);
+        emitir(base, "crearInsumo", insumoRepository.contarDeBase(base.id));
         return Response.status(Response.Status.CREATED).entity(body).build();
     }
 
     @PUT
     @Path("/{id}/insumos/{iid}")
+    @Transactional
     public InsumoResponse editarInsumo(
             @PathParam("id") String id, @PathParam("iid") String insumoId, @Valid InsumoEditarRequest req) {
         UUID publicId = UuidV7.parse(id);
         UUID insumoPublicId = UuidV7.parse(insumoId);
-        Long baseId = baseInsumosService.obtenerCentralPorPublicId(publicId).id;
-        return insumoCrudService.actualizar(baseId, insumoPublicId, req);
+        BaseInsumos base = baseInsumosService.obtenerCentralPorPublicId(publicId);
+        InsumoResponse response = insumoCrudService.actualizar(base.id, insumoPublicId, req);
+        emitir(base, "editarInsumo", insumoRepository.contarDeBase(base.id));
+        return response;
     }
 
     @DELETE
     @Path("/{id}/insumos/{iid}")
+    @Transactional
     public Response eliminarInsumo(@PathParam("id") String id, @PathParam("iid") String insumoId) {
         UUID publicId = UuidV7.parse(id);
         UUID insumoPublicId = UuidV7.parse(insumoId);
-        Long baseId = baseInsumosService.obtenerCentralPorPublicId(publicId).id;
-        insumoCrudService.eliminar(baseId, insumoPublicId);
+        BaseInsumos base = baseInsumosService.obtenerCentralPorPublicId(publicId);
+        long cantidad = insumoRepository.contarDeBase(base.id);
+        insumoCrudService.eliminar(base.id, insumoPublicId);
+        emitir(base, "borrarInsumo", cantidad - 1L);
         return Response.noContent().build();
     }
 
@@ -193,13 +225,14 @@ public class AdminBaseCentralResource {
     @POST
     @Path("/{id}/insumos/import")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Transactional(rollbackOn = Exception.class)
     public ImportResultadoResponse importarInsumos(
             @PathParam("id") String id,
             @QueryParam("soloValidar") @DefaultValue("false") boolean soloValidar,
             InsumoImportForm form)
             throws IOException {
         UUID publicId = UuidV7.parse(id);
-        Long baseId = baseInsumosService.obtenerCentralPorPublicId(publicId).id;
+        BaseInsumos base = baseInsumosService.obtenerCentralPorPublicId(publicId);
         if (form == null || form.archivo == null) {
             throw ProblemaException.validacion("Archivo CSV requerido");
         }
@@ -208,7 +241,28 @@ public class AdminBaseCentralResource {
             CsvInsumoParser.parse(contenido, TipoInsumo.MATERIAL);
             return new ImportResultadoResponse(0, 0, List.of());
         }
-        return importacionInsumoService.importarCsv(baseId, contenido);
+        ImportResultadoResponse response = importacionInsumoService.importarCsv(base.id, contenido);
+        emitir(base, "importar", insumoRepository.contarDeBase(base.id));
+        return response;
+    }
+
+    private void emitir(BaseInsumos base, String operacion, long cantidadInsumos) {
+        logActividadService.emitir(
+                null,
+                EventoLogActividad.ADMIN_BASE_EDITADA,
+                "base_insumos",
+                base.publicId,
+                Map.of("operacion", operacion, "cantidadInsumos", Math.toIntExact(cantidadInsumos)));
+    }
+
+    private static void validarPaginacion(int page, int size) {
+        if (page < 0) {
+            throw ProblemaException.validacion("pagina-invalida");
+        }
+        if (size < 1 || size > PAGE_SIZE_MAX) {
+            throw new ProblemaException(
+                    400, "tamano-pagina-invalido", "El parámetro size debe estar entre 1 y " + PAGE_SIZE_MAX);
+        }
     }
 
     // ========================================================================

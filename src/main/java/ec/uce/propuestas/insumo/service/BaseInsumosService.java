@@ -78,8 +78,10 @@ public class BaseInsumosService {
      * expone UUID id por convención WU-03) mapea con la información
      * completa, sin tocar el DTO público de la ruta no-admin.
      */
-    public List<BaseInsumos> listarCentralesAdminEntidades(boolean incluirArchivadas) {
-        return baseInsumosRepository.listarCentralesAdmin(incluirArchivadas);
+    public Page<BaseInsumos> listarCentralesAdminEntidades(boolean incluirArchivadas, int page, int size) {
+        List<BaseInsumos> items = baseInsumosRepository.listarCentralesAdmin(incluirArchivadas, page, size);
+        long total = baseInsumosRepository.contarCentralesAdmin(incluirArchivadas);
+        return Page.of(items, total, page, size);
     }
 
     // ========================================================================
