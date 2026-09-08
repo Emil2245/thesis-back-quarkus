@@ -35,7 +35,9 @@ TC-P40, TC-P41, TC-P42; §5 protocolo SUS).
 > módulo `cronograma` cerrado por Plan 031. **032 DONE (2026-09-07)** —
 > acta firmada e inventario operativo publicados. **033 DONE
 > (2026-09-08)** — fundación P-42 implementada y verificada, sin commit.
-> **034–040 PLANNED / TODO**; 034 es la siguiente tarea autorizada. Los
+> **034 DONE (2026-09-08)** — P-38 gestión de usuarios e invitaciones
+> implementada y verificada, sin commit; emisión D-13 vía 033. **035–040
+> PLANNED / TODO**; 035 es la siguiente tarea autorizada. Los
 > cambios de Plan 031 permanecen preservados y fuera de alcance.
 
 ## ¿Por qué nueve planes y no menos?
@@ -64,7 +66,7 @@ planes: las absorben como gates de auditoría sin reescritura.
 |---|---|---|---|---|
 | 032 | [Sincronizar contrato e inventario admin](./032-sincronizar-contrato-inventario-admin.md) | I-11 | gate documental (pre-P-38…P-42) | **DONE (2026-09-07)** — acta en [`docs/modulos/panel-admin/00-acta-reconciliacion.md`](../../docs/modulos/panel-admin/00-acta-reconciliacion.md); inventario en [`docs/modulos/panel-admin/00-inventario-trabajo.md`](../../docs/modulos/panel-admin/00-inventario-trabajo.md) |
 | 033 | [Log de actividad — base](./033-log-actividad-base.md) | I-11 | P-42 / US-39 / TC-P42-01..02 (foundation) | **DONE (2026-09-08)** — V010; catálogo/validador de 26 eventos; emisor `MANDATORY`; JSONB como `String` vía `ObjectMapper`; `GET /admin/logs` paginado y `SUPER_ADMIN`; focal audit 26/26 y usuario 51/51 |
-| 034 | [Gestión de usuarios e invitaciones](./034-gestion-usuarios-invitaciones.md) | I-11 | P-38 / US-35 / TC-P38-01..03 | **PLANNED / TODO** |
+| 034 | [Gestión de usuarios e invitaciones](./034-gestion-usuarios-invitaciones.md) | I-11 | P-38 / US-35 / TC-P38-01..03 | **DONE (2026-09-08)** — `UsuarioAdminService` + `UsuarioAdminResource` (`/admin/usuarios` con `@RolesAllowed("SUPER_ADMIN")`); invitación 72 h sin contraseña temporal (contrato acta 032 D-04); DELETE con proyectos → 409 `usuario-con-proyectos-impedido` (test focal FK); emisión D-13 vía 033 `MANDATORY`; focal admin 18/18 + log 6/6 + sin contraseña temporal 1/1 |
 | 035 | [Bases centrales — cierre](./035-bases-centrales-cierre.md) | I-11 | P-39 / US-36 / TC-P39-01..03 | **PLANNED / TODO** |
 | 036 | [Plantillas APU de sistema](./036-plantillas-apu-sistema.md) | I-11 | P-40 / US-37 / TC-P40-01 | **PLANNED / TODO** |
 | 037 | [Parámetros del sistema y valores de referencia](./037-parametros-valores-referencia.md) | I-11 | P-41 / US-38 / TC-P41-01..02 | **PLANNED / TODO** |

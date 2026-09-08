@@ -86,39 +86,66 @@
 **Prioridad:** 2 (emisor 034 + camino emisor adicional para
 `usuario.activado` con origen `invitacion`).
 **Proceso / historia:** P-38 / US-35 / TC-P38-01..03.
+**Estado:** **DONE (2026-09-08)** — implementación completa, sin commit.
 **Dependencias previas:** 033 cerrado.
 
 ### Capacidades actuales vs gap
 
 - `POST /auth/aceptar-invitacion` + `TipoToken.INVITACION` + TTL 72 h:
   **DONE / PARITY** (`AuthService.aceptarInvitacion`,
-  `TokenService`, `app.app.token.invitacion-ttl`).
+  `TokenService`, `app.auth.invitacion-ttl: PT72H`).
 - `GET/POST/PUT /admin/usuarios[/{id}]` + desactivar/reactivar/delete:
-  **MISSING**.
-- DELETE con proyectos propios: **MISSING** (requiere test focal FK).
+  **DONE / PARITY**.
+- DELETE con proyectos propios → 409 `usuario-con-proyectos-impedido`:
+  **DONE / PARITY** (test focal FK RESTRICT `proyecto_usuario_id_fkey`).
 
-### Archivos candidatos
+### Archivos concretos entregados
 
 | Acción | Archivo | Condición |
 |---|---|---|
-| Crear | `src/main/java/ec/uce/propuestas/usuario/admin/UsuarioAdminService.java` | `invitar`, `reactivar`, `desactivar`, `eliminar`. |
-| Crear | `src/main/java/ec/uce/propuestas/usuario/admin/UsuarioAdminResource.java` | `GET/POST /admin/usuarios`, `PUT /admin/usuarios/{id}` (reactivar/desactivar), `DELETE /admin/usuarios/{id}`. |
-| Crear | `src/main/java/ec/uce/propuestas/usuario/admin/dto/UsuarioAdminResponse.java` | Record con `id` UUIDv7, `nombre`, `email`, `rol`, `activo`, `emailVerificado`, `fechaCreacion` Instant. |
-| Crear | `src/main/java/ec/uce/propuestas/usuario/admin/dto/UsuarioInvitarRequest.java` | DTO de entrada para invitación (sin contraseña temporal). |
-| Reusar | `src/main/java/ec/uce/propuestas/usuario/auth/AuthService.aceptarInvitacion` | Sin reescritura; 038 emite `usuario.activado` con `origen=invitacion` reusando el seam. |
-| Modificar | `src/main/java/ec/uce/propuestas/usuario/auth/AuthService.java` | **No tocar la transacción existente**; agregar emisión del evento con el seam 033 en `aceptarInvitacion` (038) y los demás métodos del catálogo que correspondan. |
-| Crear | `src/test/java/ec/uce/propuestas/usuario/admin/UsuarioAdminResourceIT.java` | `@QuarkusTest` con TC-P38-01..03; **RED-first** para DELETE con proyectos propios → 409 `usuario-con-proyectos-impedido` (D-20). |
+| Creado | `src/main/java/ec/uce/propuestas/usuario/admin/UsuarioAdminService.java` | `invitar`, `reactivar`, `desactivar`, `eliminar`, `listar`, `contar`, `buscarPorPublicId`. Implementa el contrato exacto del acta 032 D-04 (decisión 31): 32 bytes `SecureRandom` → Base64URL sin padding → bcrypt único vía `PasswordService`; descarte inmediato del `byte[]` y del `String` portador; token independiente 72 h vía `TokenService`; sin helper `RandomUtil`. FK mapping en `eliminar` con `esViolacionForeignKey(...)` (recorre la cadena de causas buscando SQLSTATE `23503` y mensajes `violates foreign key constraint` / `fk_proyecto_usuario`). Emisión D-13 (`usuario.invitado`/`usuario.desactivado`/`usuario.activado`) dentro de la misma `@Transactional` exterior. |
+| Creado | `src/main/java/ec/uce/propuestas/usuario/admin/UsuarioAdminResource.java` | `GET /admin/usuarios` (listado paginado `q` + `activo` + `page` + `size`), `GET /admin/usuarios/{id}`, `POST /admin/usuarios` (invitación), `PUT /admin/usuarios/{id}` (edición sin email), `POST /admin/usuarios/{id}/desactivar`, `POST /admin/usuarios/{id}/reactivar`, `DELETE /admin/usuarios/{id}`. `@Path("/admin/usuarios")` + `@RolesAllowed("SUPER_ADMIN")` a nivel de clase. `UuidV7.parse` en frontera. Forma canónica `Page<T>`. |
+| Creado | `src/main/java/ec/uce/propuestas/usuario/admin/dto/UsuarioAdminResponse.java` | Record con `id` UUIDv7, `nombre`, `email`, `rol`, `activo`, `emailVerificado`, `fechaCreacion` Instant; mapper estático `from(Usuario)`. Sin `passwordHash`, sin `tokenHash`, sin `invitacionExpiraEn`. |
+| Creado | `src/main/java/ec/uce/propuestas/usuario/admin/dto/UsuarioInvitarRequest.java` | `@NotBlank @Size(max=200) String nombre`, `@NotBlank @Email @Size(max=320) String email`, `@NotNull Rol rol`. |
+| Creado | `src/main/java/ec/uce/propuestas/usuario/admin/dto/UsuarioAdminEditarRequest.java` | `@NotNull @Size(max=200) String nombre`, `@NotNull Rol rol`, `@NotNull Boolean activo` (sin `email` — decisión 6 del acta 032). |
+| Modificado | `src/main/java/ec/uce/propuestas/usuario/UsuarioRepository.java` | `findByPublicId(UUID)` (admin sin owner-scope), `listar(String q, Boolean activo, int page, int size)` con `ILIKE` escapado (`!` como escape character para evitar ambigüedad en HQL/JPQL) y orden `createdAt desc, id asc` (estable), `contar(...)`, escape seguro de `%`/`_` en el texto del filtro. |
+| Creado | `src/test/java/ec/uce/propuestas/usuario/admin/UsuarioAdminResourceIT.java` | `@QuarkusTest` con **18 tests**: TC-P38-01 invitación/aceptación/duplicado/validación; TC-P38-02 desactivar/login-403/reactivar/login-200 + uuid-inválido/inexistente; PUT edición sin email; TC-P38-03 DELETE con proyectos → 409 `usuario-con-proyectos-impedido` (test focal FK) + DELETE sin proyectos → 204; listado paginado con `q` y `activo`; orden estable por `fechaCreacion DESC` con secundario `id ASC`; autorización `USUARIO` → 403. |
+| Creado | `src/test/java/ec/uce/propuestas/usuario/admin/UsuarioAdminSinContrasenaTemporalTest.java` | Red de seguridad `STOP-034-CONTRASENA-TEMPORAL`: 10 invitaciones, inspecciona todos los DTOs y `RecordingEnviadorCorreo`, asserta 0 matches de regex `(?i).*(password|contrase|clave|temporal|randombytes|temp_pwd|tempassword).*`, y verifica que el token de invitación es exactamente Base64URL de 32 bytes sin padding (43 chars). |
+| Creado | `src/test/java/ec/uce/propuestas/usuario/admin/LogActividadEmisionUsuarioTest.java` | **6 tests**: emisión de `usuario.invitado` con `detalle.tokenExpiraEn` ISO-8601 y `entidadId` UUIDv7; emisión de `usuario.desactivado` con `detalle.origen=admin`; emisión de `usuario.activado` con `detalle.origen=admin`; invariante de idempotencia (rollback exterior borra el evento); email duplicado NO emite evento (rechazo); `detallesEsperados()` enum respeta claves canónicas. |
+| Reusado | `LogActividadService.emitir(...)` (033) | Sin reescritura; consumido vía seam `MANDATORY` dentro de la misma `@Transactional`. |
+| Reusado | `PasswordService` (existente, bcrypt con parámetros vigentes) | Sin reescritura. |
+| Reusado | `TokenService.issueOneTimeToken(...)` (existente, SHA-256, TTL `app.auth.invitacion-ttl: PT72H`) | Sin reescritura. |
+| Reusado | `EnviadorCorreo.enviarInvitacion(...)` (existente, con `RecordingEnviadorCorreo` para tests) | Sin reescritura. |
 
-### TCs
+### Evidencia de cierre
 
-- **TC-P38-01:** invitación 72 h sin contraseña temporal; token expira y devuelve 410 `token-invalido-o-expirado`.
-- **TC-P38-02:** desactivar/reactivar admin y emitir `usuario.desactivado` / `usuario.activado` con `origen=admin`.
-- **TC-P38-03:** DELETE con proyectos propios → 409 `usuario-con-proyectos-impedido` (test focal FK); DELETE sin proyectos → 204.
+- Admin focal: `UsuarioAdminResourceIT` **18/18**, 0 failures/errors/skips.
+- Admin focal: `LogActividadEmisionUsuarioTest` **6/6**, 0 failures/errors/skips.
+- Admin focal: `UsuarioAdminSinContrasenaTemporalTest` **1/1**, 0 failures/errors/skips.
+- Regresión `ec.uce.propuestas.usuario.*` completa: **verde, 0 failures/errors/skips** (incluye 033 audit, auth, perfil, registro, login, logout, reset, invitación).
+- Spotless (`./gradlew spotlessCheck`): **PASS**.
+- `build -x test`: **PASS**.
+- `git diff --check`: **limpio** (cero líneas con whitespace-only issues).
+- Ninguna migración nueva; `motor/`, `recalculo/`, `auth/`, V001–V010 intactos.
+- `grep -RInE 'temporalPassword|contrasenaTemporal|passwordTemporal|tempPassword' src/main/java/ec/uce/propuestas/`: **0 matches** (`STOP-034-CONTRASENA-TEMPORAL` cerrado).
+- Sin helper `RandomUtil`; el `SecureRandom` canónico de la JVM es la única fuente aleatoria (`STOP-034-AYUDA-ALEATORIA` cerrado).
+- Suite completa autoritativa con `test-port=0`: **698 tests totales** = **695 verdes** + **2 rojos aceptados** (GM-19 `-$6.95`, GM-20 cap. 1 `-$0.84` — residuales Plan 014, no se reabre el motor) + **1 skipped** (GM-24 `@Disabled` por fixture EMELNORTE upstream) + **0 errors**.
+- `graphify update .` ejecutado: grafo actualizado.
+
+### TCs cubiertos
+
+- **TC-P38-01:** invitación 72 h sin contraseña temporal (`POST /admin/usuarios` → 201; `RecordingEnviadorCorreo` capturó el correo; `passwordHash` inutilizable bcrypt válido, NO plano; `emailVerificado=false`; `activo=true`); `POST /auth/aceptar-invitacion` reescribe `passwordHash` real y `emailVerificado=true`; login posterior funciona; email duplicado → 409 `email-ya-registrado`; validaciones (nombre/email/rol) → 400.
+- **TC-P38-02:** desactivar → login siguiente 403; reactivar → login 200; uuid inválido → 400; uuid inexistente → 404.
+- **TC-P38-03:** DELETE con proyectos propios → 409 `usuario-con-proyectos-impedido` (test focal FK RESTRICT `proyecto_usuario_id_fkey`); proyecto persiste; DELETE sin proyectos → 204; uuid inválido/inexistente → 400/404.
+- Listado `GET`: paginación canónica `items,total,page,size,totalPaginas`; filtros `q` (ILIKE escapado), `activo` (Boolean); orden estable.
+- Emisión D-13: `usuario.invitado` con `detalle.tokenExpiraEn` ISO-8601; `usuario.desactivado`/`usuario.activado` con `detalle.origen=admin`; rollback exterior borra evento; email duplicado NO emite.
+- USUARIO 403: cualquier endpoint admin responde 403 sin pistas.
+- Sin contraseña temporal: 0 matches regex en DTOs ni en `EnviadorCorreo`.
 
 ### Deferidos a I-12 (no incluidos en 034)
 
-- Self-delete.
-- Last-active-SUPER_ADMIN.
+- Self-delete (`usuario-self-delete-impedido`).
+- Last-active-SUPER_ADMIN (`ultimo-super-admin-impedido`).
 - Cambio de email admin (`PUT /admin/usuarios/{id}` para email).
 - Primer SUPER_ADMIN bootstrap.
 

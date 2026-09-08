@@ -1,6 +1,6 @@
 # 034 — Gestión de usuarios e invitaciones (P-38)
 
-**Estado:** TODO · I-11 · P-38 / US-35 / TC-P38-01..03.
+**Estado:** **DONE (2026-09-08)** · I-11 · P-38 / US-35 / TC-P38-01..03 · sin commit.
 
 > Reutiliza **strictamente** lo existente: `auth/aceptar-invitacion`
 > (DONE, TTL `PT72H`, `TipoToken.INVITACION`,
