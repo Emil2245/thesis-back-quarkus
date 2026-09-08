@@ -56,13 +56,11 @@ Una ejecución futura debe demostrar que:
    **exactamente como acta 032** (decisión 4 de 032): la forma
    del `passwordHash` inutilizable, los flags iniciales `activo` y
    `emailVerificado`, y el camino exacto del helper aleatorio
-   **los decide el acta**; 034 los implementa solo si el acta los
-   fija y, en su defecto, reutiliza la utilidad de generación
-   aleatoria ya presente en el módulo (camino exacto por
-   inventariar contra el código; sin helper `RandomUtil`
-   nuevo). El plan emite el token de invitación 72 h por el
-   `mail port` y responde 201 con `UsuarioAdminResponse`; el caller
-   **nunca** ve la contrasenña.
+   **los decide el acta 032 D-04** y 034 los implementa **exactamente**
+   como el acta los fija (ver decisión 31). El plan emite el
+   token de invitación 72 h por el `mail port` y responde 201
+   con `UsuarioAdminResponse`; el caller **nunca** ve la
+   contrasenña.
 3. `PUT /admin/usuarios/{id}` permite cambiar `nombre`, `rol`,
    `activo`; **no** permite cambiar `email` (decisión 6 de 032);
 4. `POST /admin/usuarios/{id}/desactivar` fija `activo=false`; el
@@ -180,22 +178,50 @@ Se suman a las 20 de 032 y a las 9 de 033; no las contradicen:
       @NotNull Rol rol)` (USUARIO o SUPER_ADMIN).
     - `UsuarioAdminEditarRequest(@Size(max=200) String nombre,
       @NotNull Rol rol, @NotNull Boolean activo)` (sin `email`).
-31. **Hash inutilizable inicial (estrategia fijada por el acta
-    032):** el servicio calcula el hash inutilizable con la
-    estrategia **exactamente como acta 032 decisión 4**; el valor
-    aleatorio semilla se descarta tras el hash y **nunca** se
-    loguea, ni se incluye en respuesta, ni se documenta fuera del
-    acta. 034 **no** prefija algoritmo, sal, longitud ni fuente
-    aleatoria: el acta los cierra, y este plan los implementa
-    úncicamente según esa acta. Si el acta no fija estrategia,
-    034 usa la estrategia ya presente en el módulo (camino
-    exacto a inventariar contra el código antes de codificar;
-    p. ej. la utilidad que ya usa `AuthService` o un helper ya
-    presente en `common/` o `usuario/`). **Nunca** se introduce un
-    helper `RandomUtil` nuevo: cualquier utilidad de generación
-    aleatoria reutiliza la ya presente en el módulo (descubrir
-    el nombre y la ruta exactos contra el código, no
-    inventarlos).
+31. **Contrato exacto del hash inutilizable inicial (self-contained,
+        fijado por el acta 032 D-04):** el contrato se aplica
+        **úncamente** cuando `UsuarioAdminService.invitar(...)` crea
+        un nuevo usuario invitado. **No** se regenera en login,
+        logout, cambio de contrasenña, reactivación ni en
+        ningún otro flujo posterior. Los usuarios existentes
+        inactivos (creados antes de este plan) **no** regeneran
+        su hash; solo `aceptar-invitacion` (flujo canónico 004)
+        reescribe el hash real al aceptar la invitación. Pasos:
+        1. **Origen aleatorio:** 32 bytes aleatorios tomados del
+           `SecureRandom` canónico de la JVM
+           (`java.security.SecureRandom`); **no** se introduce
+           un helper `RandomUtil` nuevo.
+        2. **Codificación intermedia:** los 32 bytes se
+           codifican como **Base64URL sin padding**
+           (`Base64.getUrlEncoder().withoutPadding()`); ese
+           `String` es úncamente un portador efímero
+           hacia el hash y **no** se persiste, se loguea, se
+           devuelve al caller, se envía por correo ni se
+           imprime en trazas.
+        3. **Hash único:** ese `String` Base64URL se hashea
+           **exactamente una vez** a través del `PasswordService`
+           ya existente (bcrypt con los parámetros vigentes del
+           servicio). El `byte[]` aleatorio y el `String`
+           Base64URL se descartan **inmediatamente** después
+           de obtener el hash; solo persiste el `passwordHash`.
+        4. **Token de invitación independiente:** el link
+           `/auth/aceptar-invitacion?token=…` viaja por el
+           `TokenService` ya existente (`SHA-256`, TTL
+           `app.app.token.invitacion-ttl: PT72H`,
+           `TipoToken.INVITACION`); el `TokenUsuario` persiste
+           úncamente el **digest SHA-256** del token (nunca
+           el token en claro). La contrasenña temporal
+           inutilizable y el token de invitación son **dos
+           secretos independientes**: cambiar uno no expone ni
+           regenera el otro.
+        **Decisiones contradictorias retiradas:** las frases
+        "034 no prefija algoritmo", "034 usa la estrategia ya
+        presente en el módulo", "034 usa la utilidad que ya
+        usa `AuthService`" y "034 descubre el nombre y la ruta
+        exactos contra el código" quedan **explícitamente
+        eliminadas** porque el acta 032 D-04 cierra el contrato
+        y 034 lo implementa tal cual, sin invocar estrategias
+        alternativas ni helpers nuevos.
 32. **Emisión D-13 (034):** consume verbatim la matriz canónica
     publicada por el acta 032 (decisión 2); 034 **no** redefine,
     **no** agrega ni **no** amplía claves.
@@ -288,7 +314,10 @@ Se suman a las 20 de 032 y a las 9 de 033; no las contradicen:
   ningún CASCADE silencioso).
 - Cambiar el comportamiento de login cuando `activo=false` (gate
   ya implementado en `AuthService.login`).
-- Inventar un helper `RandomUtil` u otra utilidad nueva.
+- Inventar un helper `RandomUtil` u otra utilidad nueva: el contrato
+  exacto del acta 032 D-04 (32 bytes `SecureRandom` → Base64URL
+  sin padding → hash bcrypt único a través del
+  `PasswordService`) descarta explícitamente esa posibilidad.
 
 ## Archivos a crear/modificar (candidatos, no autorización)
 
@@ -300,7 +329,7 @@ Se suman a las 20 de 032 y a las 9 de 033; no las contradicen:
 | Crear | `src/main/java/ec/uce/propuestas/usuario/admin/dto/UsuarioInvitarRequest.java` | Record canónico. |
 | Crear | `src/main/java/ec/uce/propuestas/usuario/admin/dto/UsuarioAdminEditarRequest.java` | Record canónico (sin `email`). |
 | Modificar | `src/main/java/ec/uce/propuestas/usuario/UsuarioRepository.java` | + `listar(q, activo, page, size)`, `count(q, activo)`, `findByPublicId(UUID)`, `findWithInvitacionPendiente(UUID)`. |
-| Reusar | Utilidad de generación aleatoria ya presente en `common/` o `AuthService` | Sin helper nuevo. |
+| Reusar | `PasswordService` ya existente (bcrypt) y `TokenService` ya existente (SHA-256, TTL PT72H) | Sin helper nuevo; contrato exacto del acta 032 D-04 (ver decisión 31). |
 | Crear | `src/test/java/ec/uce/propuestas/usuario/admin/UsuarioAdminResourceIT.java` | TC-P38-01..03 + DELETE con proyectos (mapeo FK) + listado + reactivado. |
 | Crear | `src/test/java/ec/uce/propuestas/usuario/admin/UsuarioAdminSinContrasenaTemporalTest.java` | Aserts de no-leak. |
 | Modificar | `docs/modulos/panel-admin/00-inventario-trabajo.md` | Marca 034 `DONE`. |
@@ -476,8 +505,10 @@ No se predicen conteos de suite completa. El orquestador decide.
       passwordHash ni tokenHash ni JWT).
 - [ ] TC-P38-01..03 verdes en `@QuarkusTest`.
 - [ ] Ninguna migración nueva; motor intacto; auth intacto.
-- [ ] Sin helper `RandomUtil` inventado: la utilidad aleatoria es la
-      ya presente en el módulo.
+- [ ] Sin helper `RandomUtil` inventado: el contrato del acta 032 D-04
+      (32 bytes `SecureRandom` → Base64URL sin padding →
+      hash bcrypt único a través del `PasswordService`
+      existente) se aplica **úncamente** al crear usuarios invitados.
 - [ ] `git diff --check` limpio.
 
 ## Handoff al siguiente plan

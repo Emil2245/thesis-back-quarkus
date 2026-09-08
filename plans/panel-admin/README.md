@@ -11,9 +11,10 @@
 >
 > **032 es el único plan autorizado para resolver lagunas canónicas.** Los
 > planes 033–040 citan el acta firmada de 032 y nunca pre-deciden
-> superficies que el acta pueda dejar abiertas. Hasta que el acta esté
-> firmada y todas las decisiones locked estén resueltas, **033 queda
-> STOPPED** (no se autoriza código nuevo de I-11 sin esa acta).
+> superficies que el acta pueda dejar abiertas. **El acta está
+> firmada al 2026-09-07** (ver
+> [`docs/modulos/panel-admin/00-acta-reconciliacion.md`](../../docs/modulos/panel-admin/00-acta-reconciliacion.md));
+> 033 ya **no** queda STOPPED — es la siguiente tarea autorizada.
 >
 > **Emisión D-13:** solo operaciones exitosas emiten. No existe
 > `emitirFailure`, `REQUIRES_NEW`, persistencia de eventos para
@@ -31,11 +32,13 @@ tabla D-13, `../../../thesis-docs/plan/architecture/07-api-contract.md` §9
 TC-P40, TC-P41, TC-P42; §5 protocolo SUS).
 
 > **Estado al 2026-09-07 (corte de la planificación I-11):** I-08/I-09/I-10
-> (cronograma + export) DONE; módulo `cronograma` cerrado por Plan 031 con
-> suite completa **647/2/0/1** (orientación, no se predice conteo). El bloque
-> I-11 está **PLANNED / TODO**: cero commits, ningún archivo nuevo fuera de
-> este subdirectorio, cambios de Plan 031 sin commitear (preservados, fuera
-> de alcance).
+> (cronograma + export) DONE; módulo `cronograma` cerrado por Plan 031.
+> **032 DONE (2026-09-07)** — acta firmada en
+> [`docs/modulos/panel-admin/00-acta-reconciliacion.md`](../../docs/modulos/panel-admin/00-acta-reconciliacion.md)
+> + inventario operativo en
+> [`docs/modulos/panel-admin/00-inventario-trabajo.md`](../../docs/modulos/panel-admin/00-inventario-trabajo.md).
+> **033–040 PLANNED / TODO** (sin claims de commits; cambios de Plan 031
+> sin commitear, preservados, fuera de alcance).
 
 ## ¿Por qué nueve planes y no menos?
 
@@ -61,8 +64,8 @@ planes: las absorben como gates de auditoría sin reescritura.
 
 | # | Plan | Iteración | Procesos / Historias | Estado |
 |---|---|---|---|---|
-| 032 | [Sincronizar contrato e inventario admin](./032-sincronizar-contrato-inventario-admin.md) | I-11 | gate documental (pre-P-38…P-42) | **PLANNED / TODO** |
-| 033 | [Log de actividad — base](./033-log-actividad-base.md) | I-11 | P-42 / US-39 / TC-P42-01..02 (foundation) | **PLANNED / TODO** |
+| 032 | [Sincronizar contrato e inventario admin](./032-sincronizar-contrato-inventario-admin.md) | I-11 | gate documental (pre-P-38…P-42) | **DONE (2026-09-07)** — acta en [`docs/modulos/panel-admin/00-acta-reconciliacion.md`](../../docs/modulos/panel-admin/00-acta-reconciliacion.md); inventario en [`docs/modulos/panel-admin/00-inventario-trabajo.md`](../../docs/modulos/panel-admin/00-inventario-trabajo.md) |
+| 033 | [Log de actividad — base](./033-log-actividad-base.md) | I-11 | P-42 / US-39 / TC-P42-01..02 (foundation) | **PLANNED / TODO** — próxima tarea autorizada tras 032 |
 | 034 | [Gestión de usuarios e invitaciones](./034-gestion-usuarios-invitaciones.md) | I-11 | P-38 / US-35 / TC-P38-01..03 | **PLANNED / TODO** |
 | 035 | [Bases centrales — cierre](./035-bases-centrales-cierre.md) | I-11 | P-39 / US-36 / TC-P39-01..03 | **PLANNED / TODO** |
 | 036 | [Plantillas APU de sistema](./036-plantillas-apu-sistema.md) | I-11 | P-40 / US-37 / TC-P40-01 | **PLANNED / TODO** |
@@ -80,8 +83,15 @@ planes: las absorben como gates de auditoría sin reescritura.
   │
   ▼
 033 (P-42 base: UNA migración aditiva con el siguiente número disponible
-     para `log_actividad.public_id UUID DEFAULT uuidv7()` +
-     UNIQUE + inmutabilidad; V001–V009 intactas;
+     (nombre neutral `V???__log_actividad_identidad_publica.sql`)
+     que añade `log_actividad.public_id UUID NOT NULL DEFAULT uuidv7()`
+     + UNIQUE + inmutabilidad (D-01) **y**
+     `log_actividad.entidad_public_id UUID NULL` sin FK, sin DEFAULT,
+     sin UNIQUE (D-21 — server-authored; los logs sobreviven al
+     borrado de la entidad afectada); V001–V009 intactas;
+     `entidad_id BIGINT` legacy permanece inalterado y nunca cruza
+     REST; `LogActividadResponse.entidadId` mapea exclusivamente
+     desde `entidad_public_id`;
      enum `EventoLogActividad` con 26 entradas verbatim;
      emisión MANDATORY dentro de la misma @Transactional exterior —
      sin ghost events; sin emitirFailure / REQUIRES_NEW / codigoError)
@@ -147,7 +157,7 @@ es la integración final.
 | `GET/PUT /proyectos/parametros-sistema` | **DONE** (lectura pública, escritura `@RolesAllowed("SUPER_ADMIN")`; 12 columnas + 8 rangos) | 037 **conserva** la ruta canónica (DTO de `GET` solo si acta 032 lo decide); agrega logging `admin.parametros_editados` y entrega el CRUD `valor_referencia` (clave única con fuente no blank) |
 | CRUD/archivar/borrar bases centrales | **DONE 2026-08-29 (Plan 015bis)** (`AdminBaseCentralResource` bajo `/admin/bases-centrales`) | 035 audita paridad canónica (sin marcas `✔`/`⚠`/`✗` fabricadas) y cierra **solo** el gap estrecho demostrado por test rojo previo; **divergencias DELETE base/insumo resueltas por acta 032**; además emite `admin.base_editada` solo en operaciones exitosas |
 | `plantilla_apu` personal (`tipo=PERSONAL`) + SISTEMA con `usuario_id NULL` | **DONE 2026-08-29 (Plan 04)**; SISTEMA sembrado en V004 | 036 agrega el **flujo admin** (`POST /admin/plantillas-apu` desde APU existente con `desdeApuId`; `PUT/DELETE /admin/plantillas-apu/{id}`; UUIDv7); emite `admin.plantilla_editada` solo en operaciones exitosas |
-| `log_actividad` tabla + índices | **DONE** (V001 §2.15; tabla, `ix_log_fecha`, `ix_log_usuario`, FK `usuario_id → usuario ON DELETE SET NULL`) | 033 crea la **capa de servicio** (`LogActividadService.emitir(...)` con MANDATORY), entidad/repo (UUIDv7), `LogActividadResource` (`GET /admin/logs` con filtros `usuarioId&evento&desde&hasta&page…`), DTOs; **una migración aditiva con el siguiente número disponible** añade `public_id UUID DEFAULT uuidv7()` + índice único + inmutabilidad (V001–V009 intactas); el catálogo cerrado D-13 vive en el enum `EventoLogActividad` |
+| `log_actividad` tabla + índices | **DONE** (V001 §2.15; tabla, `ix_log_fecha`, `ix_log_usuario`, FK `usuario_id → usuario ON DELETE SET NULL`) | 033 crea la **capa de servicio** (`LogActividadService.emitir(...)` con MANDATORY), entidad/repo (UUIDv7), `LogActividadResource` (`GET /admin/logs` con filtros `usuarioId&evento&desde&hasta&page…`), DTOs; **una migración aditiva con el siguiente número disponible** (nombre neutral `V???__log_actividad_identidad_publica.sql`) añade `public_id UUID NOT NULL DEFAULT uuidv7()` + índice único + inmutabilidad (D-01) **y** `entidad_public_id UUID NULL` sin FK/sin DEFAULT/sin UNIQUE (D-21; server-authored; los logs sobreviven al borrado de la entidad afectada); la columna legacy `entidad_id BIGINT` permanece inalterada y nunca cruza REST; `LogActividadResponse.entidadId` mapea exclusivamente desde `entidad_public_id`; V001–V009 intactas; el catálogo cerrado D-13 vive en el enum `EventoLogActividad` |
 | `valor_referencia` tabla | **DONE** (V001 §2.14; PK `clave`, columnas `valor/descripcion/fuente/updated_at`) | 037 entrega `GET /admin/valores-referencia`, `PUT /admin/valores-referencia/{clave}` (upsert; cualquier clave única con fuente no blank), `DELETE /admin/valores-referencia/{clave}` |
 | D-13 eventos (catálogo cerrado) | **PENDIENTE** (la tabla existe, no hay emisores; V004 siembra 19 log rows; 6 filas fixture usan los 4 nombres legacy fuera del catálogo) | 033 (foundation: enum 26 verbatim + `detallesEsperados()` completo + `LogActividadDetalleValidator`) + 034–039 (emisores por capacidad; consumen el mapa congelado por 032) + 040 (verificación de cobertura: enum tiene 26 verbatim; cobertura runtime solo de productores efectivamente canonicados; `STOP-032-P09-DUPLICAR` puede diferir `proyecto.duplicado` como "no producer yet") |
 | Piloto SUS 1–2 participantes | **PENDIENTE** (gate humano dependiente del frontend) | 040 entrega artefactos, comandos y plantilla con cita Brooke (1996); **no fabrica** ejecución ni puntaje |
@@ -168,10 +178,14 @@ y los planes 033–040 nunca las pre-deciden:
    **`LogActividadResponse.id`** y **`LogActividadResponse.usuarioId`** son
    UUIDv7; **`entidadId`** es UUIDv7 nullable. Plan 033 crea **una**
    migración aditiva con el siguiente número disponible
-   (`V???__log_actividad_public_id.sql`); nunca se pre-asigna V010
-   ciegamente; nunca se editan V001–V009. `usuarioNombre` y el campo
-   canónico `fecha` se conservan donde el canon los requiera. **No
-   PII** aplica **solo** a `detalle` JSONB y a secretos.
+   (nombre neutral `V???__log_actividad_identidad_publica.sql`,
+   porque cubre dos columnas; nunca
+   `V???__log_actividad_public_id.sql`); nunca se pre-asigna V010
+   ciegamente; nunca se editan V001–V009. La columna legacy
+   `log_actividad.entidad_id BIGINT` (V001 §2.15) **no** se convierte
+   y **no** se expone vía REST. `usuarioNombre` y el campo canónico
+   `fecha` se conservan donde el canon los requiera. **No PII** aplica
+   **solo** a `detalle` JSONB y a secretos.
 2. **`log_actividad.detalle` JSONB (RNF-08, TC-P42-02):** solo claves
    canónicas en español neutro; nunca correos, `passwordHash`, JWT,
    tokens, hashes de invitación, ni el contenido de
@@ -182,20 +196,38 @@ y los planes 033–040 nunca las pre-deciden:
    con `@Transactional(TxType.MANDATORY)` y un caller sin tx exterior
    lanza `IllegalStateException` (test focal). **No existe**
    `emitirFailure`, `REQUIRES_NEW`, ni persistencia de eventos para
-   operaciones fallidas. Los servicios públicos que hoy no abren
-   `@Transactional` (caso conocido: `AuthService.login`,
-   `AuthService.aceptarInvitacion`) ajustan su tx exterior en el plan
-   que los cubre (034 para invitación admin; 038 para login/registro).
+   operaciones fallidas. Los servicios públicos que emiten D-13
+   (`AuthService.login`, `AuthService.logout`,
+   `AuthService.registrar`, `AuthService.cambiarPassword`,
+   `AuthService.restablecerPassword`,
+   `AuthService.aceptarInvitacion`, `ProyectoService`,
+   `InsumoCrudService`, `ImportacionInsumoService`,
+   `CopiaBaseService`, `ApuCrudService`) **ya abren**
+   `@Transactional` exterior antes de la emisión; la auditoría
+   contra
+   `src/main/java/ec/uce/propuestas/usuario/auth/AuthService.java`
+   confirma que `login` (línea 108) y `aceptarInvitacion`
+   (línea 206) están anotadas con `@Transactional`. 033 no
+   ajusta transacciones exteriores; 038 hereda esa verificación
+   y reabre 032 si descubre un servicio que requiere ajuste.
 4. **Invitación (D-11) — estado inicial y hash inutilizable:**
    `POST /admin/usuarios` crea el `Usuario` con `passwordHash`
-   inutilizable, `activo=true`, `emailVerificado=false`. La estrategia
-   exacta del hash (algoritmo, sal, longitud, fuente aleatoria) es
-   **local al servicio** y nunca se documenta en respuestas, logs ni
-   trazas. La invitación 72 h viaja por el `mail port` existente
-   (`app.app.token.invitacion-ttl: PT72H`). **Nunca** se imprime ni
-   devuelve la contraseña temporal. **No** se introduce un helper
-   `RandomUtil` nuevo: la utilidad aleatoria es la ya presente en el
-   módulo.
+   inutilizable, `activo=true`, `emailVerificado=false`. El acta
+   032 congela el contrato exacto (D-04): 32 bytes aleatorios
+   tomados del `SecureRandom` canónico de la JVM, codificados como
+   **Base64URL sin padding**, hasheados **una sola vez** a través
+   del `PasswordService` ya existente (bcrypt); el `byte[]`
+   aleatorio y el `String` Base64URL se descartan inmediatamente
+   después del hash. El algoritmo se ejecuta **únicamente** al
+   crear un nuevo usuario invitado (no se regenera en login,
+   logout, cambio de contraseña, ni en ningún otro flujo
+   posterior). El token de invitación 72 h viaja por el
+   `TokenService` ya existente (`SHA-256`, TTL
+   `app.app.token.invitacion-ttl: PT72H`, `TipoToken.INVITACION`);
+   la contraseña temporal y el token de invitación son **dos
+   secretos independientes**. **No** se introduce un helper
+   `RandomUtil` nuevo: la fuente aleatoria es el `SecureRandom`
+   ya presente en el módulo.
 5. **Self-delete / last-active-SUPER_ADMIN (superficie a confirmar
    por acta 032):** la matriz canónica no se prefija en este plan.
    Si el acta la deja abierta, 034 no codifica la matriz como

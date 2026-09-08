@@ -55,13 +55,17 @@ Una ejecución futura debe demostrar que:
    que ya emiten por 034–037 (regla de no-duplicación);
 6. cada servicio público (Auth, Proyecto, Insumo, Apu, CopiaBase)
    sigue pasando su `@QuarkusTest` existente (regresión cero);
-7. cuando un servicio público no abre `@Transactional` (caso
-   conocido: `AuthService.login`, `AuthService.aceptarInvitacion`,
-   `AuthService.registrar`, `AuthService.logout`,
-   `AuthService.cambiarPassword`), 038 ajusta el servicio para
-   establecer una transacción exterior explícita antes de la
-   emisión, y `LogActividadService.emitir(...)` (con
-   `TxType.MANDATORY`) opera bajo esa transacción.
+7. los servicios públicos emisores (`AuthService.login`,
+   `AuthService.aceptarInvitacion`, `AuthService.registrar`,
+   `AuthService.logout`, `AuthService.cambiarPassword`,
+   `AuthService.restablecerPassword`) **ya están anotados con
+   `@Transactional`** (verificado en
+   `src/main/java/ec/uce/propuestas/usuario/auth/AuthService.java`;
+   corrección del acta 032 D-03). 038 **no** introduce un
+   seam exterior explícito; integra la llamada a
+   `LogActividadService.emitir(...)` (con `TxType.MANDATORY`)
+   dentro del método público existente, sin alterar la
+   firma ni la transacción exterior.
 
 ## Dependencias y gates
 
@@ -203,7 +207,7 @@ Se suman a las anteriores; no las contradicen:
     | `insumo.editado` | `{}` | UUIDv7 del `Insumo` |
     | `insumo.eliminado` | `{}` | UUIDv7 del `Insumo` |
     | `insumos.import_csv` | `{ "creados": <int>, "actualizados": <int>, "errores": <int> }` | UUIDv7 de la `BaseInsumos` destino |
-    | `base.copiada_a_proyecto` | `{ "baseOrigenId": <UUIDv7>, "proyectoDestinoId": <UUIDv7>, "cantidadInsumos": <int>, "cantidadOmitidos": <int> }` | UUIDv7 del `Insumo` o de la `BaseInsumos` resultante (server-authored) |
+    | `base.copiada_a_proyecto` | `{ "baseOrigenId": <UUIDv7>, "proyectoDestinoId": <UUIDv7>, "cantidadInsumos": <int>, "cantidadOmitidos": <int> }` | UUIDv7 de la `BaseInsumos` **destino** del tipo PROYECTO (server-authored; el inventario copiado vive en la `BaseInsumos` PROYECTO resultante) |
     | `apu.creado` | `{}` | UUIDv7 del `Apu` |
     | `apu.editado` | `{}` | UUIDv7 del `Apu` |
     | `apu.eliminado` | `{}` | UUIDv7 del `Apu` |
@@ -247,11 +251,14 @@ Se suman a las anteriores; no las contradicen:
   decisión 50 para emitir el evento D-13 correspondiente **al
   final del método público** (cuando el commit es inminente,
   antes del return), solo en operaciones exitosas.
-- Cuando el servicio público no abre `@Transactional` (caso
-  conocido en `AuthService`), 038 ajusta el servicio para abrir
-  la transacción exterior explícita antes de la emisión, con un
-  test focal `MANDATORY-sin-tx-lanza-IllegalStateException` que
-  pasa a verde tras el ajuste.
+- Los servicios públicos emisores (incluido `AuthService`)
+  **ya están anotados con `@Transactional`** (corrección del
+  acta 032 D-03). 038 **no** ajusta la transacción exterior;
+  integra la emisión dentro del método público existente
+  bajo la tx ya abierta. La integridad "MANDATORY sin tx lanza
+  `IllegalStateException`" queda verificada por
+  `LogActividadServiceTest` (033); 038 **no** reproduce ese
+  test focal.
 - Tests `@QuarkusTest`:
   - `AuthServiceLogAuditoriaIT` (5 escenarios: login ok, logout,
     registro, password cambiada desde perfil, password cambiada
@@ -286,7 +293,7 @@ Se suman a las anteriores; no las contradicen:
 
 | Acción | Archivo posible | Condición |
 |---|---|---|
-| Modificar | `src/main/java/ec/uce/propuestas/usuario/auth/AuthService.java` | Inyectar `LogActividadService`; emitir los eventos asignados (decisión 50). Ajustar la transacción exterior si no abre `@Transactional`. |
+| Modificar | `src/main/java/ec/uce/propuestas/usuario/auth/AuthService.java` | Inyectar `LogActividadService`; emitir los eventos asignados (decisión 50) **dentro** de la `@Transactional` exterior ya existente (corrección del acta 032 D-03; sin seam exterior nuevo). |
 | Modificar | `src/main/java/ec/uce/propuestas/proyecto/service/ProyectoService.java` | Inyectar `LogActividadService`; emitir 4 eventos. |
 | Modificar | `src/main/java/ec/uce/propuestas/insumo/service/InsumoCrudService.java` | Inyectar `LogActividadService`; emitir 3 eventos. |
 | Modificar | `src/main/java/ec/uce/propuestas/insumo/service/importacion/ImportacionInsumoService.java` | Inyectar `LogActividadService`; emitir 1 evento. |
@@ -324,12 +331,13 @@ Para cada servicio:
 ### GREEN
 
 Inyectar `LogActividadService` en el servicio público. Llamar
-`emitir(...)` con el evento y `detalle` canónicos. Si el
-servicio público no abre `@Transactional`, ajustar el método
-para abrir la tx exterior antes de la emisión; el test focal
-`MANDATORY-sin-tx-lanza-IllegalStateException` pasa a verde
-tras el ajuste. La inyección no cambia la firma pública del
-servicio.
+`emitir(...)` con el evento y `detalle` canónicos **dentro** de
+la `@Transactional` exterior ya existente (corrección del
+acta 032 D-03; todos los servicios públicos emisores ya la
+abren). La inyección no cambia la firma pública del
+servicio. El test focal `MANDATORY-sin-tx-lanza-IllegalStateException`
+pertenece a 033 (`LogActividadServiceTest`) y 038 lo asume
+verde, sin reescribirlo.
 
 ### TRIANGULATE
 
@@ -366,7 +374,7 @@ servicio.
 | `insumo.editado` | 1 fila con `entidadId` UUIDv7 del `Insumo`. |
 | `insumo.eliminado` | 1 fila con `entidadId` UUIDv7 del `Insumo`. |
 | `insumos.import_csv` | 1 fila con `entidadId` UUIDv7 de la `BaseInsumos` destino; `detalle.creados/actualizados/errores`. |
-| `base.copiada_a_proyecto` | 1 fila con `detalle.baseOrigenId/proyectoDestinoId/cantidadInsumos/cantidadOmitidos`. |
+| `base.copiada_a_proyecto` | 1 fila con `entidadId` = UUIDv7 de la `BaseInsumos` **destino** del tipo PROYECTO; `detalle.baseOrigenId/proyectoDestinoId/cantidadInsumos/cantidadOmitidos`. |
 | `apu.creado` | 1 fila con `entidadId` UUIDv7 del `Apu`. |
 | `apu.editado` | 1 fila con `entidadId` UUIDv7 del `Apu`. |
 | `apu.eliminado` | 1 fila con `entidadId` UUIDv7 del `Apu`. |
@@ -439,8 +447,12 @@ No se predicen conteos de suite completa. El orquestador decide.
       ítem. **No se fabrica el seam canónico en 038.**
 - [ ] Cada evento tiene `detalle` con el set de claves canónicas
       de la matriz del acta 032 (decisión 2).
-- [ ] Cuando un servicio público no abría `@Transactional`, se
-      ajusta con test focal verde.
+- [ ] Verificar que los servicios públicos emisores (`AuthService`,
+      `ProyectoService`, `InsumoCrudService`,
+      `ImportacionInsumoService`, `CopiaBaseService`,
+      `ApuCrudService`) siguen anotados con `@Transactional`;
+      ningún seam exterior explícito se introduce
+      (corrección del acta 032 D-03).
 - [ ] Ningún emisor en `motor/`, `recalculo/`, `presupuesto/`,
       `cronograma/`, `documento/`.
 - [ ] Ningún evento duplicado con 034–037.

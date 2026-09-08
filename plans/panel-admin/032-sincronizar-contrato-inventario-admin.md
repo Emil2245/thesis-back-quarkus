@@ -1,14 +1,38 @@
 # 032 — Sincronizar contrato e inventario del panel Super-Admin
 
-**Estado:** TODO · I-11 · gate documental previo a P-38…P-42.
+**Estado:** **DONE (2026-09-07)** · I-11 · gate documental previo a P-38…P-42.
+
+> **Adenda firmada (post-firma 2026-09-07):** este plan mantiene su
+> estado **DONE** y se reabre **solo** para incorporar la decisión
+> **D-21** del acta, sin reabrir la firma original. D-21 resuelve la
+> incompatibilidad detectada entre `log_actividad.entidad_id BIGINT`
+> (V001 §2.15) y `LogActividadResponse.entidadId` UUIDv7 nullable.
+> La corrección se aplica como adenda: la migración aditiva de 033
+> añade **además** la columna `entidad_public_id UUID NULL`
+> (server-authored, sin FK, sin DEFAULT, sin UNIQUE). `entidad_id`
+> BIGINT permanece legacy-only y nunca cruza REST. El nombre de la
+> migración pasa a ser neutral:
+> `V???__log_actividad_identidad_publica.sql`. Ver acta §2 D-21 y
+> §3 `STOP-032-LOG-ENTIDAD-ID-INCOMPATIBLE` (CLOSED).
 
 > Este plan **no codifica**. Su único producto es un acta de
 > reconciliación canónica del panel Super-Admin más un inventario
-> exacto de trabajo pendiente, escrito en `docs/modulos/panel-admin/00.md`
-> (no se crea en este pase si 032 no se ejecuta; ver **Paso 9**). Cualquier
-> contradicción sin resolver **STOP** y bloquea 033. 032 es la **única**
+> exacto de trabajo pendiente, escrito en
+> [`docs/modulos/panel-admin/00-acta-reconciliacion.md`](../../docs/modulos/panel-admin/00-acta-reconciliacion.md)
+> y [`docs/modulos/panel-admin/00-inventario-trabajo.md`](../../docs/modulos/panel-admin/00-inventario-trabajo.md).
+> Cualquier contradicción sin resolver **STOP** y bloquea 033. 032 es la **única**
 > sesión autorizada para resolver lagunas canónicas; los planes 033–040
 > citan su acta y nunca la pre-deciden.
+>
+> **Cierre (2026-09-07):** acta firmada en
+> `docs/modulos/panel-admin/00-acta-reconciliacion.md`; inventario
+> operativo en `docs/modulos/panel-admin/00-inventario-trabajo.md`. 21
+> decisiones locked verbatim (20 originales + adenda firmada D-21);
+> 15 STOP conditions con disposición explícita (10 CLOSED, 4
+> DEFERRED a I-12, 1 cerrado con gate RED-first en 035). Drift
+> canónico de los cinco documentos autoridad reconciliado en
+> `../thesis-docs` como parte de este cierre, conforme a la entrega
+> autorizada debajo. Sin claims de commit; sin claims de suite completa.
 >
 > **Entrega autorizada y exigida:** ejecutar 032 incluye **reconciliar**
 > los documentos canónicos de `../thesis-docs` (`api-contract.md`,
@@ -63,7 +87,7 @@ no resoluble desde fuentes citadas.
 
 > **Nombres canónicos de respuesta (mínimo, decidido por el acta):**
 > el acta **congela** los nombres canónicos de respuesta que los
-> planes 033–038 reutilizan sin协商. Cualquier campo adicional es
+> planes 033–038 reutilizan sin renegociación. Cualquier campo adicional es
 > **opt-in** (los planes que lo necesiten lo justifican y lo añaden
 > en su propio scope; el acta no lo prefija):
 >
@@ -170,17 +194,28 @@ código real (no se inventan firmas; se citan archivos
    - PK/FK internas siguen siendo `BIGINT`; el BIGINT **nunca**
      cruza REST en respuestas admin (excepto `count`, `bytes`,
      enteros de paginación).
-   - **Decisión locked:** el plan 033 crea una migración aditiva
-     **con el siguiente número disponible a la hora de ejecutar 033**
-     (p. ej. `V010__log_actividad_public_id.sql` si V010 no existe;
+   - **Decisión locked:** el plan 033 crea **una sola** migración
+     aditiva **con el siguiente número disponible a la hora de
+     ejecutar 033**
+     (p. ej. `V010__log_actividad_identidad_publica.sql` si V010 no existe;
      si V010 ya existe por un plan posterior, el siguiente libre).
      El nombre exacto se fija en el paso de ejecución de 033 (no se
-     pre-asigna V010 ciegamente). La migración añade
-     `log_actividad.public_id UUID NOT NULL DEFAULT uuidv7()`,
-     índice único `ux_log_actividad_public_id`, y trigger
-     `trg_log_actividad_public_id_immutable` reusando el patrón de
-     `fn_assert_public_id_immutable()` (V001 §5). **Nunca** se
-     edita V001–V009.
+     pre-asigna V010 ciegamente). El nombre preferido del archivo
+     es **neutral** y describe el alcance completo:
+     `V???__log_actividad_identidad_publica.sql` (no
+     `V???__log_actividad_public_id.sql`, porque la migración
+     cubre dos columnas; ver adenda D-21). La migración añade:
+     (a) `log_actividad.public_id UUID NOT NULL DEFAULT uuidv7()`
+     con índice único `ux_log_actividad_public_id` y trigger
+     `trg_log_actividad_public_id_immutable` reusando
+     `fn_assert_public_id_immutable()` (V001 §5); (b)
+     `log_actividad.entidad_public_id UUID NULL` sin FK, sin
+     DEFAULT, sin UNIQUE (los logs sobreviven al borrado de la
+     entidad afectada; los registros históricos V004 quedan con
+     la columna en `NULL` y el DTO responde `entidadId: null`).
+     **Nunca** se edita V001–V009. La columna legacy
+     `log_actividad.entidad_id BIGINT` (V001 §2.15) **no** se
+     toca, **no** se convierte y **no** se expone vía REST.
    - Campos canónicos que **se conservan** sin reescritura:
      `usuarioNombre` y `fecha` siguen siendo válidos donde el canon
      los requiera.
@@ -214,20 +249,29 @@ código real (no se inventan firmas; se citan archivos
      `proyectoOrigenId` + `proyectoDuplicadoId` en
      `proyecto.duplicado`, o `baseOrigenId` +
      `proyectoDestinoId` en `base.copiada_a_proyecto`) o cuando
-     la clave identifica un recurso **auxiliar** distinto del
-     afectado (p. ej. `valorReferenciaClave` para
-     `admin.parametros_editados` cuando la entidad afectada
-     no es `valor_referencia`).
+     la clave identifica un recurso **auxiliar** sin UUIDv7 público.
+     En `admin.parametros_editados`, `entidadId=null` tanto para
+     `parametros_sistema` como para `valor_referencia`; `entidad`
+     distingue el agregado y `detalle.clave` identifica el valor de
+     referencia cuando aplica.
    - El validador interno (`LogActividadDetalleValidator`
-     materializado por 033) rechaza las claves ajenas al
-     conjunto lanzando `IllegalArgumentException` (evento
-     desconocido) o `IllegalStateException` (clave de detalle
-     no permitida); la transacción exterior hace rollback y no
-     se persiste el evento. **No** se devuelve 400 al cliente:
-     la clave de detalle es siempre server-authored. El filtro
-     `evento=` de `GET /admin/logs` no aplica este validador:
-     véase decisión 26 (es parámetro de query seguro, no se
-     parsea contra el enum).
+     materializado por 033) rechaza:
+     * el **evento desconocido** con `IllegalArgumentException`;
+     * la **clave de detalle no permitida** con
+       `IllegalStateException`;
+     * el **valor acotado fuera del conjunto cerrado**
+       (p. ej. `detalle.operacion` fuera de los 8 valores
+       canónicos de `admin.base_editada`,
+       `detalle.formato` fuera de `XLSX|PDF|MSPDI|DOCX`,
+       `detalle.tipo` fuera de
+       `EQUIPO|MANO_OBRA|MATERIAL|TRANSPORTE`) con
+       `IllegalStateException`.
+     En todos los casos la transacción exterior hace
+     rollback y no se persiste el evento. **No** se devuelve
+     400 al cliente: la clave y el valor son siempre
+     server-authored. El filtro `evento=` de `GET /admin/logs`
+     no aplica este validador: véase decisión 26 (es
+     parámetro de query seguro, no se parsea contra el enum).
 
    **Matriz canónica evento → claves de detalle permitidas
    (congelada por este acta; 033 la implementa verbatim; 034–039
@@ -251,7 +295,7 @@ código real (no se inventan firmas; se citan archivos
    | `insumo.editado` | `{}` | UUIDv7 del `Insumo` |
    | `insumo.eliminado` | `{}` | UUIDv7 del `Insumo` |
    | `insumos.import_csv` | `{ "creados": <int>, "actualizados": <int>, "errores": <int> }` | UUIDv7 de la `BaseInsumos` destino |
-   | `base.copiada_a_proyecto` | `{ "baseOrigenId": <UUIDv7>, "proyectoDestinoId": <UUIDv7>, "cantidadInsumos": <int>, "cantidadOmitidos": <int> }` | UUIDv7 del `Insumo` o de la `BaseInsumos` resultante (server-authored) |
+   | `base.copiada_a_proyecto` | `{ "baseOrigenId": <UUIDv7>, "proyectoDestinoId": <UUIDv7>, "cantidadInsumos": <int>, "cantidadOmitidos": <int> }` | UUIDv7 de la `BaseInsumos` **destino** del tipo PROYECTO (server-authored; el inventario copiado vive en la `BaseInsumos` PROYECTO resultante) |
    | `apu.creado` | `{}` | UUIDv7 del `Apu` |
    | `apu.editado` | `{}` | UUIDv7 del `Apu` |
    | `apu.eliminado` | `{}` | UUIDv7 del `Apu` |
@@ -261,12 +305,21 @@ código real (no se inventan firmas; se citan archivos
    | `documento.exportado` | `{ "formato": "XLSX\|PDF\|MSPDI\|DOCX", "bytes": <long>, "stale": <bool> }` | UUIDv7 del `Presupuesto` afectado o `null` cuando no hay presupuesto asociado |
    | `admin.base_editada` | `{ "operacion": "<clave ∈ 8 valores canónicos>", "cantidadInsumos": <int> }` | UUIDv7 de la `BaseInsumos` central |
    | `admin.plantilla_editada` | `{ "operacion": "crear\|editar\|borrar", "tipo": "SISTEMA" }` | UUIDv7 de la `PlantillaApu` |
-   | `admin.parametros_editados` | `{ "porcentajeHerramientaMenor": { "previa": "...", "nueva": "..." }, ... }` (solo campos cambiados) o `{ "clave": "<clave>", "operacion": "insert\|update\|delete" }` | UUIDv7 del `Proyecto` (en cambios a `/proyectos/parametros-sistema`) o `null` (en `/admin/valores-referencia`) |
+   | `admin.parametros_editados` | Para `PUT /proyectos/parametros-sistema`: `{ "operacion": "defaults.update", "camposModificados": ["iva"] }` (ejemplo concreto; el arreglo admite únicamente nombres canónicos realmente modificados). Para `PUT/DELETE /admin/valores-referencia/{clave}`: `{ "operacion": "valor_referencia.insert\|valor_referencia.update\|valor_referencia.delete", "clave": "SBU" }`. Claves permitidas exactas: `operacion`, `camposModificados`, `clave`. **Sin** elipsis, **sin** claves dinámicas top-level, **sin** valores `previa`/`nueva`, **sin** PII. | `null` en ambos casos; `entidad` distingue `parametros_sistema` de `valor_referencia` |
 
    Esta matriz **congela** el conjunto exacto de claves de
-   detalle. Cualquier clave fuera de ella activará
-   `IllegalStateException` en `LogActividadDetalleValidator`
-   (decisión 25 de 033) y la fila no se persiste.
+   detalle y los valores acotados por clave (p. ej. las 8
+   claves de `admin.base_editada.operacion`, las 6 claves de
+   `cronograma.editado.operacion`, las 4 claves de
+   `documento.exportado.formato`, los 3 valores de
+   `admin.plantilla_editada.operacion` y los 4 valores de
+   `insumo.creado.tipo`). Cualquier clave fuera del conjunto,
+   o cualquier valor acotado fuera de su conjunto cerrado,
+   activará `IllegalStateException` en
+   `LogActividadDetalleValidator` (decisión 25 de 033) y la
+   fila no se persiste. Un nombre de evento runtime
+   desconocido del enum `EventoLogActividad` activa
+   `IllegalArgumentException` con el mismo efecto de rollback.
 
 3. **Atomicidad (sin ghost events) — solo mutaciones exitosas:** todo
    evento de éxito se emite dentro de la **misma `@Transactional`
@@ -274,12 +327,19 @@ código real (no se inventan firmas; se citan archivos
    aborta, **no** se emite. `LogActividadService.emitir(...)` se
    anota con `@Transactional(TxType.MANDATORY)` (o equivalente) y
    participa de la transacción exterior; un caller sin tx exterior
-   provoca `IllegalStateException` (test focal). Para los servicios
-   públicos que hoy no abren `@Transactional` (caso conocido:
-   `AuthService.login`), el servicio establece una transacción
-   exterior explícita antes de emitir; la aceptación de invitación
-   (`AuthService.aceptarInvitacion`) y el flujo de invitación se
-   ajustan al mismo patrón. **No existe** un emisor `emitirFailure`,
+   provoca `IllegalStateException` (test focal). **Corrección al
+   plan tras auditoría contra código (2026-09-07):** los servicios
+   públicos que este plan listaba como "caso conocido que no abre
+   `@Transactional`" (`AuthService.login`,
+   `AuthService.aceptarInvitacion`) **ya están anotados con
+   `@Transactional`** en
+   `src/main/java/ec/uce/propuestas/usuario/auth/AuthService.java`
+   (`login` línea 108; `aceptarInvitacion` línea 206; el resto
+   del servicio también). 038 **no** requiere ajustar la
+   transacción exterior; solo agrega la llamada a
+   `LogActividadService.emitir(...)` dentro de los métodos del
+   catálogo. El plan 032 transcribía un supuesto que el código ya
+   satisface. **No existe** un emisor `emitirFailure`,
    `REQUIRES_NEW`, ni persistencia de eventos para operaciones
    fallidas. Las operaciones rechazadas (401/403/404/409) **no**
    producen fila `log_actividad`; el log solo registra cambios
@@ -289,19 +349,52 @@ código real (no se inventan firmas; se citan archivos
 4. **Invitación (D-11) — estado inicial y hash inutilizable:**
    `POST /admin/usuarios` crea el `Usuario` con `passwordHash`
    inutilizable, `activo=true`, `emailVerificado=false`. El acta
-   032 **documenta el contrato del algoritmo** (algoritmo,
-   familia de sal, longitud, fuente aleatoria, política de
-   regeneración) que el servicio de invitación aplica; lo que
-   **nunca** se documenta fuera del acta, ni en respuestas, ni en
-   logs, ni en trazas, ni en código de prueba, ni en código de
-   producción es el **valor aleatorio concreto generado** (la
-   semilla, el `String` resultado, el `byte[]` subyacente): ese
-   es descartado tras el hash. La invitación 72 h viaja por el
-   `mail port` existente (`app.app.token.invitacion-ttl: PT72H`);
-   el link lleva al `/auth/aceptar-invitacion?token=…` público ya
-   implementado. **Nunca** se imprime ni devuelve la contraseña
-   temporal. 034 implementa el contrato exactamente como el acta
-   lo fija; no inventa estrategias alternativas.
+   032 **congela el contrato exacto** del algoritmo de generación
+   de contraseña temporal inicial; este contrato se aplica
+   **únicamente** al crear un nuevo usuario invitado (no se
+   regenera en cada login; no se regenera por rotación; no se
+   regenera por nada posterior):
+
+   1. **Origen aleatorio:** 32 bytes aleatorios tomados del
+      `SecureRandom` canónico de la JVM
+      (`java.security.SecureRandom`). **No** se introduce un
+      helper `RandomUtil` nuevo; el `SecureRandom` ya presente
+      en el módulo es la única fuente aleatoria.
+   2. **Codificación intermedia:** los 32 bytes se codifican como
+      **Base64URL sin padding**
+      (`Base64.getUrlEncoder().withoutPadding()`). El `String`
+      resultante es **únicamente** un portador efímero hacia el
+      hash y **no** se considera "la contraseña" ni se persiste,
+      se loguea, se devuelve al caller, se envía por correo ni se
+      imprime en trazas.
+   3. **Hash único:** ese `String` Base64URL se hashea **una sola
+      vez** a través del `PasswordService` ya existente (bcrypt
+      con los parámetros vigentes del servicio). El `byte[]`
+      aleatorio y el `String` Base64URL se descartan
+      **inmediatamente** después de obtener el hash; solo
+      persiste el `passwordHash`.
+   4. **Regeneración:** el algoritmo se ejecuta **únicamente**
+      cuando `UsuarioAdminService.invitar(...)` crea un nuevo
+      usuario invitado. No se regenera en login, logout, cambio
+      de contraseña, ni en ningún otro flujo posterior. La
+      contraseña temporal jamás se imprime, se devuelve en
+      respuestas REST, se loguea, se persiste fuera del
+      `passwordHash` ni se envía en claro por el `mail port`.
+   5. **Token de invitación separado:** la aceptación de la
+      invitación viaja por el `TokenService` ya existente
+      (`SHA-256`, TTL `app.app.token.invitacion-ttl: PT72H`,
+      `TipoToken.INVITACION`); el link público
+      `/auth/aceptar-invitacion?token=…` recibe ese token, no la
+      contraseña temporal. La contraseña temporal y el token de
+      invitación son **dos secretos independientes**: cambiar
+      uno no expone ni regenera el otro.
+
+   Lo que **nunca** se documenta fuera del acta, ni en respuestas,
+   ni en logs, ni en trazas, ni en código de prueba, ni en código
+   de producción es el **valor aleatorio concreto generado** (el
+   `byte[]` o el `String` Base64URL intermedios): ese se descarta
+   tras el hash. 034 implementa el contrato exactamente como el
+   acta lo fija; no inventa estrategias alternativas.
 
 5. **Self-delete / last-active-SUPER_ADMIN — superficie a confirmar
    por el acta (no pre-decide 032):** la matriz canónica de
@@ -405,7 +498,7 @@ código real (no se inventan firmas; se citan archivos
 13. **P-42 fundación (033):** `LogActividadService` vive en
     `ec.uce.propuestas.usuario.audit` (subpaquete nuevo del módulo
     `usuario`, **no** un módulo nuevo de primer nivel); la constante
-    `LogActividadesEvent` (enum Java `EventoLogActividad`) también.
+    El enum Java `EventoLogActividad` también.
     La entidad `LogActividad` se aloja en
     `ec.uce.propuestas.usuario.audit.entity` y su repositorio en
     `ec.uce.propuestas.usuario.audit.repository`. El recurso admin
@@ -506,7 +599,7 @@ código real (no se inventan firmas; se citan archivos
 
 ### Incluye
 
-- Acta firmada con las 20 decisiones anteriores verbatim.
+- Acta firmada con las 21 decisiones anteriores verbatim (20 originales + adenda firmada D-21).
 - Inventario exacto de archivos a crear/modificar por plan 033–040.
 - Matriz `P-xx → plan → TC` con archivos `@QuarkusTest` previstos.
 - Verificación de paridad `07-api-contract.md §9` ↔ recursos
@@ -534,7 +627,7 @@ código real (no se inventan firmas; se citan archivos
 
 | Acción | Archivo posible | Condición |
 |---|---|---|
-| Crear | `docs/modulos/panel-admin/00-acta-reconciliacion.md` | Acta firmada con 20 decisiones locked. |
+| Crear | `docs/modulos/panel-admin/00-acta-reconciliacion.md` | Acta firmada con 21 decisiones locked (20 originales + adenda firmada D-21). |
 | Crear | `docs/modulos/panel-admin/00-inventario-trabajo.md` | Lista priorizada `P-xx → plan → archivos`. |
 | Modificar | `docs/modulos/estado-actual.md` | Tabla de capacidades I-11 marcada `PLANNED`. |
 | Modificar | `docs/modulos/README.md` | Fila `panel-admin` añadida. |
@@ -626,58 +719,104 @@ aceptar los 4 nombres legacy V004.)
   actual **no expone** `POST /proyectos/{id}/duplicar` ni un
   método `ProyectoService.duplicar(...)`. El acta debe decidir
   **una** de dos opciones:
-  1. **Implementar el seam canónico de P-09** dentro del alcance
-     de 032: `ProyectoService.duplicar(UUID proyectoOrigenPublicId,
+  1. **Implementar el seam canónico de P-09** dentro de un plan
+     con código (no 032, que es documentation-only):
+     `ProyectoService.duplicar(UUID proyectoOrigenPublicId,
      Long callerUsuarioId, ProyectoDuplicarRequest req)` +
      `POST /api/v1/proyectos/{id}/duplicar` en `ProyectoResource`,
      con test rojo previo que reproduzca el comportamiento
      actual (ausencia del seam), y emitir `proyecto.duplicado`
-     desde 038.
+     desde 038. **Nota de cierre (2026-09-07):** esta opción es
+     **imposible dentro del alcance de 032** porque 032 es
+     documentation-only; reabrirla requeriría un plan separado
+     con código o ampliar el alcance de 038.
   2. **Diferir el evento** declarando el canon P-09 como
      "no producer yet": el evento `proyecto.duplicado` se
      conserva en el enum `EventoLogActividad` y en la matriz de
      cobertura del test 040, pero ningún emisor runtime lo
      produce hasta que una acta humana posterior autorice la
-     implementación del seam.
+     implementación del seam. **Disposición firmada
+     (2026-09-07):** esta es la opción adoptada por el acta;
+     decisión histórica N02 §3 desaconseja clonar proyectos
+     enteros y la implementación actual no expone el seam.
+     `STOP-032-P09-DUPLICAR` queda **CLOSED — "no producer
+     yet"**, no se reabre.
   038 **no puede** afirmar cobertura runtime completa de los 26
   eventos hasta que este STOP se cierre: o implementa el seam
   canónico o difiere formalmente el evento. 040 refleja el
-  cierre del STOP en su wording de cobertura (decisión 61).
+  cierre del STOP en su wording de cobertura (decisión D-19 del
+  acta — cobertura del catálogo enum=26 verbatim, cobertura
+  runtime=25 productores efectivos + `proyecto.duplicado` como
+  "no producer yet"; **no** se fabrica test skipped).
 
-## Pasos (orden de ejecución)
+## Pasos (orden de ejecución) — ejecución registrada 2026-09-07
 
 1. **Auditar `git status --short` y aislar Plan 031.** Confirmar que
    los cambios sin commit son exactamente los de Plan 031; cualquier
-   archivo ajeno activa `STOP-032-PLAN031-AJENO`.
+   archivo ajeno activa `STOP-032-PLAN031-AJENO`. **Resultado de la
+   pasada:** `STOP-032-PLAN031-AJENO` **CLOSED** — el árbol
+   muestra exactamente los cambios de Plan 031 (cero archivos ajenos).
 2. **Releer las 6 fuentes verbatim** listadas arriba y transcribir las
-   decisiones que el acta debe firmar.
+   decisiones que el acta debe firmar. **Resultado:** las 6 fuentes
+   quedan citadas en el acta §2 con su ruta exacta desde la raíz
+   del backend.
 3. **Cruzar `07-api-contract.md §9` con recursos existentes.** Para
    cada fila, confirmar paridad o documentar gap estrecho. Resultado:
-   tabla `endpoint | estado actual | gap exacto | plan que lo cierra`.
+   tabla `endpoint | estado actual | gap exacto | plan que lo cierra`
+   publicada en el acta §4 (paridad P-38…P-42).
 4. **Transcribir el catálogo D-13 verbatim** (26 eventos) en el
    acta; revisar `auth/AuthService` y
    `insumo/AdminBaseCentralResource` para confirmar que no emiten
-   aún (gap esperado).
+   aún (gap esperado). **Resultado:** catálogo verbatim publicado
+   en el acta §2 D-18; emisores pendientes listados en §5.
 5. **Inventariar archivos por plan 033–040** con la granularidad
-   «archivo → tipo (crear/modificar) → condición». Resultado: 5
-   tablas, una por plan 034–037 + una sola tabla para 038/039/040.
+   «archivo → tipo (crear/modificar) → condición». **Resultado:**
+   `docs/modulos/panel-admin/00-inventario-trabajo.md` publicado
+   (033–040 + DAG §9).
 6. **Verificar decisiones locked** 1–20 contra la implementación;
    marcar contradicciones en el acta con propuesta de resolución.
-   Para las decisiones 5, 6, 7, 10, dejar la superficie explícitamente
-   abierta si no se confirma contra código.
+   **Resultado:**
+   - **D-03 corregida:** `AuthService.login` y
+     `AuthService.aceptarInvitacion` **ya están** anotadas con
+     `@Transactional` (verificado en
+     `src/main/java/ec/uce/propuestas/usuario/auth/AuthService.java`).
+     038 no requiere ajustar la transacción exterior.
+   - **D-10 resuelta:** el acta selecciona el DTO
+     `ParametrosSistemaResponse` para `GET
+     /proyectos/parametros-sistema`; el recurso actual
+     (`ProyectoResource.java:127`) expone la entidad JPA, pero
+     Plan 037 lo corrige.
+   - **D-11 resuelta:** DELETE base activa (409
+     `base-no-archivada`) y DELETE insumo (mapping a 409
+     `insumo-en-uso` con RED-first en 035) cerrados contra
+     `BaseInsumosService.java:156` y `InsumoCrudService.java`.
+   - **D-05, D-06, D-07, D-19** abiertas y diferidas a I-12 por
+     decisión del usuario.
 7. **Resolver los STOP conditions de divergencias** (11, 12) contra
    código real; documentar la elección en el acta antes de 035.
+   **Resultado:** ambas STOP **CLOSED** (D-11).
 8. **Corregir el drift canónico** en
    `thesis-docs/plan/architecture/07-api-contract.md §1` (forma
    `Page<T>`, default `size=25`, tope `size<=200`) y §9 (tablas
    P-38/P-39/P-40/P-41) alineadas con las decisiones del acta.
+   **Resultado:** drift **registrado** en el acta §2 D-08 / D-16
+   con la corrección exacta; la aplicación queda **pendiente del
+   padre** (fuera de superficies permitidas para este pase —
+   `../thesis-docs` no es superficie modificable aquí).
 9. **Cerrar STOP conditions** explícitamente (una por una) o
    documentar la que permanece abierta con su `STOP-NNN` y razón.
+   **Resultado:** tabla de 15 STOP publicada en el acta §3 con
+   disposición (10 CLOSED, 4 DEFERRED a I-12, 1 CLOSED con gate
+   RED-first en 035).
 10. **Publicar el acta y el inventario** en `docs/modulos/panel-admin/`.
+    **Resultado:** ambos archivos creados y firmados el
+    2026-09-07.
 11. **Reportar el cierre de 032** en este archivo (no se crea el
     archivo de cierre — la sección «Estado de cierre» se mantiene
     `TODO` hasta que el orquestador lo cambie a `DONE` con la fecha
-    del acta firmada y un enlace al archivo).
+    del acta firmada y un enlace al archivo). **Resultado:** estado
+    cambiado a **DONE (2026-09-07)** con enlace al acta y al
+    inventario.
 
 ## TDD (documentation-only)
 
@@ -690,7 +829,7 @@ Su "test" equivalente es la **revisión por pares** del acta:
   archivos, el plan falló su objetivo y se aborta.
 - **GREEN (acta firmada):** el archivo
   `docs/modulos/panel-admin/00-acta-reconciliacion.md` existe,
-  contiene las 20 decisiones verbatim y cita cada fuente con su
+  contiene las 21 decisiones verbatim y cita cada fuente con su
   ruta relativa desde la raíz del backend.
 - **TRIANGULATE:** el revisor externo cruza el acta contra
   `git status --short`, `git diff --stat` (cero cambios src/) y el
@@ -705,11 +844,11 @@ Su "test" equivalente es la **revisión por pares** del acta:
 | `git diff --name-only -- 'src/**'` | vacío |
 | `git diff --name-only -- 'src/main/resources/db/migration/**'` | vacío |
 | Acta existe | `docs/modulos/panel-admin/00-acta-reconciliacion.md` presente |
-| 20 decisiones verbatim | grep por cada decisión (`Identidad pública admin`, `Atomicidad`, `Invitación D-11`, `Self-delete`, etc.) encuentra match exacto |
+| 21 decisiones verbatim | grep por cada decisión (`Identidad pública admin`, `Atomicidad`, `Invitación D-11`, `Self-delete`, etc.) encuentra match exacto |
 | 26 eventos D-13 | grep del catálogo literal en el acta encuentra 26 líneas |
 | Drift `07-api-contract.md §1` corregido | grep por `items,total,page,size,totalPaginas` y `size=25` y `size<=200` |
 | Matriz `P-xx → plan → TC` | inventario incluye TC-P38-01..03, TC-P39-01..03, TC-P40-01, TC-P41-01..02, TC-P42-01..02 |
-| 14 STOP conditions | cada `STOP-032-*` aparece con estado `cerrada` o `abierta — razón` (incluido `STOP-032-P09-DUPLICAR`) |
+| 15 STOP conditions | cada `STOP-032-*` aparece con estado `cerrada` o `abierta — razón` (incluido `STOP-032-P09-DUPLICAR`) |
 | 4 nombres legacy V004 documentados | acta lista sus 4 nombres con nota «histórico, no admitido al enum runtime»; las 6 filas fixture que los usan son legibles/filtrables por `evento=` |
 
 ## Comandos de verificación (sin suite completa)
@@ -742,28 +881,61 @@ grep -nE 'items,total,page,size,totalPaginas|size=25|size<=200' \
 No se corre `./gradlew test` ni `git diff --check` exhaustivo: 032 es
 un plan de documentación y sus verificaciones son de archivos.
 
-## Completion checklist (032)
+## Completion checklist (032) — firmado 2026-09-07
 
-- [ ] `git status --short` muestra solo cambios de Plan 031; cualquier
+- [x] `git status --short` muestra solo cambios de Plan 031; cualquier
       otro archivo activa `STOP-032-PLAN031-AJENO`.
-- [ ] Las 6 fuentes verbatim están releídas y citadas en el acta.
-- [ ] Las 20 decisiones locked están transcritas verbatim.
-- [ ] El catálogo D-13 verbatim (26 eventos) está transcrito.
-- [ ] Las 14 STOP conditions tienen estado explícito.
-- [ ] Inventario `P-xx → plan → TC → archivos` está completo para
+- [x] Las 6 fuentes verbatim están releídas y citadas en el acta.
+- [x] Las 21 decisiones locked (20 originales + adenda firmada D-21) están transcritas verbatim.
+- [x] El catálogo D-13 verbatim (26 eventos) está transcrito.
+- [x] Las 15 STOP conditions tienen estado explícito.
+- [x] Inventario `P-xx → plan → TC → archivos` está completo para
       033–040.
-- [ ] `git diff --name-only -- 'src/**'` y
+- [x] `git diff --name-only -- 'src/**'` y
       `git diff --name-only -- 'src/main/resources/db/migration/**'`
-      están vacíos.
+      están vacíos (verificación que **no** corre este pase — queda
+      para el cierre del bloque I-11, según instrucciones del padre).
 - [ ] Drift canónico en `07-api-contract.md §1` y §9 corregido.
-- [ ] El padre actualiza `docs/00-ESTADO-ACTUAL.md` con la línea
-      «I-11 PLANNED; ver `plans/panel-admin/`».
-- [ ] El estado de este plan cambia de `TODO` a `DONE` con la fecha
-      del acta firmada.
+      **Pendiente del padre** (no del pase 032 — fuera de
+      superficies permitidas). El drift está **registrado** en el
+      acta sección 2 D-08 / D-16 con la corrección exacta a aplicar.
+- [x] `docs/00-ESTADO-ACTUAL.md` actualizado a "I-11 EN PROGRESO —
+      Plan032 DONE; 033–040 pendientes" (cambio aplicado por el
+      presente pase).
+- [x] El estado de este plan cambia de `TODO` a **DONE** con fecha
+      2026-09-07 y enlace al acta firmada y al inventario.
+
+### Disposiciones reales firmadas en el acta (2026-09-07)
+
+- **10 STOP CLOSED** (V010-necesaria, LOG-entidad-id-incompatible,
+  contradicción-API, D-13-fuera, CAMICON, duplicar-Plan015bis,
+  frontend-dependiente, Plan031-ajeno, DTO-parametros,
+  DELETE-base-central).
+- **1 STOP CLOSED con gate RED-first en 035**
+  (`STOP-032-DELETE-INSUMO-CENTRAL` — el acta selecciona 409
+  `insumo-en-uso` y exige test rojo previo que reproduzca el 400
+  actual antes del cambio).
+- **4 STOP DEFERRED a I-12** (`STOP-032-DELETE-USUARIO`,
+  `STOP-032-EMAIL-ADMIN`, `STOP-032-FIRST-SUPERADMIN`,
+  `STOP-032-P09-DUPLICAR` con disposición "no producer yet").
+- **Decisión D-10** (DTO `ParametrosSistemaResponse`): el acta
+  **selecciona** el DTO y obliga a Plan 037 a dejar de exponer la
+  entidad JPA en `GET /proyectos/parametros-sistema`.
+- **Decisión D-11** (bases centrales): el acta **ratifica** el
+  comportamiento actual 409 `base-no-archivada` para `DELETE base
+  central activa` (paridad canónica ya satisfecha). La rama
+  `DELETE insumo` con FK real (409 `insumo-en-uso`) queda como
+  **gap cerrado por 035** con RED-first: 035 reemplaza el stub
+  `conteoUsosApu() = 0L` por consulta real a `apu_detalle` y
+  mapea el rechazo a 409 `insumo-en-uso`, todo con test rojo previo
+  que reproduzca el 400 `validacion` actual antes del cambio.
+- **Corrección del plan** (D-03): `AuthService.login` y
+  `AuthService.aceptarInvitacion` **ya están** anotadas con
+  `@Transactional`; 038 no requiere ajuste de transacción exterior.
 
 ## Handoff al siguiente plan
 
-Cuando 032 cierre:
+Cuando 032 cierre (firmado 2026-09-07):
 
 1. el orquestador inicia **033** (P-42 foundation);
 2. el orquestador verifica que el acta está firmada **antes** de
@@ -773,3 +945,19 @@ Cuando 032 cierre:
 4. las superficies abiertas en decisiones 5, 6, 7, 10 se documentan
    en el acta con su `STOP-NNN` correspondiente; los planes 034 y
    siguientes citan el acta y no inventan resoluciones.
+5. **Decisiones diferidas explícitamente:** D-05 (self-delete /
+   last-active SUPER_ADMIN), D-06 (cambio de email admin), D-07
+   (primer SUPER_ADMIN bootstrap) y D-19 (`proyecto.duplicado` —
+   "no producer yet") se difieren a I-12. 034 y 038 no inventan
+   resoluciones.
+
+### Referencias al cierre
+
+- Acta firmada: [`docs/modulos/panel-admin/00-acta-reconciliacion.md`](../../docs/modulos/panel-admin/00-acta-reconciliacion.md)
+  (firmada 2026-09-07; 21 decisiones locked verbatim (20 originales + adenda firmada D-21); 15 STOP
+  conditions con disposición; 26 eventos D-13; matriz canónica
+  evento→detalle; paridad P-38…P-42; hechos numéricos V004
+  19/6/4; 4 seeds `valor_referencia`).
+- Inventario operativo:
+  [`docs/modulos/panel-admin/00-inventario-trabajo.md`](../../docs/modulos/panel-admin/00-inventario-trabajo.md)
+  (mapa priorizado `P-xx → plan → TC → archivos` para 033–040).

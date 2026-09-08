@@ -13,13 +13,26 @@
 >
 > **Migración aditiva obligatoria:** este plan crea **una** migración
 > nueva con el **siguiente número disponible** a la hora de ejecutar
-> 033 (p. ej. `V010__log_actividad_public_id.sql` solo si V010 no
-> existe; si está ocupado, el siguiente libre). La migración añade
-> `log_actividad.public_id UUID NOT NULL DEFAULT uuidv7()`, índice
+> 033 (p. ej. `V010__log_actividad_identidad_publica.sql` solo si V010
+> no existe; si está ocupado, el siguiente libre). El nombre
+> preferido del archivo es **neutral** y describe el alcance completo:
+> `V???__log_actividad_identidad_publica.sql` (no
+> `V???__log_actividad_public_id.sql`, porque la migración cubre dos
+> columnas; ver adenda D-21 del acta 032). La migración añade **dos**
+> columnas nuevas a `log_actividad`: (a)
+> `log_actividad.public_id UUID NOT NULL DEFAULT uuidv7()` con índice
 > único `ux_log_actividad_public_id` y trigger de inmutabilidad
 > `trg_log_actividad_public_id_immutable` reusando el patrón de
-> `fn_assert_public_id_immutable()` (V001 §5). **Nunca** se editan
-> V001–V009.
+> `fn_assert_public_id_immutable()` (V001 §5); (b)
+> `log_actividad.entidad_public_id UUID NULL` **sin FK**, **sin
+> DEFAULT**, **sin UNIQUE** (server-authored, los logs sobreviven al
+> borrado de la entidad afectada — aplicar una FK reintroduciría la
+> incompatibilidad que D-21 resuelve). La columna legacy
+> `log_actividad.entidad_id BIGINT` (V001 §2.15) **no** se toca,
+> **no** se convierte y **no** se expone vía REST.
+> `LogActividadResponse.entidadId` mapea **exclusivamente** desde
+> `entidad_public_id`. **Nunca** se editan V001–V009. **Nunca** se
+> crea una segunda migración para I-11: esta es la única aditiva.
 
 ## Proceso / historia / criterios
 
@@ -50,11 +63,20 @@ Una ejecución futura debe demostrar que:
    invoca dentro de una `@Transactional` exterior (`TxType.MANDATORY`);
    si la transacción aborta, la fila **no** persiste; si se invoca
    sin tx exterior, lanza `IllegalStateException` (test focal);
-3. los servicios públicos que hoy no abren `@Transactional` (caso
-   conocido: `AuthService.login` y `AuthService.aceptarInvitacion`)
-   son ajustados para establecer una transacción exterior explícita
-   antes de la emisión; el patrón vive en el servicio y se documenta
-   en su firma;
+3. los servicios públicos que emiten D-13 (`AuthService.login`,
+   `AuthService.logout`, `AuthService.registrar`,
+   `AuthService.cambiarPassword`, `AuthService.restablecerPassword`,
+   `AuthService.aceptarInvitacion`, `ProyectoService`,
+   `InsumoCrudService`, `ImportacionInsumoService`, `CopiaBaseService`,
+   `ApuCrudService`) **ya abren** `@Transactional` exterior antes de
+   la emisión; la auditoría contra
+   `src/main/java/ec/uce/propuestas/usuario/auth/AuthService.java`
+   confirma que `login` (línea 108) y `aceptarInvitacion` (línea 206)
+   están anotadas con `@Transactional`; el resto del servicio
+   también. 033 **no** ajusta transacciones exteriores en este pase;
+   el plan 032 transcribía un supuesto que el código ya satisface;
+   si 038 descubre que un servicio público concreto requiere ajuste,
+   reabre 032 antes de tocarlo;
 4. `GET /admin/logs?usuarioId&evento&desde&hasta&page…` (todos los
    ids en UUIDv7) devuelve
    `Page<LogActividadResponse>` con la forma canónica estable
@@ -64,7 +86,10 @@ Una ejecución futura debe demostrar que:
    nullable, `usuarioNombre` String (canónico para consumo admin,
    **distinto de `detalle`** — es un campo top-level del DTO y no
    entra al JSONB), `evento` String (clave D-13 verbatim),
-   `entidad` String nullable, `entidadId` UUIDv7 nullable,
+   `entidad` String nullable, `entidadId` UUIDv7 nullable
+   (**mapeado exclusivamente desde la columna nueva
+   `log_actividad.entidad_public_id`**; la columna legacy
+   `entidad_id BIGINT` no se expone en REST — ver D-21 del acta),
    `detalle` `Map<String,Object>` (Jackson serializa),
    `fecha` Instant. Los nombres son los canónicos fijados por
    el acta 032 (decisión **Nombres canónicos de respuesta**);
@@ -86,7 +111,7 @@ Una ejecución futura debe demostrar que:
 
 | Gate | Requisito | Efecto |
 |---|---|---|
-| G0 — 032 cerrado | Acta firmada; las 20 decisiones locked vigentes; STOP-032 sin abrir. | Habilita código. |
+| G0 — 032 cerrado | Acta firmada; las 21 decisiones locked vigentes (20 originales + adenda firmada D-21); STOP-032 sin abrir. | Habilita código. |
 | G1 — tabla `log_actividad` | V001 §2.15 vigente (BIGINT PK, `usuario_id ON DELETE SET NULL`, índices `ix_log_fecha DESC`, `ix_log_usuario`). | Habilita repositorio sin migración. |
 | G2 — token auth | `TokenService` y `AuthService` existentes; `mail port` operativo. | Habilita el emisor `usuario.invitado` desde 034 sin acoplar. |
 | G3 — UUIDv7 cerrado | `UuidV7.parse` en frontera REST; PK/FK BIGINT internas. | Habilita el filtro `usuarioId` UUIDv7 (no BIGINT) y `entidadId` UUIDv7 nullable. |
@@ -151,7 +176,7 @@ Estas decisiones se suman a las 20 de 032; no las contradicen:
 
 21. **Gate 032 autoritativo (transición):** la transición 032 → 033
     es **gate documental autoritativo**: hasta que el acta 032 esté
-    firmada, las decisiones 1–20 vigentes, y los `STOP-032-*`
+    firmada, las decisiones 1–21 vigentes (20 originales + adenda firmada D-21), y los `STOP-032-*`
     abiertos del acta estén cerrados, 033 queda **STOPPED**. 033
     no introduce superficies nuevas; cuando el acta abre una
     superficie, 033 la documenta como cerrada/abierta pero **no**
@@ -233,16 +258,20 @@ Estas decisiones se suman a las 20 de 032; no las contradicen:
     `Hash`, `hash$`, `ipOrigen`, `emailDestino`, `correo`, ni un correo con formato
     `text@text.tld` (regex `@\S+\.\S+`). Si falla, 033 se aborta
     y reabre.
-28. **Servicios públicos sin `@Transactional`:** si un servicio
-    público (caso conocido: `AuthService.login`,
-    `AuthService.aceptarInvitacion`) no abre `@Transactional`,
-    033 **no** lo reescribe; el emisor se anota con
-    `TxType.MANDATORY` y el ajuste de la transacción exterior es
-    **responsabilidad del plan que cubre ese servicio** (034 para
-    invitación admin; 038 para login/registro). El test focal
-    `MANDATORY-sin-tx-lanza-IllegalStateException` deja la
-    evidencia roja; cada plan que cubre un servicio sin tx exterior
-    cierra su propio test verde antes de la emisión real.
+28. **Servicios públicos con `@Transactional` ya existente:** la
+    auditoría contra
+    `src/main/java/ec/uce/propuestas/usuario/auth/AuthService.java`
+    confirma que `AuthService.login` (línea 108) y
+    `AuthService.aceptarInvitacion` (línea 206) **ya están**
+    anotadas con `@Transactional` (verificación reproducible por
+    el revisor). 033 **no** asume ajustes de transacciones
+    exteriores; los emisores `MANDATORY` operan bajo la tx
+    exterior ya existente de cada servicio público. Si un servicio
+    público concreto requiere ajuste durante la implementación
+    de 038, el plan reabre 032 antes de tocar el servicio. El
+    test focal `MANDATORY-sin-tx-lanza-IllegalStateException`
+    sigue aplicando como red de seguridad para futuros emisores
+    que olviden abrir la tx exterior.
 
 ## Alcance
 
@@ -258,15 +287,24 @@ Estas decisiones se suman a las 20 de 032; no las contradicen:
 - Recurso JAX-RS `LogActividadResource` con `@RolesAllowed("SUPER_ADMIN")`
   y `GET /admin/logs` con la query aprobada.
 - **Una** migración aditiva con el siguiente número disponible al
-  ejecutar el plan:
+  ejecutar el plan; nombre preferido
+  **`V???__log_actividad_identidad_publica.sql`** (no
+  `V???__log_actividad_public_id.sql`, porque la migración cubre dos
+  columnas; ver adenda D-21 del acta 032):
   - añade `log_actividad.public_id UUID NOT NULL DEFAULT uuidv7()`;
   - crea índice único `ux_log_actividad_public_id`;
   - crea trigger `trg_log_actividad_public_id_immutable` que
     reusa `fn_assert_public_id_immutable()` (V001 §5);
-  - **no** edita V001–V009;
+  - añade `log_actividad.entidad_public_id UUID NULL` **sin FK**,
+    **sin DEFAULT**, **sin UNIQUE** (server-authored; los logs
+    sobreviven al borrado de la entidad afectada — aplicar una FK
+    reintroduciría la incompatibilidad que D-21 resuelve);
+  - **no** edita V001–V009 ni la columna legacy
+    `log_actividad.entidad_id BIGINT`;
   - **no** pre-asigna V010 ciegamente: el nombre se fija en el
     paso de ejecución de 033 verificando
-    `ls src/main/resources/db/migration/`.
+    `ls src/main/resources/db/migration/` y eligiendo el siguiente
+    libre.
 - Tests `@QuarkusTest`:
   - `EventoLogActividadTest` (26 entradas; unicidad; enum rechaza
     valor fuera del catálogo);
@@ -294,13 +332,13 @@ Estas decisiones se suman a las 20 de 032; no las contradicen:
 | Acción | Archivo posible | Condición |
 |---|---|---|
 | Crear | `src/main/java/ec/uce/propuestas/usuario/audit/EventoLogActividad.java` | Enum Java con 26 entradas verbatim. |
-| Crear | `src/main/java/ec/uce/propuestas/usuario/audit/entity/LogActividad.java` | JPA con `publicId` UUIDv7; mapea V001 §2.15 + migración aditiva. |
+| Crear | `src/main/java/ec/uce/propuestas/usuario/audit/entity/LogActividad.java` | JPA con `publicId` UUIDv7 y `entidadPublicId` UUIDv7 nullable; mapea V001 §2.15 + migración aditiva (incluye `entidadIdLegacy` con `@Column(name="entidad_id")` para preservar la columna legacy BIGINT **sin** exponerla en el DTO). |
 | Crear | `src/main/java/ec/uce/propuestas/usuario/audit/repository/LogActividadRepository.java` | Panache; filtros `usuarioId`, `evento`, `desde`, `hasta`; orden `fecha DESC`; `Page<LogActividad>` con `count(*)` separado. |
-| Crear | `src/main/java/ec/uce/propuestas/usuario/audit/service/LogActividadService.java` | `@ApplicationScoped`; método `emitir` (`@Transactional(MANDATORY)`). |
-| Crear | `src/main/java/ec/uce/propuestas/usuario/audit/dto/LogActividadResponse.java` | Record canónico (decisión 5 del plan). |
+| Crear | `src/main/java/ec/uce/propuestas/usuario/audit/service/LogActividadService.java` | `@ApplicationScoped`; método `emitir` (`@Transactional(MANDATORY)`); popula `entidadPublicId` server-authored desde el `entidadId` (UUIDv7) provisto por el caller admin; **nunca** deriva nada de la columna legacy `entidad_id BIGINT`. |
+| Crear | `src/main/java/ec/uce/propuestas/usuario/audit/dto/LogActividadResponse.java` | Record canónico (decisión 5 del plan); `entidadId` mapeado desde `entidadPublicId` (no desde `entidadIdLegacy`); **sin** campos derivados de la columna legacy. |
 | Crear | `src/main/java/ec/uce/propuestas/usuario/audit/dto/LogActividadFiltros.java` | Validación Bean (`@QueryParam`) y normalización. |
 | Crear | `src/main/java/ec/uce/propuestas/usuario/audit/resource/LogActividadResource.java` | `@Path("/admin/logs")` + `@RolesAllowed("SUPER_ADMIN")`; `GET` paginado. |
-| Crear | `src/main/resources/db/migration/V???__log_actividad_public_id.sql` | Una sola migración aditiva con el siguiente número disponible. **Nunca** V010 a ciegas; el número se confirma en el paso de ejecución de 033. |
+| Crear | `src/main/resources/db/migration/V???__log_actividad_identidad_publica.sql` | Una sola migración aditiva con el siguiente número disponible (preferentemente V010 si está libre). Nombre **neutral** que describe el alcance completo. La migración añade **ambas** columnas: `public_id UUID NOT NULL DEFAULT uuidv7()` + `ux_log_actividad_public_id` UNIQUE + trigger `trg_log_actividad_public_id_immutable` reusando `fn_assert_public_id_immutable()` (V001 §5); `entidad_public_id UUID NULL` sin FK, sin DEFAULT, sin UNIQUE (D-21). **Nunca** V010 a ciegas; el número se confirma en el paso de ejecución de 033. |
 | Crear | `src/test/java/ec/uce/propuestas/usuario/audit/EventoLogActividadTest.java` | 26 entradas; unicidad; enum rechaza valor fuera del catálogo. |
 | Crear | `src/test/java/ec/uce/propuestas/usuario/audit/LogActividadServiceTest.java` | `@QuarkusTest` con Dev Services PostgreSQL; verifica `MANDATORY`. |
 | Crear | `src/test/java/ec/uce/propuestas/usuario/audit/LogActividadSinPiiTest.java` | 26 eventos × fixture mínimo; regex PII/secretos. |
@@ -317,14 +355,15 @@ Estas decisiones se suman a las 20 de 032; no las contradicen:
 `public_id` añadida por la migración aditiva:
 
 ```
-id          BIGINT GENERATED ALWAYS AS IDENTITY PK
-public_id   UUID NOT NULL DEFAULT uuidv7()        -- añadida por V???
-usuario_id  BIGINT  REFERENCES usuario(id) ON DELETE SET NULL
-evento      VARCHAR(60) NOT NULL                  -- validado contra EventoLogActividad en runtime
-entidad     VARCHAR(30)
-entidad_id  BIGINT
-detalle     JSONB
-created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+id                BIGINT GENERATED ALWAYS AS IDENTITY PK
+public_id         UUID NOT NULL DEFAULT uuidv7()        -- añadida por V??? (D-01)
+entidad_public_id UUID NULL                             -- añadida por V??? (D-21; sin FK)
+usuario_id        BIGINT  REFERENCES usuario(id) ON DELETE SET NULL
+evento            VARCHAR(60) NOT NULL                  -- validado contra EventoLogActividad en runtime
+entidad           VARCHAR(30)
+entidad_id        BIGINT                                -- legacy-only (V001 §2.15); nunca se expone vía REST
+detalle           JSONB
+created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 ```
 
 Índices (V001 §5 + nueva migración):
@@ -341,8 +380,22 @@ Trigger (nueva migración):
   `fn_assert_public_id_immutable()` (V001 §5) — la columna no se
   puede modificar tras el `INSERT`.
 
-El plan 033 verifica la existencia de los índices en un
-`@QuarkusTest` (`LogActividadIndicesTest`) leyendo de `pg_indexes`.
+Restricciones y notas adicionales sobre `entidad_public_id` (D-21):
+
+- **Sin** `UNIQUE`: una entidad puede aparecer como afectada en
+  múltiples filas de log.
+- **Sin** `FOREIGN KEY`: los logs sobreviven al borrado de la entidad
+  afectada; aplicar una FK reintroduciría la incompatibilidad que
+  D-21 resuelve.
+- **Sin** `DEFAULT`: el valor lo fija exclusivamente
+  `LogActividadService.emitir(...)` (server-authored); las filas
+  V004 existentes (19/19) y cualquier fila histórica pre-033 quedan
+  con la columna en `NULL` y el DTO devuelve `entidadId: null`.
+
+El plan 033 verifica la existencia de los índices y la ausencia de
+FK sobre `entidad_public_id` en un `@QuarkusTest`
+(`LogActividadIndicesTest`) leyendo de `pg_indexes` y
+`pg_constraint`.
 
 ## API
 
@@ -462,6 +515,10 @@ orden `created_at DESC`.
 | Enum rechaza valor fuera | `IllegalArgumentException`. |
 | `MANDATORY` sin tx | `IllegalStateException`. |
 | `MANDATORY` con tx | fila persiste; rollback exterior la borra. |
+| `emitir` puebla `entidad_public_id` desde el `entidadId` UUIDv7 provisto | fila persistida con `entidad_public_id` igual al UUIDv7 del caller; `entidad_id` BIGINT queda `NULL` (no se completa desde el caller). |
+| Fila nueva con `entidad_public_id` poblado | `GET /admin/logs` → `entidadId` serializado con ese mismo UUIDv7. |
+| Fila V004 (legacy) con `entidad_public_id IS NULL` | `GET /admin/logs` → `entidadId` serializado como `null`; las 19 filas V004 responden con `entidadId: null` y son identificables por `id`, `usuarioId` y `fecha`. |
+| DTO **no** expone ningún campo derivado de `entidad_id` | el JSON no contiene `entidadIdLegacy`, `entidadIdInterno`, `entidadIdBigint` ni equivalentes; verificable con grep y aserción sobre la respuesta. |
 | `GET /admin/logs` sin filtros | última fila primero; `Page<T>` canónica estable. |
 | Filtro `evento=auth.login` | solo eventos con esa clave. |
 | Filtro `usuarioId` (UUIDv7) | solo eventos del usuario. |
@@ -477,8 +534,9 @@ orden `created_at DESC`.
 | Caller `USUARIO` | 403 sin pistas. |
 | Sin PII en `detalle` (TC-P42-02) | 0 matches regex. |
 | Índices vigentes | `ix_log_fecha`, `ix_log_usuario`, `ux_log_actividad_public_id` existen en `pg_indexes`. |
-| Migración aditiva | única; número siguiente disponible; sin edición de V001–V009. |
-| Fila legacy V004 legible pero no admitida al enum | filtro `evento=base.insumos.copiada` devuelve la fila; el enum runtime no la enumera. |
+| Sin FK sobre `entidad_public_id` | `pg_constraint` no contiene una `FOREIGN KEY` que apunte desde `log_actividad.entidad_public_id`. |
+| Migración aditiva | única; número siguiente disponible; sin edición de V001–V009; añade `public_id` y `entidad_public_id` en el mismo archivo. |
+| Fila legacy V004 legible pero no admitida al enum | filtro `evento=base.insumos.copiada` devuelve la fila; el enum runtime no la enumera; el DTO expone `entidadId: null`. |
 
 ## Comandos de verificación
 
@@ -499,6 +557,17 @@ cd /home/kaandradec/Documents/workspace/uce/proyecto-grado/thesis-back-quarkus
 # `id`, `usuarioId`, `entidadId` (todos nullable o no).
 grep -RInE 'id = Long|usuarioId.*Long|entidadId.*Long' \
   src/main/java/ec/uce/propuestas/usuario/audit/
+
+# Garantía D-21: el DTO LogActividadResponse NO expone ningún campo
+# derivado de la columna legacy `entidad_id BIGINT` (el mapeo a
+# `entidadId` se hace exclusivamente desde `entidad_public_id`).
+! grep -RInE 'entidadIdLegacy|entidadIdInterno|entidadIdBigint|entidadIdV001' \
+  src/main/java/ec/uce/propuestas/usuario/audit/
+
+# D-21: la migración añade `entidad_public_id` **sin** FK. Verificar
+# que el DDL de la nueva migración no incluye `REFERENCES`.
+! grep -nE 'entidad_public_id.*REFERENCES|REFERENCES.*entidad_public_id' \
+  src/main/resources/db/migration/V???__log_actividad_identidad_publica.sql
 
 # Catálogo cerrado: ningún archivo de I-11 añade una constante de
 # evento fuera de `EventoLogActividad`.
@@ -527,23 +596,36 @@ corre al cierre.
 
 ## Completion checklist (033)
 
-- [ ] Acta 032 firmada y citada en este plan.
+- [ ] Acta 032 firmada y citada en este plan; adenda D-21 incorporada.
 - [ ] Enum `EventoLogActividad` con 26 entradas verbatim; rechaza
       valores fuera del catálogo; **4 nombres legacy V004 excluidos**.
 - [ ] Entidad `LogActividad` mapea V001 §2.15 + migración aditiva
-      con `public_id` UUIDv7.
+      con `public_id` UUIDv7 + `entidad_public_id UUID NULL` (D-21;
+      sin FK, sin DEFAULT, sin UNIQUE).
 - [ ] `LogActividadService.emitir` rechaza sin tx exterior
-      (`MANDATORY`).
+      (`MANDATORY`) y popula `entidad_public_id` server-authored desde
+      el `entidadId` UUIDv7 provisto por el caller admin.
 - [ ] `GET /admin/logs` filtra por `usuarioId` UUIDv7, `evento`,
       `desde`, `hasta`, `page`, `size` con la forma canónica
-      `Page<T>` (`items,total,page,size,totalPaginas`).
+      `Page<T>` (`items,total,page,size,totalPaginas`); las filas
+      nuevas exponen `entidadId` mapeado desde `entidad_public_id`,
+      las filas V004 (legacy) exponen `entidadId: null`.
+- [ ] DTO `LogActividadResponse` **no** expone ningún campo derivado
+      de la columna legacy `entidad_id BIGINT` (verificable con grep y
+      assertion sobre el JSON serializado).
 - [ ] `size>200` → 400; evento con formato inseguro → 400; evento
       seguro sin coincidencias → 200 con página vacía; USUARIO → 403.
 - [ ] TC-P42-01 (filtros) y TC-P42-02 (sin PII) verdes en
-      `@QuarkusTest`.
+      `@QuarkusTest`; los nuevos casos focales sobre
+      `entidad_public_id` también verdes
+      (`emitir-puebla-entidad-public-id`,
+      `filas-legacy-sin-entidad-public-id-devuelven-null`,
+      `dto-no-expone-entidad-id-legacy`).
 - [ ] Una sola migración aditiva con el siguiente número disponible;
-      V001–V009 intactas; índice único + trigger de inmutabilidad
-      presentes.
+      nombre neutral `V???__log_actividad_identidad_publica.sql`;
+      V001–V009 intactas; la migración añade **ambas** columnas
+      (`public_id` con índice único + trigger de inmutabilidad;
+      `entidad_public_id` sin FK).
 - [ ] Ningún archivo de `motor/`, `recalculo/`, `common/`,
       `presupuesto/`, `cronograma/`, `apu/`, `insumo/`, `proyecto/`,
       `plantilla/`, `documento/` modificado.

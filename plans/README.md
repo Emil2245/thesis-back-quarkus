@@ -48,9 +48,13 @@ Plans for I-08 (cronograma CRUD) through I-10 (export SERCOP) are
 cerradas al 2026-09-07 (la única orientación histórica de la
 suite completa vive exclusivamente en el panel README; este README
 no predice conteos). El
-bloque I-11 (panel Super-Admin y piloto SUS) está **planned /
-TODO** bajo [`./panel-admin/`](./panel-admin/README.md) (9 planes
-032–040 PLANNED / TODO, listos para ejecutar). I-12
+bloque I-11 (panel Super-Admin y piloto SUS) está cubierto bajo
+[`./panel-admin/`](./panel-admin/README.md): **Plan 032 DONE
+(2026-09-07)** (gate documental cerrado — acta en
+[`docs/modulos/panel-admin/00-acta-reconciliacion.md`](../docs/modulos/panel-admin/00-acta-reconciliacion.md) +
+inventario en
+[`docs/modulos/panel-admin/00-inventario-trabajo.md`](../docs/modulos/panel-admin/00-inventario-trabajo.md));
+planes **033–040 PLANNED / TODO** (listos para ejecutar; 033 es la próxima tarea autorizada tras 032). I-12
 (medición SUS `n ≥ 5` + baseline RNF-06 + cierre de
 variables de tesis) **no** está planificada aún: se
 autoriza en su propia sesión tras ejecutar 033–040.
@@ -108,16 +112,30 @@ autoriza en su propia sesión tras ejecutar 033–040.
 
 ### I-11 — Panel Super-Admin y piloto SUS (P-38…P-42, US-35…US-39)
 
-> **Estado (2026-09-07 — corte de la planificación I-11):** **PLANNED / TODO**.
+> **Estado (2026-09-07 — corte de la planificación I-11):** **Plan 032
+> DONE (2026-09-07)** (acta firmada + inventario publicado en
+> [`docs/modulos/panel-admin/`](../docs/modulos/panel-admin/);
+> 21 decisiones locked verbatim (20 originales + adenda firmada D-21);
+> 15 STOP conditions con disposición explícita; 26 eventos D-13;
+> matriz canónica `evento → detalle`;
+> 10 CLOSED + 4 DEFERRED a I-12 + 1 CLOSED con gate RED-first en 035).
+> **Planes 033–040 PLANNED / TODO** (sin claims de commits; cambios de
+> Plan 031 preservados).
 > Secuencia completa de 9 planes ejecutables en
 > [`./panel-admin/`](./panel-admin/README.md): 032 (gate documental +
 > inventario + reconciliación canónica con corrección de drift en
 > `thesis-docs/plan/architecture/07-api-contract.md §1/§9`), 033
 > (P-42 foundation + `LogActividadService` con `MANDATORY`; enum
 > `EventoLogActividad` con **26 eventos verbatim**; **una** migración
-> aditiva con el siguiente número disponible para
-> `log_actividad.public_id UUID DEFAULT uuidv7()` + UNIQUE +
-> inmutabilidad — V001–V009 intactas; sin `emitirFailure`,
+> aditiva con nombre neutral `V???__log_actividad_identidad_publica.sql`
+> (siguiente número disponible) que añade **dos** columnas a
+> `log_actividad`: `public_id UUID NOT NULL DEFAULT uuidv7()` + UNIQUE
+> + inmutabilidad **y** `entidad_public_id UUID NULL` sin FK/sin
+> DEFAULT/sin UNIQUE (D-21; server-authored; los logs sobreviven al
+> borrado de la entidad afectada); la columna legacy `entidad_id
+> BIGINT` permanece inalterada y nunca cruza REST;
+> `LogActividadResponse.entidadId` mapea exclusivamente desde
+> `entidad_public_id` — V001–V009 intactas; sin `emitirFailure`,
 > `REQUIRES_NEW` ni `codigoError`; **solo operaciones exitosas
 > emiten**), 034 (P-38 gestión de usuarios e invitaciones; matriz
 > self-delete/last-admin/cambio-email/primer SUPER_ADMIN **gated por
@@ -153,8 +171,8 @@ autoriza en su propia sesión tras ejecutar 033–040.
 
 | # | Plan | Iteración | Estado |
 |---|---|---|---|
-| 032 | [Sincronizar contrato e inventario admin](./panel-admin/032-sincronizar-contrato-inventario-admin.md) | I-11 | **PLANNED / TODO** (gate documental; corrige drift canónico en `07-api-contract.md §1/§9`; 20 decisiones locked; **033 STOPPED hasta que acta esté firmada**) |
-| 033 | [Log de actividad — base](./panel-admin/033-log-actividad-base.md) | I-11 | **PLANNED / TODO** (P-42 / US-39 foundation; enum 26 eventos verbatim; MANDATORY; migración aditiva con siguiente número disponible; V001–V009 intactas) |
+| 032 | [Sincronizar contrato e inventario admin](./panel-admin/032-sincronizar-contrato-inventario-admin.md) | I-11 | **DONE (2026-09-07)** (gate documental cerrado; acta firmada + inventario publicado; 21 decisiones locked (20 originales + adenda firmada D-21); 15 STOP con disposición (10 CLOSED + 4 DEFERRED a I-12 + 1 CLOSED con gate RED-first en 035); **033 autorizado tras 032**) |
+| 033 | [Log de actividad — base](./panel-admin/033-log-actividad-base.md) | I-11 | **PLANNED / TODO** (P-42 / US-39 foundation; enum 26 eventos verbatim; MANDATORY; **una sola** migración aditiva con nombre neutral `V???__log_actividad_identidad_publica.sql` que añade `public_id UUID NOT NULL DEFAULT uuidv7()` + UNIQUE + inmutabilidad **y** `entidad_public_id UUID NULL` sin FK/sin DEFAULT/sin UNIQUE, server-authored; `entidad_id BIGINT` legacy permanece inalterado y nunca cruza REST; V001–V009 intactas) |
 | 034 | [Gestión de usuarios e invitaciones](./panel-admin/034-gestion-usuarios-invitaciones.md) | I-11 | **PLANNED / TODO** (P-38 / US-35 / TC-P38-01..03; DELETE con proyectos → 409 con test focal FK; matriz self/last/email/first SUPER_ADMIN **gated por acta 032** o I-12) |
 | 035 | [Bases centrales — cierre](./panel-admin/035-bases-centrales-cierre.md) | I-11 | **PLANNED / TODO** (P-39 / US-36 / TC-P39-01..03; divergencias DELETE base/insumo resueltas por acta 032; sin marcas de paridad fabricadas) |
 | 036 | [Plantillas APU de sistema](./panel-admin/036-plantillas-apu-sistema.md) | I-11 | **PLANNED / TODO** (P-40 / US-37 / TC-P40-01; longitud `descripcionRubro` confirmada contra columna real — sin tope arbitrario) |

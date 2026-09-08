@@ -9,16 +9,21 @@
 > borrar (D-12, sin bloqueo por copias PROYECTO) + CRUD e import
 > CSV de insumos. **Este plan no lo reescribe.**
 >
-> **Divergencias canónicas a resolver por el acta 032 antes de 035:**
-> el canon exige que el acta decida entre `DELETE` base central
-> **204/404** (directo) y la implementación actual **409
-> `base-no-archivada`** (cuando la base está activa); y entre
-> `DELETE` insumo en base central **409 `insumo-en-uso`** (canon)
-> y la implementación actual **400 `validacion`**. 035 **no
-> prefija** la decisión: aplica la decisión del acta solo tras
-> RED con tests rojos previos que reproduzcan el comportamiento
-> actual. **No se usan marcas de paridad fabricadas** (`✔`/`⚠`/`✗`);
-> solo hechos verificados con test rojo previo.
+> **Decisiones canónicas ratificadas por el acta 032 (2026-09-07):**
+> - `DELETE /admin/bases-centrales/{id}` con base **activa** devuelve
+>   **409 `base-no-archivada`**; tras archivar devuelve **204**
+>   (exitoso); base inexistente devuelve **404**. 035 cierra con
+>   **RED-first** el camino activo (test rojo previo que reproduce
+>   el 409 antes de cualquier cambio).
+> - `DELETE /admin/bases-centrales/{id}/insumos/{iid}` con el insumo
+>   **referenciado** por APUs devuelve **409 `insumo-en-uso`**;
+>   insumo no referenciado devuelve **204**; insumo inexistente
+>   devuelve **404**. 035 reemplaza el stub `conteoUsosApu() = 0L`
+>   por consulta real sobre `apu_detalle` y mapea el rechazo FK a
+>   **409 `insumo-en-uso`** con test rojo previo que reproduzca el
+>   **400 `validacion`** actual antes del cambio.
+> - **No se usan marcas de paridad fabricadas** (`✔`/`⚠`/`✗`);
+>   solo hechos verificados con test rojo previo.
 >
 > La emisión D-13 `admin.base_editada` se materializa solo para
 > mutaciones **exitosas**; no existen emisiones para operaciones
@@ -47,29 +52,31 @@ Una ejecución futura debe demostrar que:
 1. `AdminBaseCentralResource` (Plan 015bis) cumple, **tras la
    reconciliación del acta 032**, la tabla `07-api-contract.md §9`
    filas P-39:
-   - `GET    /admin/bases-centrales?incluirArchivadas=` → 200
-     `[AdminBaseCentralResponse]` (UUIDv7 + nombre + tipo +
-     archivada + `totalInsumos`).
+   - `GET    /admin/bases-centrales?incluirArchivadas=&page=&size=`
+     → 200 `Page<BaseInsumosResponse>` (UUIDv7 + nombre + tipo +
+     archivada + `totalInsumos`; forma
+     `items,total,page,size,totalPaginas`).
    - `POST   /admin/bases-centrales` → 201 + UUIDv7 + 400
      `validacion`.
    - `PUT    /admin/bases-centrales/{id}` → 200 + 400 + 404.
    - `POST   /admin/bases-centrales/{id}/archivar` → 200 + 404.
-   - `DELETE /admin/bases-centrales/{id}` → el comportamiento lo
-     fija el acta 032 (204/404 directos **o** 409
-     `base-no-archivada`); los proyectos con copia PROYECTO no se
-     bloquean (D-12 + §17 #16).
+   - `DELETE /admin/bases-centrales/{id}` → base **activa**:
+     **409 `base-no-archivada`**; base **archivada**: **204**;
+     base inexistente: **404**. Los proyectos con copia PROYECTO
+     no se bloquean (D-12 + §17 #16).
    - `POST   /admin/bases-centrales/{id}/insumos` →
      201/400/404 + `codigo-duplicado`.
    - `PUT    /admin/bases-centrales/{id}/insumos/{iid}` →
      200/400/404; **las ediciones no afectan APUs de usuarios**
      (N04 §A9 — fila de APU apunta siempre a PROYECTO).
-   - `DELETE /admin/bases-centrales/{id}/insumos/{iid}` → el
-     comportamiento lo fija el acta 032 (409 `insumo-en-uso`
-     **o** 400 `validacion`).
+   - `DELETE /admin/bases-centrales/{id}/insumos/{iid}` → insumo
+     **referenciado** por APUs: **409 `insumo-en-uso`**; insumo
+     **no referenciado**: **204**; insumo inexistente: **404**.
    - `POST   /admin/bases-centrales/{id}/insumos/import?soloValidar=`
      → 200/400/404 + upsert D-06.
-2. La **única** mutación nueva esperada por 035 es la emisión
-   D-13 `admin.base_editada` a través de 033. El nombre del evento
+2. Las brechas nuevas esperadas por 035 son la paginación canónica
+   del listado, el cierre RED-first del DELETE de insumo central y la
+   emisión D-13 `admin.base_editada` a través de 033. El nombre del evento
    es **exactamente** `admin.base_editada` (un solo nombre canónico;
    no hay variantes). `detalle = { "operacion": "<clave>",
    "cantidadInsumos": <int> }`; `entidadId` top-level lleva el
@@ -112,10 +119,11 @@ de reescribir `AdminBaseCentralResource` (p. ej. cambiar el orden
 de los endpoints, mover de paquete, agregar un middleware nuevo).
 Reabrir 032 antes de continuar.
 
-`STOP-035-DIVERGENCIA-SIN-ACTA` se activa si el acta 032 no
-resuelve `STOP-032-DELETE-BASE-CENTRAL` o
-`STOP-032-DELETE-INSUMO-CENTRAL` y 035 intenta predecidir. Reabrir
-032.
+`STOP-035-DIVERGENCIA-SIN-ACTA` **no aplica**: el acta 032
+ratifica 409 `base-no-archivada` (base activa) y exige 409
+`insumo-en-uso` (insumo referenciado); 035 aplica directamente
+el canon sin reabrir 032. Si en el futuro 033–40 reabren
+esas decisiones, 035 reabre también antes de implementar.
 
 ## Fuentes que deben releerse
 
@@ -176,12 +184,15 @@ Se suman a las 20+8 anteriores; no las contradicen:
     - `renombrar` (PUT base);
     - `archivar` (POST …/archivar);
     - `borrar` (DELETE base — **emisión previa al DELETE**
-      cuando el canon exige 204/404 y la operación se confirma
-      exitosa);
+      exitoso: 204 sobre base archivada; 409 `base-no-archivada`
+      cuando la base está activa **no** emite);
     - `importar` (POST …/insumos/import);
     - `crearInsumo` (POST …/insumos);
     - `editarInsumo` (PUT …/insumos/{iid});
-    - `borrarInsumo` (DELETE …/insumos/{iid}).
+    - `borrarInsumo` (DELETE …/insumos/{iid} — **emisión previa
+      al DELETE** exitoso: 204 sobre insumo no referenciado; 409
+      `insumo-en-uso` cuando el insumo está referenciado
+      **no** emite).
     `detalle = { "operacion": <clave>, "cantidadInsumos": <int> }`
     (la clave `operacion` es una de las 8 listadas arriba, cerrada);
     el UUIDv7 de la `BaseInsumos` central afectada vive en
@@ -249,8 +260,10 @@ Se suman a las 20+8 anteriores; no las contradicen:
 - Cambios en `BasesPersonalesResource` (P-09/P-17; ajeno a P-39).
 - Recalcular APUs tras editar precios centrales (decisión
   histórica: nunca — A9 + §17 #16 + N04).
-- Prefijar la matriz de comportamiento de `DELETE` base o
-  `DELETE` insumo: lo fija el acta 032.
+- Reabrir el canon de comportamiento de `DELETE` base o
+  `DELETE` insumo: ya ratificado por el acta 032 (D-11). 035
+  implementa el canon y emite `admin.base_editada` en las
+  operaciones exitosas.
 
 ## Archivos a crear/modificar (candidatos, no autorización)
 
@@ -277,14 +290,14 @@ reconciliación. Las filas son:
 
 | Fila §9 | Endpoint | Comportamiento actual (verificado) | Acción de 035 |
 |---|---|---|---|
-| GET | `/admin/bases-centrales?incluirArchivadas=` | Filtro + `incluirArchivadas` default `false` | Sin cambios |
+| GET | `/admin/bases-centrales?incluirArchivadas=&page=&size=` | Implementación actual devuelve lista no paginada; conserva filtro + `incluirArchivadas` default `false` | Migrar a `Page<BaseInsumosResponse>` con forma `items,total,page,size,totalPaginas`, defaults `page=0`, `size=25` y tope máximo `size<=200` (400 `validacion` `tamano-pagina-invalido` cuando se excede) |
 | POST | `/admin/bases-centrales` | 201 + UUIDv7 con `AdminBaseCentralCrearRequest{nombre}` | + emisión `admin.base_editada` (`detalle.operacion=crear`) |
 | PUT | `/admin/bases-centrales/{id}` | 200/400/404 con `AdminBaseCentralEditarRequest{nombre}` (rename) | + emisión `admin.base_editada` (`detalle.operacion=renombrar`) |
 | POST | `/admin/bases-centrales/{id}/archivar` | 200; archivada=true; oculta del catálogo normal | + emisión `admin.base_editada` (`detalle.operacion=archivar`) |
-| DELETE | `/admin/bases-centrales/{id}` | El acta 032 fija el comportamiento canónico (204/404 directos o 409 `base-no-archivada`). Implementación actual = 409 `base-no-archivada`. | **Reconciliación según acta 032**, previa al DELETE si exitoso, con test rojo previo que reproduzca el comportamiento actual. |
+| DELETE | `/admin/bases-centrales/{id}` | **activo → 409 `base-no-archivada`**; **archivado → 204**; **missing → 404**. Implementación actual: 409 `base-no-archivada` (canónico, ratificado por acta 032). | Emisión `admin.base_editada` (`detalle.operacion=borrar`) únicamente tras respuesta **204**; test rojo previo que reproduce 409 antes de cualquier cambio. |
 | POST | `/admin/bases-centrales/{id}/insumos` | 201/400/404 + `codigo-duplicado` con `InsumoCrearRequest` | + emisión `admin.base_editada` (`detalle.operacion=crearInsumo`) |
 | PUT | `/admin/bases-centrales/{id}/insumos/{iid}` | 200/400/404 con `InsumoEditarRequest`; sin afectar APUs de usuario | + emisión `admin.base_editada` (`detalle.operacion=editarInsumo`) |
-| DELETE | `/admin/bases-centrales/{id}/insumos/{iid}` | El acta 032 fija el comportamiento canónico (409 `insumo-en-uso` o 400 `validacion`). Implementación actual = 400 `validacion`. | **Reconciliación según acta 032**, previa al DELETE si exitoso, con test rojo previo que reproduzca el comportamiento actual. |
+| DELETE | `/admin/bases-centrales/{id}/insumos/{iid}` | **referenciado → 409 `insumo-en-uso`**; **no referenciado → 204**; **missing → 404**. Implementación actual: 400 `validacion` (stub `conteoUsosApu() = 0L`). | Emisión `admin.base_editada` (`detalle.operacion=borrarInsumo`) únicamente tras respuesta **204**; reemplazo del stub por consulta real FK sobre `apu_detalle`, con test rojo previo que reproduce 400 antes del cambio. |
 | POST | `/admin/bases-centrales/{id}/insumos/import?soloValidar=` | 200/400/404 con `ImportResultadoResponse`, upsert D-06 | + emisión `admin.base_editada` (`detalle.operacion=importar`) |
 
 Estados reportables solo con test rojo previo:
@@ -306,14 +319,12 @@ Estados reportables solo con test rojo previo:
      `entidadId` top-level (no en `detalle`).
    - Renombrar base → 1 fila `operacion=renombrar`.
    - Archivar base → 1 fila `operacion=archivar`.
-   - Borrar base archivada → 1 fila `operacion=borrar` (cuando
-     el canon exige 204/404; con el comportamiento del acta).
+   - Borrar base **archivada** → 1 fila `operacion=borrar` (respuesta **204** sobre base ya archivada).
    - Importar CSV (`soloValidar=false`) → 1 fila
      `operacion=importar` con `cantidadInsumos` consistente.
    - Crear insumo en base → 1 fila `operacion=crearInsumo`.
    - Editar insumo en base → 1 fila `operacion=editarInsumo`.
-   - Borrar insumo en base → 1 fila `operacion=borrarInsumo`
-     (cuando el canon exige éxito).
+   - Borrar insumo **no referenciado** en base → 1 fila `operacion=borrarInsumo` (respuesta **204** sobre insumo sin referencias).
 2. Test de TC-P39-03 (regresión ya existente o nuevo): un
    usuario con un insumo PROYECTO copiado de CENTRAL; el admin
    edita el precio central; el insumo PROYECTO del usuario
@@ -338,8 +349,8 @@ comportamiento actual.
   siempre que el endpoint devuelva 200, porque el admin ejecutó
   una acción (el log es de **intentos exitosos**, no de cambios
   efectivos). Documentar en `035-auditoria-p39.md`.
-- `DELETE` insumo o base rechazados (cualquiera sea el código que
-  fije el acta 032): **no emiten** (decisión 37).
+- `DELETE` insumo o base **rechazados** (409 `base-no-archivada` o
+  409 `insumo-en-uso`): **no emiten** (decisión 37).
 
 ### REFACTOR
 

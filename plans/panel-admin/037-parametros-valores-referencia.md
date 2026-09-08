@@ -21,13 +21,14 @@
 > principio "no CAMICON" se cumple **al no sembrar datos**: la
 > única siembra está prohibida, no las escrituras admin.
 >
-> **DTO del `GET /proyectos/parametros-sistema`:** la decisión
-> sobre si se conserva la entidad JPA directamente o se introduce
-> un DTO canónico de respuesta
-> (`ParametrosSistemaResponse`) la cierra el acta 032 (decisión 10);
-> 037 implementa el DTO canónico **solo si** el acta lo
-> selecciona. La ruta canónica `/proyectos/parametros-sistema` se
-> mantiene; **no** se mueve a `/admin/parametros-sistema`.
+> **DTO del `GET /proyectos/parametros-sistema`:** el acta 032
+> selecciona el DTO canónico **`ParametrosSistemaResponse`** (D-10;
+> ya no es condicional). `GET /proyectos/parametros-sistema` deja
+> de exponer la entidad JPA: 037 introduce el DTO con los 12 campos
+> numéricos + 8 rangos canónicos (lista exact en el plan 037) y el
+> cliente consumidor (frontend, otros recursos) consume el DTO. La
+> ruta canónica `/proyectos/parametros-sistema` se mantiene; **no**
+> se mueve a `/admin/parametros-sistema`.
 >
 > Emisión D-13 `admin.parametros_editados`: solo operaciones
 > **exitosas**. Las operaciones rechazadas no emiten.
@@ -55,14 +56,17 @@
 Una ejecución futura debe demostrar que:
 
 1. `GET /proyectos/parametros-sistema` sigue devolviendo la fila
-   singleton (id=1) sin cambios de ruta; si el acta 032 decide
-   DTO canónico, se introduce `ParametrosSistemaResponse` (no
-   entidad JPA) en el cuerpo de la respuesta;
+   singleton (id=1) sin cambios de ruta; ahora **retorna el DTO
+   canónico** `ParametrosSistemaResponse` (12 campos numéricos + 8
+   rangos; lista exacta de campos más abajo) en el cuerpo de la
+   respuesta. La entidad JPA ya **no** cruza la frontera REST;
 2. `PUT /proyectos/parametros-sistema` con
    `ParametrosSistemaEditarRequest` (12 columnas + 8 rangos) sigue
    `@RolesAllowed("SUPER_ADMIN")`; ahora **además** emite
    `admin.parametros_editados` (solo en operaciones exitosas) con
-   `detalle` que solo contiene claves canónicas;
+   `detalle = { "operacion": "defaults.update",
+   "camposModificados": ["iva"] }`
+   consumiendo verbatim la matriz congelada por el acta 032;
 3. TC-P41-01: tras `PUT`, un proyecto **nuevo** copia los nuevos
    defaults en su `ParametrosProyecto` (verificación sobre el
    flujo `POST /proyectos` ya implementado en Plan 021 +
@@ -94,16 +98,23 @@ Una ejecución futura debe demostrar que:
    admin (cualquier clave única con fuente no blank se acepta);
    la regla "sin CAMICON" se cumple **al no sembrar datos**;
 9. emisión D-13 `admin.parametros_editados` (solo operaciones
-   exitosas):
+   exitosas), consumiendo verbatim la matriz congelada por el
+   acta 032 (claves permitidas exactas: `operacion`,
+   `camposModificados`, `clave`; sin elipsis, sin claves
+   dinámicas top-level, sin valores `previa`/`nueva`, sin PII):
    - en `PUT /proyectos/parametros-sistema`: `detalle = {
-     "porcentajeHerramientaMenor": {"previa": "0.0500",
-     "nueva": "0.0700"}, "porcentajeIndirecto": {...}, ... }`
-     solo con los campos que **realmente cambiaron** (diff);
+     "operacion": "defaults.update",
+     "camposModificados": ["iva"] }`
+     con los nombres canónicos de los campos que **realmente
+     cambiaron** (array estable; ningún par `previa`/`nueva`; el
+     diff vive en el caller admin, no en el log);
    - en `PUT /admin/valores-referencia/{clave}` (insert o
-     update): `detalle = { "clave": "<clave>",
-     "operacion": "insert|update" }`;
-   - en `DELETE`: `detalle = { "clave": "<clave>",
-     "operacion": "delete" }`.
+     update): `detalle = { "operacion":
+     "valor_referencia.insert|valor_referencia.update",
+     "clave": "<clave>" }`;
+   - en `DELETE /admin/valores-referencia/{clave}`: `detalle = {
+     "operacion": "valor_referencia.delete",
+     "clave": "<clave>" }`.
 
 ## Dependencias y gates
 
@@ -170,12 +181,13 @@ Se suman a las anteriores; no las contradicen:
     **no** se mueve a `/admin/parametros-sistema`. La ruta es pública
     para lectura (USUARIO) y `SUPER_ADMIN` para escritura. Esta es
     la decisión 10 de 032.
-45. **DTO de `GET /proyectos/parametros-sistema`:** la decisión
-    sobre si se introduce `ParametrosSistemaResponse` (DTO
-    canónico) la cierra el acta 032. 037 implementa el DTO
-    canónico **solo si** el acta lo selecciona (`STOP-032-DTO-PARAMETROS`).
-    Si el acta decide conservar la entidad JPA directamente, 037
-    no la reescribe.
+45. **DTO de `GET /proyectos/parametros-sistema`:** el acta 032
+    selecciona el DTO canónico `ParametrosSistemaResponse` (D-10;
+    ya no es condicional; `STOP-032-DTO-PARAMETROS` queda CLOSED).
+    037 introduce el DTO con los 12 campos numéricos + 8 rangos
+    canónicos y deja de exponer la entidad JPA. La ruta canónica
+    `/proyectos/parametros-sistema` se mantiene; **no** se mueve
+    a `/admin/parametros-sistema`.
 46. **`valor_referencia` — escritura abierta con `fuente` no
     blank:** cualquier `clave` única válida se acepta en
     `PUT /admin/valores-referencia/{clave}` siempre que `fuente`
@@ -192,9 +204,10 @@ Se suman a las anteriores; no las contradicen:
     objetivo 9. El detalle es **diferencial** para
     `PUT /proyectos/parametros-sistema` (solo campos cambiados;
     `previo → nuevo`); evita inflar el log con 22 columnas cuando
-    solo cambia 1. Los identificadores de `Proyecto` o
-    `valor_referencia` viven en `entidadId` top-level cuando
-    aplica (no en `detalle`).
+    solo cambia 1. `entidadId` top-level es `null` tanto para
+    `parametros_sistema` como para `valor_referencia`, porque ninguno
+    expone UUIDv7 público; `entidad` distingue el agregado y
+    `detalle.clave` identifica el valor de referencia cuando aplica.
 48. **No cambio en `validarParesDeRangos`:** la validación `min ≤
     max` por par ya existe. 037 no la reabre.
 49. **`PUT /proyectos/parametros-sistema` con diff mínimo:** la
@@ -209,10 +222,14 @@ Se suman a las anteriores; no las contradicen:
 
 - Emisión D-13 `admin.parametros_editados` (solo operaciones
   exitosas) desde `ParametrosProyectoService.actualizarSistema(...)`
-  con detalle diferencial.
-- Si el acta 032 selecciona DTO canónico: `ParametrosSistemaResponse`
-  introducido en `GET /proyectos/parametros-sistema`; en otro caso,
-  la respuesta conserva la forma actual.
+  con `detalle = { "operacion": "defaults.update",
+  "camposModificados": ["iva"] }` consumiendo
+  verbatim la matriz congelada por el acta 032.
+- DTO canónico `ParametrosSistemaResponse` introducido en
+  `GET /proyectos/parametros-sistema` (12 campos numéricos + 8
+  rangos; ya no es condicional — acta 032 D-10 selecciona el DTO
+  y `STOP-032-DTO-PARAMETROS` queda CLOSED). La respuesta ya no
+  expone la entidad JPA.
 - Recurso JAX-RS `ValorReferenciaAdminResource` con
   `@Path("/admin/valores-referencia")` y
   `@RolesAllowed("SUPER_ADMIN")`.
@@ -256,12 +273,12 @@ Se suman a las anteriores; no las contradicen:
 |---|---|---|
 | Crear | `src/main/java/ec/uce/propuestas/proyecto/admin/ValorReferenciaAdminResource.java` | `@Path("/admin/valores-referencia")` + `@RolesAllowed("SUPER_ADMIN")`. |
 | Crear | `src/main/java/ec/uce/propuestas/proyecto/admin/ValorReferenciaAdminService.java` | Orquesta repo + `LogActividadService`. |
-| Crear (condicional) | `src/main/java/ec/uce/propuestas/proyecto/dto/ParametrosSistemaResponse.java` | Solo si el acta 032 selecciona DTO canónico (`STOP-032-DTO-PARAMETROS`). |
+| Crear | `src/main/java/ec/uce/propuestas/proyecto/dto/ParametrosSistemaResponse.java` | DTO canónico obligatorio (acta 032 D-10; `STOP-032-DTO-PARAMETROS` CLOSED): 12 campos numéricos + 8 rangos; sustituye a la entidad JPA en `GET /proyectos/parametros-sistema`. |
 | Crear | `src/main/java/ec/uce/propuestas/proyecto/dto/ValorReferenciaResponse.java` | Record canónico. |
 | Crear | `src/main/java/ec/uce/propuestas/proyecto/dto/ValorReferenciaRequest.java` | Record canónico. |
 | Crear | `src/main/java/ec/uce/propuestas/proyecto/repository/ValorReferenciaRepository.java` | Panache; CRUD. |
 | Modificar | `src/main/java/ec/uce/propuestas/proyecto/service/ParametrosProyectoService.java` | Inyectar `LogActividadService`; emitir D-13 diferencial en `actualizarSistema(...)`. |
-| Modificar (condicional) | `src/main/java/ec/uce/propuestas/proyecto/resource/ProyectoResource.java` | Si el acta selecciona DTO canónico, adaptar `GET /proyectos/parametros-sistema` para devolver `ParametrosSistemaResponse`. La ruta no cambia. |
+| Modificar | `src/main/java/ec/uce/propuestas/proyecto/resource/ProyectoResource.java` | Adaptar `GET /proyectos/parametros-sistema` para devolver `ParametrosSistemaResponse` (no la entidad JPA). La ruta no cambia; solo cambia el tipo del cuerpo. |
 | Crear | `src/test/java/ec/uce/propuestas/proyecto/admin/ValorReferenciaAdminResourceIT.java` | TC-P41-02 + 5 escenarios. |
 | Crear | `src/test/java/ec/uce/propuestas/proyecto/admin/ValorReferenciaNoEntraAlMotorTest.java` | TC-P41-02: motor no lee valor_referencia. |
 | Crear | `src/test/java/ec/uce/propuestas/proyecto/service/ParametrosSistemaLogAuditoriaIT.java` | TC-P41-01 + diff. |
@@ -305,8 +322,11 @@ DELETE /api/v1/admin/valores-referencia/{clave}
      `porcentajeHerramientaMenor` (0.05 → 0.07) y otro en
      `moneda` ("USD" → "USD" sin cambio) → 200; 1 fila
      `log_actividad` con
-     `detalle.porcentajeHerramientaMenor={previa,nueva}` y **sin**
-     entrada para `moneda` (diff mínimo).
+     `detalle.operacion = "defaults.update"` y
+     `detalle.camposModificados = ["porcentajeHerramientaMenor"]`
+     (array estable; **sin** claves top-level dinámicas;
+     **sin** pares `previa`/`nueva`; `moneda` no aparece en el
+     array porque no cambió).
    - TC-P41-01: tras el `PUT`, crear un proyecto nuevo
      (`POST /proyectos`) → su `ParametrosProyecto` copia
      `porcentajeHerramientaMenor=0.07`. Un proyecto viejo
@@ -342,9 +362,16 @@ helper `cambioNumerico` ya existente.
 
 ### TRIANGULATE
 
-- `PUT` con cambio solo en `iva` (decimal); diff solo ese ese.
-- `PUT` con `porcentajeIndirecto` `null → 0.10`; diff con valor
-  textual `null`.
+- `PUT` con cambio solo en `iva` (decimal); `camposModificados`
+  contiene exactamente `["iva"]`.
+- `PUT` con `porcentajeIndirecto` `null → 0.10`;
+  `camposModificados` contiene `["porcentajeIndirecto"]` (un
+  cambio `null → valor` cuenta como cambio; el detalle sigue
+  siendo el array de nombres canónicos).
+- `PUT` con dos cambios (`porcentajeHerramientaMenor` y
+  `porcentajeIndirecto`) → `camposModificados` contiene
+  `["porcentajeHerramientaMenor", "porcentajeIndirecto"]` en
+  orden determinista (mismo orden de columnas V001 §2.5).
 - `PUT /admin/valores-referencia` con la misma `clave` pero
   `fuente` distinta → 200 (update); la `fuente` cambia (es
   upsert, no diff).
@@ -354,9 +381,9 @@ helper `cambioNumerico` ya existente.
 
 ### REFACTOR
 
-- Extraer el helper `diffParametrosSistema(previo, nuevo) →
-  Map<String, Map<String, Object>>` si la duplicación se vuelve
-  molesta (>20 líneas). 037 lo deja inline.
+- Extraer el helper `camposModificadosDe(previo, nuevo) →
+  List<String>` si la duplicación se vuelve molesta (>20 líneas).
+  037 lo deja inline.
 
 ## Catálogo mínimo de pruebas
 
@@ -368,7 +395,7 @@ helper `cambioNumerico` ya existente.
 | TC-P41-02 delete SBU | 204. |
 | TC-P41-02 delete SBU segunda vez | 404. |
 | TC-P41-02 fuente blank | 400 `fuente-requerida`. |
-| Emisión D-13 parámetros | diff correcto (solo campos cambiados). |
+| Emisión D-13 parámetros | `detalle.operacion == "defaults.update"` y `detalle.camposModificados` solo con los nombres canónicos de campos cambiados (sin `previa`/`nueva`, sin PII). |
 | Emisión D-13 valores_referencia | `operacion=insert/update/delete`. |
 | USUARIO 403 | `/admin/*` responde 403. |
 | Motor intacto | GM-19/GM-20 aceptados y GM-24 omitido según línea base; sin desviación nueva. |
@@ -423,11 +450,15 @@ No se predicen conteos de suite completa. El orquestador decide.
 ## Completion checklist (037)
 
 - [ ] `GET/PUT /proyectos/parametros-sistema` intacto (ruta
-      canónica).
-- [ ] DTO `ParametrosSistemaResponse` introducido solo si el acta
-      032 lo selecciona.
-- [ ] Emisión D-13 `admin.parametros_editados` diferencial
-      (solo operaciones exitosas).
+      canónica; `GET` ahora retorna `ParametrosSistemaResponse`,
+      no la entidad JPA).
+- [ ] DTO `ParametrosSistemaResponse` introducido (acta 032 D-10;
+      `STOP-032-DTO-PARAMETROS` CLOSED; ya no es condicional).
+- [ ] Emisión D-13 `admin.parametros_editados` con
+      `detalle.operacion` y `detalle.camposModificados` (defaults)
+      o `detalle.operacion` + `detalle.clave` (valor_referencia);
+      array estable; claves exactas consumidas de la matriz
+      congelada del acta 032.
 - [ ] `GET/PUT/DELETE /admin/valores-referencia` con
       `@RolesAllowed("SUPER_ADMIN")`.
 - [ ] TC-P41-01 verde (proyecto nuevo vs viejo).
