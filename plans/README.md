@@ -54,7 +54,9 @@ bloque I-11 (panel Super-Admin y piloto SUS) está cubierto bajo
 [`docs/modulos/panel-admin/00-acta-reconciliacion.md`](../docs/modulos/panel-admin/00-acta-reconciliacion.md) +
 inventario en
 [`docs/modulos/panel-admin/00-inventario-trabajo.md`](../docs/modulos/panel-admin/00-inventario-trabajo.md));
-planes **033–040 PLANNED / TODO** (listos para ejecutar; 033 es la próxima tarea autorizada tras 032). I-12
+**Plan 033 DONE (2026-09-08)** (fundación P-42: V010, catálogo cerrado,
+emisor `MANDATORY` y consulta admin); planes **034–040 PLANNED / TODO**,
+con 034 como siguiente tarea autorizada. I-12
 (medición SUS `n ≥ 5` + baseline RNF-06 + cierre de
 variables de tesis) **no** está planificada aún: se
 autoriza en su propia sesión tras ejecutar 033–040.
@@ -112,15 +114,16 @@ autoriza en su propia sesión tras ejecutar 033–040.
 
 ### I-11 — Panel Super-Admin y piloto SUS (P-38…P-42, US-35…US-39)
 
-> **Estado (2026-09-07 — corte de la planificación I-11):** **Plan 032
-> DONE (2026-09-07)** (acta firmada + inventario publicado en
+> **Estado (2026-09-08):** **Planes 032–033 DONE**. Plan 032 cerró el
+> gate documental el 2026-09-07 (acta firmada + inventario publicado en
 > [`docs/modulos/panel-admin/`](../docs/modulos/panel-admin/);
 > 21 decisiones locked verbatim (20 originales + adenda firmada D-21);
 > 15 STOP conditions con disposición explícita; 26 eventos D-13;
 > matriz canónica `evento → detalle`;
 > 10 CLOSED + 4 DEFERRED a I-12 + 1 CLOSED con gate RED-first en 035).
-> **Planes 033–040 PLANNED / TODO** (sin claims de commits; cambios de
-> Plan 031 preservados).
+> Plan 033 cerró la fundación P-42 el 2026-09-08 con evidencia medida y
+> sin commit. **Planes 034–040 PLANNED / TODO**; 034 es el siguiente.
+> Los cambios de Plan 031 permanecen preservados.
 > Secuencia completa de 9 planes ejecutables en
 > [`./panel-admin/`](./panel-admin/README.md): 032 (gate documental +
 > inventario + reconciliación canónica con corrección de drift en
@@ -172,7 +175,7 @@ autoriza en su propia sesión tras ejecutar 033–040.
 | # | Plan | Iteración | Estado |
 |---|---|---|---|
 | 032 | [Sincronizar contrato e inventario admin](./panel-admin/032-sincronizar-contrato-inventario-admin.md) | I-11 | **DONE (2026-09-07)** (gate documental cerrado; acta firmada + inventario publicado; 21 decisiones locked (20 originales + adenda firmada D-21); 15 STOP con disposición (10 CLOSED + 4 DEFERRED a I-12 + 1 CLOSED con gate RED-first en 035); **033 autorizado tras 032**) |
-| 033 | [Log de actividad — base](./panel-admin/033-log-actividad-base.md) | I-11 | **PLANNED / TODO** (P-42 / US-39 foundation; enum 26 eventos verbatim; MANDATORY; **una sola** migración aditiva con nombre neutral `V???__log_actividad_identidad_publica.sql` que añade `public_id UUID NOT NULL DEFAULT uuidv7()` + UNIQUE + inmutabilidad **y** `entidad_public_id UUID NULL` sin FK/sin DEFAULT/sin UNIQUE, server-authored; `entidad_id BIGINT` legacy permanece inalterado y nunca cruza REST; V001–V009 intactas) |
+| 033 | [Log de actividad — base](./panel-admin/033-log-actividad-base.md) | I-11 | **DONE (2026-09-08)** — V010 añade `public_id` y `entidad_public_id` sin FK; enum/validador con 26 eventos; emisor `MANDATORY` con `TransactionalException` estándar; JSONB persistido como `String` vía `ObjectMapper`; `GET /admin/logs` paginado `SUPER_ADMIN`. Evidencia: audit 26/26, usuario 51/51; suite 673 con solo GM-19/GM-20 aceptados y GM-24 omitido; Spotless/build/diff estáticos PASS; sin commit. |
 | 034 | [Gestión de usuarios e invitaciones](./panel-admin/034-gestion-usuarios-invitaciones.md) | I-11 | **PLANNED / TODO** (P-38 / US-35 / TC-P38-01..03; DELETE con proyectos → 409 con test focal FK; matriz self/last/email/first SUPER_ADMIN **gated por acta 032** o I-12) |
 | 035 | [Bases centrales — cierre](./panel-admin/035-bases-centrales-cierre.md) | I-11 | **PLANNED / TODO** (P-39 / US-36 / TC-P39-01..03; divergencias DELETE base/insumo resueltas por acta 032; sin marcas de paridad fabricadas) |
 | 036 | [Plantillas APU de sistema](./panel-admin/036-plantillas-apu-sistema.md) | I-11 | **PLANNED / TODO** (P-40 / US-37 / TC-P40-01; longitud `descripcionRubro` confirmada contra columna real — sin tope arbitrario) |

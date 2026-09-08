@@ -14,9 +14,9 @@
 
 ## 0. Convenciones del inventario
 
-- **Estado actual** (corte 2026-09-07, antes de ejecutar 033):
-  - **DONE / PARITY:** capacidad ya implementada en `main` y se reusa
-    sin reescritura.
+- **Estado actual** (corte 2026-09-08, con 032–033 cerrados):
+  - **DONE / PARITY:** capacidad implementada y verificada en el árbol de
+    trabajo; no implica commit.
   - **GAP parcial:** capacidad existe pero requiere un ajuste estrecho
     (RED-first en el plan correspondiente).
   - **MISSING:** capacidad no existe; el plan la crea desde cero.
@@ -25,39 +25,56 @@
 - **TC:** identificador del catálogo
   `thesis-docs/plan/quality/02-catalogo-pruebas.md`.
 - **Acción de cada fila:** `crear`, `modificar` o `reusar`.
-- **Sin totales de suite completa:** este inventario **no predice**
-  conteos para 033–040.
+- **Evidencia medida:** 033 registra sus conteos exactos; el inventario no
+  predice resultados para 034–040.
 
-## 1. Plan 033 — Log de actividad — base (P-42 foundation)
+## 1. Plan 033 — Log de actividad — base (P-42 foundation) — DONE / PARITY
 
-**Prioridad:** 1 (gate de cualquier emisor).
+**Cierre:** DONE (2026-09-08). **Prioridad histórica:** 1 (gate de cualquier emisor).
 **Proceso / historia:** P-42 / US-39 / TC-P42-01..02 (foundation).
 **Dependencias previas:** acta 032 firmada + drift canónico corregido + adenda D-21 incorporada.
 
 ### Capacidades actuales vs gap
 
 - `log_actividad` tabla + índices (`V001 §2.15`): **DONE / PARITY**.
-- Servicio emisor: **MISSING**.
-- Enum `EventoLogActividad` con 26 verbatim: **MISSING**.
-- Recurso `LogActividadResource`: **MISSING**.
-- `LogActividadDetalleValidator` + `detallesEsperados()`: **MISSING**.
-- Columna `log_actividad.public_id` UUIDv7: **MISSING** (cambio de canon, D-01).
-- Columna `log_actividad.entidad_public_id UUID NULL`: **MISSING** (adenda firmada D-21; server-authored, sin FK, sin DEFAULT, sin UNIQUE).
-- Mapeo `LogActividadResponse.entidadId` desde `entidad_public_id` (no desde la columna legacy `entidad_id BIGINT`): **MISSING**.
+- Servicio emisor: **DONE / PARITY** (`LogActividadService`, `MANDATORY`).
+- Enum `EventoLogActividad` con 26 verbatim: **DONE / PARITY**.
+- Recurso `LogActividadResource`: **DONE / PARITY** (`SUPER_ADMIN`).
+- `LogActividadDetalleValidator` + `detallesEsperados()`: **DONE / PARITY**.
+- Columna `log_actividad.public_id` UUIDv7: **DONE / PARITY** (V010).
+- Columna `log_actividad.entidad_public_id UUID NULL`: **DONE / PARITY**
+  (V010; server-authored, sin FK, sin DEFAULT, sin UNIQUE).
+- Mapeo `LogActividadResponse.entidadId` desde `entidad_public_id`: **DONE / PARITY**;
+  la columna legacy `entidad_id BIGINT` no cruza REST.
+- Persistencia `detalle` JSONB: **DONE / PARITY** como `String` JPA mediante
+  `ObjectMapper`, manteniendo `Map<String,Object>` en el contrato público y
+  evitando el fallo de arranque del `FormatMapper` personalizado de Quarkus.
 
-### Archivos candidatos
+### Archivos concretos entregados
 
 | Acción | Archivo | Condición |
 |---|---|---|
-| Crear | `src/main/resources/db/migration/V???__log_actividad_identidad_publica.sql` | Siguiente libre tras V009. Nombre **neutral** (describe el alcance completo: dos columnas nuevas). La migración añade **ambas** columnas en un solo archivo: (a) `public_id UUID NOT NULL DEFAULT uuidv7()` con índice único `ux_log_actividad_public_id` y trigger `trg_log_actividad_public_id_immutable` reusando `fn_assert_public_id_immutable()` de V001 §5; (b) `entidad_public_id UUID NULL` sin FK, sin DEFAULT, sin UNIQUE (D-21: los logs sobreviven al borrado de la entidad afectada). **Nunca** editar V001–V009. La columna legacy `entidad_id BIGINT` (V001 §2.15) **no** se toca: permanece legacy-only. **No** se intenta backfill ni conversión BIGINT→UUID. |
-| Crear | `src/main/java/ec/uce/propuestas/usuario/audit/EventoLogActividad.java` | Enum con 26 entradas verbatim (sin 4 legacy V004); método `detallesEsperados()` que materializa la matriz del acta. |
-| Crear | `src/main/java/ec/uce/propuestas/usuario/audit/LogActividadDetalleValidator.java` | Validador server-side: rechaza el evento desconocido con `IllegalArgumentException` y la clave de detalle no permitida con `IllegalStateException`. |
-| Crear | `src/main/java/ec/uce/propuestas/usuario/audit/service/LogActividadService.java` | `emitir(...)` con `@Transactional(TxType.MANDATORY)`; sin `emitirFailure`/`REQUIRES_NEW`/`codigoError`; popula `entidadPublicId` server-authored desde el `entidadId` (UUIDv7) provisto por el caller admin. |
-| Crear | `src/main/java/ec/uce/propuestas/usuario/audit/entity/LogActividad.java` | Entidad JPA con `publicId` UUIDv7 + `entidadPublicId` UUIDv7 nullable + `entidadIdLegacy` BIGINT nullable (mapea la columna legacy `entidad_id` con `@Column(name="entidad_id")` para preservar rastro histórico, **sin** exponerla en el DTO) + `fecha` Instant; mapeo de `detalle` JSONB. |
-| Crear | `src/main/java/ec/uce/propuestas/usuario/audit/repository/LogActividadRepository.java` | Panache repository con filtros `usuarioId`, `evento`, `desde`, `hasta` y paginación `Page<T>` canónica. |
-| Crear | `src/main/java/ec/uce/propuestas/usuario/audit/resource/LogActividadResource.java` | `GET /admin/logs` con `@RolesAllowed("SUPER_ADMIN")` a nivel de clase; DTO `LogActividadResponse` con `id`/`usuarioId`/`usuarioNombre`/`evento`/`entidad`/`entidadId`/`detalle`/`fecha` mapeando `entidadId` desde `entidadPublicId` (nunca desde `entidadIdLegacy`). |
-| Crear | `src/main/java/ec/uce/propuestas/usuario/audit/dto/LogActividadResponse.java` | Record canónico mínimo del acta (sin `invitacionExpiraEn`; sin PII; sin ningún campo derivado de `entidadIdLegacy`). |
-| Crear | `src/test/java/ec/uce/propuestas/usuario/audit/LogActividadServiceTest.java` | Tests focales: `emitir-sin-tx` (IllegalStateException), `rollback-borra-evento`, `detalle-clave-ajena-rechazada`, `emitir-puebla-entidad-public-id`, `filas-legacy-sin-entidad-public-id-devuelven-null`. |
+| Creado | `src/main/resources/db/migration/V010__log_actividad_identidad_publica.sql` | Siguiente libre tras V009. Nombre **neutral** (describe el alcance completo: dos columnas nuevas). La migración añade **ambas** columnas en un solo archivo: (a) `public_id UUID NOT NULL DEFAULT uuidv7()` con índice único `ux_log_actividad_public_id` y trigger `trg_log_actividad_public_id_immutable` reusando `fn_assert_public_id_immutable()` de V001 §5; (b) `entidad_public_id UUID NULL` sin FK, sin DEFAULT, sin UNIQUE (D-21: los logs sobreviven al borrado de la entidad afectada). **Nunca** editar V001–V009. La columna legacy `entidad_id BIGINT` (V001 §2.15) **no** se toca: permanece legacy-only. **No** se intenta backfill ni conversión BIGINT→UUID. |
+| Creado | `src/main/java/ec/uce/propuestas/usuario/audit/EventoLogActividad.java` | Enum con 26 entradas verbatim (sin 4 legacy V004); método `detallesEsperados()` que materializa la matriz del acta. |
+| Creado | `src/main/java/ec/uce/propuestas/usuario/audit/LogActividadDetalleValidator.java` | Validador server-side: rechaza el evento desconocido con `IllegalArgumentException` y la clave de detalle no permitida con `IllegalStateException`. |
+| Creado | `src/main/java/ec/uce/propuestas/usuario/audit/service/LogActividadService.java` | `emitir(...)` con `@Transactional(TxType.MANDATORY)`; sin `emitirFailure`/`REQUIRES_NEW`/`codigoError`; popula `entidadPublicId` server-authored desde el `entidadId` (UUIDv7) provisto por el caller admin. |
+| Creado | `src/main/java/ec/uce/propuestas/usuario/audit/entity/LogActividad.java` | Entidad JPA con `publicId` UUIDv7 + `entidadPublicId` UUIDv7 nullable + `entidadIdLegacy` BIGINT nullable (mapea la columna legacy `entidad_id` con `@Column(name="entidad_id")` para preservar rastro histórico, **sin** exponerla en el DTO) + `fecha` Instant; mapeo de `detalle` JSONB. |
+| Creado | `src/main/java/ec/uce/propuestas/usuario/audit/repository/LogActividadRepository.java` | Panache repository con filtros `usuarioId`, `evento`, `desde`, `hasta` y paginación `Page<T>` canónica. |
+| Creado | `src/main/java/ec/uce/propuestas/usuario/audit/resource/LogActividadResource.java` | `GET /admin/logs` con `@RolesAllowed("SUPER_ADMIN")` a nivel de clase; DTO `LogActividadResponse` con `id`/`usuarioId`/`usuarioNombre`/`evento`/`entidad`/`entidadId`/`detalle`/`fecha` mapeando `entidadId` desde `entidadPublicId` (nunca desde `entidadIdLegacy`). |
+| Creado | `src/main/java/ec/uce/propuestas/usuario/audit/dto/LogActividadResponse.java` | Record canónico mínimo del acta (sin `invitacionExpiraEn`; sin PII; sin ningún campo derivado de `entidadIdLegacy`). |
+| Creado | `src/main/java/ec/uce/propuestas/usuario/audit/dto/LogActividadFiltros.java` | Filtros y validación de la consulta admin. |
+| Creados | `src/test/java/ec/uce/propuestas/usuario/audit/{EventoLogActividadTest,LogActividadDetalleValidatorTest,LogActividadIndicesTest,LogActividadServiceTest,LogActividadSinPiiTest,resource/LogActividadResourceIT}.java` | Cobertura del catálogo/allowlist, `TransactionalException` estándar de `MANDATORY`, commit/rollback, esquema e índices, ausencia de PII y endpoint filtrado/paginado. |
+
+### Evidencia de cierre
+
+- Audit focal: **26/26**, 0 failures/errors/skips.
+- Usuario completo: **51/51**, 0 failures/errors/skips.
+- Suite completa autoritativa con `test-port=0`: **673 tests, 2 failures,
+  0 errors, 1 skipped**; solo GM-19/GM-20 aceptados y GM-24 omitido.
+  La corrida inicial sin puerto dinámico, afectada por cuatro
+  `QuarkusBindException` y 500 omisiones en cascada, quedó supersedida.
+- Spotless, build sin tests, diff y checks de superficies prohibidas: **PASS**.
+- V010 sin FK sobre `entidad_public_id`. Sin commit.
 
 ### TCs
 
@@ -326,6 +343,6 @@ de 033).
 
 ---
 
-**Inventario firmado al cierre de Plan 032 el 2026-09-07. Su ejecución
-queda para los planes 033–040 según el DAG anterior; cada plan
-publica su acta/sección "Done criteria" en su archivo ejecutable.**
+**Inventario firmado al cierre de Plan 032 el 2026-09-07 y actualizado al
+cierre de Plan 033 el 2026-09-08. La siguiente tarea es Plan 034; 034–040
+permanecen pendientes según el DAG. No se creó commit en este cierre.**

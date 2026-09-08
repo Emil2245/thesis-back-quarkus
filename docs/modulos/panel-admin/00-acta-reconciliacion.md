@@ -134,8 +134,10 @@ Plan 032 firma su acta con **21 decisiones congeladas** (20 originales + adenda 
 - Solo operaciones **exitosas** emiten; las rechazadas (401/403/404/409)
   **no** producen fila `log_actividad`.
 - `LogActividadService.emitir(...)` se anota con
-  `@Transactional(TxType.MANDATORY)` y un caller sin tx exterior lanza
-  `IllegalStateException` (test focal).
+  `@Transactional(TxType.MANDATORY)` y un caller sin tx exterior recibe
+  la excepción estándar `jakarta.transaction.TransactionalException` del
+  interceptor Jakarta/Quarkus, sin escritura alguna (test focal). No se añade
+  una fachada artificial para convertir el tipo.
 - **No existe** `emitirFailure`, `REQUIRES_NEW`, ni persistencia para
   operaciones fallidas.
 - **Corrección al plan:** el plan 032 lista "caso conocido:

@@ -327,7 +327,9 @@ código real (no se inventan firmas; se citan archivos
    aborta, **no** se emite. `LogActividadService.emitir(...)` se
    anota con `@Transactional(TxType.MANDATORY)` (o equivalente) y
    participa de la transacción exterior; un caller sin tx exterior
-   provoca `IllegalStateException` (test focal). **Corrección al
+   provoca la excepción estándar `jakarta.transaction.TransactionalException`
+   del interceptor Jakarta/Quarkus, sin escribir fila (test focal). No se
+   añade una fachada artificial para convertir el tipo. **Corrección al
    plan tras auditoría contra código (2026-09-07):** los servicios
    públicos que este plan listaba como "caso conocido que no abre
    `@Transactional`" (`AuthService.login`,

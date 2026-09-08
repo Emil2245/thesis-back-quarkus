@@ -1,6 +1,34 @@
 # 033 — Log de actividad — base (fundación P-42)
 
-**Estado:** TODO · I-11 · P-42 / US-39 (foundation).
+**Estado:** DONE (2026-09-08) · I-11 · P-42 / US-39 (foundation).
+
+## Cierre medido (2026-09-08)
+
+Plan 033 entrega la fundación P-42: migración
+`V010__log_actividad_identidad_publica.sql`, catálogo cerrado de 26 eventos,
+validador de detalle, emisor transaccional y consulta paginada
+`GET /admin/logs` exclusiva de `SUPER_ADMIN`.
+
+Decisiones de implementación verificadas:
+
+- `LogActividadService.emitir(...)` conserva
+  `@Transactional(TxType.MANDATORY)` y, fuera de una transacción exterior,
+  propaga la excepción estándar `jakarta.transaction.TransactionalException`;
+  no introduce wrapper propio.
+- `detalle` se persiste en JSONB mediante una representación JPA `String`,
+  serializada/deserializada explícitamente con `ObjectMapper`. Esta decisión
+  evita el fallo de arranque de Quarkus causado por un `FormatMapper`
+  personalizado y mantiene el DTO público como `Map<String,Object>`.
+- V010 añade `public_id` y `entidad_public_id`; esta última permanece sin FK,
+  por lo que el historial sobrevive al borrado de la entidad referenciada.
+
+**Evidencia exacta aportada por la ejecución:**
+
+- `./gradlew test --tests 'ec.uce.propuestas.usuario.audit.*' -Dquarkus.http.test-port=0 --console=plain` → **BUILD SUCCESSFUL**; XML: **26 tests, 0 failures, 0 errors, 0 skipped**.
+- `./gradlew test --tests 'ec.uce.propuestas.usuario.*' -Dquarkus.http.test-port=0 --console=plain` → **BUILD SUCCESSFUL**; XML: **51 tests, 0 failures, 0 errors, 0 skipped**.
+- `./gradlew test -Dquarkus.http.test-port=0 --console=plain` → **673 tests, 2 failures, 0 errors, 1 skipped**; los únicos fallos son los residuales aceptados GM-19 y GM-20, y la única omisión es GM-24. Una corrida inicial sin puerto dinámico produjo cuatro `QuarkusBindException` de arranque y 500 omisiones en cascada; la repetición con `test-port=0` la reemplaza como resultado autoritativo.
+- `spotlessCheck` **PASS**; `build -x test` **PASS**; `git diff` y checks estáticos de superficies prohibidas **PASS**; V010 no define FK sobre `entidad_public_id`.
+- **No se creó commit** durante este cierre documental.
 
 > Este plan entrega la **capa transversal** sobre la que 034–039 emiten
 > eventos D-13. La tabla `log_actividad` ya existe en V001 (§2.15), con
@@ -52,7 +80,7 @@
 
 ## Objetivo medible
 
-Una ejecución futura debe demostrar que:
+El cierre medido demostró que:
 
 1. el enum `EventoLogActividad` enumera los 26 eventos verbatim de
    `design/03 §J D-13` y **nada más** (cero sufijos, cero
@@ -62,7 +90,9 @@ Una ejecución futura debe demostrar que:
    entidadId, detalle)` inserta una fila `log_actividad` cuando se
    invoca dentro de una `@Transactional` exterior (`TxType.MANDATORY`);
    si la transacción aborta, la fila **no** persiste; si se invoca
-   sin tx exterior, lanza `IllegalStateException` (test focal);
+   sin tx exterior, Jakarta/Quarkus lanza la excepción estándar
+   `jakarta.transaction.TransactionalException` y no se escribe fila
+   alguna (test focal);
 3. los servicios públicos que emiten D-13 (`AuthService.login`,
    `AuthService.logout`, `AuthService.registrar`,
    `AuthService.cambiarPassword`, `AuthService.restablecerPassword`,
@@ -199,9 +229,12 @@ Estas decisiones se suman a las 20 de 032; no las contradicen:
     V004** **nunca** se admiten al enum y quedan excluidos de
     la cobertura exacta D-13 del test de cobertura 040.
 24. **`LogActividadService.emitir(...)` exige `TxType.MANDATORY`.**
-    Llamarlo fuera de una transacción exterior lanza
-    `IllegalStateException` (verificado por test). Sin esto, un
-    caller olvidadizo escribiría eventos "fantasma".
+    Llamarlo fuera de una transacción exterior activa la semántica
+    estándar de Jakarta/Quarkus y lanza
+    `jakarta.transaction.TransactionalException` (verificado por test),
+    sin escribir fila alguna. No se crea un wrapper para convertirla en
+    `IllegalStateException`. Sin `MANDATORY`, un caller olvidadizo podría
+    escribir eventos "fantasma".
 25. **`detalle` JSONB se serializa con Jackson y se valida contra
     un allowlist completo y cerrado por evento.** `033` implementa
     **en este plan** el mapa completo `detallesEsperados()` en
@@ -269,7 +302,7 @@ Estas decisiones se suman a las 20 de 032; no las contradicen:
     exterior ya existente de cada servicio público. Si un servicio
     público concreto requiere ajuste durante la implementación
     de 038, el plan reabre 032 antes de tocar el servicio. El
-    test focal `MANDATORY-sin-tx-lanza-IllegalStateException`
+    test focal `MANDATORY-sin-tx-lanza-TransactionalException`
     sigue aplicando como red de seguridad para futuros emisores
     que olviden abrir la tx exterior.
 
@@ -456,9 +489,10 @@ Authorization: Bearer <SUPER_ADMIN>
    catálogo.
 2. `LogActividadServiceTest`: `@QuarkusTest` con Dev Services
    PostgreSQL (no mocks);
-   `assertThrows(IllegalStateException.class, () ->
+   `assertThrows(TransactionalException.class, () ->
    service.emitir(...))` cuando no hay `@Transactional` exterior
-   (verifica `MANDATORY`).
+   (verifica la semántica estándar de `MANDATORY`) y asserta que no
+   se escribió ninguna fila.
 3. `LogActividadResourceIT`: `GET /admin/logs` con evento válido y
    fixture `LogActividad` insertada vía repo directo → asserta
    `evento == "auth.login"`; con `size=201` → 400; con
@@ -513,7 +547,7 @@ orden `created_at DESC`.
 |---|---|
 | Catálogo cerrado | 26 constantes; ninguna fuera; ninguna duplicada. |
 | Enum rechaza valor fuera | `IllegalArgumentException`. |
-| `MANDATORY` sin tx | `IllegalStateException`. |
+| `MANDATORY` sin tx | `jakarta.transaction.TransactionalException`; cero filas escritas. |
 | `MANDATORY` con tx | fila persiste; rollback exterior la borra. |
 | `emitir` puebla `entidad_public_id` desde el `entidadId` UUIDv7 provisto | fila persistida con `entidad_public_id` igual al UUIDv7 del caller; `entidad_id` BIGINT queda `NULL` (no se completa desde el caller). |
 | Fila nueva con `entidad_public_id` poblado | `GET /admin/logs` → `entidadId` serializado con ese mismo UUIDv7. |
@@ -591,51 +625,51 @@ git diff --name-only -- 'src/main/java/ec/uce/propuestas/motor/**' \
 # esperado: vacío.
 ```
 
-No se predicen conteos de suite completa. El orquestador decide si la
-corre al cierre.
+Los comandos se conservan como procedimiento reproducible; los resultados
+medidos del cierre están registrados al inicio del plan.
 
 ## Completion checklist (033)
 
-- [ ] Acta 032 firmada y citada en este plan; adenda D-21 incorporada.
-- [ ] Enum `EventoLogActividad` con 26 entradas verbatim; rechaza
+- [x] Acta 032 firmada y citada en este plan; adenda D-21 incorporada.
+- [x] Enum `EventoLogActividad` con 26 entradas verbatim; rechaza
       valores fuera del catálogo; **4 nombres legacy V004 excluidos**.
-- [ ] Entidad `LogActividad` mapea V001 §2.15 + migración aditiva
+- [x] Entidad `LogActividad` mapea V001 §2.15 + migración aditiva
       con `public_id` UUIDv7 + `entidad_public_id UUID NULL` (D-21;
       sin FK, sin DEFAULT, sin UNIQUE).
-- [ ] `LogActividadService.emitir` rechaza sin tx exterior
+- [x] `LogActividadService.emitir` rechaza sin tx exterior
       (`MANDATORY`) y popula `entidad_public_id` server-authored desde
       el `entidadId` UUIDv7 provisto por el caller admin.
-- [ ] `GET /admin/logs` filtra por `usuarioId` UUIDv7, `evento`,
+- [x] `GET /admin/logs` filtra por `usuarioId` UUIDv7, `evento`,
       `desde`, `hasta`, `page`, `size` con la forma canónica
       `Page<T>` (`items,total,page,size,totalPaginas`); las filas
       nuevas exponen `entidadId` mapeado desde `entidad_public_id`,
       las filas V004 (legacy) exponen `entidadId: null`.
-- [ ] DTO `LogActividadResponse` **no** expone ningún campo derivado
+- [x] DTO `LogActividadResponse` **no** expone ningún campo derivado
       de la columna legacy `entidad_id BIGINT` (verificable con grep y
       assertion sobre el JSON serializado).
-- [ ] `size>200` → 400; evento con formato inseguro → 400; evento
+- [x] `size>200` → 400; evento con formato inseguro → 400; evento
       seguro sin coincidencias → 200 con página vacía; USUARIO → 403.
-- [ ] TC-P42-01 (filtros) y TC-P42-02 (sin PII) verdes en
+- [x] TC-P42-01 (filtros) y TC-P42-02 (sin PII) verdes en
       `@QuarkusTest`; los nuevos casos focales sobre
       `entidad_public_id` también verdes
       (`emitir-puebla-entidad-public-id`,
       `filas-legacy-sin-entidad-public-id-devuelven-null`,
       `dto-no-expone-entidad-id-legacy`).
-- [ ] Una sola migración aditiva con el siguiente número disponible;
-      nombre neutral `V???__log_actividad_identidad_publica.sql`;
+- [x] Una sola migración aditiva con el siguiente número disponible;
+      nombre neutral `V010__log_actividad_identidad_publica.sql`;
       V001–V009 intactas; la migración añade **ambas** columnas
       (`public_id` con índice único + trigger de inmutabilidad;
       `entidad_public_id` sin FK).
-- [ ] Ningún archivo de `motor/`, `recalculo/`, `common/`,
+- [x] Ningún archivo de `motor/`, `recalculo/`, `common/`,
       `presupuesto/`, `cronograma/`, `apu/`, `insumo/`, `proyecto/`,
       `plantilla/`, `documento/` modificado.
-- [ ] `git diff --check` limpio en archivos creados.
+- [x] `git diff --check` limpio en archivos creados.
 
 ## Handoff al siguiente plan
 
-Cuando 033 cierre, el orquestador inicia **034** (P-38 gestión de
-usuarios e invitaciones) o cualquier otro de 034–037 (orden libre;
-todos dependen de 033 pero no entre sí). 034–037 no pueden emitir
-eventos duplicados con 033; la fundación ya cubre el recurso de
+Plan 033 cerró el 2026-09-08. La siguiente tarea autorizada es **034**
+(P-38 gestión de usuarios e invitaciones). Los planes 034–037 dependen de
+esta fundación y no pueden emitir eventos duplicados con 033; la fundación
+ya cubre el recurso de
 lectura y el enum runtime. La primera emisión real viene en 034
 (`usuario.invitado`, `usuario.activado`, `usuario.desactivado`).

@@ -1,6 +1,6 @@
 # Estado actual del backend — `thesis-back-quarkus`
 
-**Última actualización:** 2026-09-07
+**Última actualización:** 2026-09-08
 **Proyecto:** Plataforma SERCOP de propuestas técnico-económicas (backend Quarkus).
 
 ## Resumen
@@ -43,7 +43,7 @@ autorizó esa operación.
 | I-08 | Cronograma base y configuración | ✅ DONE — Planes 026–029 |
 | I-09 | Vistas, curva S y desactualización | ✅ DONE — Plan 030 |
 | I-10 | Exportación XLSX/PDF/MSPDI | ✅ DONE — Plan 031 |
-| I-11 | Panel Super-Admin y piloto SUS | 🚧 EN PROGRESO — Plan032 DONE (2026-09-07); 033–040 pendientes |
+| I-11 | Panel Super-Admin y piloto SUS | 🚧 EN PROGRESO — Planes 032–033 DONE; 034–040 pendientes |
 | I-12 | Validación final y hardening | ⬜ Pendiente de planificación |
 
 ## Funcionalidad backend disponible
@@ -67,8 +67,8 @@ autorizó esa operación.
 
 ## I-11 en progreso — Panel Super-Admin
 
-> **Estado al 2026-09-07:** I-11 está **EN PROGRESO** con el gate
-> documental **Plan 032 DONE**. La secuencia ejecutable vive en
+> **Estado al 2026-09-08:** I-11 está **EN PROGRESO** con **Planes
+> 032–033 DONE**. La secuencia ejecutable vive en
 > [`plans/panel-admin/`](../plans/panel-admin/README.md); consultar el
 > [`acta firmada`](modulos/panel-admin/00-acta-reconciliacion.md) y el
 > [`inventario operativo`](modulos/panel-admin/00-inventario-trabajo.md).
@@ -76,8 +76,8 @@ autorizó esa operación.
 | Plan | Alcance | Estado |
 |---|---|---|
 | 032 | Sincronización canónica e inventario definitivo | **DONE (2026-09-07)** — acta firmada + inventario publicado |
-| 033 | Base de `log_actividad`, catálogo D-13 y consulta admin | **TODO — próxima tarea autorizada** |
-| 034 | Gestión de usuarios e invitaciones de 72 h | TODO |
+| 033 | Base de `log_actividad`, catálogo D-13 y consulta admin | **DONE (2026-09-08)** — V010, 26 eventos, emisor `MANDATORY`, JSONB vía `ObjectMapper`, endpoint `SUPER_ADMIN` |
+| 034 | Gestión de usuarios e invitaciones de 72 h | **TODO — próxima tarea autorizada** |
 | 035 | Auditoría/cierre de bases centrales ya existentes | TODO |
 | 036 | Plantillas APU `SISTEMA` | TODO |
 | 037 | Parámetros del sistema y valores de referencia | TODO |
@@ -101,18 +101,23 @@ DTO `ParametrosSistemaResponse` seleccionado por 037 (ya no es
 condicional); self-delete / last-admin / email admin / primer
 SUPER_ADMIN bootstrap y `proyecto.duplicado` diferidos a I-12 por
 preferencia explícita (P-09 sigue la decisión histórica N02 §3).
-Los Planes 033–040 se ejecutan secuencialmente; 033 es la
-**siguiente tarea autorizada**. El piloto SUS de I-11 requiere
+Plan 033 quedó cerrado el 2026-09-08 con sus verificaciones medidas. Los
+Planes 034–040 permanecen pendientes; 034 es la **siguiente tarea
+autorizada**. El piloto SUS de I-11 requiere
 frontend y 1–2 participantes humanos; sus resultados nunca se
 fabrican. La medición SUS completa con **n ≥ 5** pertenece a
 I-12.
 
 ### Siguiente acción
 
+- **Plan 034 — Gestión de usuarios e invitaciones** (P-38 / US-35 /
+  TC-P38-01..03), apoyado en la fundación de auditoría cerrada por Plan 033.
+
+### Fundación cerrada por Plan 033
+
 - **Plan 033 — Log de actividad — base** (P-42 / US-39 / TC-P42-01..02
   foundation): enum `EventoLogActividad` con 26 verbatim; una
-  migración aditiva con el siguiente número disponible (nombre
-  neutral `V???__log_actividad_identidad_publica.sql`) que añade
+  migración aditiva `V010__log_actividad_identidad_publica.sql`, que añade
   **dos** columnas nuevas a `log_actividad`:
   `public_id UUID NOT NULL DEFAULT uuidv7()` (D-01) + índice único
   + trigger de inmutabilidad **y** `entidad_public_id UUID NULL`
@@ -129,8 +134,8 @@ I-12.
 
 ## Lo que falta
 
-1. Ejecutar secuencialmente los Planes **033–040** de I-11 (032 ya
-   cerrado al 2026-09-07 — acta firmada e inventario publicado).
+1. Ejecutar secuencialmente los Planes **034–040** de I-11 (032–033 ya
+   cerrados; 034 es el siguiente).
 2. Implementar o coordinar las pantallas frontend S-37…S-42 antes del piloto
    SUS.
 3. Ejecutar el piloto SUS con 1–2 participantes y registrar evidencia real.

@@ -645,12 +645,11 @@ docs(i06): reconcile backend modules and API examples
 > exacto permanece bloqueado solo por 23 archivos con formato preexistente,
 > ninguno modificado por Plan 07. Suite completa y Bruno cerrados en Plan 08.
 
-### Bloque 8 — I-11 Panel Super-Admin (gate documental cerrado)
+### Bloque 8 — I-11 Panel Super-Admin (en progreso)
 
-> **Corte (2026-09-07):** I-11 está **PLANNED** con el gate documental
-> **Plan 032 DONE**. La ejecución de los planes 033–040 queda
-> pendiente y se autoriza en su propia sesión tras 032. Este bloque
-> **no reescribe** las secciones históricas; anota el estado I-11
+> **Corte (2026-09-08):** I-11 está **EN PROGRESO** con **Planes 032–033
+> DONE**. Los planes 034–040 permanecen pendientes y 034 es el siguiente.
+> Este bloque **no reescribe** las secciones históricas; anota el estado I-11
 > para que la matriz de capacidades y el DAG sigan siendo
 > revisables sin contradicción.
 
@@ -670,8 +669,15 @@ docs(i06): reconcile backend modules and API examples
   `valor_referencia` (SBU, APORTE_PATRONAL, FAS,
   HORAS_OPERACION_ANUAL); sin claims de commit; sin claims de
   suite completa.
-- **Planes 033–040 — PLANNED / TODO.** 033 es la **siguiente tarea
-  autorizada** tras 032. Detalle por plan en el inventario.
+- **Plan 033 (Log de actividad — base) — DONE (2026-09-08).** Entrega
+  `V010__log_actividad_identidad_publica.sql`, enum y validador con 26
+  eventos, emisor `MANDATORY` con `TransactionalException` estándar,
+  JSONB persistido como `String` mediante `ObjectMapper`, y
+  `GET /admin/logs` paginado para `SUPER_ADMIN`. Evidencia: audit 26/26,
+  usuario 51/51; suite autoritativa 673 con solo GM-19/GM-20 aceptados y
+  GM-24 omitido; Spotless/build/diff estáticos PASS; sin commit.
+- **Planes 034–040 — PLANNED / TODO.** 034 es la **siguiente tarea
+  autorizada**. Detalle por plan en el inventario.
 - **Cambios de Plan 031 — preservados intactos** (sin commit; fuera
   del alcance de 032). 039 los reusa tal cual al instrumentar
   `documento.exportado`.
@@ -700,8 +706,8 @@ docs(i06): reconcile backend modules and API examples
 
 | Hecho | Valor | Fuente |
 |---|---|---|
-| Highest migration | V009 | `V009__cronograma_persistencia.sql` |
-| Próxima migración libre | V010 (en ejecución 033) | D-01 del acta |
+| Highest migration | V010 | `V010__log_actividad_identidad_publica.sql` |
+| `entidad_public_id` | sin FK | V010 + check estático de cierre 033 |
 | `log_actividad` filas V004 | 19 | V004 §11 |
 | `log_actividad` filas legacy V004 | 6 (4 nombres no canónicos) | V004 §11 |
 | Nombres legacy no canónicos | 4 | `base.insumos.copiada`, `rubro.creado`, `cronograma.creado`, `presupuesto.vigente_marcado` |
@@ -709,16 +715,15 @@ docs(i06): reconcile backend modules and API examples
 | Eventos catálogo D-13 | 26 | D-18 del acta |
 | Forma `Page<T>` canónica | `items,total,page,size,totalPaginas` | `common/dto/Page.java` |
 | Default `size` | 25 | `InsumoResource.java:89` (entre otros) |
-| Tope `size` | 200 (a confirmar en 033–040) | D-08 |
+| Tope `size` | 200 (confirmado por Plan 033) | D-08 + tests focales 033 |
 | Stub `conteoUsosApu` | `return 0L` | `InsumoCrudService.java` |
 | Mapping FK insumo-en-uso actual | 400 `validacion` | `InsumoCrudService.eliminar` |
 | Mapping FK base-no-archivada actual | 409 `base-no-archivada` | `BaseInsumosService.java:156` |
 | `GET /proyectos/parametros-sistema` retorno actual | entidad JPA `ParametrosSistema` | `ProyectoResource.java:127` |
 | `/proyectos/{id}/duplicar` | ausente | búsqueda exhaustiva en `proyecto/` |
 
-> **Nota:** este bloque **no predice** conteos de `./gradlew test`
-> para 033–040. Cada plan enuncia comandos focales y la suite
-> completa se reporta solo como medición opcional al cierre.
+> **Nota:** Plan 033 registra sus conteos medidos; los planes 034–040 no
+> predicen resultados futuros y reportarán evidencia solo al cierre.
 
 ---
 
@@ -761,7 +766,7 @@ exista, permanecen incompletos:
 | 5 | proyecto se crea desde snapshot sin enlazar datos originales |
 | 6 | **DONE 2026-08-30 · VERIFICACIÓN DIRIGIDA COMPLETA** — APIs actuales no filtran BIGINT internos; matriz completa en [Plan 07](./planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md); sin migraciones nuevas; PK/FK `BIGINT`; motor intacto. Suites dirigidas verdes; suite completa y Bruno quedan para Plan 08. |
 | 7 | docs/Bruno describen exactamente el código final |
-| 8 | **I-11 PLANNED; Plan 032 DONE (2026-09-07)** — acta firmada + inventario publicado; **21 decisiones locked** (20 originales + adenda firmada D-21); **15 STOP** con disposición (10 CLOSED + 4 DEFERRED a I-12 + 1 CLOSED con gate RED-first en 035); catálogo D-13 verbatim (26 eventos); matriz canónica `evento → detalle`; paridad P-38…P-42; V004 19/6/4; 4 seeds `valor_referencia`; sin claims de commit ni de suite completa. Planes 033–40 pendientes; 033 es la siguiente tarea autorizada tras 032. |
+| 8 | **I-11 EN PROGRESO; Planes 032–033 DONE** (032: 2026-09-07; 033: 2026-09-08). Fundación P-42 cerrada con V010, catálogo/validador de 26 eventos, emisor `MANDATORY`, JSONB vía `ObjectMapper` y consulta admin. Planes 034–040 pendientes; 034 es el siguiente. Sin commit. |
 
 ---
 

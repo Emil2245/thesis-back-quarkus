@@ -14,7 +14,7 @@
 > superficies que el acta pueda dejar abiertas. **El acta está
 > firmada al 2026-09-07** (ver
 > [`docs/modulos/panel-admin/00-acta-reconciliacion.md`](../../docs/modulos/panel-admin/00-acta-reconciliacion.md));
-> 033 ya **no** queda STOPPED — es la siguiente tarea autorizada.
+> 033 quedó **DONE el 2026-09-08**; 034 es la siguiente tarea autorizada.
 >
 > **Emisión D-13:** solo operaciones exitosas emiten. No existe
 > `emitirFailure`, `REQUIRES_NEW`, persistencia de eventos para
@@ -31,14 +31,12 @@ tabla D-13, `../../../thesis-docs/plan/architecture/07-api-contract.md` §9
 `../../../thesis-docs/plan/quality/02-catalogo-pruebas.md` (TC-P38, TC-P39,
 TC-P40, TC-P41, TC-P42; §5 protocolo SUS).
 
-> **Estado al 2026-09-07 (corte de la planificación I-11):** I-08/I-09/I-10
-> (cronograma + export) DONE; módulo `cronograma` cerrado por Plan 031.
-> **032 DONE (2026-09-07)** — acta firmada en
-> [`docs/modulos/panel-admin/00-acta-reconciliacion.md`](../../docs/modulos/panel-admin/00-acta-reconciliacion.md)
-> + inventario operativo en
-> [`docs/modulos/panel-admin/00-inventario-trabajo.md`](../../docs/modulos/panel-admin/00-inventario-trabajo.md).
-> **033–040 PLANNED / TODO** (sin claims de commits; cambios de Plan 031
-> sin commitear, preservados, fuera de alcance).
+> **Estado al 2026-09-08:** I-08/I-09/I-10 (cronograma + export) DONE;
+> módulo `cronograma` cerrado por Plan 031. **032 DONE (2026-09-07)** —
+> acta firmada e inventario operativo publicados. **033 DONE
+> (2026-09-08)** — fundación P-42 implementada y verificada, sin commit.
+> **034–040 PLANNED / TODO**; 034 es la siguiente tarea autorizada. Los
+> cambios de Plan 031 permanecen preservados y fuera de alcance.
 
 ## ¿Por qué nueve planes y no menos?
 
@@ -65,7 +63,7 @@ planes: las absorben como gates de auditoría sin reescritura.
 | # | Plan | Iteración | Procesos / Historias | Estado |
 |---|---|---|---|---|
 | 032 | [Sincronizar contrato e inventario admin](./032-sincronizar-contrato-inventario-admin.md) | I-11 | gate documental (pre-P-38…P-42) | **DONE (2026-09-07)** — acta en [`docs/modulos/panel-admin/00-acta-reconciliacion.md`](../../docs/modulos/panel-admin/00-acta-reconciliacion.md); inventario en [`docs/modulos/panel-admin/00-inventario-trabajo.md`](../../docs/modulos/panel-admin/00-inventario-trabajo.md) |
-| 033 | [Log de actividad — base](./033-log-actividad-base.md) | I-11 | P-42 / US-39 / TC-P42-01..02 (foundation) | **PLANNED / TODO** — próxima tarea autorizada tras 032 |
+| 033 | [Log de actividad — base](./033-log-actividad-base.md) | I-11 | P-42 / US-39 / TC-P42-01..02 (foundation) | **DONE (2026-09-08)** — V010; catálogo/validador de 26 eventos; emisor `MANDATORY`; JSONB como `String` vía `ObjectMapper`; `GET /admin/logs` paginado y `SUPER_ADMIN`; focal audit 26/26 y usuario 51/51 |
 | 034 | [Gestión de usuarios e invitaciones](./034-gestion-usuarios-invitaciones.md) | I-11 | P-38 / US-35 / TC-P38-01..03 | **PLANNED / TODO** |
 | 035 | [Bases centrales — cierre](./035-bases-centrales-cierre.md) | I-11 | P-39 / US-36 / TC-P39-01..03 | **PLANNED / TODO** |
 | 036 | [Plantillas APU de sistema](./036-plantillas-apu-sistema.md) | I-11 | P-40 / US-37 / TC-P40-01 | **PLANNED / TODO** |
@@ -132,9 +130,10 @@ planes: las absorben como gates de auditoría sin reescritura.
                docs; piloto SUS 1–2 con cita Brooke (1996))
 ```
 
-033 → 040 son **estrictamente secuenciales**. 034–037 pueden reordenarse
-entre sí (emiten por el mismo seam y sus TC no comparten fixtures), pero
-**ninguno** puede emitir antes de 033. 038 no puede iniciar hasta que 034,
+033 → 040 son **estrictamente secuenciales** y 033 ya está cerrado. 034 es
+la siguiente tarea autorizada; 034–037 pueden reordenarse entre sí (emiten
+por el mismo seam y sus TC no comparten fixtures), pero todos dependen de
+la fundación entregada por 033. 038 no puede iniciar hasta que 034,
 035, 036 y 037 estén todos cerrados (para no duplicar eventos). 039 no
 puede iniciar hasta que 038 esté cerrado y Plan 031 siga sin tocar. 040
 es la integración final.
@@ -194,7 +193,8 @@ y los planes 033–040 nunca las pre-deciden:
    dentro de la **misma `@Transactional` exterior** del servicio que
    materializa el cambio. `LogActividadService.emitir(...)` se anota
    con `@Transactional(TxType.MANDATORY)` y un caller sin tx exterior
-   lanza `IllegalStateException` (test focal). **No existe**
+   lanza la excepción estándar `jakarta.transaction.TransactionalException`
+   (test focal), sin wrapper propio. **No existe**
    `emitirFailure`, `REQUIRES_NEW`, ni persistencia de eventos para
    operaciones fallidas. Los servicios públicos que emiten D-13
    (`AuthService.login`, `AuthService.logout`,
