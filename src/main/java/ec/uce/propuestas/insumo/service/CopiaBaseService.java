@@ -10,11 +10,14 @@ import ec.uce.propuestas.insumo.repository.BaseInsumosRepository;
 import ec.uce.propuestas.insumo.repository.InsumoRepository;
 import ec.uce.propuestas.proyecto.entity.Proyecto;
 import ec.uce.propuestas.proyecto.repository.ProyectoRepository;
+import ec.uce.propuestas.usuario.audit.EventoLogActividad;
+import ec.uce.propuestas.usuario.audit.service.LogActividadService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -45,6 +48,9 @@ public class CopiaBaseService {
 
     @Inject
     ProyectoRepository proyectoRepository;
+
+    @Inject
+    LogActividadService logActividadService;
 
     /**
      * Copia una base de insumos (CENTRAL o PROYECTO) hacia la base PROYECTO del
@@ -88,30 +94,28 @@ public class CopiaBaseService {
                 .findByPublicIdAndOwnerScope(destinoProyectoPublicId, callerUsuarioId)
                 .orElseThrow(() -> ProblemaException.noEncontrado("Proyecto destino no encontrado"));
 
-        Long origenBaseId;
+        BaseInsumos origenBase;
         if ("CENTRAL".equalsIgnoreCase(req.fuenteTipo())) {
             // Fuente CENTRAL — globalmente legible pero debe ser estrictamente CENTRAL.
             // El seam del repositorio ya filtra por tipo en findCentralByPublicId.
-            BaseInsumos origen = baseInsumosRepository
+            origenBase = baseInsumosRepository
                     .findCentralByPublicId(origenPublicId)
                     .orElseThrow(() -> ProblemaException.noEncontrado("Base origen no encontrada"));
-            origenBaseId = origen.id;
         } else {
             // Fuente PROYECTO — scope de owner: la fila debe pertenecer al caller.
             Proyecto origenProyecto = proyectoRepository
                     .findByPublicIdAndOwnerScope(origenPublicId, callerUsuarioId)
                     .orElseThrow(() -> ProblemaException.noEncontrado("Proyecto origen no encontrado"));
-            BaseInsumos baseProyecto = baseInsumosService.obtenerBaseProyecto(origenProyecto.id);
-            origenBaseId = baseProyecto.id;
+            origenBase = baseInsumosService.obtenerBaseProyecto(origenProyecto.id);
         }
         BaseInsumos destinoBase = baseInsumosService.asegurarBaseProyecto(destino.id);
-        if (origenBaseId.equals(destinoBase.id)) {
+        if (origenBase.id.equals(destinoBase.id)) {
             throw ProblemaException.validacion("No se puede copiar una base sobre sí misma");
         }
 
         List<String> omitidos = new ArrayList<>();
         int copiados = 0;
-        for (Insumo ins : insumoRepository.listarDeBase(origenBaseId)) {
+        for (Insumo ins : insumoRepository.listarDeBase(origenBase.id)) {
             if (insumoRepository.findByBaseYcodigo(destinoBase.id, ins.codigo).isPresent()) {
                 omitidos.add(ins.codigo);
                 continue;
@@ -126,6 +130,21 @@ public class CopiaBaseService {
             insumoRepository.persist(nuevo);
             copiados++;
         }
+        baseInsumosRepository.flush();
+        logActividadService.emitir(
+                callerUsuarioId,
+                EventoLogActividad.BASE_COPIADA_A_PROYECTO,
+                "base_insumos",
+                destinoBase.publicId,
+                Map.of(
+                        "baseOrigenId",
+                        origenBase.publicId,
+                        "proyectoDestinoId",
+                        destino.publicId,
+                        "cantidadInsumos",
+                        copiados,
+                        "cantidadOmitidos",
+                        omitidos.size()));
         return new CopiaBaseResultadoResponse(copiados, omitidos);
     }
 }

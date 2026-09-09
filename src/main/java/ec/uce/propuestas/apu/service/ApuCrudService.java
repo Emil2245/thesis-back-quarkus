@@ -22,9 +22,13 @@ import ec.uce.propuestas.plantilla.dto.AdvertenciaPlantillaResponse;
 import ec.uce.propuestas.plantilla.entity.PlantillaApu;
 import ec.uce.propuestas.plantilla.service.PlantillaApuService;
 import ec.uce.propuestas.proyecto.entity.ParametrosProyecto;
+import ec.uce.propuestas.proyecto.entity.Proyecto;
+import ec.uce.propuestas.proyecto.repository.ProyectoRepository;
 import ec.uce.propuestas.proyecto.service.ParametrosProyectoService;
 import ec.uce.propuestas.recalculo.Alcance;
 import ec.uce.propuestas.recalculo.RecalculoService;
+import ec.uce.propuestas.usuario.audit.EventoLogActividad;
+import ec.uce.propuestas.usuario.audit.service.LogActividadService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -33,6 +37,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /** CRUD del agregado {@code apu} + filas (P-19…P-22). Recibe usuarioId/proyectoId validados por el resource. */
@@ -66,6 +71,12 @@ public class ApuCrudService {
     @Inject
     PlantillaApuService plantillaApuService;
 
+    @Inject
+    ProyectoRepository proyectoRepository;
+
+    @Inject
+    LogActividadService logActividadService;
+
     /**
      * Plan 04 (P-26) — Crea un APU. Variante principal: si
      * {@code req.plantillaId()} viene, delega la materialización a
@@ -92,6 +103,7 @@ public class ApuCrudService {
         apu.descripcion = req.descripcion();
         apu.unidad = req.unidad();
         apuRepository.persist(apu);
+        apuRepository.flush();
 
         crearSecciones(apu);
         apuRepository.persist(apu);
@@ -105,6 +117,7 @@ public class ApuCrudService {
         }
 
         recalculoService.recalcular(new Alcance.Apu(apu.id));
+        emitir(apu, EventoLogActividad.APU_CREADO);
         return new ResultadoCrear(respuestaCompleta(apu), advertencias);
     }
 
@@ -157,6 +170,7 @@ public class ApuCrudService {
             if (v != null && !v.isBlank()) apu.unidad = v;
         }
         apuRepository.persist(apu);
+        emitir(apu, EventoLogActividad.APU_EDITADO);
         return respuestaCompleta(apu);
     }
 
@@ -167,6 +181,7 @@ public class ApuCrudService {
         apu.porcentajeIndirecto = valor;
         apuRepository.persist(apu);
         recalculoService.recalcular(new Alcance.Apu(apu.id));
+        emitir(apu, EventoLogActividad.APU_EDITADO);
         return respuestaCompleta(apu);
     }
 
@@ -177,6 +192,7 @@ public class ApuCrudService {
         String normalizado = normalizarEspecificacion(texto);
         apu.especificacionTecnica = normalizado;
         apuRepository.persist(apu);
+        emitir(apu, EventoLogActividad.APU_EDITADO);
         return respuestaCompleta(apu);
     }
 
@@ -212,6 +228,7 @@ public class ApuCrudService {
                     "El APU está vinculado a un rubro del presupuesto y no puede eliminarse");
         }
         apuRepository.delete(apu);
+        emitir(apu, EventoLogActividad.APU_ELIMINADO);
     }
 
     @Transactional
@@ -376,6 +393,15 @@ public class ApuCrudService {
         detalleRepository.delete(d);
         recalculoService.recalcular(new Alcance.Apu(apu.id));
         return respuestaCompleta(apu);
+    }
+
+    private void emitir(Apu apu, EventoLogActividad evento) {
+        Long proyectoId = apuRepository
+                .proyectoDePresupuesto(apu.presupuestoId)
+                .orElseThrow(() -> ProblemaException.noEncontrado("Presupuesto no encontrado"));
+        Proyecto proyecto = proyectoRepository.findById(proyectoId);
+        Long usuarioId = proyecto == null ? null : proyecto.usuarioId;
+        logActividadService.emitir(usuarioId, evento, "apu", apu.publicId, Map.of());
     }
 
     private Apu _validar(Long apuId) {

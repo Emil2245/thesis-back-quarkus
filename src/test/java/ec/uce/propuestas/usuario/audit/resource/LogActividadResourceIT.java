@@ -210,13 +210,20 @@ class LogActividadResourceIT {
         } catch (Exception ex) {
             throw new RuntimeException(ex);
         }
-        return given().contentType(JSON)
+        String token = given().contentType(JSON)
                 .body(Map.of("email", email, "password", "Pass1234", "recordarSesion", false))
                 .post("/api/v1/auth/login")
                 .then()
                 .statusCode(200)
                 .extract()
                 .path("accessToken");
+        try (Connection con = ds.getConnection();
+                Statement st = con.createStatement()) {
+            st.executeUpdate("delete from log_actividad");
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+        return token;
     }
 
     private Actor insertarActor(String nombre, String email) throws Exception {

@@ -4,6 +4,8 @@ import ec.uce.propuestas.common.ErrorPayload;
 import ec.uce.propuestas.usuario.TipoToken;
 import ec.uce.propuestas.usuario.Usuario;
 import ec.uce.propuestas.usuario.UsuarioRepository;
+import ec.uce.propuestas.usuario.audit.EventoLogActividad;
+import ec.uce.propuestas.usuario.audit.service.LogActividadService;
 import ec.uce.propuestas.usuario.auth.dto.*;
 import ec.uce.propuestas.usuario.auth.mail.EnviadorCorreo;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -13,6 +15,7 @@ import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
 import org.jboss.logging.Logger;
 
 @ApplicationScoped
@@ -35,6 +38,9 @@ public class AuthService {
     @Inject
     EnviadorCorreo enviadorCorreo;
 
+    @Inject
+    LogActividadService logActividadService;
+
     // -----------------------------------------------------------------------
     // Registration / verification
     // -----------------------------------------------------------------------
@@ -56,12 +62,15 @@ public class AuthService {
         u.email = req.email();
         u.passwordHash = passwordService.hash(req.password());
         usuarioRepo.persist(u);
+        usuarioRepo.flush();
 
         Instant expiresAt = Instant.now().plus(tokenService.verificacionTtl());
         String raw = tokenService.issueOneTimeToken(
                 u, TipoToken.VERIFICACION_EMAIL, tokenService.verificacionTtl(), u.email);
         enviadorCorreo.enviarVerificacion(u.email, raw, expiresAt);
         LOG.infof("Registro: usuario id=%d, email enviado", u.id);
+        logActividadService.emitir(
+                u.id, EventoLogActividad.AUTH_REGISTRO, "auth", null, Map.of("usuarioId", u.publicId));
 
         return toUsuarioResponse(u);
     }
@@ -129,6 +138,7 @@ public class AuthService {
         String accessToken = tokenService.mintAccessToken(u);
         String refreshRaw = tokenService.issueRefreshToken(u, req.recordarSesion());
         LOG.infof("Login exitoso: usuario id=%d", u.id);
+        logActividadService.emitir(u.id, EventoLogActividad.AUTH_LOGIN, "auth", null, Map.of("resultado", "ok"));
 
         return new TokenResponse(accessToken, tokenService.accessTokenTtlSeconds(), refreshRaw, toUsuarioResponse(u));
     }
@@ -156,8 +166,13 @@ public class AuthService {
 
     @Transactional
     public void logout(String rawRefreshToken) {
+        Long usuarioId = tokenService
+                .findUsuarioByRefreshToken(rawRefreshToken)
+                .map(usuario -> usuario.id)
+                .orElse(null);
         tokenService.revokeRefreshToken(rawRefreshToken);
         LOG.info("Logout: refresh token revocado");
+        logActividadService.emitir(usuarioId, EventoLogActividad.AUTH_LOGOUT, "auth", null, Map.of("resultado", "ok"));
     }
 
     // -----------------------------------------------------------------------
@@ -197,6 +212,8 @@ public class AuthService {
         // D-03: revoke all refresh tokens on password change
         tokenService.revokeAllRefreshTokensForUser(uid);
         LOG.infof("Password restablecido: usuario id=%d", uid);
+        logActividadService.emitir(
+                uid, EventoLogActividad.AUTH_PASSWORD_CAMBIADA, "auth", null, Map.of("origen", "reset"));
     }
 
     // -----------------------------------------------------------------------
@@ -222,6 +239,8 @@ public class AuthService {
         u.emailVerificado = true; // invitation implies admin vouched for the email
         u.activo = true;
         LOG.infof("Invitación aceptada: usuario id=%d", uid);
+        logActividadService.emitir(
+                uid, EventoLogActividad.USUARIO_ACTIVADO, "usuario", u.publicId, Map.of("origen", "invitacion"));
     }
 
     // -----------------------------------------------------------------------
@@ -276,6 +295,8 @@ public class AuthService {
         // D-03: revoke all refresh tokens on password change
         tokenService.revokeAllRefreshTokensForUser(u.id);
         LOG.infof("Password cambiado: usuario id=%d", u.id);
+        logActividadService.emitir(
+                u.id, EventoLogActividad.AUTH_PASSWORD_CAMBIADA, "auth", null, Map.of("origen", "perfil"));
     }
 
     // -----------------------------------------------------------------------

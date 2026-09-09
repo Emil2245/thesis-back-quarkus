@@ -4,15 +4,23 @@ import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.insumo.dto.InsumoCrearRequest;
 import ec.uce.propuestas.insumo.dto.InsumoEditarRequest;
 import ec.uce.propuestas.insumo.dto.InsumoResponse;
+import ec.uce.propuestas.insumo.entity.BaseInsumos;
 import ec.uce.propuestas.insumo.entity.Insumo;
+import ec.uce.propuestas.insumo.entity.TipoBase;
 import ec.uce.propuestas.insumo.entity.TipoInsumo;
 import ec.uce.propuestas.insumo.mapper.InsumoMapper;
+import ec.uce.propuestas.insumo.repository.BaseInsumosRepository;
 import ec.uce.propuestas.insumo.repository.InsumoRepository;
+import ec.uce.propuestas.proyecto.entity.Proyecto;
+import ec.uce.propuestas.proyecto.repository.ProyectoRepository;
 import ec.uce.propuestas.recalculo.Alcance;
 import ec.uce.propuestas.recalculo.RecalculoService;
+import ec.uce.propuestas.usuario.audit.EventoLogActividad;
+import ec.uce.propuestas.usuario.audit.service.LogActividadService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -34,8 +42,25 @@ public class InsumoCrudService {
     @Inject
     RecalculoService recalculoService;
 
+    @Inject
+    BaseInsumosRepository baseInsumosRepository;
+
+    @Inject
+    ProyectoRepository proyectoRepository;
+
+    @Inject
+    LogActividadService logActividadService;
+
     @Transactional
     public InsumoResponse crear(Long baseId, InsumoCrearRequest req) {
+        return crear(baseId, req, true);
+    }
+
+    InsumoResponse crearDesdeImportacion(Long baseId, InsumoCrearRequest req) {
+        return crear(baseId, req, false);
+    }
+
+    private InsumoResponse crear(Long baseId, InsumoCrearRequest req, boolean emitirAuditoria) {
         if (insumoRepository.findByBaseYcodigo(baseId, req.codigo()).isPresent()) {
             throw ProblemaException.validacion("Código duplicado en esta base");
         }
@@ -47,6 +72,11 @@ public class InsumoCrudService {
         aplicarUnidad(e, req.tipo(), req.unidad());
         e.precioUnitario = req.precioUnitario();
         insumoRepository.persist(e);
+        insumoRepository.flush();
+        if (emitirAuditoria) {
+            emitirSiBaseProyecto(
+                    e, EventoLogActividad.INSUMO_CREADO, Map.of("codigoInsumo", e.codigo, "tipo", e.tipo.name()));
+        }
         return InsumoMapper.toResponse(e);
     }
 
@@ -64,6 +94,7 @@ public class InsumoCrudService {
         insumoRepository.persist(e);
         insumoRepository.flush();
         recalculoService.recalcular(new Alcance.Insumo(e.id));
+        emitirSiBaseProyecto(e, EventoLogActividad.INSUMO_EDITADO, Map.of());
         return InsumoMapper.toResponse(e);
     }
 
@@ -78,12 +109,23 @@ public class InsumoCrudService {
                     "No se puede eliminar el insumo: está referenciado en " + usos + " parte(s) de APU");
         }
         insumoRepository.delete(e);
+        emitirSiBaseProyecto(e, EventoLogActividad.INSUMO_ELIMINADO, Map.of());
     }
 
     private Insumo validarExistencia(Long baseId, UUID insumoPublicId) {
         return insumoRepository
                 .findByPublicIdAndBase(insumoPublicId, baseId)
                 .orElseThrow(() -> ProblemaException.noEncontrado("Insumo no encontrado en esta base"));
+    }
+
+    private void emitirSiBaseProyecto(Insumo insumo, EventoLogActividad evento, Map<String, Object> detalle) {
+        BaseInsumos base = baseInsumosRepository.findById(insumo.baseId);
+        if (base == null || base.tipo != TipoBase.PROYECTO || base.proyectoId == null) {
+            return;
+        }
+        Proyecto proyecto = proyectoRepository.findById(base.proyectoId);
+        Long usuarioId = proyecto == null ? null : proyecto.usuarioId;
+        logActividadService.emitir(usuarioId, evento, "insumo", insumo.publicId, detalle);
     }
 
     private void aplicarUnidad(Insumo e, TipoInsumo tipo, String unidad) {

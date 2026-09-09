@@ -12,10 +12,13 @@ import ec.uce.propuestas.proyecto.entity.Proyecto;
 import ec.uce.propuestas.proyecto.mapper.ProyectoMapper;
 import ec.uce.propuestas.proyecto.repository.ParametrosProyectoRepository;
 import ec.uce.propuestas.proyecto.repository.ProyectoRepository;
+import ec.uce.propuestas.usuario.audit.EventoLogActividad;
+import ec.uce.propuestas.usuario.audit.service.LogActividadService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @ApplicationScoped
@@ -29,6 +32,9 @@ public class ProyectoService {
 
     @Inject
     ParametrosProyectoRepository parametrosProyectoRepository;
+
+    @Inject
+    LogActividadService logActividadService;
 
     /** Lista los proyectos del usuario autenticado (propietario), paginado. */
     public Page<ProyectoResponse> listarDeUsuario(
@@ -62,6 +68,7 @@ public class ProyectoService {
         p.subdireccionInstitucional = req.subdireccionInstitucional();
         p.estado = EstadoProyecto.BORRADOR;
         proyectoRepository.persist(p);
+        proyectoRepository.flush();
         // Plan 037 / DM §15: cada proyecto conserva una copia de los 12 defaults
         // vigentes al momento de crearse. Presupuesto v1 y parámetros nacen en la
         // misma transacción que el proyecto; cualquier fallo revierte el agregado.
@@ -69,6 +76,7 @@ public class ProyectoService {
             throw new IllegalStateException("No existe el singleton de parámetros del sistema");
         }
         presupuestoService.crearVigenteInicial(p.id);
+        logActividadService.emitir(usuarioId, EventoLogActividad.PROYECTO_CREADO, "proyecto", p.publicId, Map.of());
         return ProyectoMapper.toResponse(p);
     }
 
@@ -92,6 +100,7 @@ public class ProyectoService {
         p.direccionInstitucional = req.direccionInstitucional();
         p.subdireccionInstitucional = req.subdireccionInstitucional();
         proyectoRepository.persist(p);
+        logActividadService.emitir(usuarioId, EventoLogActividad.PROYECTO_EDITADO, "proyecto", p.publicId, Map.of());
         return ProyectoMapper.toResponse(p);
     }
 
@@ -101,7 +110,9 @@ public class ProyectoService {
         if (p.estado == EstadoProyecto.FINALIZADO) {
             throw ProblemaException.validacion("No se puede eliminar un proyecto FINALIZADO");
         }
+        UUID eliminadoId = p.publicId;
         proyectoRepository.delete(p);
+        logActividadService.emitir(usuarioId, EventoLogActividad.PROYECTO_ELIMINADO, "proyecto", eliminadoId, Map.of());
     }
 
     /** Valida que el proyecto pertenezca al usuario por {@code publicId} UUIDv7 (Plan 07). */

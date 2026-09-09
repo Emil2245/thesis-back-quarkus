@@ -14,7 +14,7 @@
 > superficies que el acta pueda dejar abiertas. **El acta está
 > firmada al 2026-09-07** (ver
 > [`docs/modulos/panel-admin/00-acta-reconciliacion.md`](../../docs/modulos/panel-admin/00-acta-reconciliacion.md));
-> 033–037 quedaron **DONE al 2026-09-08**; 038 es la siguiente tarea autorizada.
+> 033–038 quedaron **DONE al 2026-09-08**; 039 es la siguiente tarea autorizada.
 >
 > **Emisión D-13:** solo operaciones exitosas emiten. No existe
 > `emitirFailure`, `REQUIRES_NEW`, persistencia de eventos para
@@ -45,7 +45,7 @@ TC-P40, TC-P41, TC-P42; §5 protocolo SUS).
 > suite completa 725 = 722 pass + GM-19/GM-20 aceptados + GM-24 skipped.
 > **Plan 037 DONE (2026-09-08):** focal 7/7, `proyecto.*` 25/25 y suite
 > 732 = 729 pass + GM-19/GM-20 aceptados + GM-24 skipped; build/Spotless PASS.
-> **038–040 PLANNED / TODO**; 038 es la siguiente tarea autorizada. Los
+> **Plan 038 DONE (2026-09-08):** focal 6/6, regresión conjunta de módulos 234/234 y suite completa 738 = 735 pass + GM-19/GM-20 aceptados + GM-24 skipped; build/Spotless PASS. **039–040 PLANNED / TODO**; 039 es la siguiente tarea autorizada. Los
 > cambios de Plan 031 permanecen preservados y fuera de alcance.
 
 ## ¿Por qué nueve planes y no menos?
@@ -78,7 +78,7 @@ planes: las absorben como gates de auditoría sin reescritura.
 | 035 | [Bases centrales — cierre](./035-bases-centrales-cierre.md) | I-11 | P-39 / US-36 / TC-P39-01..03 | **DONE (2026-09-08)** — RED 41 con 18 failures (9 auditoría + 9 recurso); GREEN focal fresco 41/41 (`AdminBaseCentralResourceIT` 29 + `AdminBaseCentralLogAuditoriaIT` 12); `insumo.*` 74/74; build/Spotless PASS; suite completa 715 = 712 pass + GM-19/GM-20 aceptados + GM-24 skipped, 0 errors; diff limpio; sin cambios en migraciones/motor/recalculo; Graphify final 4.453 nodos / 13.555 aristas / 182 comunidades; sin commit |
 | 036 | [Plantillas APU de sistema](./036-plantillas-apu-sistema.md) | I-11 | P-40 / US-37 / TC-P40-01 | **DONE (2026-09-08)** — CRUD/listado `SUPER_ADMIN`; SISTEMA server-authored; snapshot canónico price-free; D-13 solo en mutaciones exitosas; focal 10/10, `plantilla.*` 85/85, suite 725 con solo GM-19/GM-20 aceptados y GM-24 omitido |
 | 037 | [Parámetros del sistema y valores de referencia](./037-parametros-valores-referencia.md) | I-11 | P-41 / US-38 / TC-P41-01..02 | **DONE (2026-09-08)** — DTO canónico de 22 campos; defaults materializados al crear proyecto; CRUD/upsert paginado de valores de referencia; D-13 solo en mutaciones efectivas; focal 7/7, `proyecto.*` 25/25, suite 732 con baseline aceptado; sin commit |
-| 038 | [Instrumentación D-13: identidad y catálogos](./038-instrumentacion-d13-identidad-catalogos.md) | I-11 | eventos D-13 auth/usuario/proyecto/insumo/base/APU | **PLANNED / TODO** |
+| 038 | [Instrumentación D-13: identidad y catálogos](./038-instrumentacion-d13-identidad-catalogos.md) | I-11 | eventos D-13 auth/usuario/proyecto/insumo/base/APU | **DONE (2026-09-08)** — 16 nombres únicos + camino adicional de invitación; `proyecto.duplicado` sigue `no producer yet`; focal 6/6, módulos 234/234, suite 738 con baseline aceptado; sin commit |
 | 039 | [Instrumentación D-13: presupuesto, cronograma, documento](./039-instrumentacion-d13-presupuesto-cronograma-documento.md) | I-11 | eventos D-13 presupuesto/cronograma/documento/export | **PLANNED / TODO** |
 | 040 | [Integración del panel y piloto SUS](./040-integracion-panel-piloto-sus.md) | I-11 | cierre I-11 + piloto SUS 1–2 (protocolo quality/02 §5) | **PLANNED / TODO** |
 

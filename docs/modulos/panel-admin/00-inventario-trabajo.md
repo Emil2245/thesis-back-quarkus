@@ -262,9 +262,9 @@
 - **TC-P41-01:** `GET /proyectos/parametros-sistema` retorna `ParametrosSistemaResponse`; `PUT` con rol SUPER_ADMIN; sin CAMICON sembrado.
 - **TC-P41-02:** `PUT /admin/valores-referencia/{clave}` upsert con `fuente` no blank; cualquier clave única se acepta.
 
-## 6. Plan 038 — Instrumentación D-13: identidad y catálogos
+## 6. Plan 038 — Instrumentación D-13: identidad y catálogos — DONE / PARITY
 
-**Prioridad:** 6.
+**Cierre:** DONE (2026-09-08). **Prioridad histórica:** 6.
 **Proceso / historia:** D-13 auth/usuario/proyecto/insumo/base/APU.
 **Dependencias previas:** 033 + 034 + 035 + 036 + 037 cerrados.
 
@@ -272,7 +272,10 @@
 
 - Servicios públicos ya implementados (auth, proyecto, insumo, base,
   APU): **DONE / PARITY**.
-- Emisión de eventos D-13 desde esos servicios: **MISSING**.
+- Emisión de eventos D-13 desde esos servicios: **DONE / PARITY**.
+- Evidencia: focal consolidado 6/6, regresión conjunta de módulos 234/234,
+  suite completa 738 = 735 pass + GM-19/GM-20 aceptados + GM-24 skipped,
+  build/Spotless/diff PASS. `proyecto.duplicado` permanece `no producer yet`.
 
 ### Archivos candidatos
 
@@ -394,5 +397,5 @@ de 033).
 ---
 
 **Inventario firmado al cierre de Plan 032 el 2026-09-07 y actualizado al
-cierre completo de Plan 037 el 2026-09-08. La siguiente tarea es Plan 038;
-038–040 permanecen pendientes según el DAG. No se creó commit.**
+cierre completo de Plan 038 el 2026-09-08. La siguiente tarea es Plan 039;
+039–040 permanecen pendientes según el DAG. No se creó commit.**

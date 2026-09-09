@@ -1,6 +1,6 @@
 # 038 — Instrumentación D-13: identidad y catálogos
 
-**Estado:** TODO · I-11 · segunda ola de emisores D-13.
+**Estado:** DONE (2026-09-08) · I-11 · segunda ola de emisores D-13.
 
 > Cubre los eventos D-13 de los módulos de **identidad** y
 > **catálogos** que 032 acta (decisión 18) asigna a este plan:
@@ -432,34 +432,50 @@ git diff --name-only -- 'src/main/resources/db/migration/**'
 
 No se predicen conteos de suite completa. El orquestador decide.
 
+## Evidencia de cierre medida (2026-09-08)
+
+- Focal consolidado `Plan038LogActividadIT`: **6/6 verde**.
+- Regresión conjunta `usuario.*`, `proyecto.*`, `insumo.*` y `apu.*`: **234/234 verde**.
+- Suite completa fresca: **738 tests = 735 verdes + 2 fallos aceptados**
+  (GM-19 `-$6.95`, GM-20 cap. 1 `-$0.84`) **+ 1 omitido**
+  (GM-24 `@Disabled`) + **0 errors**.
+- `spotlessCheck`, `build -x test` y `git diff --check`: **PASS**.
+- Sin cambios en migraciones, `motor/` ni `recalculo/`.
+- `proyecto.duplicado` permanece explícitamente como `no producer yet` porque
+  `ProyectoService.duplicar(...)` no existe y `STOP-032-P09-DUPLICAR` sigue
+  vigente.
+- Los fixtures de `LogActividadResourceIT` se aislaron de los nuevos eventos
+  reales de registro/login; `Plan038LogActividadIT` limpia también al finalizar
+  para no contaminar otras clases.
+
 ## Completion checklist (038)
 
-- [ ] 16 nombres únicos + 1 camino emisor adicional (`usuario.activado` origen `invitacion`) emitidos con la clave D-13 exacta
+- [x] 16 nombres únicos + 1 camino emisor adicional (`usuario.activado` origen `invitacion`) emitidos con la clave D-13 exacta
       (`auth.password_cambiada` cubre perfil y reset vía
       `AuthService.cambiarPassword` y `AuthService.restablecerPassword`;
       `usuario.activado` con origen `invitacion`).
-- [ ] `proyecto.duplicado`: estado explícito en el completion
+- [x] `proyecto.duplicado`: estado explícito en el completion
       checklist. Si el acta 032 cerró `STOP-032-P09-DUPLICAR`
       implementando el seam `ProyectoService.duplicar(...)` y
       `POST /api/v1/proyectos/{id}/duplicar`, este plan emite ese
       evento. Si el acta difirió el evento como "no producer yet",
       este plan **no** lo emite y registra el estado en este
       ítem. **No se fabrica el seam canónico en 038.**
-- [ ] Cada evento tiene `detalle` con el set de claves canónicas
+- [x] Cada evento tiene `detalle` con el set de claves canónicas
       de la matriz del acta 032 (decisión 2).
-- [ ] Verificar que los servicios públicos emisores (`AuthService`,
+- [x] Verificar que los servicios públicos emisores (`AuthService`,
       `ProyectoService`, `InsumoCrudService`,
       `ImportacionInsumoService`, `CopiaBaseService`,
       `ApuCrudService`) siguen anotados con `@Transactional`;
       ningún seam exterior explícito se introduce
       (corrección del acta 032 D-03).
-- [ ] Ningún emisor en `motor/`, `recalculo/`, `presupuesto/`,
+- [x] Ningún emisor en `motor/`, `recalculo/`, `presupuesto/`,
       `cronograma/`, `documento/`.
-- [ ] Ningún evento duplicado con 034–037.
-- [ ] Regresión por módulo verde.
-- [ ] Sin PII en `detalle` (TC-P42-02 verde en estos eventos).
-- [ ] Ninguna migración nueva.
-- [ ] `git diff --check` limpio.
+- [x] Ningún evento duplicado con 034–037.
+- [x] Regresión por módulo verde.
+- [x] Sin PII en `detalle` (TC-P42-02 verde en estos eventos).
+- [x] Ninguna migración nueva.
+- [x] `git diff --check` limpio.
 
 ## Handoff al siguiente plan
 
