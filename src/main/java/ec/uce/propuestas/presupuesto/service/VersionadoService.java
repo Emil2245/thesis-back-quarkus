@@ -23,6 +23,8 @@ import ec.uce.propuestas.proyecto.entity.Proyecto;
 import ec.uce.propuestas.proyecto.repository.ProyectoRepository;
 import ec.uce.propuestas.recalculo.Alcance;
 import ec.uce.propuestas.recalculo.RecalculoService;
+import ec.uce.propuestas.usuario.audit.EventoLogActividad;
+import ec.uce.propuestas.usuario.audit.service.LogActividadService;
 import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -32,6 +34,7 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -124,6 +127,9 @@ public class VersionadoService {
     @Inject
     RecalculoService recalculoService;
 
+    @Inject
+    LogActividadService logActividadService;
+
     /**
      * Devuelve el EntityManager del contexto de persistencia actual reusando
      * el accessor de Panache. Útil para flushes explícitos entre inserciones
@@ -198,6 +204,12 @@ public class VersionadoService {
             // No debería ocurrir — fue persistido arriba. Defensa de cinturón.
             throw ProblemaException.noEncontrado("Presupuesto no encontrado");
         }
+        logActividadService.emitir(
+                callerUsuarioId,
+                EventoLogActividad.PRESUPUESTO_VERSION_CREADA,
+                "presupuesto",
+                persistido.publicId,
+                Map.of("presupuestoOrigenId", origen.publicId, "versionNueva", persistido.version.intValue()));
         return PresupuestoMapper.toVersionResponse(persistido, origen.publicId);
     }
 
@@ -493,11 +505,17 @@ public class VersionadoService {
         // Serializa todos los toggles del proyecto, incluso cuando dos
         // peticiones concurrentes apuntan a versiones distintas.
         presupuestoRepository.lockProyectoRow(p.proyectoId);
+        em().refresh(p);
 
         if (p.esVigente) {
             UUID origenId = resolverOrigenPublicId(p.origenId);
             return PresupuestoMapper.toVersionResponse(p, origenId);
         }
+
+        UUID previamenteVigenteId = presupuestoRepository
+                .findVigenteDeProyecto(p.proyectoId)
+                .map(vigente -> vigente.publicId)
+                .orElse(null);
 
         // 1) Desmarcar cualquier vigente del mismo proyecto.
         em().createNativeQuery("update presupuesto set es_vigente = false, updated_at = now() "
@@ -518,6 +536,15 @@ public class VersionadoService {
             throw ProblemaException.noEncontrado("Presupuesto no encontrado");
         }
         UUID origenId = resolverOrigenPublicId(persisted.origenId);
+        Map<String, Object> detalle = new LinkedHashMap<>();
+        detalle.put("version", persisted.version.intValue());
+        detalle.put("presupuestoPreviamenteVigenteId", previamenteVigenteId);
+        logActividadService.emitir(
+                callerUsuarioId,
+                EventoLogActividad.PRESUPUESTO_VERSION_ACTIVADA,
+                "presupuesto",
+                persisted.publicId,
+                detalle);
         return PresupuestoMapper.toVersionResponse(persisted, origenId);
     }
 

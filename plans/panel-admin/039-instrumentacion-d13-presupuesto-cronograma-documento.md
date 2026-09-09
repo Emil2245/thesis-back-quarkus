@@ -1,6 +1,6 @@
 # 039 — Instrumentación D-13: presupuesto, cronograma, documento
 
-**Estado:** TODO · I-11 · tercera ola de emisores D-13.
+**Estado:** DONE (2026-09-08) · I-11 · tercera ola de emisores D-13.
 
 > Cubre los eventos `presupuesto.version_creada`,
 > `presupuesto.version_activada`, `cronograma.editado` y
@@ -403,23 +403,41 @@ git diff --name-only -- 'src/main/resources/db/migration/**'
 
 No se predicen conteos de suite completa. El orquestador decide.
 
+## Evidencia de cierre medida (2026-09-08)
+
+- Flujos HTTP focales instrumentados en las suites existentes de versionado,
+  cronograma y documentos: **96/96 verde**.
+- Regresión conjunta `presupuesto.*`, `cronograma.*`, `documento.*` y
+  `motor.*`: **339 = 336 verdes + 2 fallos aceptados** (GM-19/GM-20)
+  **+ 1 omitido** (GM-24), 0 errors.
+- Suite completa fresca: **738 = 735 verdes + 2 fallos aceptados**
+  (GM-19/GM-20) **+ 1 omitido** (GM-24), 0 errors.
+- La contradicción transaccional de exportación se cerró haciendo que los dos
+  métodos públicos de descarga abran la transacción exterior; el servicio
+  `CronogramaDescargaService.generar(...)` conserva `REQUIRED` y se une a esa
+  misma transacción. El lock, la materialización de bytes y la emisión
+  MANDATORY quedan en una única frontera, sin modificar `cronograma/export/**`.
+- Los comandos idempotentes de vigencia y revisión no emiten cuando no existe
+   mutación efectiva. Preflight y exportaciones bloqueadas tampoco emiten.
+- Sin migraciones ni cambios en `motor/`, `recalculo/` o la lógica de exportación.
+
 ## Completion checklist (039)
 
-- [ ] 4 eventos emitidos con la clave D-13 exacta.
-- [ ] Cada evento tiene `detalle` con el set de claves canónicas
+- [x] 4 eventos emitidos con la clave D-13 exacta.
+- [x] Cada evento tiene `detalle` con el set de claves canónicas
       (decisión 56).
-- [ ] `cronograma.editado.operacion` ∈ {6 valores canónicos
+- [x] `cronograma.editado.operacion` ∈ {6 valores canónicos
       cerrados}.
-- [ ] `documento.exportado.formato` ∈ {XLSX, PDF, MSPDI, DOCX}.
-- [ ] `presupuesto.version_creada` y `presupuesto.version_activada`
+- [x] `documento.exportado.formato` ∈ {XLSX, PDF, MSPDI, DOCX}.
+- [x] `presupuesto.version_creada` y `presupuesto.version_activada`
       emitidos dentro del lock pesimista preservado.
-- [ ] Emisión de `documento.exportado` dentro de la `@Transactional`
+- [x] Emisión de `documento.exportado` dentro de la `@Transactional`
       antes del return; TOCTOU de Plan 031 preservado.
-- [ ] Plan 031 intacto (cero cambios en la lógica de export).
-- [ ] Motor intacto (agregado XML del comando: GM-19/GM-20 aceptados y GM-24 omitido según línea base).
-- [ ] Ninguna migración nueva.
-- [ ] Legacy V004 excluido (ningún emisor con esos nombres).
-- [ ] `git diff --check` limpio.
+- [x] Plan 031 intacto (cero cambios en la lógica de export).
+- [x] Motor intacto (agregado XML del comando: GM-19/GM-20 aceptados y GM-24 omitido según línea base).
+- [x] Ninguna migración nueva.
+- [x] Legacy V004 excluido (ningún emisor con esos nombres).
+- [x] `git diff --check` limpio.
 
 ## Handoff al siguiente plan
 

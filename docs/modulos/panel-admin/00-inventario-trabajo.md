@@ -298,9 +298,9 @@
 - **Excluye** los 4 nombres legacy V004.
 - **`proyecto.duplicado`** queda como "no producer yet" — sin test skipped ni fabricado.
 
-## 7. Plan 039 — Instrumentación D-13: presupuesto, cronograma, documento
+## 7. Plan 039 — Instrumentación D-13: presupuesto, cronograma, documento — DONE / PARITY
 
-**Prioridad:** 7.
+**Cierre:** DONE (2026-09-08). **Prioridad histórica:** 7.
 **Proceso / historia:** D-13 presupuesto/cronograma/documento/export.
 **Dependencias previas:** 033 + 038 cerrados; Plan 031 sin tocar.
 
@@ -310,7 +310,10 @@
 - Plan 031 (export MSPDI, `BloqueoExportDetalle`,
   `CronogramaDocumentoResource`, `BloqueoExportResponse`): **DONE en el
   commit preexistente `5673615` — preservar intacto**.
-- Emisión de eventos D-13 desde esos servicios: **MISSING**.
+- Emisión de eventos D-13 desde esos servicios: **DONE / PARITY**.
+- Evidencia: focales HTTP 96/96; regresión conjunta de módulos + motor
+  339 con baseline aceptado; suite completa 738 = 735 pass + GM-19/GM-20
+  aceptados + GM-24 skipped; transacción única y TOCTOU preservados.
 
 ### Archivos candidatos
 
@@ -397,5 +400,5 @@ de 033).
 ---
 
 **Inventario firmado al cierre de Plan 032 el 2026-09-07 y actualizado al
-cierre completo de Plan 038 el 2026-09-08. La siguiente tarea es Plan 039;
-039–040 permanecen pendientes según el DAG. No se creó commit.**
+cierre completo de Plan 039 el 2026-09-08. La siguiente tarea es Plan 040;
+040 permanece pendiente según el DAG. No se creó commit.**

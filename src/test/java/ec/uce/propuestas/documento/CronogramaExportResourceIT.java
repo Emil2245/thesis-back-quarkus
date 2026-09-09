@@ -62,10 +62,23 @@ class CronogramaExportResourceIT {
         mailbox.clear();
         try (Connection con = ds.getConnection();
                 Statement st = con.createStatement()) {
-            st.execute("TRUNCATE TABLE cronograma, actividad, apu_detalle, apu_seccion, apu, "
+            st.execute("TRUNCATE TABLE log_actividad, cronograma, actividad, apu_detalle, apu_seccion, apu, "
                     + "rubro, capitulo, presupuesto, insumo, base_insumos, "
                     + "parametros_proyecto, firmante, proyecto, token_usuario, refresh_token, usuario "
                     + "RESTART IDENTITY CASCADE");
+        }
+    }
+
+    private long contarDocumentoExportado(String formato) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps =
+                        con.prepareStatement("SELECT count(*) FROM log_actividad WHERE evento = 'documento.exportado' "
+                                + "AND detalle->>'formato' = ?")) {
+            ps.setString(1, formato);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
         }
     }
 
@@ -361,6 +374,7 @@ class CronogramaExportResourceIT {
         assertTrue(disp != null && disp.contains("attachment"));
         assertTrue(disp.toLowerCase().endsWith(".xlsx\""), "filename .xlsx: " + disp);
         assertTrue(r.body().asByteArray().length > 100);
+        assertEquals(1L, contarDocumentoExportado("XLSX"));
     }
 
     /** TC_P37_54 — descarga PDF: 200 + media type PDF. */
@@ -378,6 +392,7 @@ class CronogramaExportResourceIT {
         assertTrue(ct != null && ct.startsWith("application/pdf"), "Content-Type PDF: " + ct);
         String disp = r.getHeader("Content-Disposition");
         assertTrue(disp.toLowerCase().endsWith(".pdf\""));
+        assertEquals(1L, contarDocumentoExportado("PDF"));
     }
 
     /** TC_P37_55 — descarga MSPDI: 200 + application/xml. */
@@ -395,6 +410,7 @@ class CronogramaExportResourceIT {
         String ct = r.getHeader("Content-Type");
         assertTrue(ct != null && ct.startsWith("application/xml"), "Content-Type MSPDI XML: " + ct);
         assertTrue(r.getHeader("Content-Disposition").toLowerCase().endsWith(".xml\""));
+        assertEquals(1L, contarDocumentoExportado("MSPDI"));
     }
 
     /** TC_P37_56 — owner-to-404: cronograma ajeno responde 404. */

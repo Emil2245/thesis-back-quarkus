@@ -74,10 +74,23 @@ class ActividadProgramarResourceIT {
         mailbox.clear();
         try (Connection con = ds.getConnection();
                 Statement st = con.createStatement()) {
-            st.execute("TRUNCATE TABLE cronograma, actividad, apu_detalle, apu_seccion, apu, "
+            st.execute("TRUNCATE TABLE log_actividad, cronograma, actividad, apu_detalle, apu_seccion, apu, "
                     + "rubro, capitulo, presupuesto, insumo, base_insumos, "
                     + "parametros_proyecto, firmante, proyecto, token_usuario, refresh_token, usuario "
                     + "RESTART IDENTITY CASCADE");
+        }
+    }
+
+    private long contarEventoCronograma(String operacion) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps =
+                        con.prepareStatement("SELECT count(*) FROM log_actividad WHERE evento = 'cronograma.editado' "
+                                + "AND detalle->>'operacion' = ?")) {
+            ps.setString(1, operacion);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
         }
     }
 
@@ -268,6 +281,7 @@ class ActividadProgramarResourceIT {
         assertEquals(
                 "{\"1\": \"30.0000\", \"3\": \"20.0000\", \"5\": \"50.0000\"}".replace(" ", ""),
                 avancePersistido(actividadId).replace(" ", ""));
+        assertEquals(1L, contarEventoCronograma("programar.reemplazar_avances"));
     }
 
     @Test
@@ -372,6 +386,7 @@ class ActividadProgramarResourceIT {
                 .body("actividades[0].avancePorPeriodo.1", equalTo("5.5556"))
                 .body("actividades[0].avancePorPeriodo.3", equalTo("5.5556"))
                 .body("actividades[0].avancePorPeriodo.5", equalTo("5.5555"));
+        assertEquals(1L, contarEventoCronograma("programar.distribuir_uniforme"));
     }
 
     // ──────────────────────────────────────────────────────────────────────
@@ -460,6 +475,7 @@ class ActividadProgramarResourceIT {
                 .body("actividades[0].avancePorPeriodo.8", equalTo("2.5000"))
                 .body("actividades[0].avancePorPeriodo.3", is((String) null))
                 .body("actividades[0].avancePorPeriodo.4", is((String) null));
+        assertEquals(1L, contarEventoCronograma("programar.mover_segmento"));
     }
 
     // ──────────────────────────────────────────────────────────────────────
@@ -493,6 +509,7 @@ class ActividadProgramarResourceIT {
                 .body("actividades[0].avancePorPeriodo.3", equalTo("0.3333"))
                 .body("actividades[0].avancePorPeriodo.4", equalTo("0.3333"))
                 .body("actividades[0].avancePorPeriodo.5", equalTo("0.3334"));
+        assertEquals(1L, contarEventoCronograma("programar.redimensionar_segmento"));
     }
 
     @Test

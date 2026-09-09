@@ -14,7 +14,7 @@
 > superficies que el acta pueda dejar abiertas. **El acta está
 > firmada al 2026-09-07** (ver
 > [`docs/modulos/panel-admin/00-acta-reconciliacion.md`](../../docs/modulos/panel-admin/00-acta-reconciliacion.md));
-> 033–038 quedaron **DONE al 2026-09-08**; 039 es la siguiente tarea autorizada.
+> 033–039 quedaron **DONE al 2026-09-08**; 040 es la siguiente tarea autorizada.
 >
 > **Emisión D-13:** solo operaciones exitosas emiten. No existe
 > `emitirFailure`, `REQUIRES_NEW`, persistencia de eventos para
@@ -45,7 +45,7 @@ TC-P40, TC-P41, TC-P42; §5 protocolo SUS).
 > suite completa 725 = 722 pass + GM-19/GM-20 aceptados + GM-24 skipped.
 > **Plan 037 DONE (2026-09-08):** focal 7/7, `proyecto.*` 25/25 y suite
 > 732 = 729 pass + GM-19/GM-20 aceptados + GM-24 skipped; build/Spotless PASS.
-> **Plan 038 DONE (2026-09-08):** focal 6/6, regresión conjunta de módulos 234/234 y suite completa 738 = 735 pass + GM-19/GM-20 aceptados + GM-24 skipped; build/Spotless PASS. **039–040 PLANNED / TODO**; 039 es la siguiente tarea autorizada. Los
+> **Plan 038 DONE (2026-09-08):** focal 6/6, regresión conjunta de módulos 234/234 y suite completa 738 = 735 pass + GM-19/GM-20 aceptados + GM-24 skipped; build/Spotless PASS. **Plan 039 DONE (2026-09-08):** focales HTTP 96/96, módulos+motor 339 con baseline aceptado y suite completa 738 = 735 pass + GM-19/GM-20 aceptados + GM-24 skipped; build/Spotless PASS. **040 PLANNED / TODO**; 040 es la siguiente tarea autorizada. Los
 > cambios de Plan 031 permanecen preservados y fuera de alcance.
 
 ## ¿Por qué nueve planes y no menos?
@@ -79,7 +79,7 @@ planes: las absorben como gates de auditoría sin reescritura.
 | 036 | [Plantillas APU de sistema](./036-plantillas-apu-sistema.md) | I-11 | P-40 / US-37 / TC-P40-01 | **DONE (2026-09-08)** — CRUD/listado `SUPER_ADMIN`; SISTEMA server-authored; snapshot canónico price-free; D-13 solo en mutaciones exitosas; focal 10/10, `plantilla.*` 85/85, suite 725 con solo GM-19/GM-20 aceptados y GM-24 omitido |
 | 037 | [Parámetros del sistema y valores de referencia](./037-parametros-valores-referencia.md) | I-11 | P-41 / US-38 / TC-P41-01..02 | **DONE (2026-09-08)** — DTO canónico de 22 campos; defaults materializados al crear proyecto; CRUD/upsert paginado de valores de referencia; D-13 solo en mutaciones efectivas; focal 7/7, `proyecto.*` 25/25, suite 732 con baseline aceptado; sin commit |
 | 038 | [Instrumentación D-13: identidad y catálogos](./038-instrumentacion-d13-identidad-catalogos.md) | I-11 | eventos D-13 auth/usuario/proyecto/insumo/base/APU | **DONE (2026-09-08)** — 16 nombres únicos + camino adicional de invitación; `proyecto.duplicado` sigue `no producer yet`; focal 6/6, módulos 234/234, suite 738 con baseline aceptado; sin commit |
-| 039 | [Instrumentación D-13: presupuesto, cronograma, documento](./039-instrumentacion-d13-presupuesto-cronograma-documento.md) | I-11 | eventos D-13 presupuesto/cronograma/documento/export | **PLANNED / TODO** |
+| 039 | [Instrumentación D-13: presupuesto, cronograma, documento](./039-instrumentacion-d13-presupuesto-cronograma-documento.md) | I-11 | eventos D-13 presupuesto/cronograma/documento/export | **DONE (2026-09-08)** — 4 eventos, 6 operaciones de cronograma y 4 formatos; transacción única/TOCTOU preservados; focal 96/96, suite 738 con baseline aceptado; sin commit |
 | 040 | [Integración del panel y piloto SUS](./040-integracion-panel-piloto-sus.md) | I-11 | cierre I-11 + piloto SUS 1–2 (protocolo quality/02 §5) | **PLANNED / TODO** |
 
 ## DAG de dependencias
@@ -140,7 +140,7 @@ planes: las absorben como gates de auditoría sin reescritura.
                docs; piloto SUS 1–2 con cita Brooke (1996))
 ```
 
-033 → 040 son **estrictamente secuenciales** y 033–037 ya están cerrados. 038 es
+033 → 040 son **estrictamente secuenciales** y 033–039 ya están cerrados. 040 es
 la siguiente tarea autorizada; 034–037 podían reordenarse entre sí (emiten
 por el mismo seam y sus TC no comparten fixtures), pero todos dependen de
 la fundación entregada por 033. 038 no puede iniciar hasta que 034,

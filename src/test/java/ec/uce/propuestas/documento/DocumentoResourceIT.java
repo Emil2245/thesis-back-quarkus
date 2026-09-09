@@ -48,9 +48,22 @@ class DocumentoResourceIT {
         mailbox.clear();
         try (Connection con = ds.getConnection();
                 Statement st = con.createStatement()) {
-            st.execute("TRUNCATE TABLE apu_detalle, apu_seccion, apu, rubro, capitulo, presupuesto, "
+            st.execute("TRUNCATE TABLE log_actividad, apu_detalle, apu_seccion, apu, rubro, capitulo, presupuesto, "
                     + "insumo, base_insumos, parametros_proyecto, firmante, proyecto, token_usuario, "
                     + "refresh_token, usuario RESTART IDENTITY CASCADE");
+        }
+    }
+
+    private long contarDocumentoExportado(String formato) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps =
+                        con.prepareStatement("SELECT count(*) FROM log_actividad WHERE evento = 'documento.exportado' "
+                                + "AND detalle->>'formato' = ?")) {
+            ps.setString(1, formato);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
         }
     }
 
@@ -352,6 +365,7 @@ class DocumentoResourceIT {
                 "Content-Disposition debe declarar attachment + nombre .docx. Recibido: " + disposition);
 
         byte[] bytes = r.body().asByteArray();
+        assertEquals(1L, contarDocumentoExportado("DOCX"));
         try (XWPFDocument doc = parsearDocx(bytes)) {
             String texto = leerTexto(doc);
             // 1) los nombres de campos monetarios del modelo no deben aparecer

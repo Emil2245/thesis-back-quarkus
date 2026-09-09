@@ -80,7 +80,7 @@ class CronogramaResourceIT {
         mailbox.clear();
         try (Connection con = ds.getConnection();
                 Statement st = con.createStatement()) {
-            st.execute("TRUNCATE TABLE cronograma, actividad, apu_detalle, apu_seccion, apu, "
+            st.execute("TRUNCATE TABLE log_actividad, cronograma, actividad, apu_detalle, apu_seccion, apu, "
                     + "rubro, capitulo, presupuesto, insumo, base_insumos, "
                     + "parametros_proyecto, firmante, proyecto, token_usuario, refresh_token, usuario "
                     + "RESTART IDENTITY CASCADE");
@@ -540,6 +540,7 @@ class CronogramaResourceIT {
                 .then()
                 .statusCode(200)
                 .body("desactualizado", equalTo(true));
+        assertEquals(1L, contarEventoCronograma("configurar"));
     }
 
     // ──────────────────────────────────────────────────────────────────────
@@ -727,6 +728,19 @@ class CronogramaResourceIT {
                 .then()
                 .statusCode(200)
                 .body("numeroPeriodos", equalTo(5));
+    }
+
+    private long contarEventoCronograma(String operacion) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps =
+                        con.prepareStatement("SELECT count(*) FROM log_actividad WHERE evento = 'cronograma.editado' "
+                                + "AND detalle->>'operacion' = ?")) {
+            ps.setString(1, operacion);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        }
     }
 
     private String unidadPersistida(String cronogramaPublicId) throws Exception {

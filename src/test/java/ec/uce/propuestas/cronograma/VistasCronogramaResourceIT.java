@@ -90,7 +90,7 @@ class VistasCronogramaResourceIT {
         mailbox.clear();
         try (Connection con = ds.getConnection();
                 Statement st = con.createStatement()) {
-            st.execute("TRUNCATE TABLE cronograma, actividad, apu_detalle, apu_seccion, apu, "
+            st.execute("TRUNCATE TABLE log_actividad, cronograma, actividad, apu_detalle, apu_seccion, apu, "
                     + "rubro, capitulo, presupuesto, insumo, base_insumos, "
                     + "parametros_proyecto, firmante, proyecto, token_usuario, refresh_token, usuario "
                     + "RESTART IDENTITY CASCADE");
@@ -100,6 +100,19 @@ class VistasCronogramaResourceIT {
     // ──────────────────────────────────────────────────────────────────────
     // Helpers
     // ──────────────────────────────────────────────────────────────────────
+
+    private long contarEventoCronograma(String operacion) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps =
+                        con.prepareStatement("SELECT count(*) FROM log_actividad WHERE evento = 'cronograma.editado' "
+                                + "AND detalle->>'operacion' = ?")) {
+            ps.setString(1, operacion);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        }
+    }
 
     private String crearProyecto(String token, String codigo) {
         return given().contentType("application/json")
@@ -846,6 +859,7 @@ class VistasCronogramaResourceIT {
         sembrarRubro(pId, cap, "1.1", "R-Rev", "4.000000");
         fijarTotalPresupuesto(presupuestoId, "4.000000");
         String cronogramaId = crearCronograma(token, presupuestoId, "SEMANA", 3);
+        fijarTotalPresupuesto(presupuestoId, "5.000000");
 
         // Primera llamada: revisa y devuelve CronogramaResponse canónico.
         given().header("Authorization", "Bearer " + token)
@@ -887,6 +901,7 @@ class VistasCronogramaResourceIT {
         assertEquals(fingerprintPrimero, fingerprintSegundo, "fingerprint revisado idéntico entre llamadas");
         assertEquals(
                 fechaAntes, fechaRevisionPersistida(cronogramaId), "fechaRevision no se actualiza en idempotencia");
+        assertEquals(1L, contarEventoCronograma("revisar"), "el segundo comando idempotente no emite");
     }
 
     /**

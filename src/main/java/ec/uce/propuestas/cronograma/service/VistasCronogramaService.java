@@ -25,6 +25,8 @@ import ec.uce.propuestas.presupuesto.entity.Rubro;
 import ec.uce.propuestas.presupuesto.repository.CapituloRepository;
 import ec.uce.propuestas.presupuesto.repository.PresupuestoRepository;
 import ec.uce.propuestas.presupuesto.repository.RubroRepository;
+import ec.uce.propuestas.usuario.audit.EventoLogActividad;
+import ec.uce.propuestas.usuario.audit.service.LogActividadService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -105,6 +107,9 @@ public class VistasCronogramaService {
     @Inject
     CronogramaMapper cronogramaMapper;
 
+    @Inject
+    LogActividadService logActividadService;
+
     // ──────────────────────────────────────────────────────────────────────
     // GET /cronogramas/{id}/vistas
     // ──────────────────────────────────────────────────────────────────────
@@ -165,6 +170,12 @@ public class VistasCronogramaService {
             cronograma.presupuestoFingerprintRevisado = fingerprintActual;
             cronograma.fechaRevision = Instant.now();
             cronogramaRepository.flush();
+            logActividadService.emitir(
+                    callerUsuarioId,
+                    EventoLogActividad.CRONOGRAMA_EDITADO,
+                    "cronograma",
+                    cronograma.publicId,
+                    Map.of("operacion", "revisar"));
         }
 
         return respuesta(cronograma, presupuesto);

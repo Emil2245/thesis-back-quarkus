@@ -8,9 +8,12 @@ import ec.uce.propuestas.cronograma.export.CronogramaDescargaService;
 import ec.uce.propuestas.cronograma.export.CronogramaExportPreflightService;
 import ec.uce.propuestas.cronograma.export.FormatoExportacion;
 import ec.uce.propuestas.usuario.UsuarioRepository;
+import ec.uce.propuestas.usuario.audit.EventoLogActividad;
+import ec.uce.propuestas.usuario.audit.service.LogActividadService;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -18,6 +21,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -60,6 +64,9 @@ public class CronogramaDocumentoResource {
 
     @Inject
     UsuarioRepository usuarioRepository;
+
+    @Inject
+    LogActividadService logActividadService;
 
     private Long usuarioId() {
         String email = identity.getPrincipal().getName();
@@ -113,13 +120,15 @@ public class CronogramaDocumentoResource {
         MediaType.APPLICATION_JSON
     })
     @io.smallrye.common.annotation.Blocking
+    @Transactional
     public Response descargar(@PathParam("presupuestoId") String presupuestoId, @QueryParam("formato") String formato) {
         UUID publicId = UuidV7.parse(presupuestoId);
         FormatoExportacion f = parsearFormato(formato);
+        Long callerUsuarioId = usuarioId();
 
         CronogramaDescargaService.ResultadoDescarga gen;
         try {
-            gen = descargaService.generar(publicId, usuarioId(), f);
+            gen = descargaService.generar(publicId, callerUsuarioId, f);
         } catch (IllegalArgumentException e) {
             // Mapeo canónico: cualquier IAE del seam preflight/descarga es
             // semánticamente «no-encontrado» (404 — preserva RNF-05 owner-to-404).
@@ -146,6 +155,12 @@ public class CronogramaDocumentoResource {
                     .build();
         }
 
+        logActividadService.emitir(
+                callerUsuarioId,
+                EventoLogActividad.DOCUMENTO_EXPORTADO,
+                "presupuesto",
+                publicId,
+                Map.of("formato", f.name(), "bytes", (long) gen.bytes().length, "stale", gen.desactualizado()));
         return Response.ok(gen.bytes(), gen.mediaType())
                 .header("Content-Disposition", "attachment; filename=\"" + gen.filename() + "\"")
                 .header("X-Cronograma-Desactualizado", String.valueOf(gen.desactualizado()))

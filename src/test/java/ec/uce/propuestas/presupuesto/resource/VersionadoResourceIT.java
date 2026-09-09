@@ -86,10 +86,33 @@ class VersionadoResourceIT {
             // presupuesto_descuento_global, presupuesto_rubro,
             // cronograma_actividad) quedan cubiertas por CASCADE desde
             // presupuesto y cronograma.
-            st.execute("TRUNCATE TABLE cronograma, actividad, apu_detalle, apu_seccion, apu, "
+            st.execute("TRUNCATE TABLE log_actividad, cronograma, actividad, apu_detalle, apu_seccion, apu, "
                     + "rubro, capitulo, presupuesto, insumo, base_insumos, "
                     + "parametros_proyecto, firmante, proyecto, token_usuario, refresh_token, usuario "
                     + "RESTART IDENTITY CASCADE");
+        }
+    }
+
+    private long contarEvento(String evento) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT count(*) FROM log_actividad WHERE evento = ?")) {
+            ps.setString(1, evento);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        }
+    }
+
+    private String detalleEvento(String evento) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement(
+                        "SELECT detalle::text FROM log_actividad WHERE evento = ? ORDER BY created_at DESC LIMIT 1")) {
+            ps.setString(1, evento);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getString(1);
+            }
         }
     }
 
@@ -598,6 +621,11 @@ class VersionadoResourceIT {
                 .body("notas", equalTo("Ajuste 5% indirecto"))
                 .body("totalGeneral", equalTo(TOTAL_ORIGEN_ESPERADO.toPlainString()));
 
+        assertEquals(1L, contarEvento("presupuesto.version_creada"));
+        String detalleCreacion = detalleEvento("presupuesto.version_creada");
+        assertTrue(detalleCreacion.contains(origenId));
+        assertTrue(detalleCreacion.contains("\"versionNueva\": 2"));
+
         // Localizar el nuevo presupuesto por su version+proyecto y comparar bit-a-bit
         Long proyectoInt = internalProyectoId(proyectoId);
         String nuevoPresupuestoId;
@@ -890,6 +918,10 @@ class VersionadoResourceIT {
 
         assertEquals(true, leerEsVigente(v1IdInt), "v1 vuelve a ser vigente");
         assertEquals(false, leerEsVigente(v2IdInt), "v2 deja de ser vigente");
+        assertEquals(2L, contarEvento("presupuesto.version_activada"), "el reintento idempotente no emite");
+        String detalleVigencia = detalleEvento("presupuesto.version_activada");
+        assertTrue(detalleVigencia.contains("\"version\": 1"));
+        assertTrue(detalleVigencia.contains(v2Id));
     }
 
     /** Vigente sobre presupuesto ajeno o inexistente → 404. */

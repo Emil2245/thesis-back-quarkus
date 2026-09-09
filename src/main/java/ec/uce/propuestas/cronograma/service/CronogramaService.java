@@ -16,6 +16,8 @@ import ec.uce.propuestas.presupuesto.entity.Presupuesto;
 import ec.uce.propuestas.presupuesto.entity.Rubro;
 import ec.uce.propuestas.presupuesto.repository.PresupuestoRepository;
 import ec.uce.propuestas.presupuesto.repository.RubroRepository;
+import ec.uce.propuestas.usuario.audit.EventoLogActividad;
+import ec.uce.propuestas.usuario.audit.service.LogActividadService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.PersistenceException;
@@ -99,6 +101,9 @@ public class CronogramaService {
 
     @Inject
     CronogramaMapper mapper;
+
+    @Inject
+    LogActividadService logActividadService;
 
     /** Orden presupuestario canónico: {@code item} ascendente, desempate por id interno. */
     private static final Comparator<Rubro> ORDEN_PRESUPUESTARIO =
@@ -236,6 +241,12 @@ public class CronogramaService {
         actividadRepository.flush();
 
         List<ActividadConRubro> actualizadas = cargarActividades(cronograma.id);
+        logActividadService.emitir(
+                callerUsuarioId,
+                EventoLogActividad.CRONOGRAMA_EDITADO,
+                "cronograma",
+                cronograma.publicId,
+                Map.of("operacion", operacionAuditoria(operacion)));
         return respuesta(cronograma, presupuesto, actualizadas);
     }
 
@@ -263,6 +274,22 @@ public class CronogramaService {
                 }
             }
         }
+    }
+
+    private static String operacionAuditoria(ActividadProgramarRequest operacion) {
+        if (operacion instanceof ActividadProgramarRequest.Reemplazar) {
+            return "programar.reemplazar_avances";
+        }
+        if (operacion instanceof ActividadProgramarRequest.Distribuir) {
+            return "programar.distribuir_uniforme";
+        }
+        if (operacion instanceof ActividadProgramarRequest.Mover) {
+            return "programar.mover_segmento";
+        }
+        if (operacion instanceof ActividadProgramarRequest.Redimensionar) {
+            return "programar.redimensionar_segmento";
+        }
+        throw ProblemaException.validacion("Operación no reconocida");
     }
 
     private static Map<String, String> aplicarOperacion(
@@ -352,6 +379,12 @@ public class CronogramaService {
         cronogramaRepository.flush();
 
         List<ActividadConRubro> actualizadas = cargarActividades(cronograma.id);
+        logActividadService.emitir(
+                callerUsuarioId,
+                EventoLogActividad.CRONOGRAMA_EDITADO,
+                "cronograma",
+                cronograma.publicId,
+                Map.of("operacion", "configurar"));
         return respuesta(cronograma, presupuesto, actualizadas);
     }
 
