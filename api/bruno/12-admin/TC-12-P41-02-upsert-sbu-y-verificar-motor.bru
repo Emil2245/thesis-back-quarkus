@@ -1,0 +1,51 @@
+meta {
+  name: TC-12-P41-02-upsert-sbu-y-verificar-motor
+  type: http
+  seq: 14
+}
+
+put {
+  url: {{baseUrl}}/admin/valores-referencia/SBU
+  auth: bearer
+  body: json
+}
+
+auth:bearer {
+  token: {{admin_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "valor": "10.00",
+    "descripcion": "Salario básico unificado",
+    "fuente": "Plan040"
+  }
+}
+
+script:pre-request {
+  const base = bru.getEnvVar("baseUrl");
+  const before = await bru.sendRequest({ method: "GET", url: `${base}/apus/${bru.getVar("p40ApuId")}/calculo`, headers: { Authorization: `Bearer ${bru.getVar("u1_access_token")}` }, data: undefined });
+  if (before.status !== 200) throw new Error("cálculo previo inválido");
+  bru.setVar("p41CtAntes", String(before.data.resumen.ct));
+}
+
+script:post-response {
+  if (res.status !== 200) throw new Error("SBU no actualizado");
+  const base = bru.getEnvVar("baseUrl");
+  const admin = bru.getVar("admin_access_token");
+  const user = bru.getVar("u1_access_token");
+  const list = await bru.sendRequest({ method: "GET", url: `${base}/admin/valores-referencia?clave=SBU`, headers: { Authorization: `Bearer ${admin}` }, data: undefined });
+  if (list.status !== 200) throw new Error("SBU no consultable");
+  const items = Array.isArray(list.data) ? list.data : list.data.items;
+  if (!items.some((v) => v.clave === "SBU" && Number(v.valor) === 10 && v.fuente === "Plan040")) throw new Error("SBU/ fuente incorrectos");
+  const after = await bru.sendRequest({ method: "GET", url: `${base}/apus/${bru.getVar("p40ApuId")}/calculo`, headers: { Authorization: `Bearer ${user}` }, data: undefined });
+  if (after.status !== 200 || String(after.data.resumen.ct) !== bru.getVar("p41CtAntes")) throw new Error("SBU alteró el cálculo del APU");
+}
+
+tests {
+  test("Status 200 OK", function() { expect(res.status).to.equal(200); });
+}

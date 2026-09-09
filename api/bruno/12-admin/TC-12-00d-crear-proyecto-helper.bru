@@ -1,0 +1,45 @@
+meta {
+  name: TC-12-00d-crear-proyecto-helper
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/proyectos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombreProyecto": "Plan040 admin demo",
+    "codigo": "P-2026-P40",
+    "descripcion": "Proyecto propio de prueba para Plan 040",
+    "anio": 2026,
+    "fechaInicio": "2026-03-01",
+    "plazoEjecucion": 4,
+    "plazoUnidad": "MES",
+    "direccionInstitucional": "UCE",
+    "subdireccionInstitucional": "Dirección de Investigación"
+  }
+}
+
+script:post-response {
+  if (res.status !== 201 || !res.body || !res.body.id) throw new Error("proyecto Plan 040 no creado");
+  bru.setVar("p40ProyectoId", res.body.id);
+  bru.setVar("p41ProyectoViejoId", res.body.id);
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+}

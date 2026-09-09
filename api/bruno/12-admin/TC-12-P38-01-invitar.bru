@@ -1,0 +1,44 @@
+meta {
+  name: TC-12-P38-01-invitar
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/admin/usuarios
+  auth: bearer
+  body: json
+}
+
+auth:bearer {
+  token: {{admin_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "Plan040 Invitado",
+    "email": "p40.invitado@example.com",
+    "rol": "USUARIO"
+  }
+}
+
+script:post-response {
+  if (res.status !== 201 || !res.body || !res.body.id) throw new Error("invitación no creada");
+  bru.setVar("p38UsuarioId", res.body.id);
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("usuario invitado activo", function() {
+    expect(res.body.rol).to.equal("USUARIO");
+    expect(res.body.activo).to.equal(true);
+    expect(res.body.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+}

@@ -670,7 +670,7 @@ enum (D-17).
 - [x] Los cinco documentos canónicos de `../thesis-docs` fueron
       reconciliados con esta acta antes de autorizar 033.
 - [x] `docs/00-ESTADO-ACTUAL.md` actualizado a I-11 "EN PROGRESO —
-      Plan032 DONE; 033–040 pendientes".
+      Plan032 DONE; 033–040 cerrados técnicamente al 2026-09-09; piloto SUS 1–2 pendiente".
 - [x] Estado de Plan 032 marcado **DONE** con fecha 2026-09-07.
 
 ## 9. Handoff al siguiente plan

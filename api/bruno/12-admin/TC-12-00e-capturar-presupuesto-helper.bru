@@ -1,0 +1,35 @@
+meta {
+  name: TC-12-00e-capturar-presupuesto-helper
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/proyectos/{{p40ProyectoId}}/presupuestos
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+script:post-response {
+  if (res.status !== 200 || !Array.isArray(res.body)) throw new Error("presupuestos no consultados");
+  var v1 = res.body.find(function (p) { return p.version === 1 && p.esVigente === true; });
+  if (!v1 || !v1.presupuestoId) throw new Error("presupuesto v1 no encontrado");
+  bru.setVar("p40PresupuestoId", v1.presupuestoId);
+  const apu = await bru.sendRequest({
+    method: "POST",
+    url: `${bru.getEnvVar("baseUrl")}/presupuestos/${v1.presupuestoId}/apus`,
+    headers: { Authorization: `Bearer ${bru.getVar("u1_access_token")}`, "Content-Type": "application/json" },
+    data: JSON.stringify({ codigo: "APU-P40-VACIO-01", descripcion: "APU vacío Plan 040", unidad: "u" })
+  });
+  if (apu.status !== 201 || !apu.data || !apu.data.id) throw new Error("APU vacío no creado");
+  bru.setVar("p40ApuId", apu.data.id);
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+}

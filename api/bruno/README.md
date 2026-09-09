@@ -167,3 +167,10 @@ compartido) y se capturan en runtime por los helpers:
 - [`docs/modulos/05-presupuesto/`](../../docs/modulos/05-presupuesto/)
   — Índice del módulo.
 - [`plans/README.md`](../../plans/README.md) — estado por plan.
+## `12-admin/` — Plan 040
+
+Colección autocontenida de 16 requests en seis grupos: helpers `TC-12-00a..00e`, P-38, P-39, P-40, P-41 y P-42. Ejecutar secuencialmente con `( cd api/bruno && bru run 12-admin/ --env dev )` contra PostgreSQL 18 limpio + fast-jar y Flyway aplicado. Medición 2026-09-09: 16/16 requests y 27/27 tests JS, 0 fallos/errores/skips; reporter assertions 0/0 porque usa `tests {}` JS. Usa `auth: inherit` en `folder.bru` y el environment compartido `environments/dev.bru`, sin comentarios.
+
+Variables runtime: `p38UsuarioId`, `p39BaseId`, `p40ProyectoId`, `p40PresupuestoId`, `p40ApuId`, `p41ProyectoNuevoId` y `p41ProyectoViejoId`. Los helpers de login usan las variables seeded `u1*`/`u2*`; `adminEmail`, `adminPassword` y `admin_access_token` deben ser suministradas externamente. Los IDs `p38*`, `p39*` y `p42*` se asignan con `bru.setVar` durante la ejecución y no necesitan declararse previamente en `dev.bru`.
+
+V004 no crea SUPER_ADMIN. Antes de ejecutar la colección, el operador debe promover o insertar una cuenta desechable mediante el procedimiento de desarrollo aprobado, usando la cuenta/hash sembrados existentes; no se agrega migración, seed de producción ni secreto nuevo. Si las variables admin están vacías, `TC-12-00a` falla explícitamente con 401 y las requests admin no deben considerarse ejecutadas. La colección no es idempotente: usar una BD desechable por corrida.

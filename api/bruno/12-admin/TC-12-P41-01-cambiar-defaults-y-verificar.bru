@@ -1,0 +1,53 @@
+meta {
+  name: TC-12-P41-01-cambiar-defaults-y-verificar
+  type: http
+  seq: 13
+}
+
+put {
+  url: {{baseUrl}}/proyectos/parametros-sistema
+  auth: bearer
+  body: json
+}
+
+auth:bearer {
+  token: {{admin_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "porcentajeHerramientaMenor": "0.0300",
+    "porcentajeIndirecto": "0.1800",
+    "iva": "0.1500",
+    "rangoHmMin": "0.0100",
+    "rangoHmMax": "0.1000",
+    "rangoCiMin": "0.0000",
+    "rangoCiMax": "1.0000",
+    "rangoDescuentoMin": "0.0000",
+    "rangoDescuentoMax": "1.0000",
+    "rangoIvaMin": "0.0000",
+    "rangoIvaMax": "1.0000",
+    "moneda": "USD"
+  }
+}
+
+script:post-response {
+  if (res.status !== 200) throw new Error("parámetros del sistema no actualizados");
+  const base = bru.getEnvVar("baseUrl");
+  const token = bru.getVar("u1_access_token");
+  const oldParams = await bru.sendRequest({ method: "GET", url: `${base}/proyectos/${bru.getVar("p41ProyectoViejoId")}/parametros`, headers: { Authorization: `Bearer ${token}` }, data: undefined });
+  if (oldParams.status !== 200 || Number(oldParams.data.porcentajeHerramientaMenor) === 0.03) throw new Error("el proyecto viejo recibió defaults nuevos");
+  const created = await bru.sendRequest({ method: "POST", url: `${base}/proyectos`, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, data: JSON.stringify({ nombreProyecto: "Plan040 proyecto nuevo", codigo: "P-2026-P41", descripcion: "Proyecto posterior a defaults", anio: 2026, fechaInicio: "2026-03-01", plazoEjecucion: 4, plazoUnidad: "MES", direccionInstitucional: "UCE", subdireccionInstitucional: "Dirección de Investigación" }) });
+  if (created.status !== 201 || !created.data.id) throw new Error("proyecto nuevo no creado");
+  bru.setVar("p41ProyectoNuevoId", created.data.id);
+  const newParams = await bru.sendRequest({ method: "GET", url: `${base}/proyectos/${created.data.id}/parametros`, headers: { Authorization: `Bearer ${token}` }, data: undefined });
+  if (newParams.status !== 200 || Number(newParams.data.porcentajeHerramientaMenor) !== 0.03) throw new Error("proyecto nuevo no recibió defaults nuevos");
+}
+
+tests {
+  test("Status 200 OK", function() { expect(res.status).to.equal(200); });
+}

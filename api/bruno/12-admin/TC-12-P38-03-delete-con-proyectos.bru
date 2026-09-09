@@ -1,0 +1,24 @@
+meta {
+  name: TC-12-P38-03-delete-con-proyectos
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{baseUrl}}/admin/usuarios/0192f6c4-7c8a-7abc-8000-000000001001
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_access_token}}
+}
+
+tests {
+  test("Status 409 Conflict", function() {
+    expect(res.status).to.equal(409);
+  });
+
+  test("usuario con proyectos", function() {
+    expect(res.body.codigo).to.equal("usuario-con-proyectos-impedido");
+  });
+}

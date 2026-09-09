@@ -1,0 +1,40 @@
+meta {
+  name: TC-12-P40-01-crear-plantilla-sistema-y-ver-usuario
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/admin/plantillas-apu
+  auth: bearer
+  body: json
+}
+
+auth:bearer {
+  token: {{admin_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "desdeApuId": "{{p40ApuId}}",
+    "nombre": "Plantilla Plan040",
+    "descripcionRubro": "Plantilla Plan040"
+  }
+}
+
+script:post-response {
+  if (res.status !== 201 || !res.body || !res.body.id) throw new Error("plantilla SISTEMA no creada");
+  bru.setVar("nuevaPlantillaApuId", res.body.id);
+  const user = await bru.sendRequest({ method: "GET", url: `${bru.getEnvVar("baseUrl")}/plantillas-apu`, headers: { Authorization: `Bearer ${bru.getVar("u1_access_token")}` }, data: undefined });
+  if (user.status !== 200 || !Array.isArray(user.data)) throw new Error("plantillas no visibles para USUARIO");
+  if (!user.data.some((p) => p.id === res.body.id && p.tipo === "SISTEMA")) throw new Error("USUARIO no ve la plantilla SISTEMA");
+}
+
+tests {
+  test("Status 201 Created", function() { expect(res.status).to.equal(201); });
+  test("plantilla SISTEMA creada", function() { expect(res.body.id).to.be.a("string"); });
+}

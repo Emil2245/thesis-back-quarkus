@@ -1,0 +1,28 @@
+meta {
+  name: TC-12-P39-02-archivar-base
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/admin/bases-centrales/{{p39BaseId}}/archivar
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_access_token}}
+}
+
+script:post-response {
+  if (res.status !== 200 || !res.body || res.body.archivada !== true) throw new Error("base CENTRAL no quedó archivada");
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("base archivada", function() {
+    expect(res.body.archivada).to.equal(true);
+  });
+}

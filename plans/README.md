@@ -58,7 +58,7 @@ inventario en
 emisor `MANDATORY` y consulta admin); **Planes 034–037 DONE** (037 con
 focal 7/7, regresión `proyecto.*` 25/25, build/Spotless PASS y suite completa
 732 = 729 pass + GM-19/GM-20 aceptados + GM-24 omitted); planes
-**038–039 DONE (2026-09-08)**; **040 PLANNED / TODO**, con 040 como siguiente tarea autorizada. I-12
+**038–040 DONE técnico (2026-09-09)**; piloto SUS 1–2 pendiente. I-12
 (medición SUS `n ≥ 5` + baseline RNF-06 + cierre de
 variables de tesis) **no** está planificada aún: se
 autoriza en su propia sesión tras ejecutar 033–040.
@@ -126,7 +126,7 @@ autoriza en su propia sesión tras ejecutar 033–040.
 > Plan 033 cerró la fundación P-42 el 2026-09-08 con evidencia medida y
 > sin commit. **Planes 034–037 DONE** (037 con focal 7/7,
 > `proyecto.*` 25/25, build/Spotless PASS y suite completa 732 = 729 pass +
-> GM-19/GM-20 aceptados + GM-24 omitido); **038–039 DONE (2026-09-08)**; **040 PLANNED / TODO**; 040 es el siguiente.
+> GM-19/GM-20 aceptados + GM-24 omitido); **038–040 DONE técnico (2026-09-09)**; piloto SUS 1–2 pendiente.
 > Los cambios de Plan 031 permanecen preservados.
 > Secuencia completa de 9 planes ejecutables en
 > [`./panel-admin/`](./panel-admin/README.md): 032 (gate documental +
@@ -171,8 +171,7 @@ autoriza en su propia sesión tras ejecutar 033–040.
 > fabrica). Cero código nuevo
 > fuera del subdirectorio `plans/panel-admin/`; Plan 031 preservado
 > intacto; motor, `recalculo/`, V001–V009 y los planes ya ejecutados (015,
-> 019–031) intactos. La siguiente tarea de planificación tras ejecutar
-> 033…040 es **I-12** (semanas 23–24: medición SUS `n ≥ 5` + baseline
+> 019–031) intactos. La planificación posterior a 033…040 es **I-12** (semanas 23–24: medición SUS `n ≥ 5` + baseline
 > RNF-06 + cierre de variables de tesis), que se autoriza en su propia
 > sesión.
 
@@ -186,7 +185,7 @@ autoriza en su propia sesión tras ejecutar 033–040.
 | 037 | [Parámetros del sistema y valores de referencia](./panel-admin/037-parametros-valores-referencia.md) | I-11 | **DONE (2026-09-08)** — DTO canónico completo; defaults materializados al crear proyecto; CRUD/upsert paginado de valores de referencia; D-13 solo en mutaciones efectivas; focal 7/7, `proyecto.*` 25/25, suite 732 con baseline aceptado; sin commit |
 | 038 | [Instrumentación D-13: identidad y catálogos](./panel-admin/038-instrumentacion-d13-identidad-catalogos.md) | I-11 | **DONE (2026-09-08)** — 16 nombres únicos + camino adicional `usuario.activado` por invitación; `proyecto.duplicado` explícitamente sin productor; focal 6/6, módulos 234/234 y suite 738 con baseline aceptado; sin commit |
 | 039 | [Instrumentación D-13: presupuesto, cronograma, documento](./panel-admin/039-instrumentacion-d13-presupuesto-cronograma-documento.md) | I-11 | **DONE (2026-09-08)** — 4 eventos; 6 operaciones de cronograma y 4 formatos documentales; transacción única/TOCTOU preservados; focales 96/96, módulos+motor 339 y suite 738 con baseline aceptado; sin commit |
-| 040 | [Integración del panel y piloto SUS](./panel-admin/040-integracion-panel-piloto-sus.md) | I-11 | **PLANNED / TODO** (Bruno `12-admin/` 16 requests exactos; `graphify update .`; piloto SUS 1–2 con cita Brooke (1996); cierre dual — backend puede cerrar, evidencia humana pendiente sin fabricación) |
+| 040 | [Integración del panel y piloto SUS](./panel-admin/040-integracion-panel-piloto-sus.md) | I-11 | **DONE técnico (2026-09-09) / piloto SUS pendiente** — Bruno 16/16 requests y 27/27 tests JS; graphify 17,831/44,897/665; evidencia humana no ejecutada |
 
 ### 013 — Módulo APU avanzado (P-23…P-27, P-45, P-46 + decisiones N04) (raised 2026-08-19, reconciled 2026-08-28)
 

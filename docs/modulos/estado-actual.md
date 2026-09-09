@@ -645,10 +645,10 @@ docs(i06): reconcile backend modules and API examples
 > exacto permanece bloqueado solo por 23 archivos con formato preexistente,
 > ninguno modificado por Plan 07. Suite completa y Bruno cerrados en Plan 08.
 
-### Bloque 8 — I-11 Panel Super-Admin (en progreso)
+### Bloque 8 — I-11 Panel Super-Admin (DONE técnico / piloto SUS 1–2 pendiente)
 
-> **Corte (2026-09-08):** I-11 está **EN PROGRESO** con **Planes 032–033
-> DONE**. Los planes 034–040 permanecen pendientes y 034 es el siguiente.
+> **Corte (2026-09-09):** I-11 está **DONE técnico / piloto SUS 1–2 pendiente** con **Planes 032–033
+> DONE**. Los Planes 032–040 están DONE técnicamente; el piloto humano no se ejecutó por falta de participantes.
 > Este bloque **no reescribe** las secciones históricas; anota el estado I-11
 > para que la matriz de capacidades y el DAG sigan siendo
 > revisables sin contradicción.
@@ -676,7 +676,7 @@ docs(i06): reconcile backend modules and API examples
   `GET /admin/logs` paginado para `SUPER_ADMIN`. Evidencia: audit 26/26,
   usuario 51/51; suite autoritativa 673 con solo GM-19/GM-20 aceptados y
   GM-24 omitido; Spotless/build/diff estáticos PASS; sin commit.
-- **Planes 034–040 — PLANNED / TODO.** 034 es la **siguiente tarea
+- **Planes 032–040 — DONE técnico (2026-09-09); piloto SUS 1–2 pendiente.** La
   autorizada**. Detalle por plan en el inventario.
 - **Cambios de Plan 031 — preservados intactos** (sin commit; fuera
   del alcance de 032). 039 los reusa tal cual al instrumentar
@@ -766,7 +766,7 @@ exista, permanecen incompletos:
 | 5 | proyecto se crea desde snapshot sin enlazar datos originales |
 | 6 | **DONE 2026-08-30 · VERIFICACIÓN DIRIGIDA COMPLETA** — APIs actuales no filtran BIGINT internos; matriz completa en [Plan 07](./planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md); sin migraciones nuevas; PK/FK `BIGINT`; motor intacto. Suites dirigidas verdes; suite completa y Bruno quedan para Plan 08. |
 | 7 | docs/Bruno describen exactamente el código final |
-| 8 | **I-11 EN PROGRESO; Planes 032–033 DONE** (032: 2026-09-07; 033: 2026-09-08). Fundación P-42 cerrada con V010, catálogo/validador de 26 eventos, emisor `MANDATORY`, JSONB vía `ObjectMapper` y consulta admin. Planes 034–040 pendientes; 034 es el siguiente. Sin commit. |
+| 8 | **I-11 DONE técnico / piloto SUS 1–2 pendiente; Planes 032–040 DONE** (cierre técnico: 2026-09-09). El piloto humano no se ejecutó por falta de participantes; no se fabrican resultados. |
 
 ---
 

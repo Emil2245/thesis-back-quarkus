@@ -1,0 +1,34 @@
+meta {
+  name: TC-12-00c-login-ana-helper
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{u2Email}}",
+    "password": "{{u2Password}}",
+    "recordarSesion": true
+  }
+}
+
+script:post-response {
+  if (res.status !== 200) throw new Error("Ana login failed");
+  bru.setVar("u2_access_token", res.body.accessToken);
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+}

@@ -1,6 +1,6 @@
 # 040 — Integración del panel y piloto SUS
 
-**Estado:** TODO · I-11 · cierre I-11 + piloto SUS 1–2.
+**Estado:** DONE técnico / piloto SUS 1–2 pendiente · I-11 · 2026-09-09.
 
 > Cierra I-11 con una sola colección Bruno `12-admin/`, regresiones
 > por módulo, `graphify update .` desde la raíz del proyecto de
@@ -379,6 +379,17 @@ orquestador las corre.
 | Docs sincronizadas | 6 entradas de sincronización documental (las 6 de la decisión 64). |
 | Artefactos SUS | 5 artefactos del piloto SUS (los 4 originales + el cierre dual de estado). |
 
+## Evidencia medida de cierre (2026-09-09)
+
+- Focal de integración: **4/4**, sin fallos, errores ni omisiones.
+- Cobertura runtime: **25 eventos D-13 implementados**; `proyecto.duplicado` permanece **no producer yet**; los **4 eventos legacy V004 están ausentes** del catálogo runtime.
+- Regresión dirigida: **662 = 659 pass + GM-19/GM-20 aceptados + GM-24 skipped**, 0 errors.
+- Suite completa: **742 = 739 pass + GM-19/GM-20 aceptados + GM-24 skipped**, 0 errors.
+- Bruno `12-admin/`: **16/16 requests** y **27/27 tests JS**; **9,993 ms CLI / 13.55 s wall**.
+- `spotlessCheck`, `build -x test` y `git diff --check`: **PASS**.
+- Graphify final: **17,831 nodos / 44,897 aristas / 665 comunidades**; warnings no bloqueantes de cero nodos y `tree_sitter_sql` documentados.
+- Piloto SUS 1–2: **no ejecutado por humanos**; no se fabrican participantes, tiempos ni puntajes.
+
 ## Comandos de verificación
 
 ```bash
@@ -432,8 +443,8 @@ cd /home/kaandradec/Documents/workspace/uce/proyecto-grado/thesis-back-quarkus
 # (Asumiendo fast-jar en build/quarkus-app/quarkus-run.jar y
 # PostgreSQL 18 limpio).
 # java -jar build/quarkus-app/quarkus-run.jar &
-# bru run api/bruno/12-admin/ --env dev
-# medir: requests (esperado 16), asserts, ms, fail/skip.
+( cd api/bruno && bru run 12-admin/ --env dev )
+# Medición: 16/16 requests, 27/27 tests JS, 0 fallos/errores/skips; 9,993 ms CLI / 13.55 s wall. Assertions del reporter: 0/0 (la colección usa tests {} JS).
 
 # Diff limpio.
 git diff --check
@@ -449,44 +460,38 @@ test -f docs/modulos/panel-admin/00-acta-reconciliacion.md
 test -f docs/modulos/panel-admin/00-inventario-trabajo.md
 test -f docs/modulos/panel-admin/035-auditoria-p39.md
 
-# Sin migración nueva en todo I-11.
-git diff --name-only -- 'src/main/resources/db/migration/**'
-# esperado: vacío.
+# Plan 040 no añadió migraciones; V010 pertenece legítimamente al Plan 033.
+test "$(git diff --name-only -- 'src/main/resources/db/migration/**' | grep -c '^src/main/resources/db/migration/V010__')" -eq 1
+! git diff --name-only -- 'src/main/resources/db/migration/**' | grep -E '/V01[1-9]__|/V0[2-9][0-9]__'
+# En el árbol I-11 acumulado se espera únicamente V010; no se espera ninguna posterior.
 ```
 
 No se predicen conteos de suite completa. El orquestador decide.
 
 ## Completion checklist (040)
 
-- [ ] `api/bruno/12-admin/` autocontenido; **16 requests**
+- [x] `api/bruno/12-admin/` autocontenido; **16 requests**
       exactos; ejecución dinámica medida (CLI Bruno 4.1.0;
       requests / asserts / ms / fail-skip).
-- [ ] `LogActividadCoberturaD13CompletaTest` verde para los
+- [x] `LogActividadCoberturaD13CompletaTest` verde para los
       productores implementados (sin dependencia de estado
       cross-class); toda brecha sin productor queda en el acta y la
       documentación, nunca como un test omitido.
-- [ ] `BrunoCobertura12AdminIT` verde.
-- [ ] Regresión por módulo verde (sin regresión vs Plan 031).
-- [ ] Motor intacto (agregado XML del comando: GM-19/GM-20 aceptados y GM-24 omitido según línea base).
-- [ ] `graphify update .` ejecutado sin error (no `codegraph`).
-- [ ] 6 entradas de sincronización documental completadas (las 6 de la decisión 64).
-- [ ] 5 artefactos del piloto SUS creados (con cita Brooke 1996
+- [x] `BrunoCobertura12AdminIT` verde.
+- [x] Regresión por módulo verde (sin regresión vs Plan 031).
+- [x] Motor intacto (agregado XML del comando: GM-19/GM-20 aceptados y GM-24 omitido según línea base).
+- [x] `graphify update .` ejecutado sin error (no `codegraph`).
+- [x] 6 entradas de sincronización documental completadas (las 6 de la decisión 64).
+- [x] 5 artefactos del piloto SUS creados (con cita Brooke 1996
       en `01-cuestionario-brooke-es.md`).
-- [ ] Cierre dual: implementación cerrada; piloto 1–2 con
+- [x] Cierre dual: implementación cerrada; piloto 1–2 con
       estado explícito en `piloto-sus/04-estado.md`.
-- [ ] `git diff --check` limpio.
-- [ ] `plans/README.md`, `docs/00-ESTADO-ACTUAL.md`,
+- [x] `git diff --check` limpio.
+- [x] `plans/README.md`, `docs/00-ESTADO-ACTUAL.md`,
       `docs/modulos/README.md` actualizados.
 
-## Handoff al siguiente paso
+## Handoff posterior
 
-Cuando 040 cierre:
-
-1. el padre actualiza `plans/README.md` con la fila I-11
-   DONE/cuenta;
-2. el padre actualiza `docs/00-ESTADO-ACTUAL.md` con I-11
-   `DONE` (o `DONE / piloto pendiente`);
-3. el siguiente paso de planificación es **I-12** (semanas
-   23–24): medición SUS `n ≥ 5` + baseline RNF-06 +
-   hardening + cierre de variables de tesis. **040 no abre
-   I-12**; el orquestador autoriza ese plan en su propia sesión.
+040 queda en **DONE técnico (2026-09-09) / piloto SUS 1–2 pendiente**.
+La única acción posterior es planificar I-12 en una sesión futura; esa
+planificación es separada y no se abre dentro de 040.

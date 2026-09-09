@@ -1,0 +1,60 @@
+meta {
+  name: TC-12-P39-03-edicion-no-afecta-proyecto
+  type: http
+  seq: 11
+}
+
+put {
+  url: {{baseUrl}}/admin/bases-centrales/{{p39BaseId}} 
+  auth: bearer
+  body: json
+}
+
+auth:bearer {
+  token: {{admin_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "Base Plan040 archivada verificada"
+  }
+}
+
+script:post-response {
+  if (res.status !== 200) throw new Error("la base archivada no respondió 200");
+  const token = bru.getVar("admin_access_token");
+  const baseUrl = bru.getEnvVar("baseUrl");
+  const nuevaBase = await bru.sendRequest({ method: "POST", url: `${baseUrl}/admin/bases-centrales`, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, data: JSON.stringify({ nombre: "Base Plan040 independencia" }) });
+  if (nuevaBase.status !== 201 || !nuevaBase.data || !nuevaBase.data.id || nuevaBase.data.archivada !== false) throw new Error("segunda base CENTRAL activa no creada");
+  const baseId = nuevaBase.data.id;
+  const central = await bru.sendRequest({ method: "POST", url: `${baseUrl}/admin/bases-centrales/${baseId}/insumos`, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, data: JSON.stringify({ codigo: "P40-INDEP-001", tipo: "MATERIAL", descripcion: "Material independencia", unidad: "kg", precioUnitario: 2.5 }) });
+  if (central.status !== 201 || !central.data || !central.data.id) throw new Error("insumo CENTRAL de independencia no creado");
+  const copy = await bru.sendRequest({ method: "POST", url: `${baseUrl}/proyectos/${bru.getVar("p40ProyectoId")}/insumos/copiar`, headers: { Authorization: `Bearer ${bru.getVar("u1_access_token")}`, "Content-Type": "application/json" }, data: JSON.stringify({ fuenteTipo: "CENTRAL", baseId }) });
+  if (copy.status !== 200 || !copy.data || copy.data.copiados < 1) throw new Error("copia CENTRAL al proyecto no realizada");
+  const before = await bru.sendRequest({ method: "GET", url: `${baseUrl}/proyectos/${bru.getVar("p40ProyectoId")}/insumos?page=0&size=200`, headers: { Authorization: `Bearer ${bru.getVar("u1_access_token")}` }, data: undefined });
+  if (before.status !== 200 || !before.data || !Array.isArray(before.data.items)) throw new Error("listado de insumos PROYECTO inválido");
+  const copied = before.data.items.find((item) => item.codigo === "P40-INDEP-001");
+  if (!copied) throw new Error("insumo copiado no encontrado");
+  const originalPrice = copied.precioUnitario;
+  const edited = await bru.sendRequest({ method: "PUT", url: `${baseUrl}/admin/bases-centrales/${baseId}/insumos/${central.data.id}`, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, data: JSON.stringify({ descripcion: "Material independencia editado", unidad: "kg", precioUnitario: 9.75 }) });
+  if (edited.status !== 200 || !edited.data || edited.data.precioUnitario !== 9.75) throw new Error("edición del insumo CENTRAL no confirmada");
+  const after = await bru.sendRequest({ method: "GET", url: `${baseUrl}/proyectos/${bru.getVar("p40ProyectoId")}/insumos?page=0&size=200`, headers: { Authorization: `Bearer ${bru.getVar("u1_access_token")}` }, data: undefined });
+  if (after.status !== 200 || !after.data || !Array.isArray(after.data.items)) throw new Error("listado posterior de insumos PROYECTO inválido");
+  const unchanged = after.data.items.find((item) => item.codigo === "P40-INDEP-001");
+  if (!unchanged || unchanged.precioUnitario !== originalPrice) throw new Error("la edición CENTRAL afectó la copia PROYECTO");
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("base archivada renombrada", function() {
+    expect(res.body.nombre).to.equal("Base Plan040 archivada verificada");
+    expect(res.body.archivada).to.equal(true);
+  });
+}

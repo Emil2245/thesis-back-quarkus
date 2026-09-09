@@ -1,0 +1,45 @@
+meta {
+  name: TC-12-P38-02-desactivar-reactivar
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/admin/usuarios/{{p38UsuarioId}}/desactivar
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_access_token}}
+}
+
+script:post-response {
+  if (res.status !== 200 || !res.body || res.body.activo !== false) throw new Error("desactivación no confirmó activo=false");
+  const reactivado = await bru.sendRequest({ method: "POST", url: `${bru.getEnvVar("baseUrl")}/admin/usuarios/${bru.getVar("p38UsuarioId")}/reactivar`, headers: { Authorization: `Bearer ${bru.getVar("admin_access_token")}` }, data: undefined });
+  if (reactivado.status !== 200 || !reactivado.data || reactivado.data.activo !== true) throw new Error("reactivación no confirmó activo=true");
+  const password = bru.getVar("p38InvitedPassword");
+  if (password && password !== "empty") {
+    const login = await bru.sendRequest({ method: "POST", url: `${bru.getEnvVar("baseUrl")}/auth/login`, headers: { "Content-Type": "application/json" }, data: JSON.stringify({ email: "p40.invitado@example.com", password, recordarSesion: true }) });
+    if (login.status !== 200) throw new Error("login posterior a reactivación falló");
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("usuario desactivado en respuesta exterior", function() {
+    expect(res.body.activo).to.equal(false);
+  });
+
+  test("reactivación anidada confirmada", function() {
+    expect(res.body).to.have.property("activo", false);
+  });
+}
+
+docs {
+  La aceptación de invitación no entrega una contraseña utilizable en Bruno;
+  por eso este caso verifica ambas transiciones activo=false/true. La exigencia
+  de login de usuario invitado está cubierta por UsuarioAdminResourceIT.
+}

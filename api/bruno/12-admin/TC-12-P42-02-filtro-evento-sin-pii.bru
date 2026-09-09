@@ -1,0 +1,24 @@
+meta {
+  name: TC-12-P42-02-filtro-evento-sin-pii
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{baseUrl}}/admin/logs?evento=admin.base_editada&size=200
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_access_token}}
+}
+
+tests {
+  test("Status 200 OK", function() { expect(res.status).to.equal(200); });
+  test("solo admin.base_editada", function() { res.body.items.forEach((x) => expect(x.evento).to.equal("admin.base_editada")); });
+  test("detalle no contiene secretos ni PII", function() {
+    const forbidden = /(email|password|contrase|token|jwt|hash|john\.doe@uce\.edu\.ec|ana\.armas@gmail\.com)/i;
+    function scan(value) { if (value && typeof value === "object") Object.keys(value).forEach((k) => { if (k === "detalle") { expect(JSON.stringify(value[k])).to.not.match(forbidden); } scan(value[k]); }); }
+    res.body.items.forEach((x) => scan(x));
+  });
+}

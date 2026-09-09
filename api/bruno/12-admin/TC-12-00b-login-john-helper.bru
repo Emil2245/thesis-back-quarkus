@@ -1,0 +1,34 @@
+meta {
+  name: TC-12-00b-login-john-helper
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{u1Email}}",
+    "password": "{{u1Password}}",
+    "recordarSesion": true
+  }
+}
+
+script:post-response {
+  if (res.status !== 200) throw new Error("John login failed");
+  bru.setVar("u1_access_token", res.body.accessToken);
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+}

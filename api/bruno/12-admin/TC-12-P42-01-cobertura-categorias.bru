@@ -1,0 +1,49 @@
+meta {
+  name: TC-12-P42-01-cobertura-categorias
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/admin/logs?size=200
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_access_token}}
+}
+
+script:pre-request {
+  const base = bru.getEnvVar("baseUrl");
+  const token = bru.getVar("u1_access_token");
+  const send = async (label, request) => {
+    try {
+      return await bru.sendRequest(request);
+    } catch (error) {
+      const status = error.response ? error.response.status : "sin-status";
+      const detail = error.response && error.response.data ? JSON.stringify(error.response.data) : error.message;
+      throw new Error(`${label}: ${status} ${detail}`);
+    }
+  };
+  const project = await send("insumo P42", { method: "POST", url: `${base}/proyectos/${bru.getVar("p40ProyectoId")}/insumos`, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, data: JSON.stringify({ codigo: "P42-MAT-001", tipo: "MATERIAL", descripcion: "Material P42", unidad: "u", precioUnitario: 1.25 }) });
+  if (project.status !== 201) throw new Error("insumo P42 no creado");
+  const et = await send("ET P42", { method: "PUT", url: `${base}/apus/${bru.getVar("p40ApuId")}/especificacion-tecnica`, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, data: JSON.stringify({ texto: "Especificación técnica Plan 040" }) });
+  if (et.status !== 200) throw new Error("ET P42 no guardada");
+  const copy = await send("versión P42", { method: "POST", url: `${base}/proyectos/${bru.getVar("p40ProyectoId")}/presupuestos`, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, data: JSON.stringify({ origenId: bru.getVar("p40PresupuestoId"), notas: "P42 cobertura" }) });
+  if (copy.status !== 201 || !copy.data.presupuestoId) throw new Error("versión P42 no creada");
+  bru.setVar("p42PresupuestoId", copy.data.presupuestoId);
+  const cron = await send("cronograma P42", { method: "POST", url: `${base}/presupuestos/${copy.data.presupuestoId}/cronograma`, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, data: JSON.stringify({ unidadTiempo: "SEMANA", numeroPeriodos: 4 }) });
+  if (cron.status !== 201 || !cron.data.id) throw new Error("cronograma P42 no creado");
+  const config = await send("configuración P42", { method: "PUT", url: `${base}/cronogramas/${cron.data.id}/configuracion`, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, data: JSON.stringify({ unidadTiempo: "MES", numeroPeriodos: 3, confirmarPerdida: true }) });
+  if (config.status !== 200) throw new Error("configuración P42 no emitió evento");
+  const doc = await send("DOCX P42", { method: "GET", url: `${base}/documentos/especificaciones-tecnicas/${copy.data.presupuestoId}?formato=docx`, headers: { Authorization: `Bearer ${token}` }, data: undefined });
+  if (doc.status !== 200) throw new Error("DOCX P42 no exportado");
+}
+
+tests {
+  test("Status 200 OK", function() { expect(res.status).to.equal(200); });
+  test("categorías D-13 completas", function() {
+    const names = res.body.items.map((x) => x.evento);
+    ["auth.", "usuario.", "proyecto.", "insumo.", "base.", "apu.", "presupuesto.", "cronograma.", "documento.", "admin."].forEach((prefix) => expect(names.some((n) => n.indexOf(prefix) === 0)).to.equal(true));
+  });
+}

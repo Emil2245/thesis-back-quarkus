@@ -14,7 +14,7 @@
 
 ## 0. Convenciones del inventario
 
-- **Estado actual** (corte 2026-09-08, con 032–035 cerrados):
+- **Estado actual** (corte 2026-09-09, con 032–040 cerrados técnicamente):
   - **DONE / PARITY:** capacidad implementada y verificada en el árbol de
     trabajo; no implica commit.
   - **GAP parcial:** capacidad existe pero requiere un ajuste estrecho
@@ -25,8 +25,7 @@
 - **TC:** identificador del catálogo
   `thesis-docs/plan/quality/02-catalogo-pruebas.md`.
 - **Acción de cada fila:** `crear`, `modificar` o `reusar`.
-- **Evidencia medida:** 033–036 registran sus conteos exactos; el inventario no
-  predice resultados para 037–040.
+- **Evidencia medida:** 032–040 registran sus decisiones y conteos exactos; el inventario conserva el cierre técnico y no fabrica evidencia humana del piloto.
 
 ## 1. Plan 033 — Log de actividad — base (P-42 foundation) — DONE / PARITY
 
@@ -347,10 +346,9 @@
 
 ### Capacidades actuales vs gap
 
-- Bruno admin `12-admin/`: **MISSING**.
-- `graphify update .`: **DONE** al cierre de 036 (4.529 nodos / 13.836
-  aristas / 185 comunidades); 040 debe repetirlo para su candidato final.
-- Piloto SUS 1–2: **MISSING** (gate humano).
+- Bruno admin `12-admin/`: **DONE / PARITY** (16/16 requests, 27/27 tests JS).
+- `graphify update .`: **DONE** al cierre de 040 (**17,831 nodos / 44,897 aristas / 665 comunidades**); warnings no bloqueantes de cero nodos y `tree_sitter_sql` documentados.
+- Piloto SUS 1–2: **PENDIENTE** (gate humano; no se proporcionaron participantes ni evidencia).
 
 ### Archivos candidatos
 
@@ -399,6 +397,6 @@ de 033).
 
 ---
 
-**Inventario firmado al cierre de Plan 032 el 2026-09-07 y actualizado al
-cierre completo de Plan 039 el 2026-09-08. La siguiente tarea es Plan 040;
-040 permanece pendiente según el DAG. No se creó commit.**
+**Inventario actualizado al cierre técnico de Plan 040 el 2026-09-09.
+El piloto SUS 1–2 permanece pendiente; la planificación futura de I-12 es
+separada y no se abre en este inventario. No se creó commit.**

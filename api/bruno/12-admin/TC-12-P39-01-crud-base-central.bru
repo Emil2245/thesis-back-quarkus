@@ -1,0 +1,47 @@
+meta {
+  name: TC-12-P39-01-crud-base-central
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/admin/bases-centrales
+  auth: bearer
+  body: json
+}
+
+auth:bearer {
+  token: {{admin_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "Base Plan040 CRUD"
+  }
+}
+
+script:post-response {
+  if (res.status !== 201 || !res.body || !res.body.id) throw new Error("base CENTRAL no creada");
+  bru.setVar("p39BaseId", res.body.id);
+  const insumo = await bru.sendRequest({ method: "POST", url: `${bru.getEnvVar("baseUrl")}/admin/bases-centrales/${res.body.id}/insumos`, headers: { Authorization: `Bearer ${bru.getVar("admin_access_token")}`, "Content-Type": "application/json" }, data: JSON.stringify({ codigo: "P40-MAT-001", tipo: "MATERIAL", descripcion: "Material Plan040", unidad: "kg", precioUnitario: 1.25 }) });
+  if (insumo.status !== 201 || !insumo.data || !insumo.data.id) throw new Error("insumo CENTRAL no creado");
+  bru.setVar("p39CentralInsumoId", insumo.data.id);
+  const renombrada = await bru.sendRequest({ method: "PUT", url: `${bru.getEnvVar("baseUrl")}/admin/bases-centrales/${res.body.id}`, headers: { Authorization: `Bearer ${bru.getVar("admin_access_token")}`, "Content-Type": "application/json" }, data: JSON.stringify({ nombre: "Base Plan040 CRUD renombrada" }) });
+  if (renombrada.status !== 200 || !renombrada.data || renombrada.data.nombre !== "Base Plan040 CRUD renombrada") throw new Error("renombrado CENTRAL no confirmado");
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("base CENTRAL creada", function() {
+    expect(res.body.tipo).to.equal("CENTRAL");
+    expect(res.body.archivada).to.equal(false);
+    expect(res.body.totalInsumos).to.equal(0);
+  });
+}
