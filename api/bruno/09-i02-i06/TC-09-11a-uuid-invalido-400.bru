@@ -1,0 +1,37 @@
+meta {
+  name: TC-09-11a — UUID inválido (no v7) devuelve 400 validacion
+  type: http
+  seq: 27
+}
+
+get {
+  url: {{baseUrl}}/proyectos/00000000-0000-0000-0000-000000000000
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 400 Bad Request", function() {
+    expect(res.status).to.equal(400);
+  });
+
+  test("Error tipado `validacion`", function() {
+    expect(res.body.codigo).to.equal("validacion");
+  });
+}
+
+docs {
+  Caso Plan 08 #9 (UUID inválido + recurso ajeno) — parte A: el
+  UUID literal `00000000-0000-0000-0000-000000000000` no es v7 (su
+  nibble de versión es `0`, no `7`). El parser canónico
+  `ec.uce.propuestas.common.UuidV7.parse` lo rechaza con 400
+  `validacion` antes de cualquier acceso al repositorio. El
+  contrato del mensaje es: `"Identificador público inválido: se
+  requiere UUIDv7"`. Esta es la primera línea de defensa del
+  contrato UUIDv7 público (Plan 07); ningún caller puede enviar
+  BIGINTs disfrazados, UUIDs v4 aleatorios, ni UUIDs v7 mal
+  formados.
+}

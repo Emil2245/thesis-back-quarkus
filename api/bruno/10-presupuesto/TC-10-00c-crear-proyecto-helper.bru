@@ -1,0 +1,75 @@
+meta {
+  name: TC-10-00c — Crear proyecto propio (helper, auto-create presupuesto v1)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/proyectos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombreProyecto": "Plan025 demo",
+    "codigo": "P-2026-P25",
+    "descripcion": "Proyecto propio de prueba para casos Plan 025",
+    "anio": 2026,
+    "fechaInicio": "2026-03-01",
+    "plazoEjecucion": 4,
+    "plazoUnidad": "MES",
+    "direccionInstitucional": "UCE",
+    "subdireccionInstitucional": "Dirección de Investigación"
+  }
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("p25ProyectoId", res.body.id);
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("Estado inicial BORRADOR", function() {
+    expect(res.body.estado).to.equal("BORRADOR");
+  });
+
+  test("proyectoId es UUIDv7 (no BIGINT)", function() {
+    // Contra `res.body`, no contra `{{p25ProyectoId}}`: la interpolación
+    // de plantillas ocurre antes de `script:post-response`.
+    expect(res.body.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+}
+
+docs {
+  Helper de Plan 025 — crea un proyecto BORRADOR propio y captura
+  el `id` (UUIDv7) en `p25ProyectoId`. NO depende de seed V004.
+  El nombre (`Plan025 demo`) y el código (`P-2026-P25`) son
+  deterministas: la colección asume una BD limpia por corrida
+  (Postgres reiniciado o Dev Services fresco). Sobre una BD
+  reutilizada, un segundo `POST` con el mismo código puede
+  colisionar — el rerun limpio es un pre-requisito, no una
+  propiedad del caso.
+
+  `fechaInicio` se envía igual que en `06-proyecto/TC-06-01`
+  (`ProyectoCrearRequest.fechaInicio`, `LocalDate` ISO-8601).
+
+  Importante: `ProyectoService.crear` auto-crea una fila
+  `presupuesto (version=1, es_vigente=true)` en la misma
+  transacción (gap cerrado por Plan 021 / Plan 024). TC-10-00d
+  captura el `presupuestoId` (UUIDv7) consultando
+  `GET /proyectos/{id}/presupuestos`.
+}

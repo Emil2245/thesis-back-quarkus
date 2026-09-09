@@ -1,0 +1,54 @@
+meta {
+  name: TC-31-00e — Setear fechaInicio del proyecto (helper)
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/proyectos/{{p31ProyectoId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombreProyecto": "P31 Bruno {{u1Email}}",
+    "codigo": "P31BRU",
+    "anio": 2026,
+    "fechaInicio": "2026-01-01",
+    "plazoEjecucion": 4,
+    "plazoUnidad": "MES",
+    "direccionInstitucional": "Universidad Central del Ecuador"
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("fechaInicio persistida", function() {
+    expect(res.body.fechaInicio).to.equal("2026-01-01");
+  });
+
+  test("id sigue siendo UUIDv7", function() {
+    expect(res.body.id).to.match(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/);
+  });
+}
+
+docs {
+  Helper de Plan 031 — setea la fecha de inicio del proyecto vía
+  `PUT /proyectos/{proyectoId}`. El campo `fechaInicio` no es aceptado
+  en el POST inicial del proyecto (validación de 026); se actualiza
+  después vía PUT para habilitar el lane MSPDI (requiere
+  `Proyecto.fechaInicio` poblada — `mspdi-fecha-inicio-requerida`).
+  Plan 031 §MSPDI exige este campo para generar el XML.
+}

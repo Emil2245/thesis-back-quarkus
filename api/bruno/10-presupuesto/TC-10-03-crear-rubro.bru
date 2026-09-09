@@ -1,0 +1,77 @@
+meta {
+  name: TC-10-03 — Crear rubro P-29 bajo capítulo raíz (1:1 con APU)
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/presupuestos/{{p25PresupuestoId}}/capitulos/{{p25CapituloRaizId}}/rubros
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "apuId": "{{p25ApuVacioId}}",
+    "cantidad": "5.000000"
+  }
+}
+
+script:post-response {
+  // El POST devuelve PresupuestoResponse completo. El rubro
+  // recién creado está en `capitulos[0].rubros[0]` (es el
+  // único del árbol y D-09 lo garantiza).
+  if (res.status === 201 && res.body && Array.isArray(res.body.capitulos)
+      && res.body.capitulos.length > 0
+      && Array.isArray(res.body.capitulos[0].rubros)
+      && res.body.capitulos[0].rubros.length > 0) {
+    bru.setVar("p25RubroId", res.body.capitulos[0].rubros[0].id);
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("Rubro con item '1.1' bajo el raíz item '1'", function() {
+    expect(res.body.capitulos[0].rubros[0].item).to.equal("1.1");
+  });
+
+  test("Rubro expone apuId UUIDv7 (no BIGINT)", function() {
+    expect(res.body.capitulos[0].rubros[0].apuId).to.equal(bru.getVar("p25ApuVacioId"));
+    expect(res.body.capitulos[0].rubros[0].apuId).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+
+  test("Cantidad persistida como cadena decimal escala 6", function() {
+    expect(res.body.capitulos[0].rubros[0].cantidad).to.equal("5.000000");
+  });
+
+  test("precioUnitario = 0 (APU vacío, sin filas M/N/O/P)", function() {
+    expect(res.body.capitulos[0].rubros[0].precioUnitario).to.equal("0.000000");
+  });
+
+  test("rubroId UUIDv7 capturado", function() {
+    // Contra el árbol de la respuesta actual, no contra `{{p25RubroId}}`:
+    // Bruno interpola las plantillas antes de `script:post-response`.
+    expect(res.body.capitulos[0].rubros[0].id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+}
+
+docs {
+  Caso Plan 025 / Plan 023 — crea un rubro P-29 con cantidad 5
+  bajo el capítulo raíz `p25CapituloRaizId`, vinculado 1:1 al
+  APU vacío `p25ApuVacioId` (D-09). Verifica que el backend
+  expone `cantidad` y `precioUnitario` como cadenas decimales a
+  escala 6 (P-30 contrato canónico), y que `precioUnitario = 0`
+  porque el APU no tiene filas M/N/O/P (PU=0 ⇒ TC-10-12 lo
+  recogerá en `itemsPuCero`).
+}

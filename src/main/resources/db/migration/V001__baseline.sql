@@ -9,6 +9,7 @@
 -- =========================================================================
 CREATE TABLE usuario (
   id               BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  public_id            UUID NOT NULL UNIQUE DEFAULT uuidv7(),
   nombre           VARCHAR(200) NOT NULL,
   email            VARCHAR(320) NOT NULL UNIQUE,
   password_hash    VARCHAR(72)  NOT NULL,
@@ -45,10 +46,23 @@ CREATE TABLE token_usuario (
 );
 
 -- =========================================================================
--- 2.3  proyecto
+-- 2.3  plantilla_proyecto and proyecto
+-- =========================================================================
+CREATE TABLE plantilla_proyecto (
+  id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  public_id           UUID NOT NULL UNIQUE DEFAULT uuidv7(),
+  usuario_id          BIGINT NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
+  nombre              TEXT NOT NULL,
+  fecha_creacion      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  snapshot_estructura JSONB NOT NULL
+);
+
+-- =========================================================================
+-- 2.4  proyecto
 -- =========================================================================
 CREATE TABLE proyecto (
   id                         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  public_id            UUID NOT NULL UNIQUE DEFAULT uuidv7(),
   usuario_id                 BIGINT       NOT NULL REFERENCES usuario(id) ON DELETE RESTRICT,
   nombre_proyecto            TEXT         NOT NULL,
   codigo                     VARCHAR(50),
@@ -62,6 +76,9 @@ CREATE TABLE proyecto (
   direccion_institucional    VARCHAR(200) NOT NULL,
   subdireccion_institucional VARCHAR(200),
   logo                       BYTEA,
+  titulo_et_1               TEXT,
+  titulo_et_2               TEXT,
+  plantilla_proyecto_origen_id BIGINT REFERENCES plantilla_proyecto(id) ON DELETE SET NULL,
   created_at                 TIMESTAMPTZ  NOT NULL DEFAULT now(),
   updated_at                 TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
@@ -71,6 +88,7 @@ CREATE TABLE proyecto (
 -- =========================================================================
 CREATE TABLE firmante (
   id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  public_id            UUID NOT NULL UNIQUE DEFAULT uuidv7(),
   proyecto_id BIGINT       NOT NULL REFERENCES proyecto(id) ON DELETE CASCADE,
   nombre      VARCHAR(200) NOT NULL,
   cargo       VARCHAR(300) NOT NULL,
@@ -84,12 +102,17 @@ CREATE TABLE firmante (
 -- =========================================================================
 CREATE TABLE parametros_sistema (
   id                             SMALLINT PRIMARY KEY CHECK (id = 1),
-  porcentaje_herramienta_menor   NUMERIC(5,4) NOT NULL DEFAULT 0.0500
-                                 CHECK (porcentaje_herramienta_menor BETWEEN 0 AND 0.2000),
-  porcentaje_indirecto           NUMERIC(5,4)
-                                 CHECK (porcentaje_indirecto BETWEEN 0 AND 1.0000),
-  iva                            NUMERIC(5,4) NOT NULL DEFAULT 0.1500
-                                 CHECK (iva BETWEEN 0 AND 0.3000),
+  porcentaje_herramienta_menor   NUMERIC(5,4) NOT NULL DEFAULT 0.0500,
+  porcentaje_indirecto           NUMERIC(5,4),
+  iva                            NUMERIC(5,4) NOT NULL DEFAULT 0.1500,
+  rango_hm_min                   NUMERIC(5,4) NOT NULL DEFAULT 0.0000,
+  rango_hm_max                   NUMERIC(5,4) NOT NULL DEFAULT 0.2000,
+  rango_ci_min                   NUMERIC(5,4) NOT NULL DEFAULT 0.0000,
+  rango_ci_max                   NUMERIC(5,4) NOT NULL DEFAULT 1.0000,
+  rango_descuento_min            NUMERIC(5,4) NOT NULL DEFAULT 0.0000,
+  rango_descuento_max            NUMERIC(5,4) NOT NULL DEFAULT 0.5000,
+  rango_iva_min                  NUMERIC(5,4) NOT NULL DEFAULT 0.0000,
+  rango_iva_max                  NUMERIC(5,4) NOT NULL DEFAULT 0.3000,
   moneda                         VARCHAR(10)  NOT NULL DEFAULT 'USD',
   mostrar_secciones_vacias       BOOLEAN      NOT NULL DEFAULT TRUE,
   sufijos_seccion_activos        BOOLEAN      NOT NULL DEFAULT TRUE,
@@ -105,12 +128,9 @@ CREATE TABLE parametros_sistema (
 
 CREATE TABLE parametros_proyecto (
   proyecto_id                    BIGINT PRIMARY KEY REFERENCES proyecto(id) ON DELETE CASCADE,
-  porcentaje_herramienta_menor   NUMERIC(5,4) NOT NULL DEFAULT 0.0500
-                                 CHECK (porcentaje_herramienta_menor BETWEEN 0 AND 0.2000),
-  porcentaje_indirecto           NUMERIC(5,4)
-                                 CHECK (porcentaje_indirecto BETWEEN 0 AND 1.0000),
-  iva                            NUMERIC(5,4) NOT NULL DEFAULT 0.1500
-                                 CHECK (iva BETWEEN 0 AND 0.3000),
+  porcentaje_herramienta_menor   NUMERIC(5,4) NOT NULL DEFAULT 0.0500,
+  porcentaje_indirecto           NUMERIC(5,4),
+  iva                            NUMERIC(5,4) NOT NULL DEFAULT 0.1500,
   moneda                         VARCHAR(10)  NOT NULL DEFAULT 'USD',
   mostrar_secciones_vacias       BOOLEAN      NOT NULL DEFAULT TRUE,
   sufijos_seccion_activos        BOOLEAN      NOT NULL DEFAULT TRUE,
@@ -129,18 +149,22 @@ CREATE TABLE parametros_proyecto (
 -- =========================================================================
 CREATE TABLE base_insumos (
   id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  public_id   UUID NOT NULL UNIQUE DEFAULT uuidv7(),
   nombre      VARCHAR(200) NOT NULL,
-  tipo        VARCHAR(10)  NOT NULL CHECK (tipo IN ('CENTRAL','PROYECTO')),
-  proyecto_id BIGINT       REFERENCES proyecto(id) ON DELETE CASCADE,
-  archivada   BOOLEAN      NOT NULL DEFAULT FALSE,
-  created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
-  updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
-  CHECK ((tipo = 'CENTRAL' AND proyecto_id IS NULL)
-      OR (tipo = 'PROYECTO' AND proyecto_id IS NOT NULL))
+  tipo        VARCHAR(10) NOT NULL CHECK (tipo IN ('CENTRAL', 'PERSONAL', 'PROYECTO')),
+  usuario_id  BIGINT REFERENCES usuario(id) ON DELETE CASCADE,
+  proyecto_id BIGINT REFERENCES proyecto(id) ON DELETE CASCADE,
+  archivada   BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK ((tipo = 'CENTRAL' AND usuario_id IS NULL AND proyecto_id IS NULL)
+      OR (tipo = 'PERSONAL' AND usuario_id IS NOT NULL AND proyecto_id IS NULL)
+      OR (tipo = 'PROYECTO' AND usuario_id IS NULL AND proyecto_id IS NOT NULL))
 );
 
 CREATE TABLE insumo (
   id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  public_id            UUID NOT NULL UNIQUE DEFAULT uuidv7(),
   base_id         BIGINT        NOT NULL REFERENCES base_insumos(id) ON DELETE CASCADE,
   codigo          VARCHAR(50)   NOT NULL,
   tipo            VARCHAR(12)   NOT NULL
@@ -167,6 +191,7 @@ CREATE TABLE unidad_catalogo (
 -- =========================================================================
 CREATE TABLE presupuesto (
   id                   BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  public_id            UUID NOT NULL UNIQUE DEFAULT uuidv7(),
   proyecto_id          BIGINT        NOT NULL REFERENCES proyecto(id) ON DELETE CASCADE,
   version              SMALLINT      NOT NULL,
   es_vigente           BOOLEAN       NOT NULL DEFAULT FALSE,
@@ -199,19 +224,19 @@ CREATE TABLE capitulo (
 -- =========================================================================
 CREATE TABLE apu (
   id                   BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  presupuesto_id       BIGINT        NOT NULL REFERENCES presupuesto(id) ON DELETE CASCADE,
-  codigo               VARCHAR(20)   NOT NULL,
-  descripcion          TEXT          NOT NULL,
-  unidad               VARCHAR(10)   NOT NULL,
-  es_auxiliar          BOOLEAN       NOT NULL DEFAULT FALSE,
-  porcentaje_indirecto NUMERIC(5,4)  CHECK (porcentaje_indirecto BETWEEN 0 AND 1.0000),
-  porcentaje_descuento NUMERIC(5,4)  NOT NULL DEFAULT 0
-                       CHECK (porcentaje_descuento BETWEEN 0 AND 0.5000),
+  public_id            UUID NOT NULL UNIQUE DEFAULT uuidv7(),
+  presupuesto_id       BIGINT NOT NULL REFERENCES presupuesto(id) ON DELETE CASCADE,
+  codigo               VARCHAR(20) NOT NULL,
+  descripcion          TEXT NOT NULL,
+  unidad               VARCHAR(10) NOT NULL,
+  porcentaje_indirecto NUMERIC(5,4),
+  porcentaje_descuento NUMERIC(5,4) NOT NULL DEFAULT 0,
+  especificacion_tecnica TEXT,
   costo_directo        NUMERIC(14,6) NOT NULL DEFAULT 0,
   costo_indirecto      NUMERIC(14,6) NOT NULL DEFAULT 0,
   costo_total          NUMERIC(14,6) NOT NULL DEFAULT 0,
-  created_at           TIMESTAMPTZ   NOT NULL DEFAULT now(),
-  updated_at           TIMESTAMPTZ   NOT NULL DEFAULT now(),
+  created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (presupuesto_id, codigo)
 );
 
@@ -227,22 +252,19 @@ CREATE TABLE apu_seccion (
 
 CREATE TABLE apu_detalle (
   id                     BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  seccion_id             BIGINT        NOT NULL REFERENCES apu_seccion(id) ON DELETE CASCADE,
-  insumo_id              BIGINT        REFERENCES insumo(id) ON DELETE RESTRICT,
-  apu_auxiliar_id        BIGINT        REFERENCES apu(id) ON DELETE RESTRICT,
-  descripcion            TEXT          NOT NULL,
-  orden                  SMALLINT      NOT NULL,
-  es_herramienta_menor   BOOLEAN       NOT NULL DEFAULT FALSE,
+  public_id              UUID NOT NULL UNIQUE DEFAULT uuidv7(),
+  seccion_id             BIGINT NOT NULL REFERENCES apu_seccion(id) ON DELETE CASCADE,
+  insumo_id              BIGINT REFERENCES insumo(id) ON DELETE RESTRICT,
+  descripcion            TEXT NOT NULL,
+  orden                  SMALLINT NOT NULL,
+  es_herramienta_menor   BOOLEAN NOT NULL DEFAULT FALSE,
   cantidad               NUMERIC(12,6) CHECK (cantidad > 0),
   tarifa_jornal          NUMERIC(14,6) CHECK (tarifa_jornal > 0),
   costo_hora             NUMERIC(14,6) NOT NULL DEFAULT 0,
   rendimiento            NUMERIC(10,6) CHECK (rendimiento > 0),
   unidad                 VARCHAR(10),
   precio_unitario_tarifa NUMERIC(14,6) CHECK (precio_unitario_tarifa > 0),
-  costo                  NUMERIC(14,6) NOT NULL DEFAULT 0,
-  CHECK (NOT (insumo_id IS NOT NULL AND apu_auxiliar_id IS NOT NULL)),
-  CHECK (NOT es_herramienta_menor OR (insumo_id IS NULL AND apu_auxiliar_id IS NULL
-         AND tarifa_jornal IS NULL AND rendimiento IS NULL AND cantidad IS NULL))
+  costo                  NUMERIC(14,6) NOT NULL DEFAULT 0
 );
 
 -- =========================================================================
@@ -266,11 +288,13 @@ CREATE TABLE rubro (
 -- =========================================================================
 CREATE TABLE plantilla_apu (
   id                 BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  public_id            UUID NOT NULL UNIQUE DEFAULT uuidv7(),
   nombre             TEXT        NOT NULL,
   tipo               VARCHAR(10) NOT NULL CHECK (tipo IN ('SISTEMA','PERSONAL')),
   usuario_id         BIGINT      REFERENCES usuario(id) ON DELETE CASCADE,
   descripcion_rubro  TEXT,
   unidad             VARCHAR(10),
+  especificacion_tecnica TEXT,
   snapshot_secciones JSONB       NOT NULL,
   created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -297,6 +321,38 @@ CREATE TABLE actividad (
   rubro_id           BIGINT        NOT NULL UNIQUE REFERENCES rubro(id) ON DELETE CASCADE,
   peso_ponderado     NUMERIC(7,4)  NOT NULL DEFAULT 0,
   avance_por_periodo JSONB         NOT NULL DEFAULT '{}'
+);
+
+-- =========================================================================
+-- Discount restoration state and inert future seams
+-- =========================================================================
+CREATE TABLE descuento_global_snapshot (
+  presupuesto_id      BIGINT PRIMARY KEY REFERENCES presupuesto(id) ON DELETE CASCADE,
+  porcentaje_aplicado NUMERIC(5,4) NOT NULL,
+  valores_originales  JSONB NOT NULL,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE presupuesto_descuento_global (
+  presupuesto_id    BIGINT PRIMARY KEY REFERENCES presupuesto(id) ON DELETE CASCADE,
+  porcentaje_actual  NUMERIC(5,4) NOT NULL DEFAULT 0,
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE presupuesto_rubro (
+  id             BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  presupuesto_id BIGINT NOT NULL REFERENCES presupuesto(id) ON DELETE CASCADE,
+  apu_id         BIGINT NOT NULL REFERENCES apu(id) ON DELETE CASCADE,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (presupuesto_id, apu_id)
+);
+
+CREATE TABLE cronograma_actividad (
+  id             BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  presupuesto_id BIGINT NOT NULL REFERENCES presupuesto(id) ON DELETE CASCADE,
+  rubro_id       BIGINT NOT NULL REFERENCES rubro(id) ON DELETE CASCADE,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (presupuesto_id, rubro_id)
 );
 
 -- =========================================================================
@@ -335,13 +391,69 @@ CREATE INDEX ix_apu_presupuesto          ON apu(presupuesto_id);
 CREATE INDEX ix_apu_seccion_apu          ON apu_seccion(apu_id);
 CREATE INDEX ix_apu_detalle_seccion      ON apu_detalle(seccion_id);
 CREATE INDEX ix_apu_detalle_insumo       ON apu_detalle(insumo_id);
-CREATE INDEX ix_apu_detalle_auxiliar    ON apu_detalle(apu_auxiliar_id);
 CREATE INDEX ix_insumo_base              ON insumo(base_id);
 CREATE INDEX ix_base_insumos_proyecto    ON base_insumos(proyecto_id);
+CREATE INDEX ix_base_insumos_usuario     ON base_insumos(usuario_id);
 CREATE INDEX ix_firmante_proyecto        ON firmante(proyecto_id);
 CREATE INDEX ix_actividad_cronograma     ON actividad(cronograma_id);
 CREATE INDEX ix_plantilla_usuario        ON plantilla_apu(usuario_id);
+CREATE INDEX ix_plantilla_proyecto_usuario ON plantilla_proyecto(usuario_id);
 CREATE INDEX ix_log_fecha                ON log_actividad(created_at DESC);
 CREATE INDEX ix_log_usuario              ON log_actividad(usuario_id);
 CREATE INDEX ix_refresh_usuario          ON refresh_token(usuario_id);
 CREATE INDEX ix_token_usuario            ON token_usuario(usuario_id);
+
+-- =========================================================================
+-- Database-enforced public UUID immutability for API-addressable identities
+-- =========================================================================
+CREATE OR REPLACE FUNCTION fn_assert_public_id_immutable()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF NEW.public_id IS DISTINCT FROM OLD.public_id THEN
+    RAISE EXCEPTION 'public_id is immutable' USING ERRCODE = 'P0001';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_public_id_immutable
+BEFORE UPDATE OF public_id ON usuario
+FOR EACH ROW EXECUTE FUNCTION fn_assert_public_id_immutable();
+
+CREATE TRIGGER trg_public_id_immutable
+BEFORE UPDATE OF public_id ON firmante
+FOR EACH ROW EXECUTE FUNCTION fn_assert_public_id_immutable();
+
+CREATE TRIGGER trg_public_id_immutable
+BEFORE UPDATE OF public_id ON proyecto
+FOR EACH ROW EXECUTE FUNCTION fn_assert_public_id_immutable();
+
+CREATE TRIGGER trg_public_id_immutable
+BEFORE UPDATE OF public_id ON presupuesto
+FOR EACH ROW EXECUTE FUNCTION fn_assert_public_id_immutable();
+
+CREATE TRIGGER trg_public_id_immutable
+BEFORE UPDATE OF public_id ON apu
+FOR EACH ROW EXECUTE FUNCTION fn_assert_public_id_immutable();
+
+CREATE TRIGGER trg_public_id_immutable
+BEFORE UPDATE OF public_id ON apu_detalle
+FOR EACH ROW EXECUTE FUNCTION fn_assert_public_id_immutable();
+
+CREATE TRIGGER trg_public_id_immutable
+BEFORE UPDATE OF public_id ON base_insumos
+FOR EACH ROW EXECUTE FUNCTION fn_assert_public_id_immutable();
+
+CREATE TRIGGER trg_public_id_immutable
+BEFORE UPDATE OF public_id ON insumo
+FOR EACH ROW EXECUTE FUNCTION fn_assert_public_id_immutable();
+
+CREATE TRIGGER trg_public_id_immutable
+BEFORE UPDATE OF public_id ON plantilla_apu
+FOR EACH ROW EXECUTE FUNCTION fn_assert_public_id_immutable();
+
+CREATE TRIGGER trg_public_id_immutable
+BEFORE UPDATE OF public_id ON plantilla_proyecto
+FOR EACH ROW EXECUTE FUNCTION fn_assert_public_id_immutable();

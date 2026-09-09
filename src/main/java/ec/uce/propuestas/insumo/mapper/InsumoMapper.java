@@ -10,10 +10,14 @@ public final class InsumoMapper {
 
     private InsumoMapper() {}
 
+    /**
+     * Plan 07 — el {@code id} público es el {@code publicId} UUIDv7; nunca el
+     * {@code BIGINT} interno.
+     */
     public static InsumoResponse toResponse(Insumo e) {
         boolean desactualizado =
                 e.updatedAt == null || e.updatedAt.isBefore(Instant.now().minusSeconds(DESACTUALIZADO_DAYS * 86400L));
         return new InsumoResponse(
-                e.id, e.codigo, e.tipo, e.descripcion, e.unidad, e.precioUnitario, e.updatedAt, desactualizado);
+                e.publicId, e.codigo, e.tipo, e.descripcion, e.unidad, e.precioUnitario, e.updatedAt, desactualizado);
     }
 }

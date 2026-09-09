@@ -100,29 +100,24 @@ public final class Motor {
             subtotalP = subtotalP.add(fc.costoFila());
         }
 
-        // 6) CD, CD_ajustado, CI, CT — EXACT values, no rounding
+        // 6) CD, CI, CT — EXACT values, no rounding
+        // Plan 015 (P-24/S-24 withdrawn): no discount stage. CI = CD × %CI,
+        // CT = CD + CI, with %CI cascading ApuSnapshot → project default → 0.
         BigDecimal costoDirecto = subtotalM.add(subtotalN).add(subtotalO).add(subtotalP);
 
-        BigDecimal uno = BigDecimal.ONE.subtract(p.porcentajeDescuento(), MC);
-        BigDecimal costoDirectoAjustado = costoDirecto.multiply(uno, MC);
-
+        // Plan 014 no-links: %CI override lives on ApuSnapshot (per-APU).
         BigDecimal pctCi;
-        if (p.porcentajeIndirectoApu() != null) {
-            pctCi = p.porcentajeIndirectoApu();
+        if (in.porcentajeIndirecto() != null) {
+            pctCi = in.porcentajeIndirecto();
         } else if (p.porcentajeIndirectoDefault() != null) {
             pctCi = p.porcentajeIndirectoDefault();
         } else {
             pctCi = BigDecimal.ZERO;
         }
 
-        BigDecimal costoIndirecto;
-        if (in.esAuxiliar()) {
-            costoIndirecto = BigDecimal.ZERO;
-        } else {
-            costoIndirecto = costoDirectoAjustado.multiply(pctCi, MC);
-        }
+        BigDecimal costoIndirecto = costoDirecto.multiply(pctCi, MC);
 
-        BigDecimal costoTotal = costoDirectoAjustado.add(costoIndirecto);
+        BigDecimal costoTotal = costoDirecto.add(costoIndirecto);
 
         // Build full fila list in presentation order: M (HM first), N, O, P
         List<FilaCalculada> todasFilas = new ArrayList<>();
@@ -133,7 +128,6 @@ public final class Motor {
 
         return new ApuCalculado(
                 in.codigo(),
-                in.esAuxiliar(),
                 todasFilas,
                 subtotalM,
                 subtotalN,
@@ -141,7 +135,6 @@ public final class Motor {
                 subtotalP,
                 costoHmExact,
                 costoDirecto,
-                costoDirectoAjustado,
                 costoIndirecto,
                 costoTotal);
     }

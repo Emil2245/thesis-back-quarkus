@@ -2,6 +2,15 @@
 
 > Playbook auto-contenido. Sigue `docs/modulos/README.md`. No crea migraciones
 > SQL (tablas en V001). Alcance: `ec.uce.propuestas.proyecto`.
+>
+> **Estado de cierre (2026-08-30 — sincronización Plan 08):**
+> implementación cerrada de P-05…P-11. Los recursos `Proyecto`,
+> `Firmante` y `ParametrosProyecto` ya migran el path
+> `proyectoId`/`firmanteId` a UUIDv7 ([Plan 07 — DONE
+> 2026-08-30](./planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md));
+> `ParametrosProyectoResponse.proyectoId` y la seam
+> `ParametrosProyectoCambio` ya están alineadas. El módulo
+> `proyecto` ya no expone `Long` en path ni JSON.
 
 ## 1. Arquitectura de empaquetado
 
@@ -78,11 +87,25 @@ Al crear (P-06, transacción) se crea:
 `ProyectoDetalleResponse.versionVigente` queda `null` / `alertas` básicas hasta
 que existing módulo presupuesto.
 
-**Duplicar proyecto (P-09):** **EXCLUIDO del alcance** (decisión 2026-08-02).
-La entrevista N02 §3 desaconseja clonar proyectos completos ("propenso a errores
-al arrastrar cronogramas o cantidades pasadas"); solo se permite **duplicar
-insumos** entre bases (P-17, módulo `insumo`). No existe endpoint
-`POST /proyectos/{id}/duplicar` ni se añadirá.
+**Duplicar proyecto (P-09 / P-46):** **RECONSIDERADO** tras N04 18-08-2026
+(entrevista Ing. Carlosama, dossier `07-decisiones-i06-pendientes.md` §A8).
+El ingeniero confirmó que **se deben agregar plantillas para proyectos
+completos, siguiendo un proceso similar a las plantillas de APUs**. Por lo
+tanto:
+
+- `POST /proyectos/{id}/duplicar` (duplicar destructivo) sigue
+  **EXCLUIDO** (decisión N02 original; no se reactiva).
+- `POST /proyectos/{proyectoId}/desde-plantilla/{plantillaId}` (**NUEVO —
+  P-46**) **SÍ se implementa** en I-06, vía módulo `plantilla/` + nuevo
+  `PlantillaProyectoService`. Mecánica similar al de P-26 (carga con
+  fallback, advertencias, insumos sin precios). Ver
+  `04-apu-avanzado.md` §2.7.
+
+> **Nota de scope:** la funcionalidad "duplicar" como tal (clonar proyecto
+> completo del mismo usuario) **no se reactiva** — el ingeniero desaconsejó
+> clonar proyectos completos. Lo nuevo es **"cargar desde plantilla"**, que
+> es distinto: el usuario elige una snapshot guardada como favorita y crea
+> un proyecto nuevo basado en ella.
 
 ## 4. Services
 
@@ -97,9 +120,22 @@ insumos** entre bases (P-17, módulo `insumo`). No existe endpoint
 - **FirmanteService**: CRUD; `UNIQUE(rol, orden)` — `POST` más de una vez con
   mismo orden → 400 `validacion`. no reordena automáticamente el resto (simple).
 - **ParametrosProyectoService**: `obtener(proyectoId)` → si no existe fila, crea
-  una copia de `ParametrosSistema` (P-11). `actualizar(proyectoId, req)` valida
-  rangos (RNF-09):
-  - %HM ∈ [0, 0.20]; %CI ∈ [0,1]; IVA ∈ [0, 0.30]; `monto>0` para plazo.
+  una copia de `ParametrosSistema` (P-11). `actualizar(usuarioId, proyectoId, req)`
+  valida rangos **leídos desde `ParametrosSistema`** (N04 §A6 — rangos
+  parametrizables; default %HM ∈ [0, 0.20]; %CI ∈ [0,1]; IVA ∈ [0, 0.30];
+  `moneda` libre). Tras persistir devuelve un seam **neutro**
+  `ParametrosProyectoCambio` con:
+  - `proyectoId` interno (Long resuelto),
+  - flags de cambio numérico **escala-insensibles y null-safe**:
+    `porcentajeHerramientaMenorCambio`, `porcentajeIndirectoCambio`,
+  - `ParametrosProyectoResponse` ya materializado.
+
+  Este seam **no dispara recálculo**: queda preparado como entrada para
+  WU-07, que conectará `RecalculoService` cuando exista el motor de
+  presupuesto/APU vigente. Hoy, la mutación se limita a persistir la fila;
+  las actualizaciones globales de rangos en `actualizarSistema` (sólo
+  SUPER_ADMIN) permanecen sin efectos colaterales. Implementación futura
+  del recálculo: ver `04-apu-avanzado.md` §2.9.
 
 ## 5. REST resources (RestResponse<T>)
 
@@ -139,6 +175,17 @@ El propietario se resuelve con `@Inject UsuarioContext` o lectura de `JsonWebTok
 ## 8. Fuera de alcance (TODO)
 - `presupuesto` v1 al crear, `versionVigente` en detalle.
 - `cronograma`.
-- **Duplicar proyecto (P-09): NO se implementará** — solo se duplican insumos
-  entre bases (P-17, módulo `insumo`). Decisión 2026-08-02, entrevista N02 §3.
-- Admin P-39.
+- **Duplicar proyecto destructivo (P-09): NO se implementará** — solo se
+  duplican insumos entre bases (P-17, módulo `insumo`). Decisión N02 §3
+  ratificada por N04 §A8 (se prefiere "cargar desde plantilla" — P-46).
+- **NUEVO I-06 — Cargar proyecto desde plantilla (P-46)** — **DONE
+  2026-08-29 (Plan 06)**, ver
+  [`planes-para-estar-al-dia/06-plantillas-proyecto.md`](planes-para-estar-al-dia/06-plantillas-proyecto.md).
+  Endpoint vigente:
+  `POST /proyectos/desde-plantilla/{plantillaId}` con `UuidV7.parse` en
+  el path (Plan 07). Verificación principal 83/83 verde.
+- Admin P-39 (CRUD bases CENTRALES) — **DONE 2026-08-29 (Plan 05)**,
+  ver
+  [`planes-para-estar-al-dia/05-administracion-bases.md`](planes-para-estar-al-dia/05-administracion-bases.md).
+  Recurso `AdminBaseCentralResource` en `insumo/resource/` bajo
+  `@RolesAllowed("SUPER_ADMIN")`.

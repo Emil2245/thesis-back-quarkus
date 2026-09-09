@@ -1,0 +1,64 @@
+meta {
+  name: TC-10-02a — Crear capítulo raíz P-28
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/presupuestos/{{p25PresupuestoId}}/capitulos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "descripcion": "OBRAS PRELIMINARES Plan025"
+  }
+}
+
+script:post-response {
+  // El POST devuelve el PresupuestoResponse completo; el primer
+  // capítulo raíz de la lista es el recién creado.
+  if (res.status === 201 && res.body && Array.isArray(res.body.capitulos)
+      && res.body.capitulos.length > 0) {
+    bru.setVar("p25CapituloRaizId", res.body.capitulos[0].id);
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("Item del capítulo raíz es '1' (jerarquía autogenerada)", function() {
+    expect(res.body.capitulos[0].item).to.equal("1");
+  });
+
+  test("capituloId UUIDv7 capturado", function() {
+    // Contra el árbol de la respuesta actual, no contra
+    // `{{p25CapituloRaizId}}`: Bruno interpola antes del post-response.
+    expect(res.body.capitulos[0].id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+
+  test("Sin subcapítulos ni rubros iniciales", function() {
+    expect(res.body.capitulos[0].subcapitulos).to.be.an("array");
+    expect(res.body.capitulos[0].rubros).to.be.an("array");
+    expect(res.body.capitulos[0].rubros.length).to.equal(0);
+  });
+}
+
+docs {
+  Caso Plan 025 / Plan 022 — crea un capítulo raíz vía
+  `POST /presupuestos/{presupuestoId}/capitulos`. El backend
+  asigna `item = '1'` (orden implícito 1) y devuelve el árbol
+  completo (`PresupuestoResponse`) ya recalculado. La descripción
+  es determinista: la colección asume una BD limpia por corrida.
+}

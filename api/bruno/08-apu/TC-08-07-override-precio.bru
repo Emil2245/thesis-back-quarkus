@@ -30,7 +30,7 @@ tests {
 
   test("precioEfectivo = 9.0, ya no heredado", function() {
     var detalle = res.body.secciones[1].detalles.find(function(d) {
-      return d.id === {{filaMoId}};
+      return d.id === bru.getVar("filaMoId");
     });
     expect(detalle).to.not.be.null;
     expect(detalle.precioEfectivo).to.equal(9.0);
@@ -39,7 +39,7 @@ tests {
 
   test("Costo recalculado write-through", function() {
     var detalle = res.body.secciones[1].detalles.find(function(d) {
-      return d.id === {{filaMoId}};
+      return d.id === bru.getVar("filaMoId");
     });
     expect(detalle.costoHora).to.equal(9.0);
     expect(detalle.costo).to.equal(9.0);

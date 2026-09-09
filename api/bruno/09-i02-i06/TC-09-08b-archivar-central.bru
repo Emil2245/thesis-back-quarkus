@@ -1,0 +1,48 @@
+meta {
+  name: TC-09-08b — Archivar base CENTRAL temporal (POST /admin/bases-centrales/{id}/archivar)
+  type: http
+  seq: 24
+}
+
+post {
+  url: {{baseUrl}}/admin/bases-centrales/{{tempCentralId}}/archivar
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+script:post-response {
+  // El id del response es el mismo `tempCentralId` que creó 08b-0a;
+  // no se reescribe para mantener un único punto de captura.
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Base devuelta con archivada=true", function() {
+    expect(res.body.archivada).to.equal(true);
+  });
+
+  test("id devuelto es UUIDv7", function() {
+    expect(res.body.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+}
+
+docs {
+  Caso Plan 08 #7 (archivar/borrar CENTRAL) — paso 3/4. Archivado
+  canónico vía POST (no PUT) sobre la base CENTRAL **temporal**
+  capturada en 08b-0a. La operación fija `archivada = true`; la base
+  deja de aparecer en el catálogo público `/bases-centrales` (D-12).
+  Las copias PROYECTO ya materializadas persisten sin cambios (N04
+  §A9). Plan 05 cerró este flujo con el ciclo SUPER_ADMIN completo
+  bajo `/admin/bases-centrales`. **Requiere** credenciales admin
+  válidas (ver TC-09-08a); sin ellas el caso devuelve 401.
+}

@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -29,7 +28,7 @@ import org.junit.jupiter.api.Test;
 class MotorConsolidacionTest {
 
     private static final ParametrosCalculo P_TULCAN =
-            new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1800"), null, BigDecimal.ZERO);
+            new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1800"));
 
     private static final String PRES_TULCAN = "presupuesto-apus-cetro-medico-tulcan.json";
     private static final String APUS_TULCAN = "apus-sample-apus-cetro-medico-tulcan.json";
@@ -196,102 +195,5 @@ class MotorConsolidacionTest {
             + "when the fixture is repaired.")
     void GM_24_totales_recursivos_emelnorte_alumbrado() {
         // Placeholder — see @Disabled reason.
-    }
-
-    // ── DIAGNOSTIC (temporary, remove before final) ──────────────────────────
-
-    /**
-     * DIAGNOSTIC: Print per-rubro expected (fixture precioTotal) vs actual (motor precioTotal).
-     * Used to find divergent nodes per plan §2 STOP procedure.
-     * REMOVE before final commit.
-     */
-    @Test
-    @Disabled("DIAGNOSTIC — temporary; remove after STOP resolution. See NOTES in plan 006 report.")
-    void DIAG_rubro_expected_vs_actual() throws Exception {
-        // DIAGNOSTIC approach: directly compare fixture precioTotal vs Motor computation
-        // for each rubro, computing motor's precioTotal = cantidad_fixture × motor_CT.
-        // This avoids the deduplication issue in result.rubros() (same codigo, multiple rubros).
-
-        JsonNode presRoot = Fixtures.loadJson(PRES_TULCAN);
-        JsonNode apusRoot = Fixtures.loadJson(APUS_TULCAN);
-
-        // Build APU lookup from sample
-        Map<String, JsonNode> apuByCode = new LinkedHashMap<>();
-        for (JsonNode apuNode : apusRoot) {
-            JsonNode cod = apuNode.get("codigo");
-            if (cod != null && !cod.isNull() && !cod.asText().isEmpty()) {
-                apuByCode.put(cod.asText(), apuNode);
-            }
-        }
-
-        // For each APU we have, compute its motor CT once
-        Map<String, BigDecimal> motorCT = new LinkedHashMap<>();
-        for (Map.Entry<String, JsonNode> entry : apuByCode.entrySet()) {
-            ApuSnapshot snap = Fixtures.apuFromJson(entry.getValue());
-            ApuCalculado calc = Motor.calcularApu(snap, P_TULCAN);
-            motorCT.put(entry.getKey(), calc.costoTotal());
-        }
-
-        BigDecimal fixtureSum = BigDecimal.ZERO;
-        BigDecimal motorSum = BigDecimal.ZERO;
-        int divergentCount = 0;
-        int stubCount = 0;
-
-        System.out.println("DIAG2: item | codigo | fixturePT | motorPT | delta | source");
-        for (JsonNode row : presRoot) {
-            if (!"rubro".equals(row.get("kind").asText())) continue;
-            JsonNode codigoNode = row.get("codigo");
-            if (codigoNode == null || codigoNode.isNull()) continue;
-            String codigo = codigoNode.asText();
-
-            BigDecimal fixturePT = Fixtures.bigDecimalOrNull(row, "precioTotal");
-            BigDecimal cantidad = Fixtures.bigDecimalOrNull(row, "cantidad");
-            BigDecimal precioUnitario = Fixtures.bigDecimalOrNull(row, "precioUnitario");
-
-            if (fixturePT == null || cantidad == null || precioUnitario == null) {
-                System.out.println("DIAG2 SKIP(null): " + row.get("item").asText() + " | " + codigo);
-                continue;
-            }
-
-            BigDecimal motorPT;
-            String source;
-            if (motorCT.containsKey(codigo)) {
-                // Real APU: motorPT = cantidad × motorCT
-                motorPT = cantidad.multiply(motorCT.get(codigo), new java.math.MathContext(20, RoundingMode.HALF_UP))
-                        .setScale(6, RoundingMode.HALF_UP);
-                source = "real_apu";
-            } else {
-                // Stub: motorPT = cantidad × (fixturePT / cantidad) at scale 6 ≈ fixturePT
-                // With my fix: stubCT = fixturePT / cantidad → motorPT = fixturePT (modulo rounding)
-                BigDecimal stubCT = fixturePT.divide(cantidad, 6, RoundingMode.HALF_UP);
-                motorPT = cantidad.multiply(stubCT, new java.math.MathContext(20, RoundingMode.HALF_UP))
-                        .setScale(6, RoundingMode.HALF_UP);
-                source = "stub";
-                stubCount++;
-            }
-
-            fixtureSum = fixtureSum.add(fixturePT);
-            motorSum = motorSum.add(motorPT);
-
-            BigDecimal delta = motorPT.subtract(fixturePT);
-            if (delta.abs().compareTo(new BigDecimal("0.005")) > 0) {
-                divergentCount++;
-                System.out.printf(
-                        "DIAG2 DIVERGE [%d]: item=%s codigo=%s fixturePT=%s motorPT=%s delta=%s source=%s%n",
-                        divergentCount,
-                        row.get("item").asText(),
-                        codigo,
-                        fixturePT.setScale(6, RoundingMode.HALF_UP),
-                        motorPT.setScale(6, RoundingMode.HALF_UP),
-                        delta.setScale(6, RoundingMode.HALF_UP),
-                        source);
-            }
-        }
-        System.out.printf(
-                "DIAG2 SUMMARY: fixtureSum=%s motorSum=%s totalDelta=%s%n",
-                fixtureSum.setScale(2, RoundingMode.HALF_UP),
-                motorSum.setScale(2, RoundingMode.HALF_UP),
-                motorSum.subtract(fixtureSum).setScale(6, RoundingMode.HALF_UP));
-        System.out.printf("DIAG2 divergentCount=%d stubCount=%d%n", divergentCount, stubCount);
     }
 }

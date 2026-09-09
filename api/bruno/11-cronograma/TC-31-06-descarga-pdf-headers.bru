@@ -1,0 +1,32 @@
+meta {
+  name: TC-31-06 — Descarga PDF: media type + attachment + filename
+  type: http
+  seq: 18
+}
+
+get {
+  url: {{baseUrl}}/documentos/cronograma/{{p31PresupuestoId}}?formato=pdf
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Content-Type PDF", function() {
+    expect(res.headers["content-type"]).to.match(/^application\/pdf/);
+  });
+
+  test("Content-Disposition attachment .pdf", function() {
+    expect(res.headers["content-disposition"]).to.match(/attachment.*\.pdf"/);
+  });
+
+  test("body con bytes no triviales (>100B)", function() {
+    expect(res.body.length).to.be.at.least(100);
+  });
+}

@@ -1,0 +1,66 @@
+meta {
+  name: TC-10-00d — Capturar presupuesto v1 vigente auto-creado (helper)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/proyectos/{{p25ProyectoId}}/presupuestos
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+script:post-response {
+  // El auto-create de Plan 021 produce exactamente UNA fila
+  // `presupuesto (version=1, es_vigente=true)`. Capturamos su
+  // UUIDv7 público en `p25PresupuestoId` para que los casos
+  // posteriores la consuman sin asumir BIGINT.
+  if (res.status === 200 && Array.isArray(res.body) && res.body.length >= 1) {
+    var v1 = res.body.find(function (p) {
+      return p.version === 1 && p.esVigente === true;
+    });
+    if (v1) {
+      bru.setVar("p25PresupuestoId", v1.presupuestoId);
+    }
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Lista no vacía (auto-create v1 vigente)", function() {
+    expect(res.body.length).to.be.at.least(1);
+  });
+
+  test("v1 vigente presente en la lista", function() {
+    expect(res.body).to.satisfy(function (items) {
+      return items.some(function (p) {
+        return p.version === 1 && p.esVigente === true;
+      });
+    });
+  });
+
+  test("presupuestoId capturado es UUIDv7", function() {
+    // Se recalcula la entrada v1 sobre la respuesta actual: Bruno
+    // interpola `{{p25PresupuestoId}}` antes de `script:post-response`.
+    var v1 = res.body.find(function (p) {
+      return p.version === 1 && p.esVigente === true;
+    });
+    expect(v1).to.be.an("object");
+    expect(v1.presupuestoId).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+}
+
+docs {
+  Helper de Plan 025 — captura el `presupuestoId` (UUIDv7) del
+  presupuesto v1 vigente auto-creado por `ProyectoService.crear`
+  (Plan 021 / Plan 024). Forma de respuesta:
+  `PresupuestoVersionResponse { presupuestoId, version, esVigente,
+  origenId, notas, fechaCreacion, totalGeneral }`. No asume BIGINTs
+  fijos (la práctica IESS no expone IDs internos).
+}

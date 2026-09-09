@@ -1,0 +1,51 @@
+meta {
+  name: TC-31-01 — Preflight exportable (xlsx) devuelve 200 + exportable=true
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/documentos/cronograma/{{p31PresupuestoId}}/preflight?formato=xlsx
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Forma can\u00f3nica (4 campos)", function() {
+    expect(res.body).to.have.property("exportable");
+    expect(res.body).to.have.property("formato");
+    expect(res.body).to.have.property("bloqueos");
+    expect(res.body).to.have.property("warnings");
+  });
+
+  test("formato declarado es xlsx", function() {
+    expect(res.body.formato).to.equal("xlsx");
+  });
+
+  test("exportable=true tras helpers TC-31-00i/00k", function() {
+    expect(res.body.exportable).to.equal(true);
+  });
+
+  test("sin bloqueos can\u00f3nicos", function() {
+    expect(res.body.bloqueos.length).to.equal(0);
+  });
+}
+
+docs {
+  Caso Plan 031 (P-37) — verifica el preflight positivo para XLSX.
+  Depende de los helpers `TC-31-00a..00k` que dejan el cronograma
+  exportable (avanceFinal=100.0000, sin PU=0, sin cantidad=0, sin
+  faltantes). En particular, `TC-31-00f2` + `TC-31-00f3` materializan
+  el insumo MATERIAL en el APU sembrado por `TC-31-00f` para que
+  PU > 0 y no se dispare la regla P-32 `presupuesto-pu-cero`.
+  El warning stale puede aparecer como `cronograma-desactualizado`
+  si nunca se ha ejecutado `POST /cronogramas/{id}/revisado` \u2014 el
+  canon permite exportar con warning pero sin bloqueo.
+}

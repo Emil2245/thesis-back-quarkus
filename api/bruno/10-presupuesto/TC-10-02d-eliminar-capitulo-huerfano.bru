@@ -1,0 +1,48 @@
+meta {
+  name: TC-10-02d — Eliminar subcapítulo movido (cascade) P-28
+  type: http
+  seq: 9
+}
+
+delete {
+  url: {{baseUrl}}/presupuestos/{{p25PresupuestoId}}/capitulos/{{p25SubcapituloId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Sólo queda el capítulo raíz original", function() {
+    expect(res.body.capitulos.length).to.equal(1);
+    expect(res.body.capitulos[0].id).to.equal(bru.getVar("p25CapituloRaizId"));
+    expect(res.body.capitulos[0].item).to.equal("1");
+  });
+
+  test("Presupuesto sigue siendo v1 vigente tras la cascade", function() {
+    expect(res.body.presupuestoId).to.equal(bru.getVar("p25PresupuestoId"));
+    expect(res.body.version).to.equal(1);
+    expect(res.body.esVigente).to.equal(true);
+  });
+}
+
+docs {
+  Caso Plan 025 / Plan 022 — elimina el subcapítulo huérfano
+  (TC-10-02c lo dejó como raíz en posición 2) vía
+  `DELETE /presupuestos/{presupuestoId}/capitulos/{capituloId}`.
+  El árbol tras la cascade conserva sólo el capítulo raíz
+  original (`p25CapituloRaizId`, item `1`). Sin rubros vinculados
+  todavía (TC-10-03 aún no ha creado ninguno), por lo que la
+  cascade `rubro.capitulo_id` no aplica. Verifica que el
+  presupuesto sigue siendo v1 vigente.
+}

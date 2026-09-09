@@ -1,0 +1,53 @@
+meta {
+  name: TC-31-00j — Capturar primera actividadId (helper)
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/presupuestos/{{p31PresupuestoId}}/cronograma
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+script:post-response {
+  if (res.status === 200 && res.body && Array.isArray(res.body.actividades)
+      && res.body.actividades.length > 0) {
+    bru.setVar("p31ActividadId", res.body.actividades[0].id);
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Cronograma expone actividades", function() {
+    expect(res.body.actividades).to.be.an("array");
+    expect(res.body.actividades.length).to.be.at.least(1);
+  });
+
+  test("actividad[0].id UUIDv7 capturado", function() {
+    expect(res.body.actividades[0].id).to.match(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/);
+  });
+
+  test("actividad[0].rubroId es UUIDv7", function() {
+    expect(res.body.actividades[0].rubroId).to.match(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/);
+  });
+
+  test("pesoPonderado presente (escala 4)", function() {
+    expect(res.body.actividades[0].pesoPonderado).to.be.a("string");
+    expect(res.body.actividades[0].pesoPonderado).to.match(/^[0-9]+\.[0-9]{4}$/);
+  });
+}
+
+docs {
+  Helper de Plan 031 — captura el `actividadId` de la primera
+  actividad del cronograma recién creado vía `TC-31-00i`. La
+  interpolación de Bruno ocurre antes del `script:post-response`,
+  por lo que la verificación se hace contra `res.body` (no contra
+  `{{p31ActividadId}}`).
+}

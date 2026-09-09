@@ -1,0 +1,15 @@
+# Plan 030 (P-35/P-36) — test-profile configuration overrides.
+# Mantiene exactamente la misma base que el perfil principal (no toca
+# conexión, datasource, etc.) y habilita Hibernate Statistics SÓLO para
+# pruebas, de modo que VistasCronogramaResourceIT.TC_P36_07 puede contar
+# queries reales sin tocar el config global del backend.
+#
+# Quarkus 3.x — el sufijo "%test" aplica este bloque exclusivamente cuando
+# se ejecuta `./gradlew test`. Las claves de Hibernate ORM son
+# nativas: `quarkus.hibernate-orm.statistics.enabled`.
+
+"%test":
+  quarkus:
+    hibernate-orm:
+      statistics:
+        enabled: true

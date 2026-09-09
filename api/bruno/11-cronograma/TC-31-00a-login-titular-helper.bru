@@ -1,0 +1,39 @@
+meta {
+  name: TC-31-00a — Login titular John Doe (helper)
+  type: http
+  seq: 0
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{u1Email}}",
+    "password": "{{u1Password}}",
+    "recordarSesion": true
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("u1_access_token", res.body.accessToken);
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("accessToken con forma JWT (header.payload.signature)", function() {
+    expect(res.body.accessToken).to.match(/^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/);
+  });
+}

@@ -1,9 +1,18 @@
 package ec.uce.propuestas.insumo.resource;
 
+import ec.uce.propuestas.common.ProblemaException;
+import ec.uce.propuestas.common.UuidV7;
 import ec.uce.propuestas.common.dto.Page;
 import ec.uce.propuestas.insumo.dto.*;
+import ec.uce.propuestas.insumo.entity.BaseInsumos;
+import ec.uce.propuestas.insumo.entity.Insumo;
 import ec.uce.propuestas.insumo.entity.TipoInsumo;
+import ec.uce.propuestas.insumo.repository.InsumoRepository;
 import ec.uce.propuestas.insumo.service.*;
+import ec.uce.propuestas.proyecto.entity.Proyecto;
+import ec.uce.propuestas.proyecto.service.ProyectoService;
+import ec.uce.propuestas.usuario.UsuarioRepository;
+import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
@@ -11,9 +20,13 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.io.IOException;
+import java.util.UUID;
 
 /**
  * Insumos del proyecto (07-api-contract.md §4). Ruta {@code /proyectos/{proyectoId}/insumos}.
+ *
+ * <p>Plan 07 — los identificadores públicos son UUIDv7. El resource valida los path params antes
+ * de resolver el owner y mantiene los BIGINT debajo de la frontera REST.
  */
 @Path("/proyectos/{proyectoId}/insumos")
 @Produces(MediaType.APPLICATION_JSON)
@@ -36,77 +49,119 @@ public class InsumoResource {
     @Inject
     CopiaBaseService copia;
 
-    /** Lista insumos de la base PROYECTO (P-13). */
+    @Inject
+    InsumoRepository insumoRepository;
+
+    @Inject
+    ProyectoService proyectoService;
+
+    @Inject
+    UsuarioRepository usuarioRepository;
+
+    @Inject
+    SecurityIdentity identity;
+
+    private Long usuarioId() {
+        String email = identity.getPrincipal().getName();
+        return usuarioRepository
+                .findByEmail(email)
+                .map(u -> u.id)
+                .orElseThrow(() -> ProblemaException.noEncontrado("Usuario autenticado no encontrado"));
+    }
+
+    private record ProyectoYBase(Proyecto proyecto, BaseInsumos base) {}
+
+    private ProyectoYBase resolverProyectoYBase(String proyectoId) {
+        UUID publicId = UuidV7.parse(proyectoId);
+        Proyecto proyecto = proyectoService.validarPropietario(usuarioId(), publicId);
+        BaseInsumos base = baseInsumosService.asegurarBaseProyecto(proyecto.id);
+        return new ProyectoYBase(proyecto, base);
+    }
+
     @GET
     @Consumes(MediaType.WILDCARD)
     public Response listInsumos(
-            @PathParam("proyectoId") Long proyectoId,
+            @PathParam("proyectoId") String proyectoId,
             @QueryParam("tipo") TipoInsumo tipo,
             @QueryParam("q") String q,
             @QueryParam("desactualizados") boolean desactualizados,
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("size") @DefaultValue("25") int size) {
-        var base = baseInsumosService.asegurarBaseProyecto(proyectoId);
-        return Response.ok(baseInsumosService.listarInsumosBase(base.id, tipo, q, desactualizados, page, size))
+        ProyectoYBase contexto = resolverProyectoYBase(proyectoId);
+        return Response.ok(
+                        baseInsumosService.listarInsumosBase(contexto.base().id, tipo, q, desactualizados, page, size))
                 .build();
     }
 
-    /** Selector multi-fuente (P-16/P-21): central + proyecto. */
     @GET
     @Path("/selector")
     @Consumes(MediaType.WILDCARD)
     public Page<InsumoBusquedaResponse> selector(
-            @PathParam("proyectoId") Long proyectoId,
+            @PathParam("proyectoId") String proyectoId,
             @QueryParam("q") String q,
             @QueryParam("soloCentrales") boolean soloCentrales,
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("size") @DefaultValue("25") int size) {
-        return catalogo.buscar(proyectoId, q, soloCentrales, page, size);
+        ProyectoYBase contexto = resolverProyectoYBase(proyectoId);
+        return catalogo.buscar(contexto.proyecto().id, q, soloCentrales, page, size);
     }
 
-    /** Crear un insumo en la base PROYECTO. */
     @POST
-    public Response crear(@PathParam("proyectoId") Long proyectoId, @Valid InsumoCrearRequest req) {
-        var base = baseInsumosService.asegurarBaseProyecto(proyectoId);
+    public Response crear(@PathParam("proyectoId") String proyectoId, @Valid InsumoCrearRequest req) {
+        ProyectoYBase contexto = resolverProyectoYBase(proyectoId);
         return Response.status(Response.Status.CREATED)
-                .entity(crud.crear(base.id, req))
+                .entity(crud.crear(contexto.base().id, req))
                 .build();
     }
 
     @PUT
     @Path("/{insumoId}")
     public InsumoResponse editar(
-            @PathParam("proyectoId") Long proyectoId,
-            @PathParam("insumoId") Long insumoId,
+            @PathParam("proyectoId") String proyectoId,
+            @PathParam("insumoId") String insumoId,
             @Valid InsumoEditarRequest req) {
-        var base = baseInsumosService.asegurarBaseProyecto(proyectoId);
-        return crud.actualizar(base.id, insumoId, req);
+        UUID insumoPublicId = UuidV7.parse(insumoId);
+        ProyectoYBase contexto = resolverProyectoYBase(proyectoId);
+        return crud.actualizar(contexto.base().id, insumoPublicId, req);
     }
 
     @DELETE
     @Path("/{insumoId}")
-    public Response eliminar(@PathParam("proyectoId") Long proyectoId, @PathParam("insumoId") Long insumoId) {
-        var base = baseInsumosService.asegurarBaseProyecto(proyectoId);
-        crud.eliminar(base.id, insumoId);
+    public Response eliminar(@PathParam("proyectoId") String proyectoId, @PathParam("insumoId") String insumoId) {
+        UUID insumoPublicId = UuidV7.parse(insumoId);
+        ProyectoYBase contexto = resolverProyectoYBase(proyectoId);
+        crud.eliminar(contexto.base().id, insumoPublicId);
         return Response.noContent().build();
     }
 
-    /** Importación CSV (P-15). Multipart: { archivo, tipo }. */
     @POST
     @Path("/importar")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-    public ImportResultadoResponse importar(@PathParam("proyectoId") Long proyectoId, InsumoImportForm form)
+    public ImportResultadoResponse importar(@PathParam("proyectoId") String proyectoId, InsumoImportForm form)
             throws IOException {
-        var base = baseInsumosService.asegurarBaseProyecto(proyectoId);
+        ProyectoYBase contexto = resolverProyectoYBase(proyectoId);
         byte[] contenido = java.nio.file.Files.readAllBytes(form.archivo.uploadedFile());
-        return importacion.importarCsv(base.id, contenido);
+        return importacion.importarCsv(contexto.base().id, contenido);
     }
 
-    /** Copiar una base hacia la base PROYECTO (P-14). */
     @POST
     @Path("/copiar")
-    public Response copiar(@PathParam("proyectoId") Long proyectoId, @Valid CopiarBaseRequest request) {
-        var body = new CopiarBaseRequest(request.fuenteTipo(), request.baseId(), proyectoId);
-        return Response.ok(copia.copiar(body)).build();
+    public Response copiar(@PathParam("proyectoId") String proyectoId, @Valid CopiarBaseRequest request) {
+        UUID destinoProyecto = UuidV7.parse(proyectoId);
+        CopiarBaseRequest body = new CopiarBaseRequest(request.fuenteTipo(), request.baseId(), destinoProyecto);
+        return Response.ok(copia.copiar(body, usuarioId())).build();
+    }
+
+    @GET
+    @Path("/{insumoId}/usos")
+    @Consumes(MediaType.WILDCARD)
+    public java.util.List<InsumoUsoResponse> usos(
+            @PathParam("proyectoId") String proyectoId, @PathParam("insumoId") String insumoId) {
+        UUID insumoPublicId = UuidV7.parse(insumoId);
+        ProyectoYBase contexto = resolverProyectoYBase(proyectoId);
+        Insumo insumo = insumoRepository
+                .findByPublicIdAndBase(insumoPublicId, contexto.base().id)
+                .orElseThrow(() -> ProblemaException.noEncontrado("Insumo no encontrado en esta base"));
+        return java.util.List.of();
     }
 }

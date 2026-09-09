@@ -1,0 +1,80 @@
+meta {
+  name: TC-10-07 — Crear versión v2 vía deep copy P-31
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/proyectos/{{p25ProyectoId}}/presupuestos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "origenId": "{{p25PresupuestoId}}",
+    "notas": "Plan025 clon profundo v2"
+  }
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.presupuestoId) {
+    bru.setVar("p25V2Id", res.body.presupuestoId);
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("Versión 2 devuelta", function() {
+    expect(res.body.version).to.equal(2);
+  });
+
+  test("Versión 2 NO es la vigente (sigue siendo v1)", function() {
+    expect(res.body.esVigente).to.equal(false);
+  });
+
+  test("origenId apunta al UUIDv7 del origen (v1)", function() {
+    expect(res.body.origenId).to.equal(bru.getVar("p25PresupuestoId"));
+  });
+
+  test("v2Id UUIDv7 capturado", function() {
+    // Contra `res.body.presupuestoId`, no contra `{{p25V2Id}}`: Bruno
+    // interpola las plantillas antes de `script:post-response`.
+    expect(res.body.presupuestoId).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+
+  test("v2Id ≠ p25PresupuestoId (UUIDs públicos frescos)", function() {
+    // `origenId` de esta misma respuesta ya se verificó igual a v1;
+    // `bru.getVar` lee el valor runtime vigente (capturado en TC-10-00d).
+    expect(res.body.presupuestoId).to.not.equal(res.body.origenId);
+    expect(res.body.presupuestoId).to.not.equal(bru.getVar("p25PresupuestoId"));
+  });
+}
+
+docs {
+  Caso Plan 025 / Plan 024 — crea la versión 2 mediante
+  `POST /proyectos/{proyectoId}/presupuestos { origenId }`. El
+  deep copy bit-a-bit idéntico al origen (TC-P31-01 tolerancia
+  0.00) clona cabecera, capítulos y rubros con UUIDv7 públicos
+  frescos; las `cronograma`/`actividad` (si existieran) se
+  copiarían con SQL nativo dentro de la transacción (mirroring
+  Plan 024). La nueva versión NO queda vigente (Plan 024 toggle
+  explícito `es_vigente=false` al insertar). Cobertura Plan 024
+  §P-31 deep copy + §marcar vigente transaccional.
+
+  Caveat: en este escenario el árbol origen sólo tiene 1 rubro
+  PU=0 (TC-10-03); el deep copy preserva esa estructura y
+  reproduce el defecto PU=0 en la copia. TC-10-12 sobre v2
+  muestra la ortogonalidad cross-versión (v1 fue borrada por TC-10-10).
+}

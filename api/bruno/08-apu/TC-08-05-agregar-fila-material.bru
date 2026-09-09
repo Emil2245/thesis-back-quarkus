@@ -20,7 +20,7 @@ auth:bearer {
 body:json {
   {
     "seccionTipo": "MATERIAL",
-    "insumoId": {{insumoMatId}},
+    "insumoId": "{{insumoMatId}}",
     "cantidad": 2
   }
 }
@@ -28,7 +28,7 @@ body:json {
 script:post-response {
   if (res.status === 201 && res.body.secciones && res.body.secciones[2]) {
     var detalle = res.body.secciones[2].detalles.find(function(d) {
-      return d.insumoId === {{insumoMatId}};
+      return d.insumoId === bru.getVar("insumoMatId");
     });
     if (detalle) {
       bru.setVar("filaMatId", detalle.id);
@@ -43,7 +43,7 @@ tests {
 
   test("Fila MATERIAL sin rendimiento", function() {
     var detalle = res.body.secciones[2].detalles.find(function(d) {
-      return d.insumoId === {{insumoMatId}};
+      return d.insumoId === bru.getVar("insumoMatId");
     });
     expect(detalle).to.not.be.null;
     expect(detalle.cantidad).to.equal(2);

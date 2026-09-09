@@ -1,0 +1,58 @@
+meta {
+  name: TC-09-04b-0c — Guardar APU helper como plantilla PERSONAL (helper)
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/apus/{{apuId}}/guardar-plantilla
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "Plantilla fallback Plan08 {{$randomInt}}",
+    "descripcionRubro": "Plantilla PERSONAL creada en runtime para forzar la rama de advertencias (códigos no resueltos)"
+  }
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("nuevaPlantillaApuId", res.body.id);
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("Plantilla creada con tipo PERSONAL", function() {
+    expect(res.body.tipo).to.equal("PERSONAL");
+  });
+
+  test("nuevaPlantillaApuId capturado como UUIDv7", function() {
+    expect("{{nuevaPlantillaApuId}}").to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+}
+
+docs {
+  Helper de Plan 08 — paso 3/5 del fallback autocontenido de TC-09-04b.
+  Persiste el APU helper (con la fila `tempDetalleId` que apunta al
+  `tempInsumoId` recién creado) como una **plantilla PERSONAL** nueva.
+  El snapshot JSONB conserva el código `MO-FB-{random}` de la fila
+  temporal (DM §12: snapshot sin precios). Al aplicar esta plantilla
+  desde otro APU, el resolver `ResolverInsumoPlantillaService` no
+  encuentra `MO-FB-{random}` (porque vamos a borrarlo en los helpers
+  04b-0d y 04b-0e) y devuelve `advertencias[]` poblado. Esta rama de
+  advertencias — HTTP 200 con `advertencias[]` no vacío — es la que
+  TC-09-04b valida explícitamente.
+}

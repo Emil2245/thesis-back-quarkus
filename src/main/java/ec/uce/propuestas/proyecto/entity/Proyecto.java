@@ -4,6 +4,9 @@ import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.UUID;
+import org.hibernate.annotations.Generated;
+import org.hibernate.generator.EventType;
 
 @Entity
 @Table(name = "proyecto")
@@ -12,6 +15,11 @@ public class Proyecto extends PanacheEntityBase {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     public Long id;
+
+    /** WU-03 — Identidad externa inmutable UUIDv7 generada por la columna {@code public_id}. */
+    @Generated(event = EventType.INSERT)
+    @Column(name = "public_id", insertable = false, updatable = false)
+    public UUID publicId;
 
     @Column(name = "usuario_id", nullable = false)
     public Long usuarioId;
@@ -49,6 +57,22 @@ public class Proyecto extends PanacheEntityBase {
 
     @Column(name = "logo")
     public byte[] logo;
+
+    /** N04-bis P-45: cabecera del documento Word de ETs; default `null` → export usa "ESPECIFICACIONES TÉCNICAS". */
+    @Column(name = "titulo_et_1")
+    public String tituloEt1;
+
+    /** N04-bis P-45: subcabecera del documento Word de ETs; default `null` → export usa `<nombre_proyecto>`. */
+    @Column(name = "titulo_et_2")
+    public String tituloEt2;
+
+    /**
+     * Plan 06 (P-46, N04 §A8) — FK opcional hacia {@code plantilla_proyecto(id)};
+     * {@code ON DELETE SET NULL} (V001) — borrar la plantilla deja el proyecto
+     * intacto. Línea de auditoría de lineage; no se replica nunca al aplicar.
+     */
+    @Column(name = "plantilla_proyecto_origen_id")
+    public Long plantillaProyectoOrigenId;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     public Instant createdAt;

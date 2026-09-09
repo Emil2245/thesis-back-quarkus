@@ -1,0 +1,24 @@
+meta {
+  name: TC-31-02 — Preflight con formato bogus devuelve 400 validacion
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{baseUrl}}/documentos/cronograma/{{p31PresupuestoId}}/preflight?formato=bogus
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 400 Bad Request", function() {
+    expect(res.status).to.equal(400);
+  });
+
+  test("codigo validacion (sin bytes)", function() {
+    expect(res.body.codigo).to.equal("validacion");
+  });
+}

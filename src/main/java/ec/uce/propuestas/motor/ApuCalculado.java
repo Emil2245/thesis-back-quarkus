@@ -6,10 +6,16 @@ import java.util.Objects;
 
 /**
  * Fully computed result for one APU. All monetary values at scale 6.
+ *
+ * <p>No-links (Plan 014): no {@code esAuxiliar} flag — APUs are ordinary,
+ * independent analyses. Plan 015 retired the per-APU discount seam
+ * (P-24 / S-24 withdrawn): there is no {@code costoDirectoAjustado} on
+ * this record. {@code costoIndirecto} is derived from {@code CD × %CI efectivo}
+ * using the cascading default ({@link ApuSnapshot#porcentajeIndirecto()}
+ * → project default → 0); {@code CT = CD + CI}.
  */
 public record ApuCalculado(
         String codigo,
-        boolean esAuxiliar,
         List<FilaCalculada> filas,
         BigDecimal subtotalM, // EQUIPO block including HM
         BigDecimal subtotalN, // MANO_OBRA
@@ -17,9 +23,8 @@ public record ApuCalculado(
         BigDecimal subtotalP, // TRANSPORTE
         BigDecimal costoHm, // the HM row's costoFila (included in subtotalM)
         BigDecimal costoDirecto, // = M + N + O + P
-        BigDecimal costoDirectoAjustado, // = CD × (1 - descuento)
-        BigDecimal costoIndirecto, // = CD_ajustado × %CI efectivo; 0 if auxiliar
-        BigDecimal costoTotal // = CD_ajustado + CI
+        BigDecimal costoIndirecto, // = CD × %CI efectivo
+        BigDecimal costoTotal // = CD + CI
         ) {
     public ApuCalculado {
         Objects.requireNonNull(codigo, "codigo must not be null");

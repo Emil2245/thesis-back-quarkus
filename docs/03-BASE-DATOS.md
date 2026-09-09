@@ -59,7 +59,7 @@ INSUMOS
 
 APU
   presupuesto ◄────── apu ◄── apu_seccion (4 fijas M/N/O/P) ◄── apu_detalle
-                          └── apu_detalle.apu_auxiliar_id → apu (auxiliar)
+                              └── (sin enlaces entre APUs — N04 temporal)
   plantilla_apu (snapshot JSONB, tipo SISTEMA|PERSONAL)
 
 PRESUPUESTO
@@ -111,9 +111,9 @@ invariantes de integridad que las entrevistas exigieron explícitamente
 
 | Tabla | Qué es | Qué implementa |
 |---|---|---|
-| `apu` | Análisis de Precios Unitarios por versión: código único, unidad, `es_auxiliar`, `porcentaje_indirecto` (NULL = hereda del proyecto), `porcentaje_descuento`, totales write-through (CD/CI/CT) | **Plan tesis OE-3** (motor de cálculo APU) · **Entrevista N01 §6** + **N02 §2** (descuento % sobre CD antes de CI, reversible) · **N02 §4** (auxiliares sin CI). |
+| `apu` | Análisis de Precios Unitarios por versión: código único, unidad, `porcentaje_indirecto` (NULL = hereda del proyecto), **`porcentaje_descuento` (compatibilidad inert; JPA ya no la mapea — Plan 015, 2026-09-01)**, totales write-through (CD/CI/CT) | **Plan tesis OE-3** (motor de cálculo APU). **Sin `es_auxiliar`**: N04 temporal elimina los enlaces entre APUs. El descuento sobrevive únicamente como **FORMA 1** (mutación de las columnas base de los insumos elegibles copiados a la base PROYECTO del proyecto; **MO exenta**, reversible, regulada por `parametros_sistema.rango_descuento_min/max`) y **FORMA 2** (edición atómica de un insumo ya PROYECTO). Históricamente N01 §6 + N02 §2 (descuento % sobre CD antes de CI) cubría el seam por APU; **WITHDRAWN por Plan 015** ([`../../../plans/015-retirar-descuento-apu.md`](../../plans/015-retirar-descuento-apu.md)). |
 | `apu_seccion` | Las 4 secciones fijas por APU (UNIQUE apu_id, tipo): EQUIPO(M)/MANO_OBRA(N)/MATERIAL(O)/TRANSPORTE(P) | **Entrevista N01 §5** + **N02 §1** (sufijos M/N/O/P obligatorios, estándar de facto SERCOP/Contraloría). |
-| `apu_detalle` | Filas de cada sección (union table): cantidad, tarifa/jornal, rendimiento, unidad, precio, `costo`; `insumo_id` XOR `apu_auxiliar_id`; fila HM con `es_herramienta_menor` | **Entrevista N01 §4** (rendimientos = parámetro de entrada del usuario, no cálculo inverso) · **N02 §4** (auxiliar se inyecta como bloque O) · **§8** herencia de precios (COALESCE) · **§9** Herramienta Menor = %HM × Subtotal N. |
+| `apu_detalle` | Filas de cada sección (union table): cantidad, tarifa/jornal, rendimiento, unidad, precio, `costo`; `insumo_id` (apunta solo a insumos materializados en la base PROYECTO — sin columnas alternativas hacia otros APUs); fila HM con `es_herramienta_menor` | **Entrevista N01 §4** (rendimientos = parámetro de entrada del usuario, no cálculo inverso) · **§8** herencia de precios (COALESCE) · **§9** Herramienta Menor = %HM × Subtotal N. |
 | `plantilla_apu` | Snapshot JSONB de un APU reutilizable: tipo SISTEMA (sin dueño) o PERSONAL (con dueño) | **Plan tesis OE-3** (reutilización) · **Entrevista N02 §3** (descarta plantillas de *proyecto*, mantiene reutilización de rubros). |
 
 ### 4.5 Presupuesto — presupuesto, capitulo, rubro
@@ -155,10 +155,10 @@ invariantes de integridad que las entrevistas exigieron explícitamente
 | N01 §3 | Valores parametrizables **por proyecto**, aislados | `parametros_proyecto` (espejo de `parametros_sistema`) |
 | N01 §4 | Precios precalculados desde la base central; rendimientos = entrada del usuario | `insumo` · `apu_detalle.rendimiento` |
 | N01 §5 / N02 §1 | Secciones M/N/O/P con sufijos obligatorios | `apu_seccion` (UNIQUE apu_id, tipo) + toggles en `parametros_*` |
-| N01 §6 / N02 §2 | Descuento % al CD, antes del CI, reversible; global + por rubro | `apu.porcentaje_descuento` (0–50 %) |
+| N01 §6 / N02 §2 (rectificada) | **Descuento % al CD, antes del CI, reversible**. La entrevista original preveía “global + por rubro”: el “por rubro” se ha retirado (Plan 015, 2026-09-01) — sólo sobrevive el **FORMA 1 (mutación de insumos PROYECTO; MO exenta; `parametros_sistema.rango_descuento_min/max`)** y el **FORMA 2 (edición atómica de insumo)**. | `parametros_sistema.rango_descuento_min/max` (0–50 %) — **NO** `apu.porcentaje_descuento` (columna inert) |
 | N01 §7 | Header configurable (nombre proyecto, enumerar APUs) | `parametros_*.mostrar_nombre_proyecto_header`, `.enumerar_apus` |
 | N02 §3 | Copiar bases de insumos; sin clonar proyecto entero | `base_insumos` (PROYECTO/CENTRAL) + P-17 |
-| N02 §4 | Rubros auxiliares calculados hasta CD e inyectados como material | `apu.es_auxiliar`, `apu_detalle.apu_auxiliar_id` (bloque O) |
+| N02 §4 | Rubros auxiliares calculados hasta CD e inyectados como material | **SUPERSEDED** — N04 temporal elimina los enlaces entre APUs. Un supuesto "auxiliar" se modela como otro APU/rubro independiente. |
 | N02 §5 | Sin datos CAMICON; solo datos públicos | `valor_referencia` (seed condicionado a licencia) |
 | N02 §6 | Firmas de responsable técnico y representante legal | `firmante` (rol CONSOLIDADO/APROBADO) |
 | N03 §1 | Cronograma en semanas o meses | `cronograma.unidad_tiempo` |

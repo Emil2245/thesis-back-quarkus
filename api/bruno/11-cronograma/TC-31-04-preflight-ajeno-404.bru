@@ -1,0 +1,24 @@
+meta {
+  name: TC-31-04 — Preflight ajeno devuelve 404 no-encontrado
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{baseUrl}}/documentos/cronograma/{{p31PresupuestoId}}/preflight?formato=xlsx
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u2_access_token}}
+}
+
+tests {
+  test("Status 404 Not Found", function() {
+    expect(res.status).to.equal(404);
+  });
+
+  test("codigo no-encontrado (owner-to-404)", function() {
+    expect(res.body.codigo).to.equal("no-encontrado");
+  });
+}

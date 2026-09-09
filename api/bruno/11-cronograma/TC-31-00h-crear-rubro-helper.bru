@@ -1,0 +1,69 @@
+meta {
+  name: TC-31-00h — Crear rubro P-29 con cantidad positiva (helper)
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/presupuestos/{{p31PresupuestoId}}/capitulos/{{p31CapituloRaizId}}/rubros
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "apuId": "{{p31ApuVacioId}}",
+    "cantidad": "10.000000"
+  }
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && Array.isArray(res.body.capitulos)
+      && res.body.capitulos.length > 0
+      && Array.isArray(res.body.capitulos[0].rubros)
+      && res.body.capitulos[0].rubros.length > 0) {
+    bru.setVar("p31RubroId", res.body.capitulos[0].rubros[0].id);
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("Rubro con item '1.1' bajo el raíz item '1'", function() {
+    expect(res.body.capitulos[0].rubros[0].item).to.equal("1.1");
+  });
+
+  test("Rubro expone apuId UUIDv7 (no BIGINT)", function() {
+    expect(res.body.capitulos[0].rubros[0].apuId).to.equal(bru.getVar("p31ApuVacioId"));
+    expect(res.body.capitulos[0].rubros[0].apuId).to.match(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/);
+  });
+
+  test("Cantidad persistida como cadena decimal escala 6", function() {
+    expect(res.body.capitulos[0].rubros[0].cantidad).to.equal("10.000000");
+  });
+
+  test("rubroId UUIDv7 capturado", function() {
+    expect(res.body.capitulos[0].rubros[0].id).to.match(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/);
+  });
+}
+
+docs {
+  Helper de Plan 031 — crea un rubro P-29 (1:1 con APU) bajo el
+  capítulo raíz, con `cantidad = 10.000000`. La cantidad positiva
+  (no cero) es necesaria para que la validación P-32 (`cantidad=0`)
+  no bloquee la exportación. El APU `p31ApuVacioId` ya fue poblado
+  por `TC-31-00f2` + `TC-31-00f3` con un detalle MATERIAL de PU=5;
+  sin esa preparación previa el APU tendría PU=0 y la regla P-32
+  (`presupuesto-pu-cero`) bloquearía `TC-31-01`, `TC-31-05`, `TC-31-06`
+  y `TC-31-07`. Misma forma que `TC-10-03` (P-25) reutilizado.
+}

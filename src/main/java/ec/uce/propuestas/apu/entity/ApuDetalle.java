@@ -3,6 +3,9 @@ package ec.uce.propuestas.apu.entity;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.util.UUID;
+import org.hibernate.annotations.Generated;
+import org.hibernate.generator.EventType;
 
 @Entity
 @Table(name = "apu_detalle")
@@ -12,14 +15,16 @@ public class ApuDetalle extends PanacheEntityBase {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     public Long id;
 
+    /** WU-03 — Identidad externa inmutable UUIDv7 generada por la columna {@code public_id}. */
+    @Generated(event = EventType.INSERT)
+    @Column(name = "public_id", insertable = false, updatable = false)
+    public UUID publicId;
+
     @Column(name = "seccion_id", nullable = false)
     public Long seccionId;
 
     @Column(name = "insumo_id")
     public Long insumoId;
-
-    @Column(name = "apu_auxiliar_id")
-    public Long apuAuxiliarId;
 
     @Column(nullable = false)
     public String descripcion;

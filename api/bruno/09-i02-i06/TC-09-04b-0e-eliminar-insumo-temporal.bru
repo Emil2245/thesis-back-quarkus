@@ -1,0 +1,32 @@
+meta {
+  name: TC-09-04b-0e — Eliminar insumo temporal de base PROYECTO (helper)
+  type: http
+  seq: 15
+}
+
+delete {
+  url: {{baseUrl}}/proyectos/{{proyectoEnProcesoId}}/insumos/{{tempInsumoId}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 204 No Content", function() {
+    expect(res.status).to.equal(204);
+  });
+}
+
+docs {
+  Helper de Plan 08 — paso 5/5 del fallback autocontenido de TC-09-04b.
+  Borra `tempInsumoId` de la base PROYECTO del proyecto Rehabilitación
+  (creado en 04b-0a). El borrado es seguro porque la fila detalle ya
+  fue removida en 04b-0d, así que D-08 (no eliminar insumo referenciado)
+  no se activa (0 usos en APU). Una vez borrado el insumo, el código
+  `MO-FB-{random}` deja de existir en PROYECTO/CENTRAL/PERSONAL y la
+  PERSONAL plantilla guardada en 04b-0c queda con un código pendiente
+  puro. Aplicar la plantilla (TC-09-04b) genera `advertencias[]` con
+  `motivo = "no-existe-en-base-proyecto"`.
+}

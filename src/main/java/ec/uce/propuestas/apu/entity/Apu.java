@@ -4,6 +4,9 @@ import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.UUID;
+import org.hibernate.annotations.Generated;
+import org.hibernate.generator.EventType;
 
 @Entity
 @Table(name = "apu")
@@ -12,6 +15,11 @@ public class Apu extends PanacheEntityBase {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     public Long id;
+
+    /** WU-03 — Identidad externa inmutable UUIDv7 generada por la columna {@code public_id}. */
+    @Generated(event = EventType.INSERT)
+    @Column(name = "public_id", insertable = false, updatable = false)
+    public UUID publicId;
 
     @Column(name = "presupuesto_id", nullable = false)
     public Long presupuestoId;
@@ -25,14 +33,11 @@ public class Apu extends PanacheEntityBase {
     @Column(nullable = false, length = 10)
     public String unidad;
 
-    @Column(name = "es_auxiliar", nullable = false)
-    public boolean esAuxiliar;
-
     @Column(name = "porcentaje_indirecto", precision = 5, scale = 4)
     public BigDecimal porcentajeIndirecto;
 
-    @Column(name = "porcentaje_descuento", nullable = false, precision = 5, scale = 4)
-    public BigDecimal porcentajeDescuento = BigDecimal.ZERO;
+    @Column(name = "especificacion_tecnica", columnDefinition = "TEXT")
+    public String especificacionTecnica;
 
     @Column(name = "costo_directo", nullable = false, precision = 14, scale = 6)
     public BigDecimal costoDirecto = BigDecimal.ZERO;

@@ -48,3 +48,16 @@ nb-configuration.xml
 .github/
 .claude/
 .agents/
+
+# Local Pi runtime state
+.atl/
+
+# Graphify / CodeGraph output
+graphify-out/
+.graphify_*.json
+.graphify_*.json.sig
+.graphify_root
+graph.html
+graph.json
+GRAPH_REPORT.md
+manifest.json

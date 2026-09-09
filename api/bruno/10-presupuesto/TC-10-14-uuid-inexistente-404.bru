@@ -1,0 +1,38 @@
+meta {
+  name: TC-10-14 — UUIDv7 inexistente → 404 no-encontrado
+  type: http
+  seq: 21
+}
+
+get {
+  url: {{baseUrl}}/presupuestos/{{p25InexistenteV7}}/validacion
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  test("Status 404 Not Found", function() {
+    expect(res.status).to.equal(404);
+  });
+
+  test("Error tipado `no-encontrado` (RNF-05: nunca 403)", function() {
+    expect(res.body.codigo).to.equal("no-encontrado");
+  });
+}
+
+docs {
+  Caso Plan 025 — UUIDv7 bien formado pero inexistente
+  (`0192f6c4-7c8a-7000-8000-000000000000` de la variable
+  `p25InexistenteV7` declarada en `dev.bru`). El parser lo acepta
+  (v7 bien formado), pero el repository no encuentra fila y el
+  service lanza 404 `no-encontrado`. Esta es la segunda línea de
+  defensa: UUID válido no implica existencia. Cobertura TC-P32-10.
+}

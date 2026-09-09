@@ -1,0 +1,72 @@
+meta {
+  name: TC-09-04b-0b — Agregar fila MO temporal al APU helper (helper)
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/apus/{{apuId}}/detalles
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "seccionTipo": "MANO_OBRA",
+    "insumoId": "{{tempInsumoId}}",
+    "cantidad": 1,
+    "rendimiento": 0.5
+  }
+}
+
+script:post-response {
+  // apuId puede ser el del helper TC-09-00c o el de TC-09-04 (que corre
+  // antes). En ambos casos, el APU pertenece a John y el tempInsumoId es
+  // PROYECTO del mismo proyecto, por lo que el resolver reutiliza la fila
+  // sin advertencias (D-07).
+  if (res.status === 201 && res.body && res.body.secciones
+      && res.body.secciones[1] && res.body.secciones[1].detalles) {
+    var detalle = res.body.secciones[1].detalles.find(function(d) {
+      return d.insumoId === bru.getVar("tempInsumoId");
+    });
+    if (detalle) {
+      bru.setVar("tempDetalleId", detalle.id);
+    }
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("Fila MO agregada con insumoId esperado", function() {
+    var detalle = res.body.secciones[1].detalles.find(function(d) {
+      return d.insumoId === bru.getVar("tempInsumoId");
+    });
+    expect(detalle).to.not.be.undefined;
+    expect(detalle.cantidad).to.equal(1);
+    expect(detalle.rendimiento).to.equal(0.5);
+  });
+
+  test("tempDetalleId capturado como UUIDv7", function() {
+    expect("{{tempDetalleId}}").to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+}
+
+docs {
+  Helper de Plan 08 — paso 2/5 del fallback autocontenido de TC-09-04b.
+  Agrega una fila MANO_OBRA con `tempInsumoId` al APU cuyo `apuId` quedó
+  capturado en el caso más reciente (TC-09-00c o TC-09-04). La fila se
+  persiste con su `tempDetalleId` UUIDv7 propio (capturado aquí). El
+  resolver materializa el insumo PROYECTO sin advertencias porque el
+  `tempInsumoId` se creó en la base PROYECTO del mismo proyecto del APU
+  (helper 04b-0a).
+}

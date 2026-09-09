@@ -1,0 +1,45 @@
+meta {
+  name: TC-09-11b — Recurso ajeno (UUIDv7 válido pero ajeno al caller) → 404
+  type: http
+  seq: 28
+}
+
+get {
+  url: {{baseUrl}}/proyectos/0192f6c4-7c8a-7abc-8000-000000001102
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u2_access_token}}
+}
+
+tests {
+  test("Status 404 no-encontrado", function() {
+    expect(res.status).to.equal(404);
+  });
+
+  test("Error tipado `no-encontrado`", function() {
+    expect(res.body.codigo).to.equal("no-encontrado");
+  });
+}
+
+docs {
+  Caso Plan 08 #9 (UUID inválido + recurso ajeno) — parte B: Ana
+  de Armas (`u2`) intenta acceder al proyecto
+  `0192f6c4-7c8a-7abc-8000-000000001102` que pertenece a John Doe
+  (`u1`, seed V004 `Rehabilitación de consultorios UCE`). El
+  `UuidV7.parse` lo acepta (es un v7 bien formado), pero
+  `validarPropietario` rechaza con 404 `no-encontrado` (RNF-05:
+  nunca 403, para no filtrar existencia). Esta es la segunda línea
+  de defensa del contrato UUIDv7 público: un UUID válido no implica
+  acceso; la frontera combina UUID + scope de owner en una sola
+  consulta (`findByPublicIdAndOwnerScope`).
+
+  **Versión previa (corregida en este pase):** el caso apuntaba a
+  `0192f6c4-7c8a-7abc-8000-000000001101` con `u2_access_token` —
+  ese UUID es el **propio proyecto de Ana** (`Adecuación de
+  consultorio odontológico`, V004), por lo que el backend devolvía
+  200 en lugar del 404 esperado. Esta versión fija la asimetría
+  con TC-06-11, que mantiene `u1_access_token` contra el UUID
+  propio de Ana (1101).
+}

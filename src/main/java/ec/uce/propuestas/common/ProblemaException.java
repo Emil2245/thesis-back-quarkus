@@ -1,17 +1,26 @@
 package ec.uce.propuestas.common;
 
 import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 /**
  * Excepción de dominio que transporta el código de error tipado del contrato
  * (catálogo de "type" en 07-api-contract.md) y un mensaje legible.
  * El {@link GlobalExceptionMapper} lo convierte en la respuesta problem+json.
+ *
+ * <p>El Content-Type se fija explícitamente a {@code application/json} para que
+ * los recursos cuyo {@code @Produces} no incluye JSON (p. ej. writers binarios
+ * del módulo {@code documento} que declaran {@code *\/*}) también reciban
+ * {@code Content-Type: application/json} en sus respuestas de error.</p>
  */
 public class ProblemaException extends WebApplicationException {
 
     public ProblemaException(int status, String codigo, String mensaje) {
-        super(Response.status(status).entity(new ErrorPayload(codigo, mensaje)).build());
+        super(Response.status(status)
+                .type(MediaType.APPLICATION_JSON)
+                .entity(new ErrorPayload(codigo, mensaje))
+                .build());
     }
 
     /** 400 validacion */
@@ -37,5 +46,10 @@ public class ProblemaException extends WebApplicationException {
     /** 409 fila-protegida (fila HM del bloque M no editable ni eliminable) */
     public static ProblemaException filaProtegida(String mensaje) {
         return new ProblemaException(409, "fila-protegida", mensaje);
+    }
+
+    /** 409 conflicto de estado (p. ej. base no archivada antes de borrar — D-12). */
+    public static ProblemaException conflicto(String codigo, String mensaje) {
+        return new ProblemaException(409, codigo, mensaje);
     }
 }

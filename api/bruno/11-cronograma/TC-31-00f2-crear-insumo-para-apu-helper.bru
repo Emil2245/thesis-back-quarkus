@@ -1,0 +1,61 @@
+meta {
+  name: TC-31-00f2 — Crear insumo MATERIAL para APU (helper)
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/proyectos/{{p31ProyectoId}}/insumos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "codigo": "INS-P31-APU-01",
+    "tipo": "MATERIAL",
+    "descripcion": "Material Plan 031 — poblado al APU vacío para que PU > 0",
+    "unidad": "u",
+    "precioUnitario": 5.0
+  }
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("p31InsumoId", res.body.id);
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("Insumo MATERIAL con precioUnitario = 5.00", function() {
+    expect(res.body.tipo).to.equal("MATERIAL");
+    expect(Number(res.body.precioUnitario)).to.equal(5);
+  });
+
+  test("insumoId UUIDv7 capturado", function() {
+    expect(res.body.id).to.match(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/);
+  });
+}
+
+docs {
+  Helper de Plan 031 — crea un insumo MATERIAL con `precioUnitario = 5.00`
+  en la base PROYECTO del proyecto `p31ProyectoId`. Es el paso previo a
+  `TC-31-00f3`, que materializa ese insumo como `detalle` de la sección
+  MATERIAL del APU sembrado por `TC-31-00f`. Sin este insumo + detalle,
+  el APU queda con PU=0 (sin filas en M/N/O/P) y la regla P-32
+  (`presupuesto-pu-cero`) bloquea todos los lanes de exportación
+  (`xlsx | pdf | mspdi`); ver `BloqueosCalculador` en
+  `CronogramaExportPreflightService` (Plan 031 §Preflight).
+}

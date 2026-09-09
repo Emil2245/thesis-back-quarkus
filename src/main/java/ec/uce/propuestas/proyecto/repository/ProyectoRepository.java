@@ -8,6 +8,7 @@ import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Acceso a {@code proyecto}. Las consultas de negocio (listado por propietario,
@@ -47,6 +48,19 @@ public class ProyectoRepository implements PanacheRepositoryBase<Proyecto, Long>
         return find(
                         "id = :id and usuarioId = :usuarioId",
                         Parameters.with("id", id).and("usuarioId", usuarioId))
+                .firstResultOptional();
+    }
+
+    /**
+     * WU-03 — Resolución por {@code public_id} (UUIDv7) con scope de owner. El caller debe ser
+     * el {@code usuarioId} del proyecto; cualquier otro caller devuelve
+     * {@link Optional#empty()} (mapeo a 404 — nunca 403). El {@code public_id} es identidad
+     * externa opaca y NUNCA se usa como grant de autorización.
+     */
+    public Optional<Proyecto> findByPublicIdAndOwnerScope(UUID publicId, Long callerUsuarioId) {
+        return find(
+                        "publicId = :publicId and usuarioId = :caller",
+                        Parameters.with("publicId", publicId).and("caller", callerUsuarioId))
                 .firstResultOptional();
     }
 }

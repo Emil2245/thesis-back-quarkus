@@ -9,6 +9,6 @@ public final class ApuResumenMapper {
 
     public static ApuResumenResponse toResponse(Apu e, boolean vinculado) {
         return new ApuResumenResponse(
-                e.id, e.codigo, e.descripcion, e.unidad, e.esAuxiliar, e.costoDirecto, e.costoTotal, vinculado);
+                e.publicId, e.codigo, e.descripcion, e.unidad, e.costoDirecto, e.costoTotal, vinculado);
     }
 }

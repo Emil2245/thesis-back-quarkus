@@ -1,0 +1,37 @@
+meta {
+  name: TC-10-11 — Intentar eliminar v2 (vigente) → 409 version-vigente-protegida
+  type: http
+  seq: 18
+}
+
+delete {
+  url: {{baseUrl}}/presupuestos/{{p25V2Id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  test("Status 409 Conflict", function() {
+    expect(res.status).to.equal(409);
+  });
+
+  test("Error tipado `version-vigente-protegida`", function() {
+    expect(res.body.codigo).to.equal("version-vigente-protegida");
+  });
+}
+
+docs {
+  Caso Plan 025 / Plan 024 — intenta borrar la versión 2, que
+  ES la vigente (TC-10-08 la marcó). El backend rechaza con
+  409 `version-vigente-protegida` y NUNCA elimina: la vigente
+  sólo se rota marcando otra como vigente primero. Cobertura
+  Plan 024 §DELETE protegido §Z.
+}

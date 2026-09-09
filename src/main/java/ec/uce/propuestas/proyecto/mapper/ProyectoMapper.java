@@ -7,9 +7,14 @@ public final class ProyectoMapper {
 
     private ProyectoMapper() {}
 
+    /**
+     * Plan 07 — el {@code id} público es el {@code publicId} UUIDv7 de la fila;
+     * el {@code BIGINT} interno nunca aparece en el JSON. Mantener el nombre
+     * semántico {@code id} (no {@code publicId}).
+     */
     public static ProyectoResponse toResponse(Proyecto p) {
         return new ProyectoResponse(
-                p.id,
+                p.publicId,
                 p.nombreProyecto,
                 p.codigo,
                 p.descripcion,

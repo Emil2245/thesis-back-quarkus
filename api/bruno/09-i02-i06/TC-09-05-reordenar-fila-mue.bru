@@ -1,0 +1,49 @@
+meta {
+  name: TC-09-05 — Reordenar fila MANO_OBRA dentro de la sección (PATCH orden)
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/apus/{{apuId}}/detalles/{{filaMoId}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "orden": 2
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Fila MO ahora en posición 2 dentro de MANO_OBRA", function() {
+    var detalle = res.body.secciones[1].detalles.find(function(d) {
+      return d.id === "{{filaMoId}}";
+    });
+    expect(detalle).to.not.be.undefined;
+    expect(detalle.orden).to.equal(2);
+  });
+}
+
+docs {
+  Caso Plan 08 #4 (reordenamiento) — PATCH atómico de `orden` en una
+  fila de MANO_OBRA (Plan 03, MOVE atómico). El APU y `filaMoId` los
+  prepara **TC-09-00c** (helper autocontenido en esta carpeta: crea el
+  APU desde la plantilla SISTEMA con dos filas MO-001/MO-002 y captura
+  el UUIDv7 de la primera). Este caso **debe correr antes** de los
+  helpers de TC-09-04 (que sobrescriben `apuId`) y los helpers de
+  TC-09-04b (que también crean un APU nuevo desde la plantilla
+  PERSONAL aplicada). El seq=4 garantiza ese orden.
+}

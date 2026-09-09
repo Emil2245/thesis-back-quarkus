@@ -1,0 +1,61 @@
+meta {
+  name: TC-10-05 — Editar cantidad del rubro P-29 (write-through)
+  type: http
+  seq: 12
+}
+
+patch {
+  url: {{baseUrl}}/presupuestos/{{p25PresupuestoId}}/capitulos/{{p25CapituloRaizId}}/rubros/{{p25RubroId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "cantidad": "12.500000"
+  }
+}
+
+script:post-response {
+  // Tras el PATCH, localizamos el rubro por id y verificamos su
+  // cantidad directamente en la respuesta.
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Cantidad actualizada a '12.500000'", function() {
+    var matches = res.body.capitulos[0].rubros.filter(function (r) {
+      return r.id === bru.getVar("p25RubroId");
+    });
+    expect(matches.length).to.equal(1);
+    expect(matches[0].cantidad).to.equal("12.500000");
+  });
+
+  test("Item, codigo, descripcion, unidad y apuId NO cambian (semántica PATCH P-29)", function() {
+    var matches = res.body.capitulos[0].rubros.filter(function (r) {
+      return r.id === bru.getVar("p25RubroId");
+    });
+    expect(matches[0].item).to.equal("1.1");
+    expect(matches[0].apuId).to.equal(bru.getVar("p25ApuVacioId"));
+  });
+}
+
+docs {
+  Caso Plan 025 / Plan 023 — edita la cantidad del rubro creado
+  en TC-10-03 de 5 a 12.5. Cubre la semántica locked del PATCH
+  P-29: sólo cambia `cantidad`; el resto del rubro (item,
+  codigo, descripcion, unidad, apuId) viene del APU y NO se
+  reescribe aquí. La respuesta sigue siendo `PresupuestoResponse`
+  completo y fresco (write-through via `Alcance.Version`).
+}

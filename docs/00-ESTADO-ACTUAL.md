@@ -1,181 +1,179 @@
-# Estado actual del proyecto — `thesis-back-quarkus`
+# Estado actual del backend — `thesis-back-quarkus`
 
-- **Fecha de este resumen:** 2026-08-02
-- **Fuentes verificadas:** `plans/README.md`, `README.md`, `build.gradle.kts`,
-  `gradle/libs.versions.toml`, `application.yml`, test-results XML,
-  `git log`, y docs canónicos en `../thesis-docs/plan/`.
-- **Siguiente nivel de detalle:** `01-ARQUITECTURA.md` y `02-TECNOLOGIAS.md`
-  (mismos docs/) + los planes en `plans/` + `thesis-docs/`.
+**Última actualización:** 2026-09-08
+**Proyecto:** Plataforma SERCOP de propuestas técnico-económicas (backend Quarkus).
 
----
+## Resumen
 
-## 1. Resumen ejecutivo
+El backend tiene implementadas y verificadas las iteraciones **I-01 a I-10**:
+fundaciones, autenticación, proyectos, insumos, motor de cálculo, APU,
+recálculo, presupuesto, cronograma y exportación del cronograma.
 
-Backend Quarkus de una plataforma cloud-native para la automatización de
-**propuestas técnico-económicas** en licitaciones públicas ecuatorianas
-(SERCOP / LOSNCP). Tesis de grado UCE — FICA — Computación, autores Emil
-Verkade y Kevin Andrade, plazo de **24 semanas (12 iteraciones XP, I-01…I-12)**.
+La última suite completa medida (cierre de Plan 031 al 2026-09-07)
+muestra que el motor conserva los mismos residuales históricos
+aceptados; este documento **no predice conteos**:
 
-**Dónde está hoy:** terminadas las fundaciones (I-01), casi toda la iteración
-del motor de cálculo (I-02, **bloqueada por un problema de dominio escalado al
-director** — GM-19/GM-20), y los **núcleos de dos módulos de negocio** (I-03
-proyecto e I-04 insumo: CRUD, firmantes, parámetros, catálogo de insumos,
-importación CSV y copia de base). Queda pendiente la capa más profunda (APU,
-presupuesto, cronograma, export) y la decisión del director sobre el redondeo.
+- **GM-19 y GM-20:** únicos fallos; residuales históricos aceptados y
+  documentados. No se reabre el motor.
+- **GM-24:** única prueba omitida, por fixture upstream incompleto de
+  EMELNORTE.
+- **0 errores**.
 
-> **Estimación honesta:** ~3 de 12 iteraciones con avance real (≈25-30 % del
-> roadmap). La parte de **riesgo técnico más alto** (motor con 0 % desviación)
-> está construida y 21/25 golden masters verdes. Los módulos de negocio ya tienen
-> código vertical, no solo DDL/contrato.
+(La única orientación histórica de la suite completa se documenta
+en [`plans/panel-admin/README.md`](../plans/panel-admin/README.md);
+este doc no la replica.)
 
----
+También están verificados `spotlessCheck`, `build -x test`, `git diff --check`,
+la validación MSPDI contra el XSD oficial de Microsoft Project 2007 y la
+colección Bruno de cronograma (**20/20 requests, 70/70 tests**). Plan 031 está
+implementado y verificado, pero sus cambios permanecen sin commit porque no se
+autorizó esa operación.
 
-## 2. Posición en el cronograma (plan de iteraciones XP)
+## Estado por iteración
 
-| Iteración | Semanas | Contenido | Estado real (2026-08-11) |
-|---|---|---|---|
-| I-01 | 1–2 | Bootstrap Quarkus, CI, schema Postgres, auth | ✅ **Completa** (planes 001–004) |
-| I-02 | 3–4 | **Motor de cálculo puro** + cierre auth (perfil/recuperar) | 🔶 **~90 %** — motor construido pero GM-19/20 rojos y escalados |
-| I-03 | 5–6 | Proyectos (ciclo de vida, parámetros, firmantes) | 🔶 **Núcleo** — crud + firmantes + parámetros + base insumos (plan 009) · TODO: logo, detalle |
-| I-04 | 7–8 | Insumos (CRUD, CSV, bases centrales) | 🔶 **Núcleo** — crud, catálogo, selector multi-fuente, copia, importación CSV (plan 009) · TODO: uso en APU (P-18/D-08) |
-| I-05 | 9–10 | APU núcleo (editor, filas M/N/O/P, HM) | 🔶 **Núcleo** — P-19…P-22, editor vía `ApuResource`/`PresupuestoApuResource`, filas M/N/O/P, Fila HM protegida, override de precio, write-through vía `Motor.calcularApu` (10 tests verdes) · TODO: auxiliares/%CI en I-06 |
-| I-06 | 11–12 | APU completo (%CI, descuentos, auxiliares, plantillas) | ⬜ No iniciada |
-| I-07 | 13–14 | Presupuesto (capítulos, rubros, totales) | ⬜ No iniciada |
-| I-08 | 15–16 | Versiones y cronograma base | ⬜ No iniciada |
-| I-09 | 17–18 | Cronograma visual y sincronía | ⬜ No iniciada |
-| I-10 | 19–20 | Export SERCOP (.xlsx/.pdf) | ⬜ No iniciada |
-| I-11 | 21–22 | Panel Super-Admin + piloto SUS | ⬜ No iniciada |
-| I-12 | 23–24 | Validación final, SUS n≥5, hardening | ⬜ No iniciada |
+| Iteración | Área | Estado |
+|---|---|---|
+| I-01 | Bootstrap, esquema y autenticación | ✅ DONE |
+| I-02 | Motor de cálculo | ✅ DONE — GM-19/GM-20 aceptados; GM-24 omitido |
+| I-03 | Proyectos, parámetros y firmantes | ✅ DONE |
+| I-04 | Insumos, bases e importación CSV | ✅ DONE |
+| I-05 | APU núcleo: filas M/N/O/P y HM | ✅ DONE |
+| I-06 | APU avanzado, plantillas, ET, UUIDv7 y decisiones N04 | ✅ DONE / parciales históricos documentados |
+| I-07 | Presupuesto, recálculo, versionado y validación | ✅ DONE — Planes 019–025 |
+| I-08 | Cronograma base y configuración | ✅ DONE — Planes 026–029 |
+| I-09 | Vistas, curva S y desactualización | ✅ DONE — Plan 030 |
+| I-10 | Exportación XLSX/PDF/MSPDI | ✅ DONE — Plan 031 |
+| I-11 | Panel Super-Admin y piloto SUS | 🚧 EN PROGRESO — Planes 032–033 DONE; 034–040 pendientes |
+| I-12 | Validación final y hardening | ⬜ Pendiente de planificación |
 
-Hitos de tesis ligados a iteraciones: **semana 4** motor GM unit verdes (pendiente
-de decisión del director), semana 10 motor a nivel api, semana 14 consolidación
-exacta (GM-19/20/21/24), semana 18 integridad intermodular, semana 20 tasa de
-conformidad CHK, semanas 22–24 SUS y desempeño.
+## Funcionalidad backend disponible
 
----
+- Autenticación, perfil, recuperación de acceso y aceptación de invitaciones.
+- CRUD de proyectos, firmantes, parámetros e insumos.
+- Bases de insumos, copia de bases e importación CSV.
+- CRUD de APUs, filas M/N/O/P, fila HM, plantillas y cálculo.
+- Recálculo por versión, APU e insumo.
+- Presupuestos con capítulos jerárquicos, rubros, totales, versiones,
+  comparación y validación de integridad.
+- Cronograma 1:1 por presupuesto, actividades, períodos no consecutivos,
+  distribución, avance, Gantt, cronograma valorizado, curva S y detección de
+  desactualización.
+- Exportación server-side del cronograma a XLSX, PDF y MSPDI XML compatible
+  con Microsoft Project 2007, con preflight y parse-back.
+- Fronteras REST con UUIDv7 y aislamiento por propietario.
+- Administración de bases centrales P-39 ya implementada desde Plan 015bis.
+- Lectura y edición de los defaults de `parametros_sistema` ya implementadas
+  mediante `/proyectos/parametros-sistema`.
 
-## 3. Estado por plan
+## I-11 en progreso — Panel Super-Admin
 
-| # | Plan | Iteración | Estado | Notas |
-|---|---|---|---|---|
-| 001 | Bootstrap Quarkus | I-01 | ✅ DONE | Revisado por autor. Base del stack. |
-| 002 | CI GitHub Actions | I-01 | ⚠️ **DEUDA** | Plan "DONE" pero **no existe `.github/` en el repo**; se difirió en 007 para reescribirse con `./gradlew`. Sin CI real hasta la fecha. |
-| 003 | Schema Postgres (V001–V003) | I-01 | ✅ DONE | **21 tablas** + seed (V002/V003). Calidad del seed IESS con gaps upstream (ver §6). |
-| 004 | Módulo auth | I-01 | ✅ DONE | **25/25 tests verdes** (19 IT + 6 unit), 0 fugas de tokens. 4 bugs del plan corregidos inline (documentados). |
-| 005 | Motor de cálculo | I-02 | 🔴 **BLOCKED** | Scaffold completo; **21/25 GMs verdes**, GM-19 y GM-20 rojos, GM-24 `@Disabled` (fixture upstream), 1 diagnóstico `@Disabled`. |
-| 006 | Fix consolidación (GM-19/20) | I-02 | 🟠 **ESCALADO** | Fix de precisión de stubs aplicado; causa raíz = **redondeo intermedio del workbook fuente** (2 dp en `precioUnitario`), no bug del motor. En espera de decisión del director (opciones a/b/c). |
-| 007 | Migración Maven → Gradle | tooling | ✅ DONE | Gradle 9.5.1 + Kotlin DSL, verificado: build, 56 tests (2 red/2 skipped, sin regresión), `quarkusDev`. |
-| 008 | Refinamientos build | tooling | ✅ DONE | Version catalog, toolchain JDK 25, build cache. Lombok y Consul/Stork/OTel/K8s **rechazados** con justificación. |
-| 009 | Módulos `proyecto` + `insumo` | I-03/I-04 | ✅ DONE | CRUD de ambos módulos + importación CSV + copia de base + **repositorios por entidad** (ver `plans/README.md` §009). |
-| 010 | Seed de escenarios (V004) | I-04/I-05 | ✅ DONE | `V004__seed_escenarios.sql`: 3 proyectos (uno por estado BORRADOR/EN_PROCESO/FINALIZADO) con todas las tablas relacionadas; FINALIZADO = workbook real Cetro Médico Tulcán (298 rubros, total 395115.32). Verificado contra Postgres limpio + suite sin regresión (ver `docs/04-SEED-ESCENARIOS.md`). |
-| 011 | Módulo APU núcleo (P-19…P-22) | I-05 | ✅ DONE | P-19 lista/crea APUs por presupuesto, P-20 editor cabecera, P-21 filas M/N/O/P + fila HM protegida, P-22 override de precio con `JsonNullable`. Write-through vía `Motor.calcularApu` (RNF-02 a nivel APU). **10 tests verdes** (2 suites: `ApuCalculoServiceIT` + `ApuResourceIT`), colección Bruno `api/bruno/08-apu/`. Detalle en `docs/modulos/03-apu.md`.
+> **Estado al 2026-09-08:** I-11 está **EN PROGRESO** con **Planes
+> 032–033 DONE**. La secuencia ejecutable vive en
+> [`plans/panel-admin/`](../plans/panel-admin/README.md); consultar el
+> [`acta firmada`](modulos/panel-admin/00-acta-reconciliacion.md) y el
+> [`inventario operativo`](modulos/panel-admin/00-inventario-trabajo.md).
 
-Planes de I-03…I-12 **no escritos** aún (se redactan cuando cada iteración
-precedente cierra CI-verde).
+| Plan | Alcance | Estado |
+|---|---|---|
+| 032 | Sincronización canónica e inventario definitivo | **DONE (2026-09-07)** — acta firmada + inventario publicado |
+| 033 | Base de `log_actividad`, catálogo D-13 y consulta admin | **DONE (2026-09-08)** — V010, 26 eventos, emisor `MANDATORY`, JSONB vía `ObjectMapper`, endpoint `SUPER_ADMIN` |
+| 034 | Gestión de usuarios e invitaciones de 72 h | **TODO — próxima tarea autorizada** |
+| 035 | Auditoría/cierre de bases centrales ya existentes | TODO |
+| 036 | Plantillas APU `SISTEMA` | TODO |
+| 037 | Parámetros del sistema y valores de referencia | TODO |
+| 038 | Instrumentación D-13 en identidad y catálogos | TODO |
+| 039 | Instrumentación D-13 en presupuesto, cronograma y documentos | TODO |
+| 040 | Integración, Bruno, cierre técnico y piloto SUS | TODO |
 
----
+El Plan 032 es un gate obligatorio: debía resolver las divergencias de
+contrato, identificadores UUIDv7, paginación, semántica de invitación
+y referencias del log antes de autorizar código. **Plan 032 firma
+su acta el 2026-09-07** con 21 decisiones locked verbatim (20 originales + adenda firmada D-21), 15 STOP
+conditions con disposición explícita (10 CLOSED, 4 DEFERRED a I-12, 1
+CLOSED con gate RED-first en 035), el catálogo D-13 verbatim (26
+eventos), la matriz canónica `evento → detalle` y la paridad
+P-38…P-42 contra la implementación. Decisiones del usuario
+registradas: 409 `base-no-archivada` ratificado para `DELETE base
+central activa`; `DELETE insumo` con FK real → 409 `insumo-en-uso`
+queda **gated por RED-first en 035** (la implementación actual
+expone el stub `conteoUsosApu() = 0L` y no satisface hoy 409);
+DTO `ParametrosSistemaResponse` seleccionado por 037 (ya no es
+condicional); self-delete / last-admin / email admin / primer
+SUPER_ADMIN bootstrap y `proyecto.duplicado` diferidos a I-12 por
+preferencia explícita (P-09 sigue la decisión histórica N02 §3).
+Plan 033 quedó cerrado el 2026-09-08 con sus verificaciones medidas. Los
+Planes 034–040 permanecen pendientes; 034 es la **siguiente tarea
+autorizada**. El piloto SUS de I-11 requiere
+frontend y 1–2 participantes humanos; sus resultados nunca se
+fabrican. La medición SUS completa con **n ≥ 5** pertenece a
+I-12.
 
-## 4. Estado de las pruebas (baseline 2026-08-11, verificado en test-results)
+### Siguiente acción
 
-**Total: 73 tests · 2 rojos · 2 skipped** (63 baseline + 10 nuevos del módulo
-APU núcleo; los rojos GM-19/20 y skipped GM-24/DIAG son los conocidos).
+- **Plan 034 — Gestión de usuarios e invitaciones** (P-38 / US-35 /
+  TC-P38-01..03), apoyado en la fundación de auditoría cerrada por Plan 033.
 
-| Suite | Tests | Rojos | Skipped | Estado |
-|---|---|---|---|---|
-| `MotorApuTest` (GM-01…18, 22, 23, 25) | 21 | 0 | 0 | ✅ verde |
-| `MotorConsolidacionTest` (GM-19…21, 24) | 5 | **2** (GM-19, GM-20) | 2 (GM-24, DIAG) | 🔴 |
-| `MotorPropiedadesTest` (jqwik) | 5 | 0 | 0 | ✅ verde |
-| `AuthResourceIT` (@QuarkusTest) | 19 | 0 | 0 | ✅ verde |
-| `PasswordPolicyTest` | 6 | 0 | 0 | ✅ verde |
-| `ProyectoResourceIT` | 4 | 0 | 0 | ✅ verde |
-| `InsumoResourceIT` | 3 | 0 | 0 | ✅ verde |
-| `ApuCalculoServiceIT` | 2 | 0 | 0 | ✅ verde |
-| `ApuResourceIT` | 8 | 0 | 0 | ✅ verde |
+### Fundación cerrada por Plan 033
 
-El motor de cálculo por APU es **aritméticamente correcto** (21/21 + 5/5). La
-desviación de GM-19/20 es de ±$2.50/$1.15 sobre el presupuesto Cetro Médico
-Tulcán y se debe a que el workbook fuente calcula
-`precioTotal = cantidad × precioUnitario_2dp` mientras el motor lo hace a 6 dp
-plenos. La variable de tesis `exactitud_calculo` exige 0.00 → es una decisión de
-dominio del director, **no** un bug a parchear con tolerancia.
+- **Plan 033 — Log de actividad — base** (P-42 / US-39 / TC-P42-01..02
+  foundation): enum `EventoLogActividad` con 26 verbatim; una
+  migración aditiva `V010__log_actividad_identidad_publica.sql`, que añade
+  **dos** columnas nuevas a `log_actividad`:
+  `public_id UUID NOT NULL DEFAULT uuidv7()` (D-01) + índice único
+  + trigger de inmutabilidad **y** `entidad_public_id UUID NULL`
+  sin FK, sin DEFAULT, sin UNIQUE (D-21; server-authored; los logs
+  sobreviven al borrado de la entidad afectada); la columna legacy
+  `entidad_id BIGINT` (V001 §2.15) permanece inalterada y nunca
+  cruza REST; `LogActividadResponse.entidadId` mapea exclusivamente
+  desde `entidad_public_id` (V001–V009 intactas); V004 y filas
+  pre-033 quedan con `entidad_public_id IS NULL` y el DTO devuelve
+  `entidadId: null` para esas filas; `LogActividadService.emitir(...)`
+  con `@Transactional(TxType.MANDATORY)`; sin `emitirFailure`,
+  `REQUIRES_NEW` ni `codigoError`; solo operaciones exitosas emiten.
+  Detalle en [`plans/panel-admin/033-log-actividad-base.md`](../plans/panel-admin/033-log-actividad-base.md).
 
----
+## Lo que falta
 
-## 5. Lo que ya existe en código
+1. Ejecutar secuencialmente los Planes **034–040** de I-11 (032–033 ya
+   cerrados; 034 es el siguiente).
+2. Implementar o coordinar las pantallas frontend S-37…S-42 antes del piloto
+   SUS.
+3. Ejecutar el piloto SUS con 1–2 participantes y registrar evidencia real.
+4. Planificar y ejecutar I-12: hardening, mediciones finales, SUS n ≥ 5 y
+   paquete de evidencias de tesis.
+5. Probar el pipeline CI/CD en el proveedor remoto; la evidencia local no
+   sustituye la primera ejecución real del workflow.
 
-```
-src/main/java/ec/uce/propuestas/
-├── common/        # RestApplication (/api/v1), ErrorPayload, GlobalExceptionMapper, ProblemaException
-├── usuario/       # Usuario, Rol, RefreshToken, TokenUsuario, TipoToken, UsuarioRepository
-│   └── auth/      # AuthResource, PerfilResource, AuthService, TokenService,
-│       ├── dto/   #   PasswordService, PasswordPolicy, EnviadorCorreo (puerto)
-│       └── mail/  #   LogEnviadorCorreo (adaptador dev)
-├── proyecto/      # Proyecto, Firmante, ParametrosProyecto, ParametrosSistema (LECTURA)
-│   └── service/   #   ProyectoService, FirmanteService, ParametrosProyectoService
-├── insumo/        # BaseInsumos, Insumo, UnidadCatalogo; CRUD, catálogo, selector
-│   └── service/   #   multi-fuente, copia de base, importación CSV (/.insumos, /bases-centrales)
-└── motor/         # Motor puro Java (sin framework): snapshots, resultados
-    └── internal/  #   CalculadorFila, Consolidador (package-private)
+## Pendientes conocidos y aceptados
 
-src/main/resources/
-├── application.yml                    # perfiles dev/prod, JWT, CORS, Flyway
-├── db/migration/V001..V004            # 21 tablas + seeds (V004: 3 escenarios demo)
-└── META-INF/resources/                # claves JWT dev (publicKey/privateKey.pem)
+- GM-19/GM-20 conservan los residuales documentados; no bloquean la siguiente
+  iteración.
+- GM-24 permanece omitido por el fixture upstream incompleto.
+- Los cuatro nombres históricos no canónicos sembrados por V004 en
+  `log_actividad` quedan **reconciliados documentalmente** en
+  [`docs/modulos/panel-admin/00-acta-reconciliacion.md`](modulos/panel-admin/00-acta-reconciliacion.md)
+  §2 D-17: son historial legacy (legibles/filtrables por
+  `GET /admin/logs?evento=`, nunca se emiten de nuevo, nunca se
+  admiten al enum runtime, excluidos de la cobertura de 040);
+  no se edita V004 ni se hace backfill. 19 filas en total
+  (6 legacy sobre 4 nombres + 13 con claves del catálogo D-13).
+- P-39 y los defaults de P-41 ya existen: I-11 los audita y completa sin
+  reimplementarlos. P-39 (`AdminBaseCentralResource`) tiene
+  409 `base-no-archivada` ya conforme; el mapeo de
+  `DELETE insumo` → 409 `insumo-en-uso` queda **gated por RED-first**
+  en Plan 035. P-41 conserva la ruta canónica
+  `/proyectos/parametros-sistema`; Plan 037 introduce el DTO
+  `ParametrosSistemaResponse` para dejar de exponer la entidad JPA.
+- Los cambios verificados de Plan 031 siguen sin commit (preservados
+  intactos, fuera del alcance de 032).
 
-src/test/ ...                          # 4 suites motor + 2 suites auth + proyecto + insumo + fixtures GM
-api/bruno + api/http                   # colecciones de requests manuales (auth, salud)
-database/db_schemas/                   # DDL exportado de la BD (documental)
-```
+## Fuentes de detalle
 
-**Pendiente de dominio:** `apu/`, `presupuesto/`, `cronograma/`, `documento/`
-(planeados, aún vacíos).
-
----
-
-## 6. Problemas abiertos y deudas (tracker)
-
-| # | Asunto | Tipo | Dueño | Bloquea |
-|---|---|---|---|---|
-| 1 | **GM-19/GM-20 rojos** — semántica de redondeo workbook vs motor | Decisión de dominio (opciones a/b/c) | Director + Emil | Hito semana 4, gate de export I-10 |
-| 2 | **CI/CD no existe** — `.github/` ausente; plan 002 + 007 lo difieren | Deuda | Autores | Hito "CI activo" (semana 2), todo control de regresión |
-| 3 | Seed insumos V003 — sin `codigo` real, `unidad='h'` forzada, mismatch `m²/m³` vs `m2/m3` | Data quality upstream | Kevin / fuente IESS | Ninguno funcional (aviso cosmético), posible `V004__reseed_insumos.sql` |
-| 4 | GM-24 `@Disabled` — fixture EMELNORTE con `secciones` vacías y `codigo` null | Fixture upstream | thesis-docs | Cobertura de consolidación parcial |
-| 5 | GM-21 allowlist con 11 entradas (plan decía 6) | Auditoría | — | Transparencia de la suite |
-| 6 | Extensión `quarkus-security-jpa` presente pero sin uso (JWT-only) | Dead weight | opcional | — |
-| 7 | `application.yml`: warnings `quarkus.health.extensions.enabled` no reconocido y `hibernate-orm.database.generation` deprecado | Limpieza | opcional | — |
-| 8 | Postgres local en :5432 puede opacar Dev Services en dev (trap conocido) | Entorno | — | Dev local |
-| 9 | `http/test1.http` en estado `AD` (staged+deleted) en git | Limpieza | — | — |
-| 10 | Decisión pendiente: modularización/microservicios (análisis completo en `docs/analisis-microservicios-auth-core.md`) | Estrategia | Autores | — |
-
----
-
-## 7. Qué falta para "terminar" (macro)
-
-1. **Desbloquear el motor** (decisión director sobre GM-19/20) → cerrar I-02.
-2. **Escribir y ejecutar planes I-05…I-12** — el grueso del código:
-   APU → presupuesto → versiones/cronograma → export → admin → validación.
-   (I-03 proyecto núcleo e I-04 insumo núcleo ya sentados en plan 009.)
-3. **Montar CI** con Gradle (`build/test-results/`, `build/*-runner`).
-4. **Gate de I-10:** suite GM completa verde antes de export.
-5. **Mediciones de tesis:** GM en CI, tasa de conformidad CHK-01…31 (POI/PDFBox
-   parse-back), SUS n≥5, baseline RNF-06.
-6. **Frontend** (React, repo separado) acoplado al contrato OpenAPI.
-
----
-
-## 8. Conclusión
-
-- **Fundaciones sólidas:** auth completo y probado, schema de 21 tablas,
-  build Gradle moderno y reproducible, motor puro con 26/30 checks de cálculo
-  verdes (21 GM + 5 propiedades).
-- **Riesgo número uno del proyecto controlado a medias:** la exactitud de
-  cálculo (variable de tesis) está resuelta a nivel APU, pero la consolidación
-  depende de una decisión de dominio que no está tomada.
-- **Riesgo número dos:** el calendario — quedan 10 iteraciones de funcionalidad
-  y la velocidad real aún no se ha recalibrado (se hará al cierre de I-02).
-- **El código que existe sigue el diseño canónico** (`thesis-docs`), no lo
-  contradice; la organización de paquetes es deliberada y buena (ver
-  `01-ARQUITECTURA.md`).
-
-Fuentes vivas: `plans/README.md` (estado por plan + notas post-ejecución),
-`README.md`, `../thesis-docs/plan/roadmap/01-plan-iteraciones-xp.md`.
+- Estado y planes ejecutados: [`plans/README.md`](../plans/README.md).
+- Acta e inventario I-11:
+  [`docs/modulos/panel-admin/00-acta-reconciliacion.md`](modulos/panel-admin/00-acta-reconciliacion.md)
+  + [`docs/modulos/panel-admin/00-inventario-trabajo.md`](modulos/panel-admin/00-inventario-trabajo.md).
+- Planificación I-11: [`plans/panel-admin/README.md`](../plans/panel-admin/README.md).
+- Módulo presupuesto: [`docs/modulos/05-presupuesto/00.md`](modulos/05-presupuesto/00.md).
+- Módulo cronograma: [`docs/modulos/06-cronograma/00.md`](modulos/06-cronograma/00.md).
+- Decisiones y contrato canónico: `../thesis-docs/plan/`.

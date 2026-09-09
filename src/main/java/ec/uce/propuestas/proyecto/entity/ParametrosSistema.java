@@ -6,8 +6,10 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 /**
- * Parámetros globales de cálculo (una sola fila, id=1). Solo lectura desde la API
- * (LECTURA); su escritura es tarea de administración/super-admin, no expuesta aquí.
+ * Parámetros globales de cálculo (una sola fila, id=1). Los rangos configurables de
+ * HM/CI/IVA/descuento son la fuente autoritativa para validar
+ * {@code PUT /proyectos/{id}/parametros}; la escritura está restringida a
+ * SUPER_ADMIN.
  */
 @Entity
 @Table(name = "parametros_sistema")
@@ -25,6 +27,30 @@ public class ParametrosSistema extends PanacheEntityBase {
 
     @Column(nullable = false, precision = 5, scale = 4)
     public BigDecimal iva;
+
+    @Column(name = "rango_hm_min", nullable = false, precision = 5, scale = 4)
+    public BigDecimal rangoHmMin = new BigDecimal("0.0000");
+
+    @Column(name = "rango_hm_max", nullable = false, precision = 5, scale = 4)
+    public BigDecimal rangoHmMax = new BigDecimal("0.2000");
+
+    @Column(name = "rango_ci_min", nullable = false, precision = 5, scale = 4)
+    public BigDecimal rangoCiMin = new BigDecimal("0.0000");
+
+    @Column(name = "rango_ci_max", nullable = false, precision = 5, scale = 4)
+    public BigDecimal rangoCiMax = new BigDecimal("1.0000");
+
+    @Column(name = "rango_descuento_min", nullable = false, precision = 5, scale = 4)
+    public BigDecimal rangoDescuentoMin = new BigDecimal("0.0000");
+
+    @Column(name = "rango_descuento_max", nullable = false, precision = 5, scale = 4)
+    public BigDecimal rangoDescuentoMax = new BigDecimal("0.5000");
+
+    @Column(name = "rango_iva_min", nullable = false, precision = 5, scale = 4)
+    public BigDecimal rangoIvaMin = new BigDecimal("0.0000");
+
+    @Column(name = "rango_iva_max", nullable = false, precision = 5, scale = 4)
+    public BigDecimal rangoIvaMax = new BigDecimal("0.3000");
 
     @Column(nullable = false, length = 10)
     public String moneda;
