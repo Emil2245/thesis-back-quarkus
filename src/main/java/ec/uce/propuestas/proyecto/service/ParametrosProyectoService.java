@@ -10,11 +10,17 @@ import ec.uce.propuestas.proyecto.entity.Proyecto;
 import ec.uce.propuestas.proyecto.mapper.ParametrosProyectoMapper;
 import ec.uce.propuestas.proyecto.repository.ParametrosProyectoRepository;
 import ec.uce.propuestas.proyecto.repository.ParametrosSistemaRepository;
+import ec.uce.propuestas.usuario.audit.EventoLogActividad;
+import ec.uce.propuestas.usuario.audit.service.LogActividadService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 @ApplicationScoped
@@ -28,6 +34,9 @@ public class ParametrosProyectoService {
 
     @Inject
     ProyectoService proyectoService;
+
+    @Inject
+    LogActividadService logActividadService;
 
     /** Plan 07 — el caller llega con el {@code publicId} UUIDv7 del proyecto. */
     @Transactional
@@ -108,9 +117,17 @@ public class ParametrosProyectoService {
 
     /** Mutación restringida a SUPER_ADMIN de los parámetros globales, incluidos los rangos configurables. */
     @Transactional
-    public ParametrosSistema actualizarSistema(ParametrosSistemaEditarRequest req) {
+    public ParametrosSistema actualizarSistema(Long usuarioId, ParametrosSistemaEditarRequest req) {
         validarParesDeRangos(req);
-        ParametrosSistema s = leerSistema();
+        ParametrosSistema s = sistemaRepository.lockSingleton();
+        if (s == null) throw ProblemaException.noEncontrado("Parámetros de sistema no inicializados");
+
+        String monedaNueva = req.moneda() == null || req.moneda().isBlank() ? s.moneda : req.moneda();
+        List<String> camposModificados = camposModificadosDe(s, req, monedaNueva);
+        if (camposModificados.isEmpty()) {
+            return s;
+        }
+
         s.porcentajeHerramientaMenor = req.porcentajeHerramientaMenor();
         s.porcentajeIndirecto = req.porcentajeIndirecto();
         s.iva = req.iva();
@@ -122,12 +139,38 @@ public class ParametrosProyectoService {
         s.rangoDescuentoMax = req.rangoDescuentoMax();
         s.rangoIvaMin = req.rangoIvaMin();
         s.rangoIvaMax = req.rangoIvaMax();
-        if (req.moneda() != null && !req.moneda().isBlank()) {
-            s.moneda = req.moneda();
-        }
+        s.moneda = monedaNueva;
         s.updatedAt = Instant.now();
-        sistemaRepository.persist(s);
+        logActividadService.emitir(
+                usuarioId,
+                EventoLogActividad.ADMIN_PARAMETROS_EDITADOS,
+                "parametros_sistema",
+                null,
+                Map.of("operacion", "defaults.update", "camposModificados", camposModificados));
         return s;
+    }
+
+    private static List<String> camposModificadosDe(
+            ParametrosSistema s, ParametrosSistemaEditarRequest req, String monedaNueva) {
+        List<String> campos = new ArrayList<>();
+        agregarCambio(
+                campos, "porcentajeHerramientaMenor", s.porcentajeHerramientaMenor, req.porcentajeHerramientaMenor());
+        agregarCambio(campos, "porcentajeIndirecto", s.porcentajeIndirecto, req.porcentajeIndirecto());
+        agregarCambio(campos, "iva", s.iva, req.iva());
+        agregarCambio(campos, "rangoHmMin", s.rangoHmMin, req.rangoHmMin());
+        agregarCambio(campos, "rangoHmMax", s.rangoHmMax, req.rangoHmMax());
+        agregarCambio(campos, "rangoCiMin", s.rangoCiMin, req.rangoCiMin());
+        agregarCambio(campos, "rangoCiMax", s.rangoCiMax, req.rangoCiMax());
+        agregarCambio(campos, "rangoDescuentoMin", s.rangoDescuentoMin, req.rangoDescuentoMin());
+        agregarCambio(campos, "rangoDescuentoMax", s.rangoDescuentoMax, req.rangoDescuentoMax());
+        agregarCambio(campos, "rangoIvaMin", s.rangoIvaMin, req.rangoIvaMin());
+        agregarCambio(campos, "rangoIvaMax", s.rangoIvaMax, req.rangoIvaMax());
+        if (!Objects.equals(s.moneda, monedaNueva)) campos.add("moneda");
+        return List.copyOf(campos);
+    }
+
+    private static void agregarCambio(List<String> campos, String nombre, BigDecimal previo, BigDecimal nuevo) {
+        if (cambioNumerico(previo, nuevo)) campos.add(nombre);
     }
 
     private static void validarParesDeRangos(ParametrosSistemaEditarRequest req) {

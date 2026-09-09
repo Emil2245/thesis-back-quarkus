@@ -937,10 +937,10 @@ class RubroResourceIT {
 
         // %CI = 0.18 a nivel proyecto
         try (Connection con = ds.getConnection();
-                PreparedStatement ps = con.prepareStatement(
-                        "INSERT INTO parametros_proyecto (proyecto_id, porcentaje_herramienta_menor, "
-                                + "porcentaje_indirecto, iva, moneda) "
-                                + "VALUES ((SELECT id FROM proyecto WHERE public_id = ?), 0.05, 0.18, 0.15, 'USD')")) {
+                PreparedStatement ps =
+                        con.prepareStatement("UPDATE parametros_proyecto SET porcentaje_herramienta_menor=0.05, "
+                                + "porcentaje_indirecto=0.18, iva=0.15, moneda='USD' "
+                                + "WHERE proyecto_id=(SELECT id FROM proyecto WHERE public_id=?)")) {
             ps.setObject(1, UUID.fromString(proyectoId));
             ps.executeUpdate();
         }

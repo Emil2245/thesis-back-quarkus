@@ -6,11 +6,11 @@ import ec.uce.propuestas.common.dto.Page;
 import ec.uce.propuestas.presupuesto.dto.PresupuestoVersionResponse;
 import ec.uce.propuestas.presupuesto.service.PresupuestoService;
 import ec.uce.propuestas.proyecto.dto.ParametrosSistemaEditarRequest;
+import ec.uce.propuestas.proyecto.dto.ParametrosSistemaResponse;
 import ec.uce.propuestas.proyecto.dto.ProyectoCrearRequest;
 import ec.uce.propuestas.proyecto.dto.ProyectoEditarRequest;
 import ec.uce.propuestas.proyecto.dto.ProyectoResponse;
 import ec.uce.propuestas.proyecto.entity.EstadoProyecto;
-import ec.uce.propuestas.proyecto.entity.ParametrosSistema;
 import ec.uce.propuestas.proyecto.mapper.ProyectoMapper;
 import ec.uce.propuestas.proyecto.service.ParametrosProyectoService;
 import ec.uce.propuestas.proyecto.service.ProyectoService;
@@ -124,8 +124,8 @@ public class ProyectoResource {
     @GET
     @Path("/parametros-sistema")
     @Consumes(MediaType.WILDCARD)
-    public ParametrosSistema parametrosSistema() {
-        return parametrosService.leerSistema();
+    public ParametrosSistemaResponse parametrosSistema() {
+        return ParametrosSistemaResponse.from(parametrosService.leerSistema());
     }
 
     /**
@@ -135,7 +135,7 @@ public class ProyectoResource {
     @PUT
     @Path("/parametros-sistema")
     @RolesAllowed("SUPER_ADMIN")
-    public ParametrosSistema editarParametrosSistema(@Valid ParametrosSistemaEditarRequest req) {
-        return parametrosService.actualizarSistema(req);
+    public ParametrosSistemaResponse editarParametrosSistema(@Valid ParametrosSistemaEditarRequest req) {
+        return ParametrosSistemaResponse.from(parametrosService.actualizarSistema(usuarioId(), req));
     }
 }

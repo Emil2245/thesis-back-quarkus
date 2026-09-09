@@ -437,10 +437,10 @@ class ResumenComponentesResourceIT {
 
         // %CI = 0.18
         try (Connection con = ds.getConnection();
-                PreparedStatement ps = con.prepareStatement(
-                        "INSERT INTO parametros_proyecto (proyecto_id, porcentaje_herramienta_menor, "
-                                + "porcentaje_indirecto, iva, moneda) "
-                                + "VALUES ((SELECT id FROM proyecto WHERE public_id = ?), 0.05, 0.18, 0.15, 'USD')")) {
+                PreparedStatement ps =
+                        con.prepareStatement("UPDATE parametros_proyecto SET porcentaje_herramienta_menor=0.05, "
+                                + "porcentaje_indirecto=0.18, iva=0.15, moneda='USD' "
+                                + "WHERE proyecto_id=(SELECT id FROM proyecto WHERE public_id=?)")) {
             ps.setObject(1, UUID.fromString(proyectoId));
             ps.executeUpdate();
         }
@@ -511,10 +511,10 @@ class ResumenComponentesResourceIT {
         String presupuestoId = vigenteDeProyecto(proyectoId);
 
         try (Connection con = ds.getConnection();
-                PreparedStatement ps = con.prepareStatement(
-                        "INSERT INTO parametros_proyecto (proyecto_id, porcentaje_herramienta_menor, "
-                                + "porcentaje_indirecto, iva, moneda) "
-                                + "VALUES ((SELECT id FROM proyecto WHERE public_id = ?), 0.05, 0.18, 0.15, 'USD')")) {
+                PreparedStatement ps =
+                        con.prepareStatement("UPDATE parametros_proyecto SET porcentaje_herramienta_menor=0.05, "
+                                + "porcentaje_indirecto=0.18, iva=0.15, moneda='USD' "
+                                + "WHERE proyecto_id=(SELECT id FROM proyecto WHERE public_id=?)")) {
             ps.setObject(1, UUID.fromString(proyectoId));
             ps.executeUpdate();
         }
@@ -701,10 +701,10 @@ class ResumenComponentesResourceIT {
         String presupuestoId = vigenteDeProyecto(proyectoId);
 
         try (Connection con = ds.getConnection();
-                PreparedStatement ps = con.prepareStatement(
-                        "INSERT INTO parametros_proyecto (proyecto_id, porcentaje_herramienta_menor, "
-                                + "porcentaje_indirecto, iva, moneda) "
-                                + "VALUES ((SELECT id FROM proyecto WHERE public_id = ?), 0.05, 0.18, 0.15, 'USD')")) {
+                PreparedStatement ps =
+                        con.prepareStatement("UPDATE parametros_proyecto SET porcentaje_herramienta_menor=0.05, "
+                                + "porcentaje_indirecto=0.18, iva=0.15, moneda='USD' "
+                                + "WHERE proyecto_id=(SELECT id FROM proyecto WHERE public_id=?)")) {
             ps.setObject(1, UUID.fromString(proyectoId));
             ps.executeUpdate();
         }
@@ -747,10 +747,10 @@ class ResumenComponentesResourceIT {
 
         // iva referencial 0.1234 (default de la BD es 0.15, pero acá forzamos 0.1234)
         try (Connection con = ds.getConnection();
-                PreparedStatement ps = con.prepareStatement(
-                        "INSERT INTO parametros_proyecto (proyecto_id, porcentaje_herramienta_menor, "
-                                + "porcentaje_indirecto, iva, moneda) "
-                                + "VALUES ((SELECT id FROM proyecto WHERE public_id = ?), 0.05, 0, 0.1234, 'USD')")) {
+                PreparedStatement ps =
+                        con.prepareStatement("UPDATE parametros_proyecto SET porcentaje_herramienta_menor=0.05, "
+                                + "porcentaje_indirecto=0, iva=0.1234, moneda='USD' "
+                                + "WHERE proyecto_id=(SELECT id FROM proyecto WHERE public_id=?)")) {
             ps.setObject(1, UUID.fromString(proyectoId));
             ps.executeUpdate();
         }

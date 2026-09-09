@@ -225,20 +225,25 @@
 
 - **TC-P40-01:** crear plantilla SISTEMA desde APU existente con `desdeApuId` (UUIDv7); `tipo=SISTEMA` y `usuario_id=NULL` server-authored; `descripcionRubro` validado contra columna real (sin tope arbitrario).
 
-## 5. Plan 037 — Parámetros del sistema y valores de referencia (P-41)
+## 5. Plan 037 — Parámetros del sistema y valores de referencia (P-41) — DONE / PARITY
 
 **Prioridad:** 5.
 **Proceso / historia:** P-41 / US-38 / TC-P41-01..02.
 **Dependencias previas:** 033 cerrado.
 
-### Capacidades actuales vs gap
+### Capacidades entregadas
 
-- `GET/PUT /proyectos/parametros-sistema` (lectura pública, escritura
-  `@RolesAllowed("SUPER_ADMIN")`): **PARITY parcial** — el GET
-  actual devuelve la entidad JPA (`ProyectoResource.java:127`).
-- `valor_referencia` tabla + 4 seeds V004: **DONE / PARITY**.
-- CRUD `/admin/valores-referencia`: **MISSING**.
-- DTO `ParametrosSistemaResponse`: **MISSING** (D-10 seleccionado).
+- `GET/PUT /proyectos/parametros-sistema` conserva la ruta y devuelve el
+  DTO canónico completo `ParametrosSistemaResponse`: **DONE / PARITY**.
+- Los 12 defaults se materializan transaccionalmente al crear cada proyecto;
+  cambios posteriores solo afectan proyectos nuevos: **DONE / PARITY**.
+- `valor_referencia` conserva las 4 filas V004 y expone CRUD/upsert paginado
+  bajo `/admin/valores-referencia`: **DONE / PARITY**.
+- Auditoría `admin.parametros_editados` solo en mutaciones efectivas, con diff
+  estable y sin emisiones en rechazos/no-op: **DONE / PARITY**.
+- Evidencia: RED 7 con 6 fallos esperados; GREEN focal 7/7; `proyecto.*` 25/25;
+  suite completa 732 = 729 pass + GM-19/GM-20 aceptados + GM-24 skipped;
+  Spotless/build/diff PASS; migraciones, `motor/` y `recalculo/` intactos.
 
 ### Archivos candidatos
 
@@ -389,5 +394,5 @@ de 033).
 ---
 
 **Inventario firmado al cierre de Plan 032 el 2026-09-07 y actualizado al
-cierre completo de Plan 036 el 2026-09-08. La siguiente tarea es Plan 037;
-037–040 permanecen pendientes según el DAG. No se creó commit.**
+cierre completo de Plan 037 el 2026-09-08. La siguiente tarea es Plan 038;
+038–040 permanecen pendientes según el DAG. No se creó commit.**

@@ -10,6 +10,7 @@ import ec.uce.propuestas.proyecto.entity.EstadoProyecto;
 import ec.uce.propuestas.proyecto.entity.PlazoUnidad;
 import ec.uce.propuestas.proyecto.entity.Proyecto;
 import ec.uce.propuestas.proyecto.mapper.ProyectoMapper;
+import ec.uce.propuestas.proyecto.repository.ParametrosProyectoRepository;
 import ec.uce.propuestas.proyecto.repository.ProyectoRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -25,6 +26,9 @@ public class ProyectoService {
 
     @Inject
     PresupuestoService presupuestoService;
+
+    @Inject
+    ParametrosProyectoRepository parametrosProyectoRepository;
 
     /** Lista los proyectos del usuario autenticado (propietario), paginado. */
     public Page<ProyectoResponse> listarDeUsuario(
@@ -58,15 +62,12 @@ public class ProyectoService {
         p.subdireccionInstitucional = req.subdireccionInstitucional();
         p.estado = EstadoProyecto.BORRADOR;
         proyectoRepository.persist(p);
-        // Plan 021 — auto-create del Presupuesto v1 vigente en la misma
-        // transacción (P-06 §4). La creación de ParametrosProyecto y
-        // BaseInsumos se mantiene lazy/under-demand como hasta ahora — Plan
-        // 021 sólo exige garantizar la fila
-        // {@code presupuesto(version=1, es_vigente=true)} en el commit. Un
-        // fallo aquí aborta el commit completo (rollback de la fila
-        // {@code proyecto} también); la invariante «exactamente una vigente
-        // por proyecto» la protege el índice único parcial
-        // {@code ux_presupuesto_vigente} (V001 §2.8).
+        // Plan 037 / DM §15: cada proyecto conserva una copia de los 12 defaults
+        // vigentes al momento de crearse. Presupuesto v1 y parámetros nacen en la
+        // misma transacción que el proyecto; cualquier fallo revierte el agregado.
+        if (parametrosProyectoRepository.crearDesdeSistema(p.id) != 1) {
+            throw new IllegalStateException("No existe el singleton de parámetros del sistema");
+        }
         presupuestoService.crearVigenteInicial(p.id);
         return ProyectoMapper.toResponse(p);
     }

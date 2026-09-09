@@ -1,6 +1,6 @@
 # 037 — Parámetros del sistema y valores de referencia (P-41)
 
-**Estado:** TODO · I-11 · P-41 / US-38 / TC-P41-01..02.
+**Estado:** DONE (2026-09-08) · I-11 · P-41 / US-38 / TC-P41-01..02.
 
 > Conserva estrictamente `GET/PUT /proyectos/parametros-sistema`
 > ya implementado (lectura pública, escritura
@@ -449,25 +449,30 @@ No se predicen conteos de suite completa. El orquestador decide.
 
 ## Completion checklist (037)
 
-- [ ] `GET/PUT /proyectos/parametros-sistema` intacto (ruta
-      canónica; `GET` ahora retorna `ParametrosSistemaResponse`,
-      no la entidad JPA).
-- [ ] DTO `ParametrosSistemaResponse` introducido (acta 032 D-10;
-      `STOP-032-DTO-PARAMETROS` CLOSED; ya no es condicional).
-- [ ] Emisión D-13 `admin.parametros_editados` con
-      `detalle.operacion` y `detalle.camposModificados` (defaults)
-      o `detalle.operacion` + `detalle.clave` (valor_referencia);
-      array estable; claves exactas consumidas de la matriz
-      congelada del acta 032.
-- [ ] `GET/PUT/DELETE /admin/valores-referencia` con
+- [x] `GET/PUT /proyectos/parametros-sistema` conserva la ruta canónica y
+      retorna `ParametrosSistemaResponse`, no la entidad JPA.
+- [x] DTO canónico completo introducido; `STOP-032-DTO-PARAMETROS` CLOSED.
+- [x] `admin.parametros_editados` usa diff estable para defaults y
+      `operacion` + `clave` para valores de referencia; rechazos y no-op no emiten.
+- [x] `GET/PUT/DELETE /admin/valores-referencia` protegido con
       `@RolesAllowed("SUPER_ADMIN")`.
-- [ ] TC-P41-01 verde (proyecto nuevo vs viejo).
-- [ ] TC-P41-02 verde (upsert + valor **nunca** entra al motor).
-- [ ] Cualquier clave única con `fuente` no blank se acepta;
-      `fuente` blank → 400 `fuente-requerida`.
-- [ ] Cero siembra de CAMICON.
-- [ ] Ninguna migración nueva; motor intacto.
-- [ ] `git diff --check` limpio.
+- [x] TC-P41-01 y TC-P41-02 verdes; defaults se materializan solo en proyectos nuevos.
+- [x] Cualquier clave única con `fuente` no blank se acepta; blank retorna 400.
+- [x] Cero siembra de CAMICON; las cuatro filas V004 se preservan como estado inicial.
+- [x] Ninguna migración nueva; `motor/` y `recalculo/` intactos.
+- [x] `git diff --check` limpio.
+
+### Evidencia medida de cierre
+
+- RED focal: **7 tests = 6 failures esperados + 1 pass estructural**, sin errors/skips.
+- GREEN focal Plan 037: **7/7 pass**.
+- Regresión `ec.uce.propuestas.proyecto.*`: **25/25 pass**.
+- Regresión focal de fixtures ajustados (`ResumenComponentesResourceIT` y
+  `RubroResourceIT`): **BUILD SUCCESSFUL**.
+- Suite completa fresca: **732 = 729 pass + 2 failures aceptados**
+  (GM-19/GM-20) **+ 1 skipped** (GM-24), **0 errors**.
+- `spotlessCheck`, `build -x test` y `git diff --check`: PASS.
+- Sin cambios en migraciones, `motor/` ni `recalculo/`; sin commit.
 
 ## Handoff al siguiente plan
 

@@ -14,7 +14,7 @@
 > superficies que el acta pueda dejar abiertas. **El acta está
 > firmada al 2026-09-07** (ver
 > [`docs/modulos/panel-admin/00-acta-reconciliacion.md`](../../docs/modulos/panel-admin/00-acta-reconciliacion.md));
-> 033–036 quedaron **DONE al 2026-09-08**; 037 es la siguiente tarea autorizada.
+> 033–037 quedaron **DONE al 2026-09-08**; 038 es la siguiente tarea autorizada.
 >
 > **Emisión D-13:** solo operaciones exitosas emiten. No existe
 > `emitirFailure`, `REQUIRES_NEW`, persistencia de eventos para
@@ -43,7 +43,9 @@ TC-P40, TC-P41, TC-P42; §5 protocolo SUS).
 > 715 = 712 pass + GM-19/GM-20 aceptados + GM-24 skipped, 0 errors.
 > Plan 036 cerró con focal admin 10/10, regresión `plantilla.*` 85/85 y
 > suite completa 725 = 722 pass + GM-19/GM-20 aceptados + GM-24 skipped.
-> **037–040 PLANNED / TODO**; 037 es la siguiente tarea autorizada. Los
+> **Plan 037 DONE (2026-09-08):** focal 7/7, `proyecto.*` 25/25 y suite
+> 732 = 729 pass + GM-19/GM-20 aceptados + GM-24 skipped; build/Spotless PASS.
+> **038–040 PLANNED / TODO**; 038 es la siguiente tarea autorizada. Los
 > cambios de Plan 031 permanecen preservados y fuera de alcance.
 
 ## ¿Por qué nueve planes y no menos?
@@ -75,7 +77,7 @@ planes: las absorben como gates de auditoría sin reescritura.
 | 034 | [Gestión de usuarios e invitaciones](./034-gestion-usuarios-invitaciones.md) | I-11 | P-38 / US-35 / TC-P38-01..03 | **DONE (2026-09-08)** — `UsuarioAdminService` + `UsuarioAdminResource` (`/admin/usuarios` con `@RolesAllowed("SUPER_ADMIN")`); invitación 72 h sin contraseña temporal (contrato acta 032 D-04); DELETE con proyectos → 409 `usuario-con-proyectos-impedido` (test focal FK); emisión D-13 vía 033 `MANDATORY`; focal admin 18/18 + log 6/6 + sin contraseña temporal 1/1 |
 | 035 | [Bases centrales — cierre](./035-bases-centrales-cierre.md) | I-11 | P-39 / US-36 / TC-P39-01..03 | **DONE (2026-09-08)** — RED 41 con 18 failures (9 auditoría + 9 recurso); GREEN focal fresco 41/41 (`AdminBaseCentralResourceIT` 29 + `AdminBaseCentralLogAuditoriaIT` 12); `insumo.*` 74/74; build/Spotless PASS; suite completa 715 = 712 pass + GM-19/GM-20 aceptados + GM-24 skipped, 0 errors; diff limpio; sin cambios en migraciones/motor/recalculo; Graphify final 4.453 nodos / 13.555 aristas / 182 comunidades; sin commit |
 | 036 | [Plantillas APU de sistema](./036-plantillas-apu-sistema.md) | I-11 | P-40 / US-37 / TC-P40-01 | **DONE (2026-09-08)** — CRUD/listado `SUPER_ADMIN`; SISTEMA server-authored; snapshot canónico price-free; D-13 solo en mutaciones exitosas; focal 10/10, `plantilla.*` 85/85, suite 725 con solo GM-19/GM-20 aceptados y GM-24 omitido |
-| 037 | [Parámetros del sistema y valores de referencia](./037-parametros-valores-referencia.md) | I-11 | P-41 / US-38 / TC-P41-01..02 | **PLANNED / TODO** |
+| 037 | [Parámetros del sistema y valores de referencia](./037-parametros-valores-referencia.md) | I-11 | P-41 / US-38 / TC-P41-01..02 | **DONE (2026-09-08)** — DTO canónico de 22 campos; defaults materializados al crear proyecto; CRUD/upsert paginado de valores de referencia; D-13 solo en mutaciones efectivas; focal 7/7, `proyecto.*` 25/25, suite 732 con baseline aceptado; sin commit |
 | 038 | [Instrumentación D-13: identidad y catálogos](./038-instrumentacion-d13-identidad-catalogos.md) | I-11 | eventos D-13 auth/usuario/proyecto/insumo/base/APU | **PLANNED / TODO** |
 | 039 | [Instrumentación D-13: presupuesto, cronograma, documento](./039-instrumentacion-d13-presupuesto-cronograma-documento.md) | I-11 | eventos D-13 presupuesto/cronograma/documento/export | **PLANNED / TODO** |
 | 040 | [Integración del panel y piloto SUS](./040-integracion-panel-piloto-sus.md) | I-11 | cierre I-11 + piloto SUS 1–2 (protocolo quality/02 §5) | **PLANNED / TODO** |
@@ -138,8 +140,8 @@ planes: las absorben como gates de auditoría sin reescritura.
                docs; piloto SUS 1–2 con cita Brooke (1996))
 ```
 
-033 → 040 son **estrictamente secuenciales** y 033–036 ya están cerrados. 037 es
-la siguiente tarea autorizada; 034–037 pueden reordenarse entre sí (emiten
+033 → 040 son **estrictamente secuenciales** y 033–037 ya están cerrados. 038 es
+la siguiente tarea autorizada; 034–037 podían reordenarse entre sí (emiten
 por el mismo seam y sus TC no comparten fixtures), pero todos dependen de
 la fundación entregada por 033. 038 no puede iniciar hasta que 034,
 035, 036 y 037 estén todos cerrados (para no duplicar eventos). 039 no
