@@ -1,6 +1,6 @@
 # 036 — Plantillas APU de sistema (P-40)
 
-**Estado:** TODO · I-11 · P-40 / US-37 / TC-P40-01.
+**Estado:** **DONE (2026-09-08)** · I-11 · P-40 / US-37 / TC-P40-01.
 
 > Reutiliza estrictamente `SnapshotApuMapper` (price-free) ya
 > implementado por Plan 04 (DONE 2026-08-29). El snapshot lo
@@ -73,7 +73,7 @@ Una ejecución futura debe demostrar que:
 | G3 — `@CHECK` V001 | `CHECK ((tipo=SISTEMA AND usuario_id IS NULL) OR (tipo=PERSONAL AND usuario_id IS NOT NULL))`. | Habilita la invariante SISTEMA-sin-dueño. |
 | G4 — UUIDv7 | `UuidV7.parse` en frontera; `PlantillaApu.publicId` ya existe (V001 §2.12 + V008). | Habilita `id` UUIDv7. |
 | G5 — sin CAMICON / sin secretos | `plantilla_apu.snapshot_secciones` price-free; ningún campo PII; ningún token. | Habilita TC-P42-02 (sin PII). |
-| G6 — cierre | Focales verdes; regresión `plantilla.*` verde; emisión D-13 verde. | Evidencia medible. |
+| G6 — cierre | **CERRADO 2026-09-08:** focal admin 10/10; regresión `plantilla.*` 85/85; D-13 verificado. | Evidencia medida. |
 
 `STOP-036-CROSS-OWNER` se activa si la auditoría detecta que 032
 no cierra `admin.cross_owner_behavior` para 036 y el flujo lo
@@ -354,25 +354,52 @@ No se predicen conteos de suite completa. El orquestador decide.
 
 ## Completion checklist (036)
 
-- [ ] `SnapshotApuMapper` intacto (reuso estricto).
-- [ ] `GET/POST/PUT/DELETE /admin/plantillas-apu` con
+- [x] `SnapshotApuMapper` intacto (reuso estricto).
+- [x] `GET/POST/PUT/DELETE /admin/plantillas-apu` con
       `@RolesAllowed("SUPER_ADMIN")`.
-- [ ] `POST` fija `tipo=SISTEMA` y `usuario_id=NULL`
+- [x] `POST` fija `tipo=SISTEMA` y `usuario_id=NULL`
       server-side; cliente no puede sobreescribirlos.
-- [ ] Snapshot sin precios efectivos, IDs ni links al APU origen
+- [x] Snapshot sin precios efectivos, IDs ni links al APU origen
       (TC-P40-01 + regex).
-- [ ] USUARIO ve la SISTEMA en `GET /plantillas-apu` con
+- [x] USUARIO ve la SISTEMA en `GET /plantillas-apu` con
       `tipo=SISTEMA`.
-- [ ] Emisión `admin.plantilla_editada` (solo operaciones
+- [x] Emisión `admin.plantilla_editada` (solo operaciones
       exitosas) en POST/PUT/DELETE con `operacion` correcta.
-- [ ] Longitud de `descripcionRubro` confirmada contra la columna
-      real; sin tope arbitrario inventado.
-- [ ] Ninguna migración nueva; motor intacto.
-- [ ] `git diff --check` limpio.
+- [x] Longitud de `descripcionRubro` confirmada contra la columna
+      real `TEXT`; prueba con 800 caracteres, sin tope inventado.
+- [x] Ninguna migración nueva; motor y recalculo intactos.
+- [x] `spotlessCheck`, `build -x test` y `git diff --check` limpios.
+
+## Estado de cierre
+
+**DONE (2026-09-08), sin commit.** La auditoría previa encontró dos seams que el
+texto suponía existentes. El usuario autorizó explícitamente el 2026-09-08:
+
+1. `ApuRepository.findByPublicId(UUID)` como lookup administrativo sin
+   owner-scope, usado exclusivamente después de `@RolesAllowed("SUPER_ADMIN")`;
+2. `PlantillaApuService.serializarSnapshotDesdeApu(Apu)` como seam estrecho
+   compartido por PERSONAL y SISTEMA, sin modificar `SnapshotApuMapper`;
+3. filtro `tipo` presente con default `SISTEMA`, sin exponer PERSONALES desde
+   este recurso; y
+4. rechazo 400 de campos JSON no declarados (`tipo`, `snapshot_secciones`, etc.).
+
+La decisión cross-owner quedó documentada en
+`docs/modulos/panel-admin/036-nota-cross-owner.md`. `descripcion_rubro` se
+confirmó como `TEXT` en V001 y el test acepta 800 caracteres. TDD medido:
+**RED inicial 7 tests / 7 failures / 0 errors / 0 skips** por ausencia del
+recurso; **GREEN/TRIANGULATE final 10/10**. Regresión fresca
+`ec.uce.propuestas.plantilla.*`: **85/85**, 0 failures/errors/skips.
+`spotlessCheck` PASS; `build -x test` PASS; suite completa fresca:
+**725 tests = 722 pass + 2 failures aceptados** (GM-19/GM-20) **+ 1 skipped**
+(GM-24), 0 errors. `git diff --check` limpio; sin migraciones nuevas y con
+`SnapshotApuMapper`, `motor/` y `recalculo/` intactos. Graphify se actualiza al
+cierre final.
 
 ## Handoff al siguiente plan
 
-Cuando 036 cierre, el orquestador puede iniciar **037** (P-41
-parámetros + valores de referencia) o cualquier otro de 035–037.
-037 conserva `/proyectos/parametros-sistema` canónico y agrega
-`/admin/valores-referencia`.
+Plan 036 está cerrado. La siguiente tarea autorizada es **037** (P-41,
+parámetros + valores de referencia), que conserva
+`/proyectos/parametros-sistema` y agrega `/admin/valores-referencia`.
+
+`graphify update .` finalizó correctamente al cierre con **4.529 nodos /
+13.836 aristas / 185 comunidades**.

@@ -25,8 +25,8 @@
 - **TC:** identificador del catálogo
   `thesis-docs/plan/quality/02-catalogo-pruebas.md`.
 - **Acción de cada fila:** `crear`, `modificar` o `reusar`.
-- **Evidencia medida:** 033–035 registran sus conteos exactos; el inventario no
-  predice resultados para 036–040.
+- **Evidencia medida:** 033–036 registran sus conteos exactos; el inventario no
+  predice resultados para 037–040.
 
 ## 1. Plan 033 — Log de actividad — base (P-42 foundation) — DONE / PARITY
 
@@ -193,18 +193,24 @@
 - **TC-P39-02:** DELETE base activa → 409 `base-no-archivada`; DELETE archivada → 204; copia PROYECTO intacta.
 - **TC-P39-03:** DELETE insumo con `usos > 0` → 409 `insumo-en-uso`; DELETE insumo sin usos → 204.
 
-## 4. Plan 036 — Plantillas APU de sistema (P-40)
+## 4. Plan 036 — Plantillas APU de sistema (P-40) — DONE / PARITY
 
-**Prioridad:** 4.
+**Cierre:** DONE (2026-09-08). **Prioridad histórica:** 4.
 **Proceso / historia:** P-40 / US-37 / TC-P40-01.
 **Dependencias previas:** 033 cerrado.
 
 ### Capacidades actuales vs gap
 
-- `SnapshotApuMapper` (price-free): **DONE / PARITY**.
+- `SnapshotApuMapper` (price-free): **DONE / PARITY**, sin modificaciones.
 - `plantilla_apu` personal + carga con fallback: **DONE / PARITY** (P-26).
-- Flujo admin `POST /admin/plantillas-apu[/{id}]`: **MISSING**.
-- Emisión `admin.plantilla_editada`: **MISSING**.
+- Flujo admin `GET/POST/PUT/DELETE /admin/plantillas-apu[/{id}]`:
+  **DONE / PARITY**, `SUPER_ADMIN`, UUIDv7 y paginación canónica.
+- `tipo=SISTEMA` y `usuario_id=NULL`: **DONE / PARITY**, server-authored.
+- Emisión `admin.plantilla_editada`: **DONE / PARITY**, solo POST/PUT/DELETE
+  exitosos y con `operacion`/`tipo` canónicos.
+- Evidencia: RED 7/7 failures; GREEN focal admin 10/10; regresión
+  `plantilla.*` 85/85; suite completa 725 = 722 pass + GM-19/GM-20 aceptados
+  + GM-24 skipped; Spotless/build/diff PASS.
 
 ### Archivos candidatos
 
@@ -331,7 +337,8 @@
 ### Capacidades actuales vs gap
 
 - Bruno admin `12-admin/`: **MISSING**.
-- `graphify update .`: **MISSING** desde Plan 031.
+- `graphify update .`: **DONE** al cierre de 036 (4.529 nodos / 13.836
+  aristas / 185 comunidades); 040 debe repetirlo para su candidato final.
 - Piloto SUS 1–2: **MISSING** (gate humano).
 
 ### Archivos candidatos
@@ -382,6 +389,5 @@ de 033).
 ---
 
 **Inventario firmado al cierre de Plan 032 el 2026-09-07 y actualizado al
-cierre completo de Plan 035 el 2026-09-08. La siguiente tarea es Plan 036;
-036–040 permanecen pendientes según el DAG. No se creó commit ni se reclama
-Graphify final en este cierre.**
+cierre completo de Plan 036 el 2026-09-08. La siguiente tarea es Plan 037;
+037–040 permanecen pendientes según el DAG. No se creó commit.**

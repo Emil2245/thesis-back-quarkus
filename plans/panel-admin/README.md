@@ -14,7 +14,7 @@
 > superficies que el acta pueda dejar abiertas. **El acta está
 > firmada al 2026-09-07** (ver
 > [`docs/modulos/panel-admin/00-acta-reconciliacion.md`](../../docs/modulos/panel-admin/00-acta-reconciliacion.md));
-> 033–035 quedaron **DONE al 2026-09-08**; 036 es la siguiente tarea autorizada.
+> 033–036 quedaron **DONE al 2026-09-08**; 037 es la siguiente tarea autorizada.
 >
 > **Emisión D-13:** solo operaciones exitosas emiten. No existe
 > `emitirFailure`, `REQUIRES_NEW`, persistencia de eventos para
@@ -41,8 +41,9 @@ TC-P40, TC-P41, TC-P42; §5 protocolo SUS).
 > (`AdminBaseCentralResourceIT` 29 + `AdminBaseCentralLogAuditoriaIT` 12),
 > regresión `insumo.*` 74/74, build y Spotless PASS, y suite completa
 > 715 = 712 pass + GM-19/GM-20 aceptados + GM-24 skipped, 0 errors.
-> Graphify final actualizado: 4.453 nodos, 13.555 aristas y 182 comunidades. **036–040 PLANNED / TODO**; 036
-> es la siguiente tarea autorizada. Los
+> Plan 036 cerró con focal admin 10/10, regresión `plantilla.*` 85/85 y
+> suite completa 725 = 722 pass + GM-19/GM-20 aceptados + GM-24 skipped.
+> **037–040 PLANNED / TODO**; 037 es la siguiente tarea autorizada. Los
 > cambios de Plan 031 permanecen preservados y fuera de alcance.
 
 ## ¿Por qué nueve planes y no menos?
@@ -73,7 +74,7 @@ planes: las absorben como gates de auditoría sin reescritura.
 | 033 | [Log de actividad — base](./033-log-actividad-base.md) | I-11 | P-42 / US-39 / TC-P42-01..02 (foundation) | **DONE (2026-09-08)** — V010; catálogo/validador de 26 eventos; emisor `MANDATORY`; JSONB como `String` vía `ObjectMapper`; `GET /admin/logs` paginado y `SUPER_ADMIN`; focal audit 26/26 y usuario 51/51 |
 | 034 | [Gestión de usuarios e invitaciones](./034-gestion-usuarios-invitaciones.md) | I-11 | P-38 / US-35 / TC-P38-01..03 | **DONE (2026-09-08)** — `UsuarioAdminService` + `UsuarioAdminResource` (`/admin/usuarios` con `@RolesAllowed("SUPER_ADMIN")`); invitación 72 h sin contraseña temporal (contrato acta 032 D-04); DELETE con proyectos → 409 `usuario-con-proyectos-impedido` (test focal FK); emisión D-13 vía 033 `MANDATORY`; focal admin 18/18 + log 6/6 + sin contraseña temporal 1/1 |
 | 035 | [Bases centrales — cierre](./035-bases-centrales-cierre.md) | I-11 | P-39 / US-36 / TC-P39-01..03 | **DONE (2026-09-08)** — RED 41 con 18 failures (9 auditoría + 9 recurso); GREEN focal fresco 41/41 (`AdminBaseCentralResourceIT` 29 + `AdminBaseCentralLogAuditoriaIT` 12); `insumo.*` 74/74; build/Spotless PASS; suite completa 715 = 712 pass + GM-19/GM-20 aceptados + GM-24 skipped, 0 errors; diff limpio; sin cambios en migraciones/motor/recalculo; Graphify final 4.453 nodos / 13.555 aristas / 182 comunidades; sin commit |
-| 036 | [Plantillas APU de sistema](./036-plantillas-apu-sistema.md) | I-11 | P-40 / US-37 / TC-P40-01 | **PLANNED / TODO** |
+| 036 | [Plantillas APU de sistema](./036-plantillas-apu-sistema.md) | I-11 | P-40 / US-37 / TC-P40-01 | **DONE (2026-09-08)** — CRUD/listado `SUPER_ADMIN`; SISTEMA server-authored; snapshot canónico price-free; D-13 solo en mutaciones exitosas; focal 10/10, `plantilla.*` 85/85, suite 725 con solo GM-19/GM-20 aceptados y GM-24 omitido |
 | 037 | [Parámetros del sistema y valores de referencia](./037-parametros-valores-referencia.md) | I-11 | P-41 / US-38 / TC-P41-01..02 | **PLANNED / TODO** |
 | 038 | [Instrumentación D-13: identidad y catálogos](./038-instrumentacion-d13-identidad-catalogos.md) | I-11 | eventos D-13 auth/usuario/proyecto/insumo/base/APU | **PLANNED / TODO** |
 | 039 | [Instrumentación D-13: presupuesto, cronograma, documento](./039-instrumentacion-d13-presupuesto-cronograma-documento.md) | I-11 | eventos D-13 presupuesto/cronograma/documento/export | **PLANNED / TODO** |
@@ -137,7 +138,7 @@ planes: las absorben como gates de auditoría sin reescritura.
                docs; piloto SUS 1–2 con cita Brooke (1996))
 ```
 
-033 → 040 son **estrictamente secuenciales** y 033–035 ya están cerrados. 036 es
+033 → 040 son **estrictamente secuenciales** y 033–036 ya están cerrados. 037 es
 la siguiente tarea autorizada; 034–037 pueden reordenarse entre sí (emiten
 por el mismo seam y sus TC no comparten fixtures), pero todos dependen de
 la fundación entregada por 033. 038 no puede iniciar hasta que 034,
@@ -162,7 +163,7 @@ es la integración final.
 | Invitación por correo (D-11, 72 h, sin contraseña temporal) | **DONE** (`auth/aceptar-invitacion`; `TipoToken.INVITACION`; TTL `PT72H` configurable; `emailVerificado=true` al aceptar) | 034 agrega **emisión admin** (`GET/POST/PUT /admin/usuarios`, `…/desactivar`/`/reactivar`, `DELETE` con proyectos → 409 `usuario-con-proyectos-impedido`); no toca `AuthService.aceptarInvitacion` |
 | `GET/PUT /proyectos/parametros-sistema` | **DONE** (lectura pública, escritura `@RolesAllowed("SUPER_ADMIN")`; 12 columnas + 8 rangos) | 037 **conserva** la ruta canónica (DTO de `GET` solo si acta 032 lo decide); agrega logging `admin.parametros_editados` y entrega el CRUD `valor_referencia` (clave única con fuente no blank) |
 | CRUD/archivar/borrar bases centrales | **DONE 2026-08-29 (Plan 015bis)** (`AdminBaseCentralResource` bajo `/admin/bases-centrales`) | **DONE en 035:** reporte por fila con estados `paridad`/`divergencia`/`gap`; paginación canónica y DELETE referenciado cerrados; `admin.base_editada` solo en operaciones exitosas. GREEN focal 41/41, `insumo.*` 74/74, build/Spotless PASS y suite completa 715 con solo GM-19/GM-20 aceptados y GM-24 omitido. |
-| `plantilla_apu` personal (`tipo=PERSONAL`) + SISTEMA con `usuario_id NULL` | **DONE 2026-08-29 (Plan 04)**; SISTEMA sembrado en V004 | 036 agrega el **flujo admin** (`POST /admin/plantillas-apu` desde APU existente con `desdeApuId`; `PUT/DELETE /admin/plantillas-apu/{id}`; UUIDv7); emite `admin.plantilla_editada` solo en operaciones exitosas |
+| `plantilla_apu` personal (`tipo=PERSONAL`) + SISTEMA con `usuario_id NULL` | **DONE 2026-08-29 (Plan 04)**; SISTEMA sembrado en V004 | **DONE 2026-09-08 (Plan 036):** flujo admin `GET/POST/PUT/DELETE /admin/plantillas-apu[/{id}]`; creación desde APU cross-owner tras rol `SUPER_ADMIN`; SISTEMA server-authored; snapshot price-free compartido; `admin.plantilla_editada` solo en mutaciones exitosas |
 | `log_actividad` tabla + índices | **DONE** (V001 §2.15; tabla, `ix_log_fecha`, `ix_log_usuario`, FK `usuario_id → usuario ON DELETE SET NULL`) | 033 crea la **capa de servicio** (`LogActividadService.emitir(...)` con MANDATORY), entidad/repo (UUIDv7), `LogActividadResource` (`GET /admin/logs` con filtros `usuarioId&evento&desde&hasta&page…`), DTOs; **una migración aditiva con el siguiente número disponible** (nombre neutral `V???__log_actividad_identidad_publica.sql`) añade `public_id UUID NOT NULL DEFAULT uuidv7()` + índice único + inmutabilidad (D-01) **y** `entidad_public_id UUID NULL` sin FK/sin DEFAULT/sin UNIQUE (D-21; server-authored; los logs sobreviven al borrado de la entidad afectada); la columna legacy `entidad_id BIGINT` permanece inalterada y nunca cruza REST; `LogActividadResponse.entidadId` mapea exclusivamente desde `entidad_public_id`; V001–V009 intactas; el catálogo cerrado D-13 vive en el enum `EventoLogActividad` |
 | `valor_referencia` tabla | **DONE** (V001 §2.14; PK `clave`, columnas `valor/descripcion/fuente/updated_at`) | 037 entrega `GET /admin/valores-referencia`, `PUT /admin/valores-referencia/{clave}` (upsert; cualquier clave única con fuente no blank), `DELETE /admin/valores-referencia/{clave}` |
 | D-13 eventos (catálogo cerrado) | **PENDIENTE** (la tabla existe, no hay emisores; V004 siembra 19 log rows; 6 filas fixture usan los 4 nombres legacy fuera del catálogo) | 033 (foundation: enum 26 verbatim + `detallesEsperados()` completo + `LogActividadDetalleValidator`) + 034–039 (emisores por capacidad; consumen el mapa congelado por 032) + 040 (verificación de cobertura: enum tiene 26 verbatim; cobertura runtime solo de productores efectivamente canonicados; `STOP-032-P09-DUPLICAR` puede diferir `proyecto.duplicado` como "no producer yet") |

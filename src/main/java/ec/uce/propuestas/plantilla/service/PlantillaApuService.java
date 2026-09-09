@@ -189,7 +189,7 @@ public class PlantillaApuService {
                         .isEmpty()) {
             throw ProblemaException.noEncontrado("APU no encontrado");
         }
-        String snapshot = snapshotApuMapper.escribir(construirSnapshotDesdeApu(apu));
+        String snapshot = serializarSnapshotDesdeApu(apu);
 
         PlantillaApu p = new PlantillaApu();
         p.nombre = req.nombre().trim();
@@ -201,6 +201,15 @@ public class PlantillaApuService {
         plantillaApuRepository.persist(p);
         plantillaApuRepository.getEntityManager().flush();
         return PlantillaApuResumenResponse.from(p);
+    }
+
+    /**
+     * Plan 036 — seam compartido para construir el mismo snapshot price-free desde
+     * los flujos PERSONAL y SISTEMA. La entidad APU ya debe estar autorizada por el
+     * caller; este método solo serializa su estructura mediante el writer canónico.
+     */
+    public String serializarSnapshotDesdeApu(Apu apu) {
+        return snapshotApuMapper.escribir(construirSnapshotDesdeApu(apu));
     }
 
     private List<SnapshotApuMapper.SnapshotBloque> construirSnapshotDesdeApu(Apu apu) {

@@ -2,6 +2,7 @@ package ec.uce.propuestas.plantilla.repository;
 
 import ec.uce.propuestas.plantilla.entity.PlantillaApu;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
+import io.quarkus.panache.common.Page;
 import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.List;
@@ -37,12 +38,51 @@ public class PlantillaApuRepository implements PanacheRepositoryBase<PlantillaAp
                 .findFirst();
     }
 
+    /** Plan 036 — lookup administrativo restringido a plantillas SISTEMA. */
+    public Optional<PlantillaApu> findSistemaByPublicId(UUID publicId) {
+        return find("publicId = ?1 and tipo = ?2", publicId, PlantillaApu.Tipo.SISTEMA)
+                .firstResultOptional();
+    }
+
     /**
      * Plan 04 (P-26) — Listado de plantillas por tipo, orden estable por nombre.
      */
     public List<PlantillaApu> listarPorTipo(PlantillaApu.Tipo tipo) {
         return find("tipo = :tipo order by nombre", Parameters.with("tipo", tipo))
                 .list();
+    }
+
+    /** Plan 036 — listado administrativo paginado y estable de plantillas SISTEMA. */
+    public List<PlantillaApu> listarSistemaAdmin(String q, int page, int size) {
+        if (q != null && !q.isBlank()) {
+            String filtro = "%" + escaparLike(q.toLowerCase()) + "%";
+            return find(
+                            "tipo = ?1 and (lower(nombre) like ?2 escape '!' or "
+                                    + "lower(coalesce(descripcionRubro, '')) like ?2 escape '!') order by nombre, id",
+                            PlantillaApu.Tipo.SISTEMA,
+                            filtro)
+                    .page(Page.of(page, size))
+                    .list();
+        }
+        return find("tipo = ?1 order by nombre, id", PlantillaApu.Tipo.SISTEMA)
+                .page(Page.of(page, size))
+                .list();
+    }
+
+    public long contarSistemaAdmin(String q) {
+        if (q != null && !q.isBlank()) {
+            String filtro = "%" + escaparLike(q.toLowerCase()) + "%";
+            return count(
+                    "tipo = ?1 and (lower(nombre) like ?2 escape '!' or "
+                            + "lower(coalesce(descripcionRubro, '')) like ?2 escape '!')",
+                    PlantillaApu.Tipo.SISTEMA,
+                    filtro);
+        }
+        return count("tipo", PlantillaApu.Tipo.SISTEMA);
+    }
+
+    private static String escaparLike(String value) {
+        return value.replace("!", "!!").replace("%", "!%").replace("_", "!_");
     }
 
     /**

@@ -87,6 +87,15 @@ public class ApuRepository implements PanacheRepositoryBase<Apu, Long> {
     }
 
     /**
+     * Plan 036 — Resolución administrativa por {@code public_id} UUIDv7 sin owner-scope.
+     * El caller debe haber superado {@code @RolesAllowed("SUPER_ADMIN")}; este método no
+     * debe usarse desde recursos de usuario.
+     */
+    public Optional<Apu> findByPublicId(UUID publicId) {
+        return find("publicId", publicId).firstResultOptional();
+    }
+
+    /**
      * WU-03 — Resolución por {@code public_id} (UUIDv7) con scope de owner. Travesía owner:
      * APU → Presupuesto → Proyecto → caller. Cualquier fila de un proyecto ajeno devuelve
      * {@link Optional#empty()}. Las juntas posteriores y el write-through usan el
