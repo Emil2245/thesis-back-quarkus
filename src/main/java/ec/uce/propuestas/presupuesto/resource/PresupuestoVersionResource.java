@@ -1,9 +1,11 @@
 package ec.uce.propuestas.presupuesto.resource;
 
 import ec.uce.propuestas.common.ProblemaException;
+import ec.uce.propuestas.common.UuidV7;
 import ec.uce.propuestas.presupuesto.dto.PresupuestoVersionCrearRequest;
 import ec.uce.propuestas.presupuesto.dto.PresupuestoVersionResponse;
 import ec.uce.propuestas.presupuesto.service.PresupuestoService;
+import ec.uce.propuestas.proyecto.entity.Proyecto;
 import ec.uce.propuestas.proyecto.service.ProyectoService;
 import ec.uce.propuestas.usuario.UsuarioRepository;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -14,6 +16,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
+import java.util.UUID;
 
 @Path("/proyectos/{proyectoId}/presupuestos")
 @Produces(MediaType.APPLICATION_JSON)
@@ -41,21 +44,23 @@ public class PresupuestoVersionResource {
                 .orElseThrow(() -> ProblemaException.noEncontrado("Usuario autenticado no encontrado"));
     }
 
-    private void validarAcceso(Long proyectoId) {
-        proyectoService.validarPropietario(usuarioId(), proyectoId);
+    private Long validarAcceso(String proyectoPublicId) {
+        UUID publicId = UuidV7.parse(proyectoPublicId);
+        Proyecto proyecto = proyectoService.validarPropietario(usuarioId(), publicId);
+        return proyecto.id;
     }
 
     @GET
     @Consumes(MediaType.WILDCARD)
-    public List<PresupuestoVersionResponse> listar(@PathParam("proyectoId") Long proyectoId) {
-        validarAcceso(proyectoId);
-        return presupuestoService.listarVersiones(proyectoId);
+    public List<PresupuestoVersionResponse> listar(@PathParam("proyectoId") String proyectoId) {
+        Long id = validarAcceso(proyectoId);
+        return presupuestoService.listarVersiones(id);
     }
 
     @POST
-    public Response crear(@PathParam("proyectoId") Long proyectoId, @Valid PresupuestoVersionCrearRequest req) {
-        validarAcceso(proyectoId);
-        PresupuestoVersionResponse version = presupuestoService.crearVersion(proyectoId, req);
+    public Response crear(@PathParam("proyectoId") String proyectoId, @Valid PresupuestoVersionCrearRequest req) {
+        Long id = validarAcceso(proyectoId);
+        PresupuestoVersionResponse version = presupuestoService.crearVersion(id, req);
         return Response.status(Response.Status.CREATED).entity(version).build();
     }
 }

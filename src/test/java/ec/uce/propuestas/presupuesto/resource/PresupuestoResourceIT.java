@@ -147,7 +147,6 @@ class PresupuestoResourceIT {
     void testFlujoCompletoPresupuesto() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "presupuesto-user@uce.edu.ec");
         String proyectoPublicId = crearProyecto(token);
-        Long proyectoId = internalId("proyecto", proyectoPublicId);
 
         // 1. Insert presupuesto v1 via SQL (no auto-creation)
         Long pres1Id = insertarPresupuesto(proyectoPublicId);
@@ -155,7 +154,7 @@ class PresupuestoResourceIT {
 
         given().header("Authorization", "Bearer " + token)
                 .when()
-                .get("/api/v1/proyectos/" + proyectoId + "/presupuestos")
+                .get("/api/v1/proyectos/" + proyectoPublicId + "/presupuestos")
                 .then()
                 .statusCode(200)
                 .body("size()", is(1))
@@ -232,7 +231,7 @@ class PresupuestoResourceIT {
                 .header("Authorization", "Bearer " + token)
                 .body(Map.of("origenId", pres1Id, "notas", "Versión de prueba 2"))
                 .when()
-                .post("/api/v1/proyectos/" + proyectoId + "/presupuestos")
+                .post("/api/v1/proyectos/" + proyectoPublicId + "/presupuestos")
                 .then()
                 .statusCode(201)
                 .body("version", is(2))
