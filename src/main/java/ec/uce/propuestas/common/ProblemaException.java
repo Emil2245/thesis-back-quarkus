@@ -3,6 +3,7 @@ package ec.uce.propuestas.common;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.util.Map;
 
 /**
  * Excepción de dominio que transporta el código de error tipado del contrato
@@ -17,10 +18,19 @@ import jakarta.ws.rs.core.Response;
 public class ProblemaException extends WebApplicationException {
 
     public ProblemaException(int status, String codigo, String mensaje) {
+        this(status, codigo, mensaje, null);
+    }
+
+    public ProblemaException(int status, String codigo, String mensaje, Map<String, Object> detalles) {
         super(Response.status(status)
                 .type(MediaType.APPLICATION_JSON)
-                .entity(new ErrorPayload(codigo, mensaje))
+                .entity(new ErrorPayload(codigo, mensaje, detalles))
                 .build());
+    }
+
+    public static ProblemaException conDetalles(
+            int status, String codigo, String mensaje, Map<String, Object> detalles) {
+        return new ProblemaException(status, codigo, mensaje, detalles);
     }
 
     /** 400 validacion */

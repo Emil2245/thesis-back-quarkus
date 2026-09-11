@@ -88,6 +88,30 @@ public class ApuCrudService {
      * método propaga el 404 vía el seam {@link PlantillaApuService#cargarPorOwner}.
      */
     @Transactional
+    public ResultadoCrear crearSinRecalculo(Long presupuestoId, ApuCrearRequest req, Long callerUsuarioId) {
+        if (req.codigo() != null
+                && !req.codigo().isBlank()
+                && apuRepository
+                        .findByPresupuestoYCodigo(presupuestoId, req.codigo())
+                        .isPresent()) {
+            throw ProblemaException.codigoDuplicado("Código duplicado en esta versión del presupuesto");
+        }
+        Apu apu = new Apu();
+        apu.presupuestoId = presupuestoId;
+        apu.codigo = req.codigo() != null && !req.codigo().isBlank() ? req.codigo() : siguienteCodigo(presupuestoId);
+        apu.descripcion = req.descripcion();
+        apu.unidad = req.unidad();
+        apuRepository.persist(apu);
+        apuRepository.flush();
+        crearSecciones(apu);
+        apuRepository.persist(apu);
+        PlantillaApu plantilla = plantillaApuService.cargarPorOwner(req.plantillaId(), callerUsuarioId);
+        List<AdvertenciaPlantillaResponse> advertencias = plantillaApuService.aplicarPlantilla(apu, plantilla);
+        emitir(apu, EventoLogActividad.APU_CREADO);
+        return new ResultadoCrear(respuestaCompleta(apu), advertencias);
+    }
+
+    @Transactional
     public ResultadoCrear crear(Long presupuestoId, ApuCrearRequest req, Long callerUsuarioId) {
         if (req.codigo() != null
                 && !req.codigo().isBlank()
@@ -144,6 +168,12 @@ public class ApuCrudService {
 
     public ApuResponse obtener(Long apuId) {
         return respuestaCompleta(_validar(apuId));
+    }
+
+    public Apu buscarPorPublicId(UUID publicId) {
+        return apuRepository
+                .findByPublicId(publicId)
+                .orElseThrow(() -> ProblemaException.noEncontrado("APU no encontrado"));
     }
 
     @Transactional

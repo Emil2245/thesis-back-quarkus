@@ -87,6 +87,20 @@ public class CapituloRepository implements PanacheRepositoryBase<Capitulo, Long>
      * sobre ellas y hacer {@code flush()} deja la sesión y la BD coherentes (no
      * se usan UPDATE masivos, que dejarían la caché de primer nivel stale).</p>
      */
+    /** Returns the highest-order direct child, or root when parentId is null. */
+    public Optional<Capitulo> ultimoHijo(Long presupuestoId, Long parentId) {
+        if (parentId == null) {
+            return find(
+                            "presupuestoId = :pid and parentId is null order by orden desc",
+                            Parameters.with("pid", presupuestoId))
+                    .firstResultOptional();
+        }
+        return find(
+                        "presupuestoId = :pid and parentId = :parentId order by orden desc",
+                        Parameters.with("pid", presupuestoId).and("parentId", parentId))
+                .firstResultOptional();
+    }
+
     public List<Capitulo> listarPorPresupuesto(Long presupuestoId) {
         return find("presupuestoId = :presupuestoId", Parameters.with("presupuestoId", presupuestoId))
                 .list();
