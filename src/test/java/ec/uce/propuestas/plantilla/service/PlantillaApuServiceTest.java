@@ -13,6 +13,7 @@ import ec.uce.propuestas.apu.repository.ApuSeccionRepository;
 import ec.uce.propuestas.apu.service.ApuCalculoService;
 import ec.uce.propuestas.apu.service.ApuCrudService;
 import ec.uce.propuestas.common.ProblemaException;
+import ec.uce.propuestas.common.dto.Page;
 import ec.uce.propuestas.insumo.entity.BaseInsumos;
 import ec.uce.propuestas.insumo.entity.Insumo;
 import ec.uce.propuestas.insumo.entity.TipoBase;
@@ -129,6 +130,44 @@ class PlantillaApuServiceTest {
 
         assertEquals(1, deBob.size(), "Bob solo debe ver SISTEMA");
         assertEquals(PlantillaApu.Tipo.SISTEMA, deBob.get(0).tipo());
+    }
+
+    @Test
+    @Transactional
+    void TC_PL_SEARCH_01_fts_paginates_accented_terms_and_hides_foreign_personal() {
+        Usuario alice = persistUsuario("alice@search.test");
+        Usuario bob = persistUsuario("bob@search.test");
+        persistPlantillaSistema("Hormigón estructural");
+        PlantillaApu propia = persistPlantillaPersonalConSnapshot(alice.id, "Nivelación propia", "{}");
+        propia.descripcionRubro = "nivelación de terreno";
+        persistPlantillaPersonalConSnapshot(bob.id, "Hormigón ajeno", "{}");
+        plantillaApuRepository.flush();
+
+        Page<PlantillaApuResumenResponse> hormigon = plantillaApuService.buscar(
+                alice.id, List.of(PlantillaApu.Tipo.SISTEMA, PlantillaApu.Tipo.PERSONAL), "hormigon", 0, 25);
+        Page<PlantillaApuResumenResponse> nivelacion =
+                plantillaApuService.buscar(alice.id, List.of(PlantillaApu.Tipo.PERSONAL), "nivelacion", 0, 25);
+
+        assertEquals(1, hormigon.total());
+        assertEquals("Hormigón estructural", hormigon.items().get(0).nombre());
+        assertEquals(1, nivelacion.total());
+        assertEquals("Nivelación propia", nivelacion.items().get(0).nombre());
+    }
+
+    @Test
+    @Transactional
+    void TC_PL_SEARCH_02_empty_query_has_stable_pagination_and_type_filter() {
+        Usuario alice = persistUsuario("alice2@search.test");
+        persistPlantillaSistema("A sistema");
+        persistPlantillaSistema("B sistema");
+        persistPlantillaPersonal(alice.id, "C personal");
+
+        Page<PlantillaApuResumenResponse> page =
+                plantillaApuService.buscar(alice.id, List.of(PlantillaApu.Tipo.SISTEMA), "  ", 1, 1);
+
+        assertEquals(2, page.total());
+        assertEquals(1, page.items().size());
+        assertEquals("B sistema", page.items().get(0).nombre());
     }
 
     @Test

@@ -2,9 +2,11 @@ package ec.uce.propuestas.plantilla.resource;
 
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.common.UuidV7;
+import ec.uce.propuestas.common.dto.Page;
 import ec.uce.propuestas.plantilla.dto.PlantillaApuDetalleResponse;
 import ec.uce.propuestas.plantilla.dto.PlantillaApuEditarRequest;
 import ec.uce.propuestas.plantilla.dto.PlantillaApuResumenResponse;
+import ec.uce.propuestas.plantilla.entity.PlantillaApu;
 import ec.uce.propuestas.plantilla.service.PlantillaApuService;
 import ec.uce.propuestas.usuario.UsuarioRepository;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -71,6 +73,32 @@ public class PlantillaApuResource {
             throw ProblemaException.validacion("tipo debe ser SISTEMA o PERSONAL");
         }
         return todas.stream().filter(p -> p.tipo() == tipoEnum).toList();
+    }
+
+    /** Plan 001 — paginated PostgreSQL FTS search; must precede /{id}. */
+    @GET
+    @Path("/busqueda")
+    @Consumes(MediaType.WILDCARD)
+    public Page<PlantillaApuResumenResponse> buscar(
+            @QueryParam("q") String q,
+            @QueryParam("tipo") List<String> tipos,
+            @QueryParam("page") @DefaultValue("0") int page,
+            @QueryParam("size") @DefaultValue("25") int size) {
+        if (page < 0) throw ProblemaException.validacion("page debe ser mayor o igual a 0");
+        if (size < 1 || size > 200) throw ProblemaException.validacion("size debe estar entre 1 y 200");
+        List<PlantillaApu.Tipo> tiposEnum = new java.util.ArrayList<>();
+        if (tipos == null || tipos.isEmpty()) {
+            tiposEnum.addAll(List.of(PlantillaApu.Tipo.SISTEMA, PlantillaApu.Tipo.PERSONAL));
+        } else {
+            for (String tipo : tipos) {
+                try {
+                    tiposEnum.add(PlantillaApu.Tipo.valueOf(tipo.toUpperCase()));
+                } catch (IllegalArgumentException e) {
+                    throw ProblemaException.validacion("tipo debe ser SISTEMA o PERSONAL");
+                }
+            }
+        }
+        return plantillaApuService.buscar(usuarioId(), tiposEnum, q, page, size);
     }
 
     @GET
