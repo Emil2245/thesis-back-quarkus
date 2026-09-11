@@ -1,6 +1,6 @@
 # Plan backend 004 — Crear y vincular un APU manual completo
 
-**Estado:** TODO · **Prioridad:** P0 · **Depende de:** backend 003
+**Estado:** DONE (2026-09-10) · **Prioridad:** P0 · **Depende de:** backend 003
 
 ## 01. Resultado observable
 
@@ -85,3 +85,14 @@ graphify update .
 ## 08. STOP y rollback
 
 STOP si se requiere aceptar cálculos del cliente, crear HM manual, comprometer parcialmente o recalcular por fila. Rollback: retirar endpoint/DTO/tests y las primitivas exclusivas del flujo manual; preservar el lote del plan 003.
+
+## 09. Cierre de ejecución
+
+Implementación completada sin cambios en frontend, migraciones, `motor/` ni `recalculo/`:
+
+- `POST /presupuestos/{presupuestoId}/apus/completo` crea el agregado completo dentro de una transacción owner-scoped, con cuatro secciones canónicas, HM server-authored, insumos materializados en PROYECTO, rubro append-only y una consolidación final `Alcance.Version`.
+- La entrada usa un deserializador estricto acotado al endpoint; rechaza campos desconocidos tanto en la cabecera como en las filas, sin cambiar la compatibilidad de DTOs existentes.
+- `ApuManualCompletoResourceIT`: 10/10 verde. Regresión `apu.*` + `presupuesto.*` + `recalculo.*`: 172/172 verde.
+- Suite completa: 755 tests = 752 verdes + 2 residuales aceptados (GM-19/GM-20) + 1 omitido (GM-24), 0 errores. `spotlessCheck`, `build -x test` y `git diff --check`: PASS.
+- `graphify update .`: 4.799 nodos, 15.089 aristas y 201 comunidades.
+- No se realizó commit ni push.

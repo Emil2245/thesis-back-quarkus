@@ -111,6 +111,86 @@ public class ApuCrudService {
         return new ResultadoCrear(respuestaCompleta(apu), advertencias);
     }
 
+    /**
+     * Creates only the APU aggregate skeleton for an enclosing transaction.
+     * Callers must add rows, link the rubro, emit the creation audit event, and
+     * perform the single final recalculation themselves.
+     */
+    public Apu crearApuVacioSinRecalculo(Long presupuestoId, ApuCrearRequest req, BigDecimal porcentajeIndirecto) {
+        if (req.codigo() != null
+                && !req.codigo().isBlank()
+                && apuRepository
+                        .findByPresupuestoYCodigo(presupuestoId, req.codigo())
+                        .isPresent()) {
+            throw ProblemaException.codigoDuplicado("Código duplicado en esta versión del presupuesto");
+        }
+        validarPorcentaje(porcentajeIndirecto, BigDecimal.ONE, "porcentajeIndirecto");
+
+        Apu apu = new Apu();
+        apu.presupuestoId = presupuestoId;
+        apu.codigo = req.codigo() != null && !req.codigo().isBlank() ? req.codigo() : siguienteCodigo(presupuestoId);
+        apu.descripcion = req.descripcion();
+        apu.unidad = req.unidad();
+        apu.porcentajeIndirecto = porcentajeIndirecto;
+        apuRepository.persist(apu);
+        apuRepository.flush();
+        crearSecciones(apu);
+        apuRepository.persist(apu);
+        return apu;
+    }
+
+    /**
+     * Adds one client row without recalculating. This is intentionally strict
+     * for aggregate creation: MATERIAL and TRANSPORTE do not accept a
+     * rendimiento supplied by the client; their effective value is null.
+     */
+    public ApuDetalle agregarDetalleEnLote(Long apuId, ApuDetalleCrearRequest req, Long callerUsuarioId) {
+        if (req == null || req.seccionTipo() == null || req.insumoId() == null || req.cantidad() == null) {
+            throw ProblemaException.validacion("La fila del APU está incompleta");
+        }
+        if (req.cantidad().signum() <= 0) {
+            throw ProblemaException.validacion("cantidad debe ser mayor a 0");
+        }
+        if (req.rendimiento() != null && req.rendimiento().signum() <= 0) {
+            throw ProblemaException.validacion("rendimiento debe ser mayor a 0");
+        }
+        if ((req.seccionTipo() == SeccionTipo.MATERIAL || req.seccionTipo() == SeccionTipo.TRANSPORTE)
+                && req.rendimiento() != null) {
+            throw ProblemaException.validacion("rendimiento no aplica en MATERIAL/TRANSPORTE");
+        }
+
+        Apu apu = _validar(apuId);
+        Long proyectoId = apuRepository
+                .proyectoDePresupuesto(apu.presupuestoId)
+                .orElseThrow(() -> ProblemaException.noEncontrado("Presupuesto no encontrado"));
+        UUID insumoPublicId = UuidV7.parse(req.insumoId().toString());
+        Insumo insumo = resolverInsumoProyecto.materializarOReusar(insumoPublicId, proyectoId, callerUsuarioId);
+        validarSeccionParaInsumo(req.seccionTipo(), insumo.tipo);
+
+        ApuSeccion seccion = seccionRepository
+                .findByApuYTipo(apuId, req.seccionTipo())
+                .orElseThrow(() -> ProblemaException.noEncontrado("Sección no encontrada para el tipo indicado"));
+        ApuDetalle d = new ApuDetalle();
+        d.seccionId = seccion.id;
+        d.insumoId = insumo.id;
+        d.descripcion = insumo.descripcion;
+        d.orden = (short) (detalleRepository.maxOrdenEnSeccion(seccion.id) + 1);
+        d.esHerramientaMenor = false;
+        d.cantidad = req.cantidad();
+        d.rendimiento = rendimientoSegunSeccion(req.seccionTipo(), req.rendimiento());
+        d.unidad = switch (req.seccionTipo()) {
+            case EQUIPO, MANO_OBRA -> "h";
+            case MATERIAL, TRANSPORTE -> insumo.unidad;
+        };
+        detalleRepository.persist(d);
+        return d;
+    }
+
+    /** Emits the canonical APU creation event inside the caller's transaction. */
+    public void emitirCreacionManual(Apu apu) {
+        emitir(apu, EventoLogActividad.APU_CREADO);
+    }
+
     @Transactional
     public ResultadoCrear crear(Long presupuestoId, ApuCrearRequest req, Long callerUsuarioId) {
         if (req.codigo() != null
