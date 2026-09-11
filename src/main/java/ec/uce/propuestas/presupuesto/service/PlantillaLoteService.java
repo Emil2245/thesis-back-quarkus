@@ -4,6 +4,7 @@ import ec.uce.propuestas.apu.dto.ApuCrearRequest;
 import ec.uce.propuestas.apu.entity.Apu;
 import ec.uce.propuestas.apu.service.ApuCrudService;
 import ec.uce.propuestas.common.ProblemaException;
+import ec.uce.propuestas.common.UuidV7;
 import ec.uce.propuestas.plantilla.entity.PlantillaApu;
 import ec.uce.propuestas.plantilla.service.PlantillaApuService;
 import ec.uce.propuestas.presupuesto.dto.PlantillaLoteRequest;
@@ -52,10 +53,12 @@ public class PlantillaLoteService {
         if (new HashSet<>(req.plantillaIds()).size() != req.plantillaIds().size()) {
             throw ProblemaException.validacion("plantillaIds no puede contener duplicados");
         }
+        UUID capituloPublicId =
+                req.capituloId() == null ? null : UuidV7.parse(req.capituloId().toString());
         Presupuesto presupuesto = presupuestoRepository
                 .findByPublicIdOwnerScopeForUpdate(presupuestoPublicId, callerUsuarioId)
                 .orElseThrow(() -> ProblemaException.noEncontrado("Presupuesto no encontrado"));
-        Capitulo destino = resolverDestino(presupuesto.id, req.capituloId(), callerUsuarioId);
+        Capitulo destino = resolverDestino(presupuesto.id, capituloPublicId, callerUsuarioId);
         List<PlantillaApu> plantillas = new java.util.ArrayList<>();
         for (int i = 0; i < req.plantillaIds().size(); i++) {
             UUID id = req.plantillaIds().get(i);
@@ -64,7 +67,8 @@ public class PlantillaLoteService {
                         400, "validacion", "plantillaId inválido", java.util.Map.of("indice", i));
             }
             try {
-                plantillas.add(plantillaService.cargarPorOwner(id, callerUsuarioId));
+                UUID plantillaPublicId = UuidV7.parse(id.toString());
+                plantillas.add(plantillaService.cargarPorOwner(plantillaPublicId, callerUsuarioId));
             } catch (ProblemaException e) {
                 throw fallo(i, id, e);
             }

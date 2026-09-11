@@ -240,10 +240,35 @@ class PlantillaApuResourceIT {
                 .get("/api/v1/plantillas-apu/busqueda")
                 .then()
                 .statusCode(200)
-                .body("total", equalTo(0));
+                .body("total", equalTo(1), "items[0].nombre", equalTo("Nivelación propia"));
+
+        // Repeated type filters preserve the system result while hiding Bob's PERSONAL row.
+        given().header("Authorization", "Bearer " + tokenAlice)
+                .queryParam("q", "hormigon")
+                .queryParam("tipo", "SISTEMA")
+                .queryParam("tipo", "PERSONAL")
+                .when()
+                .get("/api/v1/plantillas-apu/busqueda")
+                .then()
+                .statusCode(200)
+                .body("total", equalTo(1), "items[0].nombre", equalTo("Hormigón estructural"));
 
         given().header("Authorization", "Bearer " + tokenAlice)
                 .queryParam("size", 0)
+                .when()
+                .get("/api/v1/plantillas-apu/busqueda")
+                .then()
+                .statusCode(400);
+
+        given().header("Authorization", "Bearer " + tokenAlice)
+                .queryParam("size", 201)
+                .when()
+                .get("/api/v1/plantillas-apu/busqueda")
+                .then()
+                .statusCode(400);
+
+        given().header("Authorization", "Bearer " + tokenAlice)
+                .queryParam("page", -1)
                 .when()
                 .get("/api/v1/plantillas-apu/busqueda")
                 .then()
