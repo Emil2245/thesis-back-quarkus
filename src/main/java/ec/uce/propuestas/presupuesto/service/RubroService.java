@@ -126,6 +126,27 @@ public class RubroService {
      *   <li>Cantidad > 0 (validado en DTO).</li>
      * </ol>
      */
+    public Rubro crearRubroAppendOnlySinRecalculo(Presupuesto presupuesto, Capitulo capitulo, Apu apu) {
+        compactarRubrosDelCapitulo(capitulo.id);
+        int ordinal = rubroRepository.listarPorCapitulo(capitulo.id).size() + 1;
+        Rubro rubro = new Rubro();
+        rubro.capituloId = capitulo.id;
+        rubro.apuId = apu.id;
+        rubro.codigo = apu.codigo;
+        rubro.descripcion = apu.descripcion;
+        rubro.unidad = apu.unidad;
+        rubro.cantidad = BigDecimal.ONE;
+        rubro.item = ordinalItem(capitulo.item, ordinal);
+        rubro.precioUnitario = BigDecimal.ZERO;
+        rubro.precioTotal = BigDecimal.ZERO;
+        rubroRepository.persist(rubro);
+        return rubro;
+    }
+
+    public PresupuestoResponse cargarArbol(Long presupuestoId) {
+        return cargarArbolRecalculado(presupuestoId);
+    }
+
     @Transactional
     public PresupuestoResponse crear(
             UUID presupuestoPublicId, UUID capituloPublicId, RubroCrearRequest req, Long callerUsuarioId) {

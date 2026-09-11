@@ -2,9 +2,12 @@ package ec.uce.propuestas.presupuesto.resource;
 
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.common.UuidV7;
+import ec.uce.propuestas.presupuesto.dto.PlantillaLoteRequest;
+import ec.uce.propuestas.presupuesto.dto.PlantillaLoteResponse;
 import ec.uce.propuestas.presupuesto.dto.PresupuestoResponse;
 import ec.uce.propuestas.presupuesto.dto.RubroCrearRequest;
 import ec.uce.propuestas.presupuesto.dto.RubroPatchRequest;
+import ec.uce.propuestas.presupuesto.service.PlantillaLoteService;
 import ec.uce.propuestas.presupuesto.service.RubroService;
 import ec.uce.propuestas.usuario.UsuarioRepository;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -59,7 +62,7 @@ import java.util.UUID;
  * devuelve el árbol completo del presupuesto (write-through de totales raíz
  * → capítulos → rubros).</p>
  */
-@Path("/presupuestos/{presupuestoId}/capitulos/{capituloId}/rubros")
+@Path("/presupuestos/{presupuestoId}")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @RolesAllowed({"USUARIO", "SUPER_ADMIN"})
@@ -67,6 +70,9 @@ public class RubroResource {
 
     @Inject
     RubroService rubroService;
+
+    @Inject
+    PlantillaLoteService plantillaLoteService;
 
     @Inject
     SecurityIdentity identity;
@@ -88,6 +94,7 @@ public class RubroResource {
      * service (regla frontera Plan 07 / WU-03).
      */
     @POST
+    @Path("/capitulos/{capituloId}/rubros")
     public Response crear(
             @PathParam("presupuestoId") String presupuestoId,
             @PathParam("capituloId") String capituloId,
@@ -108,7 +115,7 @@ public class RubroResource {
      * {@code apuId} no cambian.
      */
     @PATCH
-    @Path("/{rubroId}")
+    @Path("/capitulos/{capituloId}/rubros/{rubroId}")
     public PresupuestoResponse editarCantidad(
             @PathParam("presupuestoId") String presupuestoId,
             @PathParam("capituloId") String capituloId,
@@ -125,7 +132,7 @@ public class RubroResource {
      * compactación de items hermanos. El APU sobrevive (D-09 + V001 §3).
      */
     @DELETE
-    @Path("/{rubroId}")
+    @Path("/capitulos/{capituloId}/rubros/{rubroId}")
     @Consumes(MediaType.WILDCARD)
     public PresupuestoResponse eliminar(
             @PathParam("presupuestoId") String presupuestoId,
@@ -135,5 +142,12 @@ public class RubroResource {
         UUID capituloPublicId = UuidV7.parse(capituloId);
         UUID rubroPublicId = UuidV7.parse(rubroId);
         return rubroService.eliminar(presupuestoPublicId, capituloPublicId, rubroPublicId, usuarioId());
+    }
+
+    @POST
+    @Path("/rubros/desde-plantillas")
+    public Response desdePlantillas(@PathParam("presupuestoId") String presupuestoId, @Valid PlantillaLoteRequest req) {
+        PlantillaLoteResponse body = plantillaLoteService.aplicar(UuidV7.parse(presupuestoId), req, usuarioId());
+        return Response.status(Response.Status.CREATED).entity(body).build();
     }
 }
