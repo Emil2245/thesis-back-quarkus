@@ -18,8 +18,8 @@ de los titulares sembrados por V004).
 | [`06-proyecto`](06-proyecto/) | I-03 | `proyecto` | activa | Plan 009 + Plan 07 — flujo CRUD de proyectos |
 | [`07-insumo`](07-insumo/) | I-04 | `insumo` | activa | Plan 009 — CRUD + bases + CSV |
 | [`08-apu`](08-apu/) | I-05 | `apu` | activa | Plan 011 — CRUD + filas M/N/O/P + HM |
-| [`09-i02-i06`](09-i02-i06/) | I-06 | `apu`/`insumo`/`plantilla`/`documento` | activa | Plan 08 — nueve temas canónicos I-02…I-06 |
-| **`10-presupuesto`** | **I-07** | **`presupuesto`** | **activa · verificada (Plan 025 — DONE 2026-09-01, 23/23 requests verde dinámico contra PostgreSQL 18 limpio + fast-jar)** | Esta carpeta: P-28/P-29/P-30/P-31/P-32 + validación |
+| [`09-i02-i06`](09-i02-i06/) | I-06 + Plan 005 | `apu`/`insumo`/`plantilla`/`documento`/`presupuesto` | activa | Plan 08 + búsqueda FTS, lote de plantillas y owner-scope (42 requests) |
+| **`10-presupuesto`** | **I-07 + Plan 005** | **`presupuesto`** | **activa · verificada (Plan 025 + Plan 005: 27/27 requests, 91/91 tests)** | Esta carpeta: P-28/P-29/P-30/P-31/P-32 + APU manual completo |
 | [`11-cronograma`](11-cronograma/) | I-10 | `cronograma` | activa (Plan 031 — export XLSX/PDF/MSPDI, P-37) | Esta carpeta: preflight + descarga por formato + UUIDv7 + owner-to-404 |
 
 > **Nota sobre los archivos legacy 01–05:** no se borran para conservar
@@ -42,12 +42,30 @@ de los titulares sembrados por V004).
    *helpers* que capturan tokens/UUIDv7 en variables runtime que los casos
    posteriores consumen.
 
-## `10-presupuesto/` — Plan 025 / I-07
+## `09-i02-i06/` — Plan 005 / búsqueda, lote y detalle de plantillas
+
+La colección conserva los journeys previos de I-06 y añade, sin crear una
+colección paralela, los casos del Plan 005:
+
+- `TC-09-12` / `TC-09-13`: primera página vacía, búsqueda sin tilde, ranking por peso A/B y filtros repetibles.
+- `TC-09-14`: detalle existente de una plantilla SISTEMA.
+- `TC-09-11c`–`TC-09-11e`: presupuesto y capítulo de preparación propios, sin reutilizar el cronograma V004.
+- `TC-09-15` / `TC-09-16`: captura de la última hoja y lote simple con destino implícito.
+- `TC-09-17`: lote mixto SISTEMA + PERSONAL propia con advertencias no bloqueantes.
+- `TC-09-18` / `TC-09-20`: rollback identificado y validación de duplicados.
+- `TC-09-19` / `TC-09-21`: owner-to-404 del lote y del detalle PERSONAL.
+
+Los casos derivan UUIDv7 de respuestas previas o usan únicamente el UUIDv7
+SISTEMA sembrado; los lotes operan sobre el presupuesto nuevo capturado por
+`TC-09-11c`; no exponen BIGINT internos ni sustituyen los endpoints legados
+de listado/detalle.
+
+## `10-presupuesto/` — Plan 025 + Plan 005 / I-07
 
 Cubre los procesos canónicos **P-28 (capítulos), P-29 (rubros), P-30
 (resumen), P-31 (versiones) y P-32 (validación de integridad)** del módulo
 `presupuesto` contra una base Postgres local sembrada por Flyway
-(`V001…V004`) y refrescada entre corridas.
+(`V001…V012`) y refrescada entre corridas.
 
 ### Orden de ejecución
 
@@ -77,21 +95,26 @@ TC-10-12   Validación P-32 sobre v2 (PU=0 + sin actividad)
 TC-10-13   UUIDv4 → 400 validacion
 TC-10-14   UUIDv7 inexistente → 404
 TC-10-15   Caller ajeno → 404 (RNF-05)
+TC-10-16   Crear insumo para el flujo manual (helper)
+TC-10-17   Crear APU manual completo atómico
+TC-10-18   Campos server-authored → 400
+TC-10-19   APU manual sobre versión ajena → 404
 ```
 
-> **Conteo total: 23 requests** (5 helpers + 18 casos temáticos). El
+> **Conteo total: 27 requests** (9 helpers/casos de preparación + 18
+> casos temáticos, incluyendo los cuatro journeys del Plan 005). El
 > número es mayor que el "~6–8" del plan original porque HTTP no se
 > puede comprimir sin saltarse contratos — cada mutación verifica su
 > respuesta independientemente (P-28 se desglosa en 4 sub-casos:
 > crear raíz / crear subcapítulo / mover / eliminar). La secuencia
-> total tarda ~10–15 s contra el backend local.
+> total debe medirse contra el backend local; no se fija un SLO nuevo.
 
 ### Pre-requisitos
 
 - `john.doe@uce.edu.ec` y `ana.armas@gmail.com` deben existir en la BD
   con la password `Clave1234` (semilla V004). Si no, `00a`/`00b`
   devolverán 401 y los casos autenticados fallarán en cascada.
-- Postgres limpio o cualquier BD con `V001…V004` aplicados (Flyway corre
+- Postgres limpio o cualquier BD con `V001…V012` aplicados (Flyway corre
   al arrancar Quarkus).
 - **BD limpia (desechable) por corrida.** Los nombres y códigos de la
   colección son **deterministas** (`Plan025 demo`, `P-2026-P25`,
@@ -105,7 +128,7 @@ TC-10-15   Caller ajeno → 404 (RNF-05)
 
 ### Variables runtime capturadas
 
-Las variables `p25*` se declaran en `environments/dev.bru` (no en
+Las variables `p25*` y `p05*` se declaran en `environments/dev.bru` (no en
 `10-presupuesto/environments/` — Bruno carga el environment
 compartido) y se capturan en runtime por los helpers:
 
@@ -119,6 +142,12 @@ compartido) y se capturan en runtime por los helpers:
 | `p25RubroId` | TC-10-03 | TC-10-05 (v1 only; v2 tiene UUID fresco tras deep copy, ver TC-10-12 docs) |
 | `p25V2Id` | TC-10-07 | TC-10-08, 09, 11, 12, 15 |
 | `p25InexistenteV7` | fija en `dev.bru` | TC-10-14 |
+| `p05PresupuestoId` | TC-09-11c | TC-09-11d, 11e, 09-16–09-20 |
+| `p05CapituloRaizId` | TC-09-11d | TC-09-11e |
+| `p05CapituloHojaId` | TC-09-11e | TC-09-17 |
+| `p05CapituloHojaItem` | TC-09-11e | TC-09-16 |
+| `p05ManualInsumoId` | TC-10-16 | TC-10-17, 10-18, 10-19 |
+| `p05ManualApuId` | TC-10-17 | diagnóstico posterior |
 
 > **Cómo se assertan las capturas:** Bruno interpola las plantillas
 > `{{var}}` **antes** de ejecutar `script:post-response`, así que el
@@ -143,7 +172,8 @@ compartido) y se capturan en runtime por los helpers:
   o apuntar a un Dev Services fresco.
 - TC-10-10 elimina la versión 1; TC-10-11 confirma que v2 sigue
   vigente. Tras toda la colección quedan: 1 proyecto + 1 presupuesto
-  v2 vigente + 1 capítulo + 1 rubro + 1 APU + 0 cronograma.
+  v2 vigente + el árbol original más los APUs/rubros creados por el
+  lote y el flujo manual + 0 cronograma.
 
 ### Limitaciones honestas
 
@@ -153,8 +183,11 @@ compartido) y se capturan en runtime por los helpers:
   `cantidad=0` vive en el IT `PresupuestoValidacionResourceIT` (que
   siembra por SQL nativo). Esta separación se documenta en el doc
   `docs/modulos/05-presupuesto/07-validacion-y-cierre.md`.
-- Los casos negativos (TC-10-13/14/15) usan UUIDs estáticos o
-  capturados — no requieren mutación previa.
+- Los casos negativos (TC-10-13/14/15 y TC-10-18/19) usan UUIDs
+  estáticos o capturados — no requieren BIGINT ni mutaciones ocultas.
+- TC-10-16/17 cubren el flujo manual completo del Plan 005: el helper
+  deriva el insumo desde la respuesta 201 y el POST agregado deriva el APU
+  y rubro desde su respuesta 201.
 - TC-10-15 (caller ajeno) usa `p25V2Id` (presupuesto vigente de
   John); Ana no es owner → 404. Esta es la asimetría correcta con
   `09-i02-i06/TC-09-11b-recurso-ajeno-404.bru`.

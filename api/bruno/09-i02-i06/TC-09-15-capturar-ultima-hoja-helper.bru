@@ -1,0 +1,49 @@
+meta {
+  name: TC-09-15 — Capturar última hoja para lote (helper)
+  type: http
+  seq: 32
+}
+
+get {
+  url: {{baseUrl}}/presupuestos/{{presupuestoId}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+script:post-response {
+  function ultimaHoja(capituloRaiz) {
+    var cursor = capituloRaiz[capituloRaiz.length - 1];
+    while (cursor && cursor.subcapitulos && cursor.subcapitulos.length > 0) {
+      cursor = cursor.subcapitulos[cursor.subcapitulos.length - 1];
+    }
+    return cursor;
+  }
+
+  if (res.status === 200 && res.body && Array.isArray(res.body.capitulos)) {
+    var hoja = ultimaHoja(res.body.capitulos);
+    if (hoja) {
+      bru.setVar("p05CapituloHojaId", hoja.id);
+      bru.setVar("p05CapituloHojaItem", hoja.item);
+    }
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("El árbol tiene una hoja capturable", function() {
+    expect(res.body.capitulos).to.be.an("array");
+    expect(res.body.capitulos.length).to.be.at.least(1);
+  });
+}
+
+docs {
+  Helper Plan 005 — deriva la hoja más profunda del último capítulo
+  raíz sin fijar BIGINT ni asumir una profundidad determinada. El lote
+  siguiente omite `capituloId` y permite verificar el destino implícito.
+}

@@ -1,0 +1,26 @@
+meta {
+  name: TC-09-21 — Detalle de plantilla PERSONAL ajena
+  type: http
+  seq: 38
+}
+
+get {
+  url: {{baseUrl}}/plantillas-apu/{{nuevaPlantillaApuId}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u2_access_token}}
+}
+
+tests {
+  test("PERSONAL ajena devuelve 404", function() {
+    expect(res.status).to.equal(404);
+    expect(res.body.codigo).to.equal("no-encontrado");
+  });
+}
+
+docs {
+  Plan 005 — el endpoint de detalle existente conserva owner-to-404;
+  Ana no puede abrir la plantilla PERSONAL creada por John.
+}

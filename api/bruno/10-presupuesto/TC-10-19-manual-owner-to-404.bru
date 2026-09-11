@@ -1,0 +1,45 @@
+meta {
+  name: TC-10-19 — APU manual sobre presupuesto ajeno
+  type: http
+  seq: 26
+}
+
+post {
+  url: {{baseUrl}}/presupuestos/{{p25V2Id}}/apus/completo
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u2_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "descripcion": "No debe crear",
+    "unidad": "u",
+    "detalles": [
+      {
+        "seccionTipo": "MATERIAL",
+        "insumoId": "{{p05ManualInsumoId}}",
+        "cantidad": "1.000000"
+      }
+    ]
+  }
+}
+
+tests {
+  test("Caller ajeno recibe 404", function() {
+    expect(res.status).to.equal(404);
+    expect(res.body.codigo).to.equal("no-encontrado");
+  });
+}
+
+docs {
+  Plan 005 / RNF-05 — el flujo manual no expone la existencia de una
+  versión ajena y no crea ninguna fila.
+}

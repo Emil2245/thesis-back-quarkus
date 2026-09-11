@@ -1,0 +1,47 @@
+meta {
+  name: TC-10-18 — APU manual rechaza campos server-authored
+  type: http
+  seq: 25
+}
+
+post {
+  url: {{baseUrl}}/presupuestos/{{p25V2Id}}/apus/completo
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "descripcion": "No debe persistir",
+    "unidad": "u",
+    "costoDirecto": "99.00",
+    "detalles": [
+      {
+        "seccionTipo": "MATERIAL",
+        "insumoId": "{{p05ManualInsumoId}}",
+        "cantidad": "1.000000",
+        "precioOverride": "10.00"
+      }
+    ]
+  }
+}
+
+tests {
+  test("Campos desconocidos o derivados devuelven 400", function() {
+    expect(res.status).to.equal(400);
+    expect(res.body.codigo).to.equal("validacion");
+  });
+}
+
+docs {
+  Plan 005 — el strict JSON se limita al endpoint manual: totales y
+  `precioOverride` no son entradas de la operación agregada.
+}

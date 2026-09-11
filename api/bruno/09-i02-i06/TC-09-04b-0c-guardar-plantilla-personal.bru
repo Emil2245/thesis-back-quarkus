@@ -6,6 +6,7 @@ meta {
 
 post {
   url: {{baseUrl}}/apus/{{apuId}}/guardar-plantilla
+  body: json
   auth: bearer
 }
 
@@ -40,7 +41,7 @@ tests {
   });
 
   test("nuevaPlantillaApuId capturado como UUIDv7", function() {
-    expect("{{nuevaPlantillaApuId}}").to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(res.body.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
   });
 }
 

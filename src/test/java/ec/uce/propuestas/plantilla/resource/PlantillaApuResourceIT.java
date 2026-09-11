@@ -141,6 +141,20 @@ class PlantillaApuResourceIT {
         }
     }
 
+    private UUID sembrarPlantillaSistemaConDescripcion(String nombre, String descripcion) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement(
+                        "INSERT INTO plantilla_apu (nombre, tipo, descripcion_rubro, snapshot_secciones) "
+                                + "VALUES (?, 'SISTEMA', ?, '{\"secciones\":[]}') RETURNING public_id")) {
+            ps.setString(1, nombre);
+            ps.setString(2, descripcion);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return (UUID) rs.getObject(1);
+            }
+        }
+    }
+
     private UUID sembrarPlantillaPersonal(Long usuarioId, String nombre, String snapshot) throws Exception {
         try (Connection con = ds.getConnection();
                 PreparedStatement ps =
@@ -240,7 +254,10 @@ class PlantillaApuResourceIT {
                 .get("/api/v1/plantillas-apu/busqueda")
                 .then()
                 .statusCode(200)
-                .body("total", equalTo(1), "items[0].nombre", equalTo("Nivelación propia"));
+                .body(
+                        "total", equalTo(1),
+                        "items[0].nombre", equalTo("Nivelación propia"),
+                        "size", equalTo(20));
 
         // Repeated type filters preserve the system result while hiding Bob's PERSONAL row.
         given().header("Authorization", "Bearer " + tokenAlice)
@@ -273,6 +290,31 @@ class PlantillaApuResourceIT {
                 .get("/api/v1/plantillas-apu/busqueda")
                 .then()
                 .statusCode(400);
+    }
+
+    @Test
+    void TC_PR_SEARCH_02_primera_pagina_vacia_y_ranking_por_peso_fts() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "alice-search-ranking@ex.com");
+        sembrarPlantillaSistemaConDescripcion("Hormigón estructural", "rubro estructural");
+        sembrarPlantillaSistemaConDescripcion("Mampostería", "muro de hormigón");
+        sembrarPlantillaSistemaConDescripcion("Nivelación", "preparación con hormigón");
+
+        given().header("Authorization", "Bearer " + token)
+                .queryParam("q", "termino-sin-resultados-p05")
+                .when()
+                .get("/api/v1/plantillas-apu/busqueda")
+                .then()
+                .statusCode(200)
+                .body("items.size()", is(0), "total", equalTo(0), "size", equalTo(20));
+
+        given().header("Authorization", "Bearer " + token)
+                .queryParam("q", "hormigon")
+                .queryParam("tipo", "SISTEMA")
+                .when()
+                .get("/api/v1/plantillas-apu/busqueda")
+                .then()
+                .statusCode(200)
+                .body("total", equalTo(3), "items[0].nombre", equalTo("Hormigón estructural"));
     }
 
     @Test

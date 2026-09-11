@@ -1,0 +1,39 @@
+meta {
+  name: TC-09-11c — Capturar presupuesto nuevo para Plan 005 (helper)
+  type: http
+  seq: 28
+}
+
+get {
+  url: {{baseUrl}}/proyectos/{{proyectoId}}/presupuestos
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+script:post-response {
+  if (res.status === 200 && Array.isArray(res.body) && res.body.length > 0) {
+    bru.setVar("p05PresupuestoId", res.body[0].presupuestoId);
+  }
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Captura la versión 1 nueva como UUIDv7", function() {
+    expect(res.body).to.be.an("array");
+    expect(res.body.length).to.be.at.least(1);
+    expect(res.body[0].version).to.equal(1);
+    expect(res.body[0].presupuestoId).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+}
+
+docs {
+  Helper Plan 005 — evita reutilizar el presupuesto V004 con cronograma de
+  fixture. Captura la versión auto-creada por el proyecto BORRADOR de 00d para
+  que el lote opere sobre una versión sin actividad previa.
+}

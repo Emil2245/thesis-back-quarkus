@@ -83,7 +83,7 @@ public class PlantillaApuResource {
             @QueryParam("q") String q,
             @QueryParam("tipo") List<String> tipos,
             @QueryParam("page") @DefaultValue("0") int page,
-            @QueryParam("size") @DefaultValue("25") int size) {
+            @QueryParam("size") @DefaultValue("20") int size) {
         if (page < 0) throw ProblemaException.validacion("page debe ser mayor o igual a 0");
         if (size < 1 || size > 200) throw ProblemaException.validacion("size debe estar entre 1 y 200");
         List<PlantillaApu.Tipo> tiposEnum = new java.util.ArrayList<>();

@@ -1,0 +1,41 @@
+meta {
+  name: TC-09-18 — Rollback de lote en segundo elemento
+  type: http
+  seq: 35
+}
+
+post {
+  url: {{baseUrl}}/presupuestos/{{p05PresupuestoId}}/rubros/desde-plantillas
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "plantillaIds": ["{{plantillaApuSistemaId}}", "{{p05InexistenteV7}}"]
+  }
+}
+
+tests {
+  test("Fallo identificado en posición 2", function() {
+    expect(res.status).to.equal(404);
+    expect(res.body.codigo).to.equal("no-encontrado");
+    expect(res.body.mensaje).to.contain("posición 2");
+    expect(res.body.detalles.indice).to.equal(1);
+    expect(res.body.detalles.plantillaId).to.equal(bru.getEnvVar("p05InexistenteV7"));
+  });
+}
+
+docs {
+  Plan 005 — la segunda plantilla es inexistente. El primer APU no
+  debe quedar persistido: el IT comprueba conteos de APU/rubro/log y
+  este journey comprueba el error estructurado visible al cliente.
+}

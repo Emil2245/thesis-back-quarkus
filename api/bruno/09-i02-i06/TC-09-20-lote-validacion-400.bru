@@ -1,0 +1,37 @@
+meta {
+  name: TC-09-20 — Lote con IDs duplicados
+  type: http
+  seq: 37
+}
+
+post {
+  url: {{baseUrl}}/presupuestos/{{p05PresupuestoId}}/rubros/desde-plantillas
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "plantillaIds": ["{{plantillaApuSistemaId}}", "{{plantillaApuSistemaId}}"]
+  }
+}
+
+tests {
+  test("Duplicados se rechazan antes de mutar", function() {
+    expect(res.status).to.equal(400);
+    expect(res.body.codigo).to.equal("validacion");
+  });
+}
+
+docs {
+  Plan 005 — `plantillaIds` conserva orden significativo pero no
+  admite duplicados; el rechazo es 400 validacion.
+}

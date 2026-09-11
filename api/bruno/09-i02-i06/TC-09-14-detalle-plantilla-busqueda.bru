@@ -1,0 +1,32 @@
+meta {
+  name: TC-09-14 — Detalle de plantilla encontrada
+  type: http
+  seq: 31
+}
+
+get {
+  url: {{baseUrl}}/plantillas-apu/{{plantillaApuSistemaId}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Detalle conserva identidad y snapshot opaco", function() {
+    expect(res.body.id).to.equal(bru.getEnvVar("plantillaApuSistemaId"));
+    expect(res.body.tipo).to.equal("SISTEMA");
+    expect(res.body.snapshotSecciones).to.be.an("object");
+  });
+}
+
+docs {
+  Plan 005 — abre el resultado SISTEMA con el endpoint legado de
+  detalle, que permanece compatible y devuelve el snapshot sin
+  convertirlo en un nuevo contrato de búsqueda.
+}

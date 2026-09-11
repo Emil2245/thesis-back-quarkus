@@ -1,0 +1,44 @@
+meta {
+  name: TC-09-13 — Búsqueda FTS acento-insensible, ranking y filtros
+  type: http
+  seq: 30
+}
+
+get {
+  url: {{baseUrl}}/plantillas-apu/busqueda?q=hormigon&tipo=SISTEMA&tipo=PERSONAL&page=0&size=20
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("La búsqueda sin tilde encuentra términos con tilde", function() {
+    expect(res.body.total).to.be.at.least(2);
+    expect(res.body.items[0].nombre).to.equal("Contrapiso de hormigón simple");
+  });
+
+  test("Los filtros repetibles mantienen el owner-scope", function() {
+    res.body.items.forEach(function(item) {
+      expect(["SISTEMA", "PERSONAL"]).to.include(item.tipo);
+    });
+  });
+
+  test("Respuesta paginada estable", function() {
+    expect(res.body.page).to.equal(0);
+    expect(res.body.size).to.equal(20);
+    expect(res.body.totalPaginas).to.be.at.least(1);
+  });
+}
+
+docs {
+  Plan 005 — `q=hormigon` se normaliza sin tilde. El resultado con
+  coincidencia en nombre (peso A) precede a coincidencias solo en
+  descripción (peso B). La URL repite `tipo` para cubrir SISTEMA +
+  PERSONAL sin introducir un filtro en memoria.
+}

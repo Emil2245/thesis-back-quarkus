@@ -1,0 +1,34 @@
+meta {
+  name: TC-09-12 — Búsqueda FTS primera página vacía
+  type: http
+  seq: 29
+}
+
+get {
+  url: {{baseUrl}}/plantillas-apu/busqueda?q=termino-sin-resultados-p05&page=0&size=20
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+tests {
+  test("Status 200 OK", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("Page<T> vacío y con tamaño canónico 20", function() {
+    expect(res.body.items).to.be.an("array");
+    expect(res.body.items.length).to.equal(0);
+    expect(res.body.total).to.equal(0);
+    expect(res.body.page).to.equal(0);
+    expect(res.body.size).to.equal(20);
+    expect(res.body.totalPaginas).to.equal(0);
+  });
+}
+
+docs {
+  Plan 005 — q válido sin coincidencias. Verifica que la primera
+  página vacía conserva la forma `Page<T>` y el tamaño canónico 20.
+}

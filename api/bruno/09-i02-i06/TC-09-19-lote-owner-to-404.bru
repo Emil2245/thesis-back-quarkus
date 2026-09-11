@@ -1,0 +1,37 @@
+meta {
+  name: TC-09-19 — Lote sobre presupuesto ajeno
+  type: http
+  seq: 36
+}
+
+post {
+  url: {{baseUrl}}/presupuestos/{{p05PresupuestoId}}/rubros/desde-plantillas
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u2_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "plantillaIds": ["{{plantillaApuSistemaId}}"]
+  }
+}
+
+tests {
+  test("Caller ajeno recibe 404 sin filtrar existencia", function() {
+    expect(res.status).to.equal(404);
+    expect(res.body.codigo).to.equal("no-encontrado");
+  });
+}
+
+docs {
+  Plan 005 / RNF-05 — Ana intenta operar sobre el presupuesto de
+  John; el owner-scope se resuelve antes de crear APUs o rubros.
+}

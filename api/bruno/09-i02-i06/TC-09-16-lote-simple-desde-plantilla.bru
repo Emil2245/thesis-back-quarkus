@@ -1,0 +1,74 @@
+meta {
+  name: TC-09-16 — Lote simple desde plantilla SISTEMA
+  type: http
+  seq: 33
+}
+
+post {
+  url: {{baseUrl}}/presupuestos/{{p05PresupuestoId}}/rubros/desde-plantillas
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "plantillaIds": ["{{plantillaApuSistemaId}}"]
+  }
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.resultados
+      && res.body.resultados.length > 0) {
+    bru.setVar("p05BatchApuId", res.body.resultados[0].apuId);
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("Una plantilla produce un APU y un rubro", function() {
+    expect(res.body.resultados.length).to.equal(1);
+    expect(res.body.resultados[0].plantillaId).to.equal(bru.getEnvVar("plantillaApuSistemaId"));
+    expect(res.body.presupuesto.capitulos).to.be.an("array");
+  });
+
+  test("Destino implícito es la última hoja y cantidad es 1.000000", function() {
+    function buscarRubro(capitulo, apuId) {
+      if (capitulo.rubros && capitulo.rubros.some(function(r) { return r.apuId === apuId; })) {
+        return capitulo.rubros.find(function(r) { return r.apuId === apuId; });
+      }
+      if (capitulo.subcapitulos) {
+        for (var i = 0; i < capitulo.subcapitulos.length; i++) {
+          var encontrado = buscarRubro(capitulo.subcapitulos[i], apuId);
+          if (encontrado) return encontrado;
+        }
+      }
+      return null;
+    }
+
+    var rubro = null;
+    res.body.presupuesto.capitulos.forEach(function(c) {
+      var encontrado = buscarRubro(c, res.body.resultados[0].apuId);
+      if (encontrado) rubro = encontrado;
+    });
+    expect(rubro).to.not.equal(null);
+    expect(rubro.item).to.match(new RegExp("^" + bru.getVar("p05CapituloHojaItem") + "\\."));
+    expect(rubro.cantidad).to.equal("1.000000");
+  });
+}
+
+docs {
+  Plan 005 — happy-path simple. `capituloId` se omite a propósito:
+  el backend resuelve la hoja profunda y crea el rubro con cantidad
+  server-authored `1.000000`.
+}

@@ -1,0 +1,79 @@
+meta {
+  name: TC-10-17 — Crear APU manual completo atómico
+  type: http
+  seq: 24
+}
+
+post {
+  url: {{baseUrl}}/presupuestos/{{p25V2Id}}/apus/completo
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "codigo": "P05-MANUAL-{{$randomInt}}",
+    "descripcion": "APU manual completo Plan 005",
+    "unidad": "m3",
+    "porcentajeIndirecto": "0.2000",
+    "detalles": [
+      {
+        "seccionTipo": "MATERIAL",
+        "insumoId": "{{p05ManualInsumoId}}",
+        "cantidad": "2.000000"
+      }
+    ]
+  }
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.apu && res.body.apu.id) {
+    bru.setVar("p05ManualApuId", res.body.apu.id);
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("Cabecera, cuatro secciones y fila HM son server-authored", function() {
+    expect(res.body.apu.secciones.length).to.equal(4);
+    expect(res.body.apu.secciones[0].tipo).to.equal("EQUIPO");
+    expect(res.body.apu.secciones[0].detalles[0].esHerramientaMenor).to.equal(true);
+    expect(res.body.apu.secciones[2].detalles.length).to.equal(1);
+  });
+
+  test("Rubro vinculado con cantidad 1.000000", function() {
+    var apuId = res.body.apu.id;
+    var encontrados = [];
+    function recorrer(c) {
+      (c.rubros || []).forEach(function(r) {
+        if (r.apuId === apuId) encontrados.push(r);
+      });
+      (c.subcapitulos || []).forEach(recorrer);
+    }
+    res.body.presupuesto.capitulos.forEach(recorrer);
+    expect(encontrados.length).to.equal(1);
+    expect(encontrados[0].cantidad).to.equal("1.000000");
+  });
+
+  test("No acepta totales del cliente en el contrato de entrada", function() {
+    expect(res.body.apu).to.not.have.property("costoDirectoAportado");
+    expect(res.body.apu).to.have.property("costoTotal");
+  });
+}
+
+docs {
+  Plan 005 / P-20 + P-21 + P-29 — crea cabecera, fila editable y
+  rubro en una sola operación. Se omite `capituloId` para verificar la
+  hoja implícita; totales y HM no forman parte del request.
+}

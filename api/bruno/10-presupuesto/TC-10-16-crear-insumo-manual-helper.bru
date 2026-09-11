@@ -1,0 +1,50 @@
+meta {
+  name: TC-10-16 — Crear insumo para APU manual completo (helper)
+  type: http
+  seq: 23
+}
+
+post {
+  url: {{baseUrl}}/proyectos/{{p25ProyectoId}}/insumos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "codigo": "P05-MANUAL-{{$randomInt}}",
+    "tipo": "MATERIAL",
+    "descripcion": "Material para APU manual Plan 005",
+    "unidad": "m3",
+    "precioUnitario": "2.00"
+  }
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("p05ManualInsumoId", res.body.id);
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("Insumo público UUIDv7 capturado", function() {
+    expect(res.body.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+}
+
+docs {
+  Helper Plan 005 — crea el insumo PROYECTO que consume el caso de
+  creación manual completa. El ID se deriva de la respuesta HTTP.
+}

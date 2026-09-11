@@ -49,7 +49,7 @@ Ola A — paralela
 | 002 | [Catálogo seed de plantillas](002-seed-catalogo-plantillas.md) | — |
 | 003 | [Aplicación atómica por lote](003-aplicar-plantillas-en-lote.md) | — |
 | 004 | [Creación manual completa](004-crear-apu-manual-completo.md) | 003 |
-| 005 | [Integración, Bruno y contrato](005-integracion-contrato-bruno.md) | 001–004 |
+| 005 | [Integración, Bruno y contrato](005-integracion-contrato-bruno.md) | **DONE 2026-09-11** · 001–004 |
 
 ## Invariantes
 

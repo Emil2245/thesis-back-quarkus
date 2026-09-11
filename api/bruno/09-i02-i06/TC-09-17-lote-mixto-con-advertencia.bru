@@ -1,0 +1,67 @@
+meta {
+  name: TC-09-17 — Lote mixto SISTEMA + PERSONAL propia
+  type: http
+  seq: 34
+}
+
+post {
+  url: {{baseUrl}}/presupuestos/{{p05PresupuestoId}}/rubros/desde-plantillas
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{u1_access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "capituloId": "{{p05CapituloHojaId}}",
+    "plantillaIds": ["{{plantillaApuSistemaId}}", "{{nuevaPlantillaApuId}}"]
+  }
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.resultados
+      && res.body.resultados.length > 0) {
+    bru.setVar("p05BatchMixtoApuId", res.body.resultados[0].apuId);
+  }
+}
+
+tests {
+  test("Status 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("Orden de resultados y advertencia por pendiente", function() {
+    expect(res.body.resultados.length).to.equal(2);
+    expect(res.body.resultados[0].plantillaId).to.equal(bru.getEnvVar("plantillaApuSistemaId"));
+    expect(res.body.resultados[1].plantillaId).to.equal(bru.getVar("nuevaPlantillaApuId"));
+    expect(res.body.resultados[1].advertencias).to.be.an("array");
+    expect(res.body.resultados[1].advertencias.length).to.be.at.least(1);
+  });
+
+  test("Ambos rubros usan cantidad server-authored 1.000000", function() {
+    var rubros = res.body.presupuesto.capitulos[0].rubros || [];
+    var encontrados = [];
+    function recorrer(c) {
+      (c.rubros || []).forEach(function(r) {
+        if (res.body.resultados.some(function(x) { return x.apuId === r.apuId; })) encontrados.push(r);
+      });
+      (c.subcapitulos || []).forEach(recorrer);
+    }
+    res.body.presupuesto.capitulos.forEach(recorrer);
+    expect(encontrados.length).to.equal(2);
+    encontrados.forEach(function(r) { expect(r.cantidad).to.equal("1.000000"); });
+  });
+}
+
+docs {
+  Plan 005 — lote mixto en capítulo explícito, con una plantilla
+  PERSONAL propia que conserva la semántica de advertencias del Plan 04.
+  Las advertencias se agrupan por resultado y no causan rollback.
+}
