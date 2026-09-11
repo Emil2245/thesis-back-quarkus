@@ -7,6 +7,7 @@ import ec.uce.propuestas.apu.repository.ApuDetalleRepository;
 import ec.uce.propuestas.apu.repository.ApuRepository;
 import ec.uce.propuestas.apu.repository.ApuSeccionRepository;
 import ec.uce.propuestas.common.ProblemaException;
+import ec.uce.propuestas.common.dto.Page;
 import ec.uce.propuestas.insumo.entity.Insumo;
 import ec.uce.propuestas.insumo.repository.InsumoRepository;
 import ec.uce.propuestas.motor.SeccionTipo;
@@ -100,6 +101,17 @@ public class PlantillaApuService {
             });
         }
         return todas.stream().map(PlantillaApuResumenResponse::from).toList();
+    }
+
+    /** Plan 001 — PostgreSQL FTS search with stable pagination and owner scope. */
+    public Page<PlantillaApuResumenResponse> buscar(
+            Long callerUsuarioId, List<PlantillaApu.Tipo> tipos, String q, int page, int size) {
+        List<PlantillaApuResumenResponse> items =
+                plantillaApuRepository.buscar(callerUsuarioId, tipos, q, page, size).stream()
+                        .map(PlantillaApuResumenResponse::from)
+                        .toList();
+        long total = plantillaApuRepository.contarBusqueda(callerUsuarioId, tipos, q);
+        return Page.of(items, total, page, size);
     }
 
     // =========================================================================

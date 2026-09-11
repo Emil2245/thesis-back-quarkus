@@ -85,6 +85,50 @@ public class PlantillaApuRepository implements PanacheRepositoryBase<PlantillaAp
         return value.replace("!", "!!").replace("%", "!%").replace("_", "!_");
     }
 
+    /** Plan 001 — paginated PostgreSQL FTS search with owner scope. */
+    public List<PlantillaApu> buscar(
+            Long callerUsuarioId, List<PlantillaApu.Tipo> tipos, String q, int page, int size) {
+        boolean fts = q != null && !q.isBlank();
+        String sql = "select p.* from plantilla_apu p "
+                + "where p.tipo in (:tipos) and (p.tipo = 'SISTEMA' "
+                + "or (p.tipo = 'PERSONAL' and p.usuario_id = :caller)) ";
+        if (fts) {
+            sql += "and p.busqueda_fts @@ websearch_to_tsquery('public.spanish_unaccent', :q) "
+                    + "order by ts_rank_cd(p.busqueda_fts, "
+                    + "websearch_to_tsquery('public.spanish_unaccent', :q)) desc, "
+                    + "case p.tipo when 'SISTEMA' then 0 else 1 end, p.nombre, p.public_id";
+        } else {
+            sql += "order by case p.tipo when 'SISTEMA' then 0 else 1 end, p.nombre, p.public_id";
+        }
+        var query = getEntityManager()
+                .createNativeQuery(sql, PlantillaApu.class)
+                .setParameter("tipos", tipos.stream().map(Enum::name).toList())
+                .setParameter("caller", callerUsuarioId)
+                .setFirstResult(page * size)
+                .setMaxResults(size);
+        if (fts) query.setParameter("q", q.trim());
+        @SuppressWarnings("unchecked")
+        List<PlantillaApu> result = query.getResultList();
+        return result;
+    }
+
+    /** Plan 001 — count using exactly the same owner/type/FTS filters. */
+    public long contarBusqueda(Long callerUsuarioId, List<PlantillaApu.Tipo> tipos, String q) {
+        boolean fts = q != null && !q.isBlank();
+        String sql = "select count(*) from plantilla_apu p "
+                + "where p.tipo in (:tipos) and (p.tipo = 'SISTEMA' "
+                + "or (p.tipo = 'PERSONAL' and p.usuario_id = :caller)) ";
+        if (fts) {
+            sql += "and p.busqueda_fts @@ websearch_to_tsquery('public.spanish_unaccent', :q)";
+        }
+        var query = getEntityManager()
+                .createNativeQuery(sql)
+                .setParameter("tipos", tipos.stream().map(Enum::name).toList())
+                .setParameter("caller", callerUsuarioId);
+        if (fts) query.setParameter("q", q.trim());
+        return ((Number) query.getSingleResult()).longValue();
+    }
+
     /**
      * Plan 04 (P-26) — Listado de plantillas PERSONAL del caller, orden estable
      * por nombre.

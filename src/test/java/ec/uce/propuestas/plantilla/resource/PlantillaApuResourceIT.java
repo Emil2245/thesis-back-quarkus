@@ -205,6 +205,52 @@ class PlantillaApuResourceIT {
     }
 
     @Test
+    void TC_PR_SEARCH_01_busqueda_fts_owner_scope_tipos_y_paginacion() throws Exception {
+        String tokenAlice = AuthSupport.registrarConToken(mailbox, "alice-search@ex.com");
+        String tokenBob = AuthSupport.registrarConToken(mailbox, "bob-search@ex.com");
+        long aliceId = usuarioIdPorEmail("alice-search@ex.com");
+        long bobId = usuarioIdPorEmail("bob-search@ex.com");
+        sembrarPlantillaSistema("Hormigón estructural");
+        sembrarPlantillaPersonal(aliceId, "Nivelación propia", "{\"secciones\":[]}");
+        sembrarPlantillaPersonal(bobId, "Hormigón ajeno", "{\"secciones\":[]}");
+
+        given().header("Authorization", "Bearer " + tokenAlice)
+                .queryParam("q", "hormigon")
+                .queryParam("tipo", "SISTEMA")
+                .queryParam("page", 0)
+                .queryParam("size", 1)
+                .when()
+                .get("/api/v1/plantillas-apu/busqueda")
+                .then()
+                .statusCode(200)
+                .body(
+                        "total",
+                        equalTo(1),
+                        "items[0].nombre",
+                        equalTo("Hormigón estructural"),
+                        "page",
+                        equalTo(0),
+                        "size",
+                        equalTo(1));
+
+        given().header("Authorization", "Bearer " + tokenAlice)
+                .queryParam("q", "nivelacion")
+                .queryParam("tipo", "PERSONAL")
+                .when()
+                .get("/api/v1/plantillas-apu/busqueda")
+                .then()
+                .statusCode(200)
+                .body("total", equalTo(0));
+
+        given().header("Authorization", "Bearer " + tokenAlice)
+                .queryParam("size", 0)
+                .when()
+                .get("/api/v1/plantillas-apu/busqueda")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
     void TC_PR_02_detalle_personal_ajena_devuelve_404() throws Exception {
         String tokenAlice = AuthSupport.registrarConToken(mailbox, "alice-det@ex.com");
         String tokenBob = AuthSupport.registrarConToken(mailbox, "bob-det@ex.com");
