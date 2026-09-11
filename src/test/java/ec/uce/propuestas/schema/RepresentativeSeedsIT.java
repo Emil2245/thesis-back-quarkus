@@ -307,11 +307,16 @@ class RepresentativeSeedsIT {
     }
 
     private void assertTemplatesAndInertRows() throws Exception {
-        assertEquals(2, queryLong("SELECT count(*) FROM plantilla_apu"));
+        assertEquals(13, queryLong("SELECT count(*) FROM plantilla_apu"));
         assertEquals(
-                2,
+                13,
                 queryLong(
                         "SELECT count(*) FROM plantilla_apu WHERE snapshot_secciones::text NOT LIKE '%apuAuxiliarId%'"));
+        assertEquals(12, queryLong("SELECT count(*) FROM plantilla_apu WHERE tipo = 'SISTEMA' AND usuario_id IS NULL"));
+        assertEquals(
+                0,
+                queryLong(
+                        "SELECT count(*) FROM plantilla_apu WHERE public_id::text >= '0192f6c4-7c8a-7abc-8000-000000002010' AND public_id::text <= '0192f6c4-7c8a-7abc-8000-000000002020' AND snapshot_secciones::text ~ '(precio|costo|insumoId|apuId)'"));
         assertTrue(queryLong("SELECT count(*) FROM plantilla_proyecto") >= 1);
         assertTrue(queryLong("SELECT count(*) FROM presupuesto_rubro") >= 1);
         assertTrue(queryLong("SELECT count(*) FROM cronograma_actividad") >= 1);
