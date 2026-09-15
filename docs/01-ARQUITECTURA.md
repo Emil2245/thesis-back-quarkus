@@ -3,7 +3,12 @@
 - **Fuente canónica:** `../thesis-docs/plan/architecture/08-codebase-design.md`
   (módulos, costuras, ADR 8–10) y `../thesis-docs/plan/backend/01-quarkus-backend.md`.
   Este repo **implementa** esas decisiones; no las redefine.
-- **Fecha:** 2026-08-02.
+- **Fecha del diseño original:** 2026-08-02.
+- **Estado de implementación actualizado:** 2026-09-11; consultar [`docs/00-ESTADO-ACTUAL.md`](00-ESTADO-ACTUAL.md) y [`docs/modulos/README.md`](modulos/README.md) para el estado vigente.
+
+> Este documento conserva decisiones y razonamientos del diseño original. El
+> veredicto de módulos "aún no escritos" que aparece más abajo era válido en
+> 2026-08-02 y no debe usarse como inventario actual.
 
 ---
 
@@ -11,9 +16,9 @@
 
 **La organización es buena y deliberada** — no es un repo "sin orden". Sigue una
 arquitectura de **módulos profundos por feature (vertical slices)** con costuras
-explícitas. El único "hueco" no es de diseño sino de **código aún no escrito**:
-los módulos de negocio (proyecto, insumo, apu, presupuesto, cronograma,
-documento) están planeados en el doc canónico pero no existen todavía.
+explícitas. En el corte actual, los módulos de negocio (proyecto, insumo, apu,
+presupuesto, cronograma y documento) ya están implementados técnicamente; los
+pendientes funcionales y de evidencia se detallan en el estado actual.
 
 Regla rectora heredada: **una capa existe solo si es profunda** (esconde
 comportamiento real tras una interfaz pequeña). El CRUD plano va directo
@@ -54,7 +59,7 @@ REST (JAX-RS, /api/v1)
          │
   recalculo ──► motor ⭐  (calcularApu / consolidar) ──► documento
   invitacion-tokens ─► correo (puerto: Brevo / grabadora)
-  todo ─► Postgres (Flyway V001..V003)
+  todo ─► Postgres (Flyway V001..V012)
 ```
 
 ### Interfaces clave del motor (ADR 8 — dos granos)
@@ -77,12 +82,12 @@ src/main/java/ec/uce/propuestas/
 ├── usuario/       ✅  identidad + auth (entidades, auth/, dto/, mail/)
 ├── motor/         ✅  motor puro + internal/ (CalculadorFila, Consolidador)
 │   └── internal/  ✅  package-private, puro Java
-├── proyecto/      ⬜  I-03 (firmantes, parámetros, ciclo de vida)
-├── insumo/        ⬜  I-04 (CRUD + CSV + bases centrales)
-├── apu/           ⬜  I-05/I-06 (editor + %CI + descuentos + auxiliares)
-├── presupuesto/   ⬜  I-07 (capítulos, rubros, consolidación)
-├── cronograma/    ⬜  I-08/I-09 (actividades, avance ponderado)
-└── documento/     ⬜  I-10 (export .xlsx/.pdf)
+├── proyecto/      ✅  I-03 (firmantes, parámetros, ciclo de vida)
+├── insumo/        ✅  I-04 (CRUD + CSV + bases centrales)
+├── apu/           ✅  I-05/I-06 (editor + %CI + descuentos + auxiliares)
+├── presupuesto/   ✅  I-07 (capítulos, rubros, consolidación)
+├── cronograma/    ✅  I-08/I-09 (actividades, avance ponderado)
+└── documento/     ✅  I-10 (export .xlsx/.pdf)
 ```
 
 Reglas de paquete que ya se cumplen y deben mantenerse (costuras futuras):

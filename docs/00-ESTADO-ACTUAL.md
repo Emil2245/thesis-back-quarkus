@@ -1,17 +1,39 @@
 # Estado actual del backend — `thesis-back-quarkus`
 
-**Última actualización:** 2026-09-09
+**Última actualización:** 2026-09-11
+**Corte funcional backend:** `ac84c945`
 **Proyecto:** Plataforma SERCOP de propuestas técnico-económicas (backend Quarkus).
 
 ## Resumen
 
-El backend tiene implementadas y verificadas las iteraciones **I-01 a I-10**:
+El backend tiene implementadas y verificadas las iteraciones **I-01 a I-11**:
 fundaciones, autenticación, proyectos, insumos, motor de cálculo, APU,
-recálculo, presupuesto, cronograma y exportación del cronograma.
+recálculo, presupuesto, cronograma, exportación del cronograma y panel
+Super-Admin (técnico).
 
-La última suite completa medida (cierre de Plan 031 al 2026-09-07)
-muestra que el motor conserva los mismos residuales históricos
-aceptados; este documento **no predice conteos**:
+**I-08/I-09/I-10** están cubiertas por los planes `plans/026`–`plans/031`
+(cronograma + export), todos DONE. El **paquete de búsqueda de plantillas**
+(`plans/plans_busquedas_plantilla/001`–`005`) también está integrado
+(DONE 2026-09-10 / 2026-09-11). Plan 005 cierra el paquete con la
+medición integrada:
+
+- **Suite focal plantilla:** 89/89 verde (incluye `PlantillaLoteResourceIT`
+  7/7 y `PlantillaApuResourceIT` 14/14).
+- **Suite completa:** 763 tests = 760 pass + 2 fallos aceptados
+  (GM-19/GM-20) + 1 skipped (GM-24 `@Disabled` por fixture upstream).
+- **`./gradlew build -x test`:** PASS.
+- **`./gradlew build`:** falla únicamente por GM-19/GM-20.
+- **V011** (FTS GIN + `tsvector` `public.spanish_unaccent`) y
+  **V012** (seed de catálogo de plantillas) son las únicas migraciones
+  nuevas del paquete; V001–V010 permanecen byte-for-byte.
+- `motor/`, `recalculo/`, V001–V010 y `PresupuestoRepository`/P-32
+  intactos; contratos UUIDv7, owner-to-404 y regla workbook-consistent
+  preservados.
+
+La línea base del motor conserva los mismos residuales históricos
+aceptados y `GM-24` permanece omitido por el fixture upstream
+incompleto de EMELNORTE; este documento **no predice conteos adicionales**
+más allá de los medidos al cierre del paquete plantilla:
 
 - **GM-19 y GM-20:** únicos fallos; residuales históricos aceptados y
   documentados. No se reabre el motor.
@@ -95,7 +117,8 @@ Los Planes 032–040 están cerrados técnicamente. Se conservan como decisiones
 
 1. Coordinar frontend y participantes para ejecutar el piloto SUS 1–2 y registrar evidencia real.
 2. Planificar y ejecutar I-12: hardening, mediciones finales, SUS n ≥ 5 y paquete de evidencias de tesis.
-3. Probar el pipeline CI/CD en el proveedor remoto; la evidencia local no sustituye la primera ejecución real del workflow.
+3. Resolver y documentar el contrato funcional de bases PERSONAL: el backend permite gestionar el contenedor y resolver insumos PERSONAL internamente, pero todavía no expone el flujo completo para alimentarlo y ofrecerlo como origen del selector. El frontend mantiene el Plan 058 bloqueado; no se inventan endpoints en esta actualización documental.
+4. Probar el pipeline CI/CD en el proveedor remoto; la evidencia local no sustituye la primera ejecución real del workflow.
 
 ## Pendientes conocidos y aceptados
 
@@ -127,6 +150,8 @@ Los Planes 032–040 están cerrados técnicamente. Se conservan como decisiones
   [`docs/modulos/panel-admin/00-acta-reconciliacion.md`](modulos/panel-admin/00-acta-reconciliacion.md)
   + [`docs/modulos/panel-admin/00-inventario-trabajo.md`](modulos/panel-admin/00-inventario-trabajo.md).
 - Planificación I-11: [`plans/panel-admin/README.md`](../plans/panel-admin/README.md).
+- Paquete de búsqueda y creación de APUs desde plantillas (DONE 2026-09-10/11):
+  [`plans/plans_busquedas_plantilla/README.md`](../plans/plans_busquedas_plantilla/README.md).
 - Módulo presupuesto: [`docs/modulos/05-presupuesto/00.md`](modulos/05-presupuesto/00.md).
 - Módulo cronograma: [`docs/modulos/06-cronograma/00.md`](modulos/06-cronograma/00.md).
 - Decisiones y contrato canónico: `../thesis-docs/plan/`.

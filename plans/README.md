@@ -187,6 +187,39 @@ autoriza en su propia sesión tras ejecutar 033–040.
 | 039 | [Instrumentación D-13: presupuesto, cronograma, documento](./panel-admin/039-instrumentacion-d13-presupuesto-cronograma-documento.md) | I-11 | **DONE (2026-09-08)** — 4 eventos; 6 operaciones de cronograma y 4 formatos documentales; transacción única/TOCTOU preservados; focales 96/96, módulos+motor 339 y suite 738 con baseline aceptado; sin commit |
 | 040 | [Integración del panel y piloto SUS](./panel-admin/040-integracion-panel-piloto-sus.md) | I-11 | **DONE técnico (2026-09-09) / piloto SUS pendiente** — Bruno 16/16 requests y 27/27 tests JS; graphify 17,831/44,897/665; evidencia humana no ejecutada |
 
+### Paquete `plans_busquedas_plantilla/` — Búsqueda FTS y creación de APUs desde plantillas
+
+> **Estado (2026-09-11):** los **5 planes** del paquete
+> [`./plans_busquedas_plantilla/`](./plans_busquedas_plantilla/README.md)
+> están **DONE** e integrados:
+>
+> - **001 (2026-09-10)** — `GET /api/v1/plantillas-apu/busqueda`
+>   con PostgreSQL FTS (columna `tsvector` `public.spanish_unaccent`
+>   + GIN V011); `tipo` repetible; orden estable sin `q`; ranking
+>   `ts_rank_cd` con `q`; owner-scope preservado.
+> - **002 (2026-09-10)** — V012 añade ≥ 12 plantillas SISTEMA
+>   representativas (snapshots estrictamente price-free, trazables a
+>   fixtures canónicos, sin duplicar V004).
+> - **003 (2026-09-10)** — `POST /api/v1/presupuestos/{presupuestoId}/rubros/desde-plantillas`
+>   atómico (1–20 plantillas, lock pesimista de presupuesto, una sola
+>   consolidación `Alcance.Version`, `ErrorPayload.detalles` 0-based +
+>   `plantillaNombre` opcional, advertencias no bloqueantes).
+> - **004 (2026-09-10)** — `POST /api/v1/presupuestos/{presupuestoId}/apus/completo`
+>   crea cabecera + secciones canónicas + filas M/N/O/P en una sola
+>   transacción; deserializador estricto rechaza campos derivados;
+>   HM server-authored; reutiliza primitivas de 003.
+> - **005 (2026-09-11)** — cierra paquete: Bruno `09-i02-i06/` 19/19
+>   requests (41/41 tests) y `10-presupuesto/` 27/27 requests (91/91
+>   tests); reconciliación canónica de `thesis-docs` (contrato,
+>   procesos, catálogo de pruebas); suite focal plantilla 89/89 verde
+>   (incluye `PlantillaLoteResourceIT` 7/7 y `PlantillaApuResourceIT`
+>   14/14); suite completa **763 tests = 760 pass + 2 fallos aceptados
+>   (GM-19/GM-20) + 1 skipped (GM-24 `@Disabled`) + 0 errors**;
+>   `./gradlew build -x test` PASS; `./gradlew build` falla únicamente
+>   por GM-19/GM-20; `motor/`, `recalculo/`, V001–V010 intactos;
+>   contratos UUIDv7, owner-to-404 y regla workbook-consistent
+>   preservados.
+
 ### 013 — Módulo APU avanzado (P-23…P-27, P-45, P-46 + decisiones N04) (raised 2026-08-19, reconciled 2026-08-28)
 
 Plan: [`../docs/modulos/04-apu-avanzado.md`](../docs/modulos/04-apu-avanzado.md).

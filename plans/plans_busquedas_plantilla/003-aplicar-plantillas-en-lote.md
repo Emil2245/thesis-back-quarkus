@@ -1,6 +1,6 @@
 # Plan backend 003 — Aplicar plantillas y vincular rubros en un lote atómico
 
-**Estado:** TODO · **Prioridad:** P0 · **Puede ejecutarse en paralelo con:** 001 y 002
+**Estado:** DONE (2026-09-10) · **Prioridad:** P0 · **Puede ejecutarse en paralelo con:** 001 y 002
 
 ## 01. Resultado observable
 

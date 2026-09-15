@@ -13,6 +13,21 @@
 > Plan 026 (I-08 — cronograma CRUD), que aún **no** existe como
 > archivo ejecutable y debe autorarse en su propia sesión.
 
+> ## ⚠️ Nota histórica (corte funcional 2026-09-11, código `ac84c945`)
+>
+> La frase "la **siguiente tarea de planificación** es Plan 026
+> (I-08 — cronograma CRUD), que aún **no** existe como archivo
+> ejecutable y debe autorarse en su propia sesión" refleja el
+> cierre de Plan 025 al 2026-09-01 y **es histórica**: I-08, I-09 e
+> I-10 están cubiertas y DONE al 2026-09-07 por los planes `026`–`031`
+> (cronograma + export XLSX/PDF/MSPDI). El estado actual vive en
+> [`docs/00-ESTADO-ACTUAL.md`](../../../00-ESTADO-ACTUAL.md),
+> [`plans/README.md`](../../../plans/README.md) y
+> [`docs/modulos/06-cronograma/00.md`](../../06-cronograma/00.md).
+> La evidencia fechada de este plan (medición del 2026-09-01,
+> `graphify update .`, etc.) **se conserva intacta** para auditoría
+> y no se reescribe.
+
 ## Resultado esperado
 
 `GET /presupuestos/{id}/validacion` (UUIDv7 validado en frontera) responde
@@ -586,3 +601,13 @@ es **Plan 026 (I-08 — cronograma CRUD)**, que aún **no** existe como
 archivo ejecutable y debe autorarse en su propia sesión. P-33…P-36
 (CRUD y avance de `cronograma`/`actividad`) viven en I-08/I-09. Este
 plan los difiere explícitamente y no los pre-construye.
+
+> **Nota histórica (corte funcional 2026-09-11, código `ac84c945`).** Esta
+> frase refleja el cierre de Plan 025 al 2026-09-01 y es histórica:
+> I-08/I-09/I-10 están cubiertas y DONE al 2026-09-07 por los
+> planes `026`–`031` (cronograma + export). El estado actual del
+> módulo cronograma vive en
+> [`docs/modulos/06-cronograma/00.md`](../../06-cronograma/00.md) y
+> en [`docs/00-ESTADO-ACTUAL.md`](../../../00-ESTADO-ACTUAL.md).
+> La evidencia fechada y los STOP conditions de este plan se
+> conservan intactos para auditoría.

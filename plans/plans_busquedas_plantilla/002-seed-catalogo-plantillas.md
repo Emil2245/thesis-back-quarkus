@@ -1,6 +1,6 @@
 # Plan backend 002 — Seed representativo de plantillas APU
 
-**Estado:** TODO · **Prioridad:** P1 · **Puede ejecutarse en paralelo con:** 001 y 003
+**Estado:** DONE (2026-09-10) · **Prioridad:** P1 · **Puede ejecutarse en paralelo con:** 001 y 003
 
 ## 01. Resultado observable
 

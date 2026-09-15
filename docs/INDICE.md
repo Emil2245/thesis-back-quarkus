@@ -29,20 +29,41 @@ backend `thesis-back-quarkus`.
 - [`modulos/04-apu-avanzado.md`](modulos/04-apu-avanzado.md) — APU avanzado.
 - [`modulos/05-presupuesto/00.md`](modulos/05-presupuesto/00.md) — presupuesto,
   recálculo, versionado y validación. I-07 está DONE.
+- [`modulos/06-cronograma/00.md`](modulos/06-cronograma/00.md) — cronograma,
+  vistas y exportación. I-08/I-09/I-10 están DONE.
+- [`modulos/panel-admin/00-acta-reconciliacion.md`](modulos/panel-admin/00-acta-reconciliacion.md)
+  + [`00-inventario-trabajo.md`](modulos/panel-admin/00-inventario-trabajo.md) —
+  panel Super-Admin. I-11 está DONE técnico (piloto SUS 1–2 pendiente).
+- [`../plans/plans_busquedas_plantilla/README.md`](../plans/plans_busquedas_plantilla/README.md)
+  — búsqueda FTS y creación de APUs desde plantillas. Plans 001–005
+  DONE 2026-09-10/11.
 
 ## 4. Trabajo pendiente del backend
 
-El siguiente trabajo es planificar **Plan 026 — I-08: cronograma base**.
-Después siguen:
+I-01 a I-11 (técnico) están implementadas y verificadas; el piloto SUS 1–2
+queda pendiente de frontend y participantes humanos. Lo único pendiente
+de planificar/ejecutar es:
 
-1. I-08 — cronograma base.
-2. I-09 — cronograma visual, períodos y sincronía.
-3. I-10 — exportación SERCOP `.xlsx` / `.pdf`.
-4. I-11 — panel Super-Admin.
-5. I-12 — hardening, mediciones y cierre.
-6. CI/CD — crear el pipeline `.github/` pendiente.
+1. I-12 — hardening, mediciones finales, SUS n ≥ 5 y paquete de evidencias
+   de tesis.
+2. El piloto SUS 1–2 cuando estén disponibles el frontend y 1–2
+   participantes, registrando evidencia real (no se fabrican resultados).
+3. Resolver y documentar el contrato funcional de bases PERSONAL: el backend
+   gestiona el contenedor y resuelve insumos PERSONAL internamente, pero no
+   expone todavía el flujo completo para alimentarlo y ofrecerlo como origen
+   del selector; el frontend mantiene el Plan 058 bloqueado.
+4. Probar el pipeline CI/CD en el proveedor remoto; la evidencia local no
+   sustituye la primera ejecución real del workflow.
 
-Los planes de I-08 a I-12 todavía no están redactados como planes ejecutables.
+**Planes ya cerrados como evidencia viva** (no se reabren):
+
+- I-08/I-09/I-10 — `plans/026`–`plans/031` (cronograma + export), todos
+  DONE; detalle en [`docs/modulos/06-cronograma/00.md`](modulos/06-cronograma/00.md).
+- I-11 — `plans/panel-admin/032`–`040`, todos DONE técnico; piloto SUS
+  1–2 pendiente.
+- Paquete de búsqueda de plantillas (Plans 001–005 bajo
+  [`plans/plans_busquedas_plantilla/`](../plans/plans_busquedas_plantilla/README.md))
+  DONE 2026-09-10/11.
 
 ## 5. Documentación histórica
 

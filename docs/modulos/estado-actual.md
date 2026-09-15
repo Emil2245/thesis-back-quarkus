@@ -1,5 +1,39 @@
 # Estado actual y plan directo para cerrar `04-apu-avanzado`
 
+> ## ⚠️ Aviso de estado actual (corte funcional 2026-09-11, código `ac84c945`)
+>
+> Este documento conserva el **corte auditado histórico `9ccb25c`** y la
+> narrativa detallada del cierre de I-06 (motor, no-links, APU avanzado,
+> plantillas, UUIDv7 en fronteras REST). Su numeración I-06 / planes
+> 014–018 pertenece a ese snapshot.
+>
+> **El estado actual del backend se mantiene en:**
+>
+> - [`docs/00-ESTADO-ACTUAL.md`](../../00-ESTADO-ACTUAL.md) — resumen
+>   canónico de iteraciones, suite, build y pendientes.
+> - [`plans/README.md`](../../plans/README.md) — estado por plan y DAG
+>   ejecutable.
+> - [`docs/modulos/README.md`](README.md) — estado por módulo.
+>
+> **Estado actual del corte funcional (`ac84c945`):**
+>
+> - **I-01 … I-11 — DONE técnico.**
+> - **Paquete `plans_busquedas_plantilla/001`–`005` — DONE** (DONE
+>   2026-09-10/11; suite focal plantilla 89/89, suite completa
+>   `763 = 760 pass + 2 fallos aceptados (GM-19/GM-20) + 1 skipped
+>   (GM-24 `@Disabled`) + 0 errors`).
+> - **I-12 — pendiente de planificación** (validación final, hardening,
+>   SUS `n ≥ 5`).
+> - **Piloto SUS 1–2 — pendiente** (requiere frontend y participantes
+>   humanos; no se fabrican resultados).
+> - `./gradlew build -x test` PASS; `./gradlew build` falla únicamente
+>   por los residuales aceptados GM-19/GM-20.
+>
+> La narrativa detallada de I-06 que sigue debajo (corte `9ccb25c`,
+> reconciliación no-links, Plan 014 supersede, planes 015–018) **se
+> conserva intacta como rastro histórico**; cualquier ejecución actual
+> debe contrastarse con los documentos canónicos listados arriba.
+
 > **Corte auditado:** `main` en `9ccb25c`.
 > **Modo de ejecución acordado:** directo sobre `main`, sin SDD, sin worktrees y
 > sin crear nuevos módulos de primer nivel. Cada bloque termina en un commit.

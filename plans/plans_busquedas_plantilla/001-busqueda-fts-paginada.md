@@ -1,6 +1,6 @@
 # Plan backend 001 — Búsqueda PostgreSQL FTS paginada de plantillas APU
 
-**Estado:** TODO · **Prioridad:** P0 · **Puede ejecutarse en paralelo con:** 002 y 003
+**Estado:** DONE (2026-09-10) · **Prioridad:** P0 · **Puede ejecutarse en paralelo con:** 002 y 003
 
 ## 01. Resultado observable
 
@@ -21,11 +21,11 @@ GET /api/v1/plantillas-apu/busqueda
     &tipo=SISTEMA
     &tipo=PERSONAL
     &page=0
-    &size=25
+    &size=20
 ```
 
 - `tipo` repetible; omitido = ambas fuentes. Un valor fuera del enum → 400 `validacion`.
-- `page` default 0; `size` default 25, rango 1..200, alineado con la convención canónica de listados del backend.
+- `page` default 0; `size` default 20, rango 1..200, conforme al contrato implementado por `PlantillaApuResource`.
 - Response: `Page<PlantillaApuResumenResponse>` común (`items`, `total`, `page`, `size`).
 - `q` vacío/blanco: SISTEMA primero, luego PERSONAL propia; `nombre`, `id` como desempate.
 - `q` no vacío: `ts_rank_cd` descendente; luego tipo, nombre e id.

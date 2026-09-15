@@ -2,9 +2,9 @@
 
 Este paquete añade la infraestructura que necesita el nuevo diálogo `Agregar APU`: búsqueda PostgreSQL FTS paginada, catálogo de demostración suficiente, aplicación atómica de una o varias plantillas y creación manual completa en una sola transacción.
 
-## Hallazgo de auditoría
+## Hallazgo de auditoría histórica (antes de los planes 001–005)
 
-El backend ya expone `GET /plantillas-apu?q=&tipo=` y `GET /plantillas-apu/{id}`, pero el listado trae todas las plantillas visibles y filtra `q` en memoria. No hay paginación, `tsvector`, índice GIN ni endpoint de lote. Solo existen dos seeds: una plantilla SISTEMA y una PERSONAL.
+Al iniciar este paquete, el backend ya exponía `GET /plantillas-apu?q=&tipo=` y `GET /plantillas-apu/{id}`, pero el listado traía todas las plantillas visibles y filtraba `q` en memoria. No había paginación, `tsvector`, índice GIN ni endpoint de lote, y solo existían dos seeds: una plantilla SISTEMA y una PERSONAL. **Ese diagnóstico quedó resuelto por los planes 001–005; no describe el estado actual.**
 
 ## Decisiones de producto cerradas
 
@@ -43,13 +43,22 @@ Ola A — paralela
 
 ## Planes
 
-| # | Plan | Depende de |
-| --- | --- | --- |
-| 001 | [Búsqueda FTS paginada](001-busqueda-fts-paginada.md) | — |
-| 002 | [Catálogo seed de plantillas](002-seed-catalogo-plantillas.md) | — |
-| 003 | [Aplicación atómica por lote](003-aplicar-plantillas-en-lote.md) | — |
-| 004 | [Creación manual completa](004-crear-apu-manual-completo.md) | 003 |
-| 005 | [Integración, Bruno y contrato](005-integracion-contrato-bruno.md) | **DONE 2026-09-11** · 001–004 |
+| # | Plan | Depende de | Estado |
+| --- | --- | --- | --- |
+| 001 | [Búsqueda FTS paginada](001-busqueda-fts-paginada.md) | — | **DONE 2026-09-10** |
+| 002 | [Catálogo seed de plantillas](002-seed-catalogo-plantillas.md) | — | **DONE 2026-09-10** |
+| 003 | [Aplicación atómica por lote](003-aplicar-plantillas-en-lote.md) | — | **DONE 2026-09-10** |
+| 004 | [Creación manual completa](004-crear-apu-manual-completo.md) | 003 | **DONE 2026-09-10** |
+| 005 | [Integración, Bruno y contrato](005-integracion-contrato-bruno.md) | 001–004 | **DONE 2026-09-11** |
+
+Plan 005 cierra el paquete y registra la medición integrada:
+
+- Suite focal plantilla: **89/89** verde (incluye `PlantillaLoteResourceIT` 7/7 y `PlantillaApuResourceIT` 14/14 del Plan 005, más la regresión dirigida adyacente consolidada en el paquete).
+- Suite completa: **763 tests = 760 pass + 2 fallos aceptados (GM-19/GM-20) + 1 skipped (GM-24 `@Disabled` por fixture upstream)**; 0 errors.
+- `./gradlew build -x test` PASS; `./gradlew build` falla únicamente por GM-19/GM-20.
+- V001–V010 permanecen byte-for-byte; V011 (FTS GIN + `tsvector` `public.spanish_unaccent`) y V012 (seed de catálogo de plantillas) son las únicas migraciones nuevas del paquete.
+- `motor/`, `recalculo/`, V001–V010 y `PresupuestoRepository`/P-32 intactos; contratos UUIDv7, owner-to-404 y la regla workbook-consistent preservados.
+- Detalle en [`005-integracion-contrato-bruno.md`](005-integracion-contrato-bruno.md).
 
 ## Invariantes
 

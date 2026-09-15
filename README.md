@@ -40,7 +40,9 @@ the same commit set. Do not divergently re-decide things here.
 - Flyway migrations
 - SmallRye JWT (bcrypt via Elytron)
 - SmallRye OpenAPI · Swagger UI at `/q/swagger-ui`
-- Apache POI (xlsx) + OpenPDF (pdf) — for future document export
+- Apache POI (xlsx) + OpenPDF (pdf) — server-side document export
+  (ET, cronograma XLSX/PDF, MSPDI XML — implemented across I-06, I-09
+  and I-10)
 - JUnit 5 · RestAssured · jqwik (property tests)
 - Dev Services (auto-Postgres) in tests
 
@@ -55,7 +57,12 @@ the same commit set. Do not divergently re-decide things here.
 # Full build (no tests)
 ./gradlew build -x test
 
-# Test suite (56 tests currently; 2 known-red pending domain decision — see plans/README.md)
+# Test suite — current state (HEAD ac84c945): 763 tests = 760 pass +
+# 2 accepted residual failures (GM-19, GM-20 — workbook-rounding
+# residuals documented in Plan 014/Plan 02; no se reabre el motor) +
+# 1 skipped (GM-24 @Disabled by upstream EMELNORTE fixture) + 0
+# errors. ./gradlew build -x test PASS; ./gradlew build fails only
+# on those accepted residuals.
 ./gradlew test
 
 # Native image (container build; ~10 min)
@@ -105,7 +112,7 @@ src/main/java/ec/uce/propuestas/
 
 src/main/resources/
 ├── application.yml
-├── db/migration/         # V001..V003 Flyway migrations
+├── db/migration/         # V001..V012 Flyway migrations
 └── META-INF/resources/   # publicKey.pem, privateKey.pem (dev-only)
 
 src/test/java/ec/uce/propuestas/
@@ -124,18 +131,52 @@ plans/                           # Implementation plans (executable playbooks)
 
 ---
 
-## Iteration status (as of 2026-07-24)
+## Iteration status (functional code cut `ac84c945`)
+
+**Current technical status** (backend `ac84c945`):
+
+- **I-01 … I-11 — DONE técnico.** Bootstrap, auth, motor, APU núcleo y
+  avanzado, presupuesto (P-28…P-32), cronograma (P-33…P-36),
+  exportación XLSX/PDF/MSPDI (P-37) y panel Super-Admin (P-38…P-42)
+  están implementados. El paquete de búsqueda de plantillas
+  (`plans/plans_busquedas_plantilla/001`–`005`) está DONE e integrado.
+- **I-12 — pendiente de planificación** (validación final, hardening,
+  SUS `n ≥ 5`).
+- **Piloto SUS 1–2 — pendiente** (requiere frontend y participantes
+  humanos; no se fabrican resultados).
+- **Bases PERSONAL — contrato funcional pendiente:** el backend permite gestionar
+  el contenedor y resolver insumos PERSONAL internamente, pero todavía no expone
+  el flujo completo para alimentarlo y ofrecerlo como origen del selector; el
+  frontend mantiene el Plan 058 bloqueado.
+- **Suite completa:** `763 = 760 pass + 2 fallos aceptados
+  (GM-19/GM-20, residuales workbook-rounding documentados en
+  Plan 014; no se reabre el motor) + 1 skipped (GM-24 `@Disabled`
+  por fixture upstream EMELNORTE) + 0 errors`.
+- **`./gradlew build -x test`** → **PASS**. `./gradlew build` falla
+  únicamente por los residuales aceptados GM-19/GM-20.
 
 | Plan | Iteration | Status |
 |---|---|---|
-| 001 Bootstrap Quarkus | I-01 | DONE |
-| 002 CI (GitHub Actions) | I-01 | DONE (needs first push to prove workflows run) |
-| 003 Postgres schema baseline | I-01 | DONE (V003 seed data has upstream gaps — see `plans/README.md`) |
-| 004 Auth module | I-01 | DONE (25/25 tests green) |
-| 005 Motor de cálculo | I-02 | 21/25 GMs green; 2 fail (GM-19, GM-20) |
-| 006 Motor consolidación fix | I-02 | Partial — stub-precision fix landed; GM-19/20 root cause escalated to director (workbook rounding semantics) |
+| 001–018 (I-01 … I-06) | bootstrap, CI, schema, auth, motor, APU núcleo y avanzado, presupuesto inicial | **DONE** — ver detalle por plan en [`plans/README.md`](plans/README.md) |
+| 019–025 (I-07 presupuesto) | UUIDv7 presupuesto, recalculo write-through, ciclo presupuesto, capítulos, rubros, versionado, validación P-32 | **DONE (2026-09-01)** — Plan 025 cierra I-07 |
+| 026–031 (I-08/I-09/I-10 cronograma + export) | cronograma CRUD, vistas/curva S, exportación XLSX/PDF/MSPDI | **DONE (2026-09-07)** — Plan 031 verificado con preflight MSPDI XSD |
+| 032–040 (I-11 panel Super-Admin + piloto SUS) | gate documental, log_actividad (V010), usuarios, bases, plantillas SISTEMA, parámetros, instrumentación D-13, integración | **DONE técnico (2026-09-09)** — piloto SUS 1–2 pendiente |
+| `plans_busquedas_plantilla/001`–`005` | búsqueda FTS (V011), seed catálogo (V012), lote atómico, APU manual completo, integración Bruno | **DONE (2026-09-10/11)** — ver [`plans/plans_busquedas_plantilla/README.md`](plans/plans_busquedas_plantilla/README.md) |
+| I-12 — pendiente | validación final, hardening, SUS `n ≥ 5` | ⬜ **Pendiente de planificación** |
 
-**Full status + post-execution notes**: [`plans/README.md`](plans/README.md).
+> **Histórico (snapshot 2026-07-24, preservado para auditoría):**
+> en ese corte la suite reportaba 56 tests, los planes
+> 001–006 cubrían I-01/I-02 únicamente, y la exportación documental
+> estaba marcada como "for future document export". Ese estado ya fue
+> superado por los planes 007–040 y por el paquete de plantillas
+> 001–005; el detalle histórico vive en
+> [`plans/README.md`](plans/README.md) y
+> [`docs/00-ESTADO-ACTUAL.md`](docs/00-ESTADO-ACTUAL.md).
+
+**Estado detallado y notas post-ejecución**:
+[`plans/README.md`](plans/README.md) ·
+[`docs/00-ESTADO-ACTUAL.md`](docs/00-ESTADO-ACTUAL.md) ·
+[`docs/modulos/README.md`](docs/modulos/README.md).
 
 ---
 
