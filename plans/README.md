@@ -661,10 +661,12 @@ repositorio. Planes escritos contra el commit `b4d2275` (`origin/main`).
 | # | Plan | Prioridad | Estado | Depende de |
 |---:|---|---|---|---|
 | 041 | [Usos de insumo en APU (P-18)](./041-usos-de-insumo-en-apu.md) | P1 | **DONE** (2026-09-17, `94ff3c0`; 5 IT nuevos verdes contra Postgres real, suite 763→768 sin fallos nuevos) | — |
-| 042 | [Orden natural de los `item` del presupuesto](./042-orden-natural-de-items-del-presupuesto.md) | P1 | TODO | — |
+| 042 | [Orden natural de los `item` del presupuesto](./042-orden-natural-de-items-del-presupuesto.md) | P1 | **DONE** (2026-09-17, `3ab7e53`; los 4 sitios, suite 768→776 sin fallos nuevos) | — |
+| 043 | [La renumeracion de rubros corrompe el orden](./043-renumeracion-de-rubros-corrompe-el-orden.md) | **P0** | TODO | 042 |
 
-Tocan modulos disjuntos (`insumo` / `presupuesto` + `cronograma`) y pueden
-ejecutarse en paralelo.
+041 y 042 tocan modulos disjuntos y se ejecutaron en paralelo. **043 depende de
+042** y salio de su ejecucion: su ejecutor encontro dos sitios mas con el mismo
+defecto que el plan 042 no enumeraba, y uno de ellos **escribe**.
 
 - **041** — `GET /proyectos/{id}/insumos/{id}/usos` esta enrutado, valida el
   UUID, comprueba la propiedad y devuelve `java.util.List.of()`. Es un stub. En
@@ -674,6 +676,12 @@ ejecutarse en paralelo.
   `"1.12" < "1.2"`. El Javadoc de `PresupuestoMapper` afirma que el orden
   lexicografico coincide con el natural; es falso, y los cuatro ejemplos que
   cita son justo los que no lo destapan.
+- **043 (P0)** — `RubroService.compactarRubrosDelCapitulo` y
+  `CapituloService.normalizarItemsDeRubros` ordenan lexicograficamente y despues
+  **reasignan el `item`**. En un capitulo con diez o mas rubros, anadir o borrar
+  uno reescribe los `item` permutados: el que era `2.10` pasa a `2.2`. No es
+  visualizacion, se persiste. El capitulo 2 de "Cetro Medico Tulcan" tiene 51
+  rubros.
 
 **Numeracion:** la primera version de estos dos planes se escribio como 032 y 033, numeros que `CLAUDE.md` ya tenia asignados (032–040 estan usados). Se renumeraron a 041/042 el 2026-09-17. El commit `94ff3c0` se reescribio para citar el numero nuevo.
 
