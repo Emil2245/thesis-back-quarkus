@@ -649,3 +649,32 @@ Prone NO se añade (requiere su propio plan); (3) `-Werror` NO — solo ver.
 
 *(empty — no findings have been rejected yet; this section grows as future
 planning sessions triage findings)*
+
+
+---
+
+## Tanda `fix/downloads` — 032–033 (2026-09-16)
+
+Dos defectos detectados desde el frontend, investigados hasta su causa en este
+repositorio. Planes escritos contra el commit `b4d2275` (`origin/main`).
+
+| # | Plan | Prioridad | Estado | Depende de |
+|---:|---|---|---|---|
+| 032 | [Usos de insumo en APU (P-18)](./032-usos-de-insumo-en-apu.md) | P1 | TODO | — |
+| 033 | [Orden natural de los `item` del presupuesto](./033-orden-natural-de-items-del-presupuesto.md) | P1 | TODO | — |
+
+Tocan modulos disjuntos (`insumo` / `presupuesto` + `cronograma`) y pueden
+ejecutarse en paralelo.
+
+- **032** — `GET /proyectos/{id}/insumos/{id}/usos` esta enrutado, valida el
+  UUID, comprueba la propiedad y devuelve `java.util.List.of()`. Es un stub. En
+  el frontend, «Ver uso» sale vacio para todos los insumos, incluidos los que
+  este mismo backend se niega a borrar por estar referenciados en APUs.
+- **033** — Cuatro sitios ordenan los `item` jerarquicos como cadenas, asi que
+  `"1.12" < "1.2"`. El Javadoc de `PresupuestoMapper` afirma que el orden
+  lexicografico coincide con el natural; es falso, y los cuatro ejemplos que
+  cita son justo los que no lo destapan.
+
+Linea base del motor vigente para las dos ejecuciones (Plan 014, cerrada, no se
+reabre): `GM-19` rojo `-$6.95`, `GM-20` cap. 1 rojo `-$0.84`, `GM-24`
+`@Disabled`.
