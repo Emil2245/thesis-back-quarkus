@@ -1,5 +1,6 @@
 package ec.uce.propuestas.presupuesto.service;
 
+import ec.uce.propuestas.common.ItemJerarquico;
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.presupuesto.dto.CapituloCrearRequest;
 import ec.uce.propuestas.presupuesto.dto.CapituloEditarRequest;
@@ -333,7 +334,12 @@ public class CapituloService {
      *
      * <p>Reglas:
      * <ul>
-     *   <li>Sort estable: {@code item} ascendente, desempata por {@code id}.</li>
+     *   <li>Sort estable: {@code item} ascendente en orden <b>natural</b>
+     *       ({@link ec.uce.propuestas.common.ItemJerarquico}), desempata por
+     *       {@code id}. Plan 043 — antes se ordenaba como texto, y como el
+     *       bucle reasigna y persiste {@code item} según la posición en esta
+     *       lista, un capítulo con diez o más rubros quedaba barajado en la
+     *       base ("1.10" pasaba a ser "1.2").</li>
      *   <li>Sólo se reescribe el campo {@code item}; precios, cantidades y
      *       totales quedan intactos (el write-through del {@code recalcular}
      *       posterior los propaga).</li>
@@ -353,7 +359,8 @@ public class CapituloService {
             if (rubros.isEmpty()) {
                 continue;
             }
-            rubros.sort(Comparator.comparing((Rubro r) -> r.item).thenComparing(r -> r.id));
+            rubros.sort(Comparator.comparing((Rubro r) -> r.item, ItemJerarquico.ORDEN)
+                    .thenComparing(r -> r.id));
             for (int i = 0; i < rubros.size(); i++) {
                 String objetivo = c.item + "." + (i + 1);
                 if (!objetivo.equals(rubros.get(i).item)) {

@@ -1,8 +1,10 @@
 package ec.uce.propuestas.insumo.repository;
 
+import ec.uce.propuestas.apu.entity.ApuDetalle;
 import ec.uce.propuestas.insumo.entity.Insumo;
 import ec.uce.propuestas.insumo.entity.TipoBase;
 import ec.uce.propuestas.insumo.entity.TipoInsumo;
+import ec.uce.propuestas.motor.SeccionTipo;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import io.quarkus.panache.common.Page;
 import io.quarkus.panache.common.Parameters;
@@ -65,6 +67,52 @@ public class InsumoRepository implements PanacheRepositoryBase<Insumo, Long> {
                 .createQuery("select count(d) from ApuDetalle d where d.insumoId = :insumoId", Long.class)
                 .setParameter("insumoId", insumoId)
                 .getSingleResult();
+    }
+
+    /**
+     * Plan 032 (P-18) — una fila de APU que referencia el insumo, con el APU al
+     * que pertenece y el tipo de su sección. El {@link ApuDetalle} viaja entero
+     * porque el override se resuelve con
+     * {@code ApuCalculoService.overrideDeDetalle(detalle, tipo)}; duplicar aquí
+     * ese {@code switch} sería una segunda tabla capaz de divergir.
+     */
+    public record UsoEnApu(UUID apuPublicId, String codigo, String descripcion, SeccionTipo tipo, ApuDetalle detalle) {}
+
+    /**
+     * Plan 032 (P-18) — filas de APU de <b>este proyecto</b> que referencian el
+     * insumo, con su sección (bloque M/N/O/P) y el APU al que pertenecen.
+     *
+     * <p>El filtro por {@code proyectoId} no es decorativo: {@code apu_detalle}
+     * no lleva proyecto encima, y un insumo referenciado desde dos proyectos
+     * enseñaría los APUs del otro (RNF-05).</p>
+     *
+     * <p>{@code ApuDetalle} / {@code ApuSeccion} / {@code Apu} /
+     * {@code Presupuesto} sólo declaran columnas {@code Long}, sin asociaciones
+     * JPA, así que los joins van por condición explícita. Todo se trae en una
+     * sola consulta: un APU puede tener decenas de filas y el N+1 se nota.</p>
+     *
+     * <p>No se filtra por {@code es_vigente}: el recuento que bloquea el
+     * borrado ({@link #contarUsosEnApuDetalle}) tampoco lo hace, y ambas cifras
+     * deben coincidir.</p>
+     */
+    public List<UsoEnApu> listarUsosEnApuDetalle(Long insumoId, Long proyectoId) {
+        return getEntityManager()
+                .createQuery("""
+                        select a.publicId, a.codigo, a.descripcion, s.tipo, d
+                        from ApuDetalle d
+                        join ApuSeccion s on s.id = d.seccionId
+                        join Apu a on a.id = s.apuId
+                        join Presupuesto p on p.id = a.presupuestoId
+                        where d.insumoId = :insumoId and p.proyectoId = :proyectoId
+                        order by a.codigo, s.orden, d.orden
+                        """, Object[].class)
+                .setParameter("insumoId", insumoId)
+                .setParameter("proyectoId", proyectoId)
+                .getResultList()
+                .stream()
+                .map(f ->
+                        new UsoEnApu((UUID) f[0], (String) f[1], (String) f[2], (SeccionTipo) f[3], (ApuDetalle) f[4]))
+                .toList();
     }
 
     /** Listado con filtros (tipo, texto, desactualizados) y paginación. */

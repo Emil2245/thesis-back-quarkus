@@ -1,5 +1,6 @@
 package ec.uce.propuestas.insumo.resource;
 
+import ec.uce.propuestas.apu.service.ApuCalculoService;
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.common.UuidV7;
 import ec.uce.propuestas.common.dto.Page;
@@ -152,6 +153,21 @@ public class InsumoResource {
         return Response.ok(copia.copiar(body, usuarioId())).build();
     }
 
+    /**
+     * P-18 — dónde se usa un insumo: un elemento por fila de APU que lo
+     * referencia, con su bloque SERCOP M/N/O/P y si el precio de esa fila es
+     * override manual o heredado del insumo.
+     *
+     * <p>Plan 032 — la consulta se acota al proyecto del path: {@code apu_detalle}
+     * no lleva proyecto encima (RNF-05). Un insumo sin usos devuelve {@code []}
+     * con 200, no 404.</p>
+     *
+     * <p>El mismo insumo en dos filas del mismo APU (p. ej. en dos secciones)
+     * produce <b>dos</b> entradas: cada una es un uso con su bloque y su
+     * override. No se deduplica por {@code apuId}. Las filas de herramienta
+     * menor no tienen {@code insumoId}, así que la consulta ya las deja
+     * fuera.</p>
+     */
     @GET
     @Path("/{insumoId}/usos")
     @Consumes(MediaType.WILDCARD)
@@ -162,6 +178,22 @@ public class InsumoResource {
         Insumo insumo = insumoRepository
                 .findByPublicIdAndBase(insumoPublicId, contexto.base().id)
                 .orElseThrow(() -> ProblemaException.noEncontrado("Insumo no encontrado en esta base"));
-        return java.util.List.of();
+
+        return insumoRepository.listarUsosEnApuDetalle(insumo.id, contexto.proyecto().id).stream()
+                .map(InsumoResource::aUso)
+                .toList();
+    }
+
+    /**
+     * Plan 032 — {@code override = true} cuando la fila lleva precio manual. La
+     * semántica {@code null-means-inherit} la resuelve
+     * {@link ApuCalculoService#overrideDeDetalle}, que es {@code public static}
+     * justamente para esto; re-implementar su {@code switch} aquí sería una
+     * segunda tabla capaz de divergir.
+     */
+    private static InsumoUsoResponse aUso(InsumoRepository.UsoEnApu uso) {
+        boolean override = ApuCalculoService.overrideDeDetalle(uso.detalle(), uso.tipo()) != null;
+        return new InsumoUsoResponse(
+                uso.apuPublicId(), uso.codigo(), uso.descripcion(), uso.tipo().bloque(), override);
     }
 }

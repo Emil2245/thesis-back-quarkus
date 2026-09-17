@@ -1,5 +1,6 @@
 package ec.uce.propuestas.cronograma.service;
 
+import ec.uce.propuestas.common.ItemJerarquico;
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.cronograma.dto.ActividadCronogramaResponse;
 import ec.uce.propuestas.cronograma.dto.CapituloCronogramaResponse;
@@ -199,7 +200,7 @@ public class VistasCronogramaService {
         List<Capitulo> capitulosPlanos = capituloRepository.listarPorPresupuestoOrdenado(presupuesto.id);
         List<Rubro> rubrosPlanos = rubroRepository.listarPorPresupuesto(presupuesto.id);
         rubrosPlanos.sort(
-                Comparator.comparing((Rubro r) -> r.item == null ? "" : r.item).thenComparing(r -> r.id));
+                Comparator.comparing((Rubro r) -> r.item, ItemJerarquico.ORDEN).thenComparing(r -> r.id));
         List<ActividadConRubro> actividades = cargarActividades(cronograma.id);
         String fingerprintActual = fingerprint(presupuesto.id);
 
@@ -526,7 +527,7 @@ public class VistasCronogramaService {
         CapituloCronogramaResponse toDto(Map<Long, ActividadCerrada> actPorRubro) {
             // Los rubros se ordenan por item + id (BIGINT) — orden estable.
             List<Rubro> rubrosOrdenados = new ArrayList<>(rubrosList);
-            rubrosOrdenados.sort(Comparator.comparing((Rubro r) -> r.item == null ? "" : r.item)
+            rubrosOrdenados.sort(Comparator.comparing((Rubro r) -> r.item, ItemJerarquico.ORDEN)
                     .thenComparing(r -> r.id));
 
             List<RubroCronogramaResponse> rubroDtos = new ArrayList<>();
