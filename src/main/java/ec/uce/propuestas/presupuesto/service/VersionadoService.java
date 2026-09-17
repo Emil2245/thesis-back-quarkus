@@ -6,6 +6,7 @@ import ec.uce.propuestas.apu.entity.ApuSeccion;
 import ec.uce.propuestas.apu.repository.ApuDetalleRepository;
 import ec.uce.propuestas.apu.repository.ApuRepository;
 import ec.uce.propuestas.apu.repository.ApuSeccionRepository;
+import ec.uce.propuestas.common.ItemJerarquico;
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.presupuesto.dto.CapituloRaizComparacion;
 import ec.uce.propuestas.presupuesto.dto.ComparacionItem;
@@ -610,7 +611,7 @@ public class VersionadoService {
         List<Capitulo> capitulos = capituloRepository.listarPorPresupuesto(p.id);
         List<Capitulo> raices = capitulos.stream()
                 .filter(c -> c.parentId == null)
-                .sorted(Comparator.comparing(c -> c.item == null ? "" : c.item))
+                .sorted(Comparator.comparing((Capitulo c) -> c.item, ItemJerarquico.ORDEN))
                 .toList();
         List<CapituloRaizComparacion> porRaiz = new ArrayList<>(raices.size());
         for (Capitulo c : raices) {

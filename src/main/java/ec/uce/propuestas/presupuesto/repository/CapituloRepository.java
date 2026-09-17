@@ -1,9 +1,12 @@
 package ec.uce.propuestas.presupuesto.repository;
 
+import ec.uce.propuestas.common.ItemJerarquico;
 import ec.uce.propuestas.presupuesto.entity.Capitulo;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -107,17 +110,28 @@ public class CapituloRepository implements PanacheRepositoryBase<Capitulo, Long>
     }
 
     /**
-     * Plan 030 (P-35/P-36) — variante acotada y ordenada por {@code item}
-     * ascendente del listado de capítulos. La unicidad de
-     * {@code (presupuesto_id, item)} (V001 §2.9) garantiza un orden total
-     * estable: el árbol se reconstruye en memoria sin colisiones ni
-     * desempates arbitrarios. Se usa exclusivamente desde
-     * {@code VistasCronogramaService} para componer la jerarquía recursiva
-     * de la respuesta única de {@code GET /cronogramas/{id}/vistas}.
+     * Plan 030 (P-35/P-36) — listado acotado de capítulos de un presupuesto,
+     * ordenado por {@code item} en orden <b>natural</b>
+     * ({@link ec.uce.propuestas.common.ItemJerarquico}). Se usa exclusivamente
+     * desde {@code VistasCronogramaService} para componer la jerarquía
+     * recursiva de la respuesta única de {@code GET /cronogramas/{id}/vistas}.
+     *
+     * <p>Plan 042 — el orden ya no se delega a {@code ORDER BY item} de SQL:
+     * sobre {@code VARCHAR} eso es orden lexicográfico y devuelve "1.12" antes
+     * que "1.2". Postgres no tiene orden natural para cadenas, así que la
+     * comparación se hace en memoria. El conjunto es el árbol de un solo
+     * presupuesto (≈30 filas en el caso IESS), no una tabla entera.</p>
+     *
+     * <p>La unicidad de {@code (presupuesto_id, item)} (V001 §2.9) garantiza
+     * que el orden sea total y estable — pero no que sea el correcto; eso lo
+     * aporta el comparador.</p>
      */
     public List<Capitulo> listarPorPresupuestoOrdenado(Long presupuestoId) {
-        return find("presupuestoId = :presupuestoId order by item", Parameters.with("presupuestoId", presupuestoId))
-                .list();
+        List<Capitulo> capitulos =
+                new ArrayList<>(find("presupuestoId = :presupuestoId", Parameters.with("presupuestoId", presupuestoId))
+                        .list());
+        capitulos.sort(Comparator.comparing((Capitulo c) -> c.item, ItemJerarquico.ORDEN));
+        return capitulos;
     }
 
     /**

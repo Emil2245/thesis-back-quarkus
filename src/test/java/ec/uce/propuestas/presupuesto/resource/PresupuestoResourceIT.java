@@ -2,6 +2,7 @@ package ec.uce.propuestas.presupuesto.resource;
 
 import static io.restassured.RestAssured.given;
 import static io.restassured.http.ContentType.JSON;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.matchesPattern;
@@ -218,6 +219,36 @@ class PresupuestoResourceIT {
             // proyectoId sólo se valida para detectar FK rota.
             if (proyectoId == null) {
                 throw new IllegalStateException("proyectoId nulo");
+            }
+        }
+    }
+
+    /**
+     * Plan 042 — siembra un capítulo raíz "1" con DOCE subcapítulos
+     * {@code 1.1 … 1.12}. Doce, no tres: con menos de diez hermanos el orden
+     * lexicográfico y el natural coinciden y el test pasaría igual con el bug
+     * puesto. Se insertan en un orden deliberadamente barajado para que ni el
+     * orden de inserción ni el que devuelva Postgres puedan dar por casualidad
+     * el resultado esperado.
+     */
+    private void sembrarDoceSubcapitulos(String proyectoPublicId) throws Exception {
+        Long presupuestoId = internalPresupuestoId(vigenteDeProyecto(proyectoPublicId));
+        int[] barajado = {12, 3, 10, 1, 7, 11, 2, 9, 4, 8, 5, 6};
+        try (Connection con = ds.getConnection();
+                Statement st = con.createStatement()) {
+            st.executeUpdate(
+                    "INSERT INTO capitulo (presupuesto_id, parent_id, item, descripcion, orden, total) " + "VALUES ("
+                            + presupuestoId + ", NULL, '1', 'Obra civil', 1, 0)",
+                    Statement.RETURN_GENERATED_KEYS);
+            long cap1Id;
+            try (ResultSet rs = st.getGeneratedKeys()) {
+                rs.next();
+                cap1Id = rs.getLong(1);
+            }
+            for (int n : barajado) {
+                st.executeUpdate("INSERT INTO capitulo (presupuesto_id, parent_id, item, descripcion, orden, total) "
+                        + "VALUES (" + presupuestoId + ", " + cap1Id + ", '1." + n + "', 'Subcapitulo " + n + "', " + n
+                        + ", 0)");
             }
         }
     }
@@ -473,5 +504,36 @@ class PresupuestoResourceIT {
                 .body("capitulos.size()", is(2))
                 // El rubro del proyecto A expone apuA, no apuB (path de 3 niveles).
                 .body("capitulos[0].subcapitulos[0].subcapitulos[0].rubros[0].apuId", equalTo(apuA));
+    }
+
+    /**
+     * Plan 042 — el árbol se ordena numéricamente segmento a segmento, no como
+     * texto. Con doce hermanos, el orden lexicográfico produciría
+     * {@code 1.1, 1.10, 1.11, 1.12, 1.2, …, 1.9}, que es exactamente lo que el
+     * frontend mostraba en "Cetro Médico Tulcán".
+     */
+    @Test
+    void TC_P42_01_subcapitulos_en_orden_natural_no_lexicografico() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p42-orden@ex.com");
+        String proyectoId = crearProyecto(token, "Orden natural");
+        String presupuestoId = vigenteDeProyecto(proyectoId);
+        sembrarDoceSubcapitulos(proyectoId);
+
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/presupuestos/" + presupuestoId)
+                .then()
+                .statusCode(200)
+                .body("capitulos.size()", is(1))
+                .body("capitulos[0].item", equalTo("1"))
+                .body("capitulos[0].subcapitulos.size()", is(12))
+                // Orden natural: 1.10/1.11/1.12 van al FINAL, no detrás de 1.1.
+                .body(
+                        "capitulos[0].subcapitulos.item",
+                        contains("1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8", "1.9", "1.10", "1.11", "1.12"))
+                // El primero es 1.1 y el último 1.12 — con el bug serían 1.1 y 1.9.
+                .body("capitulos[0].subcapitulos[0].item", equalTo("1.1"))
+                .body("capitulos[0].subcapitulos[1].item", equalTo("1.2"))
+                .body("capitulos[0].subcapitulos[11].item", equalTo("1.12"));
     }
 }

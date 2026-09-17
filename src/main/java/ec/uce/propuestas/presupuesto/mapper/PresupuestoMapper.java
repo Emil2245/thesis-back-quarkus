@@ -1,5 +1,6 @@
 package ec.uce.propuestas.presupuesto.mapper;
 
+import ec.uce.propuestas.common.ItemJerarquico;
 import ec.uce.propuestas.presupuesto.dto.CapituloResponse;
 import ec.uce.propuestas.presupuesto.dto.PresupuestoResponse;
 import ec.uce.propuestas.presupuesto.dto.PresupuestoVersionResponse;
@@ -24,9 +25,9 @@ import java.util.UUID;
  *   <li>Decimales como cadena con escala contractual fija 6 y
  *       {@code HALF_UP} (P-30). {@code toDecimalString} nunca recorta ceros:
  *       {@code 10} se emite como {@code "10.000000"}.</li>
- *   <li>Árbol recursivo sin tope; hijos ordenados por {@code item}
- *       ascendente (lexicográfico coincide con orden natural "1", "1.1",
- *       "1.1.1", "2", …).</li>
+ *   <li>Árbol recursivo sin tope; hijos ordenados por {@code item} en orden
+ *       natural ({@link ec.uce.propuestas.common.ItemJerarquico}), no
+ *       lexicográfico: "1.2" va antes que "1.12".</li>
  *   <li>Rubros ordenados por {@code item} dentro de cada capítulo.</li>
  * </ul>
  */
@@ -61,7 +62,7 @@ public final class PresupuestoMapper {
                     .computeIfAbsent(r.capituloId, k -> new ArrayList<>())
                     .add(r);
         }
-        rubrosPorCapitulo.values().forEach(list -> list.sort(Comparator.comparing(r -> r.item)));
+        rubrosPorCapitulo.values().forEach(list -> list.sort(Comparator.comparing(r -> r.item, ItemJerarquico.ORDEN)));
 
         Map<Long, List<Capitulo>> hijosPorPadre = new HashMap<>();
         List<Capitulo> raices = new ArrayList<>();
@@ -74,8 +75,8 @@ public final class PresupuestoMapper {
                         .add(c);
             }
         }
-        raices.sort(Comparator.comparing(c -> c.item));
-        hijosPorPadre.values().forEach(list -> list.sort(Comparator.comparing(c -> c.item)));
+        raices.sort(Comparator.comparing(c -> c.item, ItemJerarquico.ORDEN));
+        hijosPorPadre.values().forEach(list -> list.sort(Comparator.comparing(c -> c.item, ItemJerarquico.ORDEN)));
 
         List<CapituloResponse> result = new ArrayList<>(raices.size());
         for (Capitulo raiz : raices) {
