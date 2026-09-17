@@ -7,6 +7,7 @@ import ec.uce.propuestas.apu.repository.ApuDetalleRepository;
 import ec.uce.propuestas.apu.repository.ApuRepository;
 import ec.uce.propuestas.apu.repository.ApuSeccionRepository;
 import ec.uce.propuestas.apu.service.ApuCalculoService;
+import ec.uce.propuestas.common.ItemJerarquico;
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.cronograma.service.AvancePatchParser;
 import ec.uce.propuestas.insumo.entity.Insumo;
@@ -181,11 +182,20 @@ public class VersionSnapshotBuilder {
             subs.add(construirCapitulo(hijo, presupuestoId, motorParams));
         }
 
-        // Rubros directos del capítulo
+        // Rubros directos del capítulo.
+        //
+        // Plan 043 — el orden ya no se delega a `ORDER BY item` de SQL: sobre
+        // VARCHAR eso es orden lexicográfico y devuelve "1.10" antes que "1.2".
+        // Aquí el snapshot sólo alimenta sumas de BigDecimal, que no dependen
+        // del orden, así que no había corrupción — se cambia por coherencia con
+        // el resto de lecturas y para que el orden de los rubros dentro del
+        // CapituloSnapshot sea el que el usuario ve.
         List<RubroSnapshot> rubros = new ArrayList<>();
-        List<ec.uce.propuestas.presupuesto.entity.Rubro> rubrosEnt = rubroRepository
-                .find("capituloId = :cid order by item", Parameters.with("cid", cap.id))
-                .list();
+        List<ec.uce.propuestas.presupuesto.entity.Rubro> rubrosEnt = new ArrayList<>(rubroRepository
+                .find("capituloId = :cid", Parameters.with("cid", cap.id))
+                .list());
+        rubrosEnt.sort(
+                Comparator.comparing((ec.uce.propuestas.presupuesto.entity.Rubro r) -> r.item, ItemJerarquico.ORDEN));
         for (ec.uce.propuestas.presupuesto.entity.Rubro r : rubrosEnt) {
             rubros.add(construirRubro(r, motorParams));
         }

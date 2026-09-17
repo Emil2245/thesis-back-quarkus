@@ -2,6 +2,7 @@ package ec.uce.propuestas.presupuesto.service;
 
 import ec.uce.propuestas.apu.entity.Apu;
 import ec.uce.propuestas.apu.repository.ApuRepository;
+import ec.uce.propuestas.common.ItemJerarquico;
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.presupuesto.dto.PresupuestoResponse;
 import ec.uce.propuestas.presupuesto.dto.RubroCrearRequest;
@@ -245,7 +246,8 @@ public class RubroService {
     /**
      * Normaliza el {@code item} de los rubros del capítulo a
      * {@code capitulo.item + "." + 1..n} contiguo, ordenado por el item
-     * actual (lexicográfico coincide con el orden natural). Idempotente.
+     * actual en orden <b>natural</b>
+     * ({@link ec.uce.propuestas.common.ItemJerarquico}). Idempotente.
      *
      * <p>Cierra el riesgo Plan 022: si un capítulo se renumeró (mover
      * hermano intermedio, mover subárbol, eliminar capítulo), los rubros
@@ -265,10 +267,16 @@ public class RubroService {
         if (capitulo == null) {
             return;
         }
-        // Orden estable por item lexicográfico (desempata por id) — coincide
-        // con la regla de renumerarArbol en CapituloService para que ambos
+        // Plan 043 — orden estable por item NATURAL (desempata por id), la misma
+        // regla que normalizarItemsDeRubros en CapituloService, para que ambos
         // caminos produzcan la misma secuencia de items 1..n.
-        rubros.sort(Comparator.comparing((Rubro r) -> r.item).thenComparing(r -> r.id));
+        //
+        // Ordenar aquí lexicográficamente no era un detalle de presentación: el
+        // bucle de abajo reasigna item = capitulo.item + "." + (i + 1) y lo
+        // PERSISTE. Con diez o más rubros, "2.10" caía en la segunda posición y
+        // se reescribía como "2.2", barajando el presupuesto en la base.
+        rubros.sort(
+                Comparator.comparing((Rubro r) -> r.item, ItemJerarquico.ORDEN).thenComparing(r -> r.id));
         boolean cambios = false;
         for (int i = 0; i < rubros.size(); i++) {
             String objetivo = ordinalItem(capitulo.item, i + 1);

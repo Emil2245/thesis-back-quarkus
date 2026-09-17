@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import ec.uce.propuestas.common.ItemJerarquico;
 import ec.uce.propuestas.support.AuthSupport;
 import ec.uce.propuestas.usuario.auth.RecordingEnviadorCorreo;
 import io.quarkus.test.junit.QuarkusTest;
@@ -21,6 +22,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -1245,5 +1248,180 @@ class RubroResourceIT {
                 return rs.getString(1);
             }
         }
+    }
+
+    // --------------------------------------------------------------------
+    // Plan 043 — la renumeración de rubros no puede reordenar el presupuesto
+    // --------------------------------------------------------------------
+
+    /**
+     * Plan 043 — {@code publicId} de los rubros del presupuesto en el orden
+     * <b>natural</b> de su {@code item} ({@link ItemJerarquico#ORDEN}).
+     *
+     * <p>No sirve {@code ORDER BY r.item} de SQL (lo que hace
+     * {@link #huellaRubros}): sobre {@code VARCHAR} eso es orden lexicográfico
+     * y colocaría "1.10" entre "1.1" y "1.2", que es justo la permutación que
+     * estos tests persiguen.</p>
+     */
+    private List<String> rubrosEnOrdenNatural(String presupuestoPublicId) throws Exception {
+        Long pId = internalPresupuestoId(presupuestoPublicId);
+        List<String[]> filas = new ArrayList<>();
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT r.public_id, r.item FROM rubro r "
+                        + "JOIN capitulo c ON c.id = r.capitulo_id WHERE c.presupuesto_id = ?")) {
+            ps.setLong(1, pId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    filas.add(new String[] {rs.getString(1), rs.getString(2)});
+                }
+            }
+        }
+        filas.sort(Comparator.comparing((String[] f) -> f[1], ItemJerarquico.ORDEN));
+        List<String> out = new ArrayList<>();
+        for (String[] f : filas) {
+            out.add(f[0]);
+        }
+        return out;
+    }
+
+    /** Plan 043 — mapa {@code publicId → item} de los rubros del presupuesto. */
+    private Map<String, String> itemsPorRubro(String presupuestoPublicId) throws Exception {
+        Long pId = internalPresupuestoId(presupuestoPublicId);
+        Map<String, String> out = new LinkedHashMap<>();
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT r.public_id, r.item FROM rubro r "
+                        + "JOIN capitulo c ON c.id = r.capitulo_id WHERE c.presupuesto_id = ?")) {
+            ps.setLong(1, pId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    out.put(rs.getString(1), rs.getString(2));
+                }
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Plan 043 — siembra {@code cuantos} rubros bajo un capítulo, uno por APU
+     * nuevo, vía el endpoint público (el mismo camino que usa el usuario).
+     */
+    private void sembrarRubros(String token, String presupuestoId, String capituloId, String prefijoApu, int cuantos)
+            throws Exception {
+        for (int i = 1; i <= cuantos; i++) {
+            String apu = insertarApu(presupuestoId, prefijoApu + "-" + i, "Rubro " + i, "u");
+            given().contentType(JSON)
+                    .header("Authorization", "Bearer " + token)
+                    .body(Map.of("apuId", apu, "cantidad", "5"))
+                    .when()
+                    .post("/api/v1/presupuestos/" + presupuestoId + "/capitulos/" + capituloId + "/rubros")
+                    .then()
+                    .statusCode(201);
+        }
+    }
+
+    /**
+     * Plan 043 — añadir un rubro a un capítulo que ya tenía DOCE no puede
+     * renombrar los doce que había.
+     *
+     * <p>{@code RubroService.compactarRubrosDelCapitulo} corre antes de asignar
+     * el ordinal del rubro nuevo y reasigna
+     * {@code item = capitulo.item + "." + (i + 1)} segun la posicion en la
+     * lista ordenada. Si esa lista se ordena lexicográficamente, el rubro que
+     * era "1.10" pasa a ser el segundo y se reescribe como "1.2" — y el que
+     * era "1.2" pasa a "1.12". No es visualización: el {@code item} se
+     * persiste.</p>
+     *
+     * <p>Doce, no tres: con menos de diez hermanos el orden lexicográfico y el
+     * natural coinciden y el test pasaría con el defecto puesto.</p>
+     */
+    @Test
+    void TC_P43_01_anadir_un_rubro_no_renumera_los_doce_existentes() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p43-c01@ex.com");
+        String proyectoId = crearProyecto(token, "Doce rubros");
+        String presupuestoId = vigenteDeProyecto(proyectoId);
+        String capId = crearCapituloRaiz(token, presupuestoId, "SISTEMA ELECTRICO");
+
+        sembrarRubros(token, presupuestoId, capId, "APU-E", 12);
+
+        Map<String, String> itemAntes = itemsPorRubro(presupuestoId);
+        List<String> ordenAntes = rubrosEnOrdenNatural(presupuestoId);
+        assertEquals(12, ordenAntes.size());
+        assertEquals("1.10", itemAntes.get(ordenAntes.get(9)), "el décimo rubro debe ser el 1.10");
+
+        // Un rubro más. compactarRubrosDelCapitulo corre en este camino.
+        String apu13 = insertarApu(presupuestoId, "APU-E-13", "Rubro 13", "u");
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("apuId", apu13, "cantidad", "5"))
+                .when()
+                .post("/api/v1/presupuestos/" + presupuestoId + "/capitulos/" + capId + "/rubros")
+                .then()
+                .statusCode(201);
+
+        // Ningún rubro preexistente cambia de item: añadir al final no renumera.
+        Map<String, String> itemDespues = itemsPorRubro(presupuestoId);
+        List<String> renombrados = new ArrayList<>();
+        for (String rubro : ordenAntes) {
+            if (!itemAntes.get(rubro).equals(itemDespues.get(rubro))) {
+                renombrados.add(itemAntes.get(rubro) + " -> " + itemDespues.get(rubro));
+            }
+        }
+        assertEquals(List.of(), renombrados, "añadir un rubro renombró items ya existentes");
+
+        // Y el orden relativo de los doce, por orden natural de item, se conserva.
+        List<String> ordenDespues = new ArrayList<>(rubrosEnOrdenNatural(presupuestoId));
+        ordenDespues.retainAll(ordenAntes);
+        assertEquals(ordenAntes, ordenDespues, "los doce rubros quedaron barajados");
+    }
+
+    /**
+     * Plan 043 — el mismo defecto por el otro camino de escritura:
+     * {@code CapituloService.normalizarItemsDeRubros}, invocado desde
+     * {@code renumerarArbol} cuando el capítulo cambia de prefijo.
+     *
+     * <p>Aquí los {@code item} SÍ cambian (el capítulo "1" pasa a "2"), así que
+     * lo que se afirma es lo único que debe conservarse: el orden relativo de
+     * los doce rubros. Con el orden lexicográfico, "1.10" acaba en "2.2".</p>
+     */
+    @Test
+    void TC_P43_02_renumerar_el_arbol_no_baraja_los_doce_rubros() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p43-c02@ex.com");
+        String proyectoId = crearProyecto(token, "Renumerar arbol");
+        String presupuestoId = vigenteDeProyecto(proyectoId);
+        String capId = crearCapituloRaiz(token, presupuestoId, "SISTEMA ELECTRICO");
+
+        sembrarRubros(token, presupuestoId, capId, "APU-R", 12);
+
+        Map<String, String> itemAntes = itemsPorRubro(presupuestoId);
+        List<String> ordenAntes = rubrosEnOrdenNatural(presupuestoId);
+        assertEquals(12, ordenAntes.size());
+        assertEquals("1.10", itemAntes.get(ordenAntes.get(9)), "el décimo rubro debe ser el 1.10");
+
+        // Segunda raíz, movida a la posición 1: el capítulo con rubros pasa de "1"
+        // a "2" y renumerarArbol → normalizarItemsDeRubros reescribe los doce items.
+        String otraRaiz = given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("descripcion", "OBRAS PRELIMINARES"))
+                .when()
+                .post("/api/v1/presupuestos/" + presupuestoId + "/capitulos")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("capitulos[1].id");
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("orden", 1))
+                .when()
+                .patch("/api/v1/presupuestos/" + presupuestoId + "/capitulos/" + otraRaiz + "/mover")
+                .then()
+                .statusCode(200);
+
+        Map<String, String> itemDespues = itemsPorRubro(presupuestoId);
+        List<String> ordenDespues = rubrosEnOrdenNatural(presupuestoId);
+
+        // El décimo rubro sigue siendo el décimo, ahora bajo el prefijo "2".
+        assertEquals(ordenAntes, ordenDespues, "renumerar el árbol barajó los doce rubros");
+        assertEquals("2.10", itemDespues.get(ordenAntes.get(9)), "el 1.10 debía pasar a 2.10");
     }
 }

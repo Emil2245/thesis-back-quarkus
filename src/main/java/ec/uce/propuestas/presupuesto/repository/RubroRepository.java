@@ -1,10 +1,13 @@
 package ec.uce.propuestas.presupuesto.repository;
 
+import ec.uce.propuestas.common.ItemJerarquico;
 import ec.uce.propuestas.presupuesto.entity.Rubro;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -62,10 +65,32 @@ public class RubroRepository implements PanacheRepositoryBase<Rubro, Long> {
                 .getResultList();
     }
 
-    /** Plan 023 — devuelve los rubros de un capítulo ordenados por {@code item} ascendente. */
+    /**
+     * Plan 023 — devuelve los rubros de un capítulo ordenados por {@code item}
+     * ascendente en orden <b>natural</b>
+     * ({@link ec.uce.propuestas.common.ItemJerarquico}), no lexicográfico.
+     *
+     * <p>Plan 043 — el orden ya no se delega a {@code ORDER BY item} de SQL:
+     * sobre {@code VARCHAR} eso es orden lexicográfico y devuelve "1.10" antes
+     * que "1.2". Postgres no tiene orden natural para cadenas, así que la
+     * comparación se hace en memoria — igual que hizo el plan 042 con
+     * {@link CapituloRepository#listarPorPresupuestoOrdenado}. El conjunto son
+     * los rubros de un solo capítulo (51 filas en el peor caso IESS), no una
+     * tabla entera.</p>
+     *
+     * <p>Importa más de lo que parece: sus dos llamadores de escritura
+     * ({@code RubroService.compactarRubrosDelCapitulo} y
+     * {@code CapituloService.normalizarItemsDeRubros}) reasignan y PERSISTEN
+     * {@code item} según la posición en esta lista.</p>
+     *
+     * <p>El resultado se copia a un {@link ArrayList} antes de ordenar:
+     * {@code find(...).list()} puede devolver una lista inmutable.</p>
+     */
     public List<Rubro> listarPorCapitulo(Long capituloId) {
-        return find("capituloId = :capituloId order by item", Parameters.with("capituloId", capituloId))
-                .list();
+        List<Rubro> rubros = new ArrayList<>(find("capituloId = :capituloId", Parameters.with("capituloId", capituloId))
+                .list());
+        rubros.sort(Comparator.comparing((Rubro r) -> r.item, ItemJerarquico.ORDEN));
+        return rubros;
     }
 
     /**
