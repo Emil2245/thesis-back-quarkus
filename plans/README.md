@@ -662,7 +662,7 @@ repositorio. Planes escritos contra el commit `b4d2275` (`origin/main`).
 |---:|---|---|---|---|
 | 041 | [Usos de insumo en APU (P-18)](./041-usos-de-insumo-en-apu.md) | P1 | **DONE** (2026-09-17, `94ff3c0`; 5 IT nuevos verdes contra Postgres real, suite 763→768 sin fallos nuevos) | — |
 | 042 | [Orden natural de los `item` del presupuesto](./042-orden-natural-de-items-del-presupuesto.md) | P1 | **DONE** (2026-09-17, `3ab7e53`; los 4 sitios, suite 768→776 sin fallos nuevos) | — |
-| 043 | [La renumeracion de rubros corrompe el orden](./043-renumeracion-de-rubros-corrompe-el-orden.md) | **P0** | TODO | 042 |
+| 043 | [La renumeracion de rubros corrompe el orden](./043-renumeracion-de-rubros-corrompe-el-orden.md) | **P0** | **DONE** (2026-09-17, `131c08f`; 2 IT con doce rubros, vistos en rojo primero; suite 776-778 sin regresiones) | 042 |
 
 041 y 042 tocan modulos disjuntos y se ejecutaron en paralelo. **043 depende de
 042** y salio de su ejecucion: su ejecutor encontro dos sitios mas con el mismo
@@ -688,3 +688,24 @@ defecto que el plan 042 no enumeraba, y uno de ellos **escribe**.
 Linea base del motor vigente para las dos ejecuciones (Plan 014, cerrada, no se
 reabre): `GM-19` rojo `-$6.95`, `GM-20` cap. 1 rojo `-$0.84`, `GM-24`
 `@Disabled`.
+
+
+### Queda pendiente: cinco `ORDER BY` lexicograficos con alias
+
+El criterio de terminado del plan 043 usaba el grep literal `"order by item"`,
+que **no ve** los que llevan alias. Su ejecutor los encontro y los reviso uno a
+uno; **ninguno corrompe datos**, son lecturas:
+
+- `cronograma/repository/ActividadRepository.java:60,73,89` — `order by c.item,
+  r.item, ...`
+- `plantilla/service/PlantillaProyectoService.java:319,339` — y el camino de
+  plantillas escribe `snap.item()` verbatim, sin recalcular por posicion, asi
+  que el dato viaja intacto.
+
+El dano es de orden de filas con diez o mas hermanos. Ademas
+`PlantillaProyectoService:294` lleva **la cuarta** aparicion del mismo comentario
+falso de esta tanda: «Orden estable por item (lexicografico respeta el orden
+jerarquico natural)».
+
+Merecen su propio plan. Si se escribe, su grep debe ser
+`grep -rniE "order by [a-z]*\.?item" src/main/java`, no el literal.
