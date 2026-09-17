@@ -653,27 +653,29 @@ planning sessions triage findings)*
 
 ---
 
-## Tanda `fix/downloads` — 032–033 (2026-09-16)
+## Tanda `fix/downloads` — 041–042 (2026-09-16)
 
 Dos defectos detectados desde el frontend, investigados hasta su causa en este
 repositorio. Planes escritos contra el commit `b4d2275` (`origin/main`).
 
 | # | Plan | Prioridad | Estado | Depende de |
 |---:|---|---|---|---|
-| 032 | [Usos de insumo en APU (P-18)](./032-usos-de-insumo-en-apu.md) | P1 | TODO | — |
-| 033 | [Orden natural de los `item` del presupuesto](./033-orden-natural-de-items-del-presupuesto.md) | P1 | TODO | — |
+| 041 | [Usos de insumo en APU (P-18)](./041-usos-de-insumo-en-apu.md) | P1 | **DONE** (2026-09-17, `94ff3c0`; 5 IT nuevos verdes contra Postgres real, suite 763→768 sin fallos nuevos) | — |
+| 042 | [Orden natural de los `item` del presupuesto](./042-orden-natural-de-items-del-presupuesto.md) | P1 | TODO | — |
 
 Tocan modulos disjuntos (`insumo` / `presupuesto` + `cronograma`) y pueden
 ejecutarse en paralelo.
 
-- **032** — `GET /proyectos/{id}/insumos/{id}/usos` esta enrutado, valida el
+- **041** — `GET /proyectos/{id}/insumos/{id}/usos` esta enrutado, valida el
   UUID, comprueba la propiedad y devuelve `java.util.List.of()`. Es un stub. En
   el frontend, «Ver uso» sale vacio para todos los insumos, incluidos los que
   este mismo backend se niega a borrar por estar referenciados en APUs.
-- **033** — Cuatro sitios ordenan los `item` jerarquicos como cadenas, asi que
+- **042** — Cuatro sitios ordenan los `item` jerarquicos como cadenas, asi que
   `"1.12" < "1.2"`. El Javadoc de `PresupuestoMapper` afirma que el orden
   lexicografico coincide con el natural; es falso, y los cuatro ejemplos que
   cita son justo los que no lo destapan.
+
+**Numeracion:** la primera version de estos dos planes se escribio como 032 y 033, numeros que `CLAUDE.md` ya tenia asignados (032–040 estan usados). Se renumeraron a 041/042 el 2026-09-17. El commit `94ff3c0` se reescribio para citar el numero nuevo.
 
 Linea base del motor vigente para las dos ejecuciones (Plan 014, cerrada, no se
 reabre): `GM-19` rojo `-$6.95`, `GM-20` cap. 1 rojo `-$0.84`, `GM-24`

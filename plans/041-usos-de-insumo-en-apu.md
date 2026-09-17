@@ -1,4 +1,4 @@
-# Plan 032: `GET /proyectos/{id}/insumos/{id}/usos` es un stub que devuelve `[]`
+# Plan 041: `GET /proyectos/{id}/insumos/{id}/usos` es un stub que devuelve `[]`
 
 > **Instrucciones para quien ejecute**: sigue este plan paso a paso. Corre cada
 > comando de verificación y confirma el resultado esperado antes de avanzar al
@@ -202,7 +202,7 @@ lo que importa es el resultado, no la forma exacta):
 
 ```java
     /**
-     * Plan 032 (P-18) — filas de APU de <b>este proyecto</b> que referencian el
+     * Plan 041 (P-18) — filas de APU de <b>este proyecto</b> que referencian el
      * insumo, con su sección (bloque M/N/O/P) y el APU al que pertenecen.
      *
      * <p>El filtro por {@code proyectoId} no es decorativo: {@code apu_detalle}

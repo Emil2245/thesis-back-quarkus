@@ -1,4 +1,4 @@
-# Plan 033: Los capítulos y rubros se ordenan como texto, así que "1.12" sale antes que "1.2"
+# Plan 042: Los capítulos y rubros se ordenan como texto, así que "1.12" sale antes que "1.2"
 
 > **Instrucciones para quien ejecute**: sigue este plan paso a paso. Corre cada
 > comando de verificación y confirma el resultado esperado antes de avanzar al
@@ -160,7 +160,7 @@ package ec.uce.propuestas.common;
 import java.util.Comparator;
 
 /**
- * Plan 033 — orden natural de los {@code item} jerárquicos del presupuesto
+ * Plan 042 — orden natural de los {@code item} jerárquicos del presupuesto
  * ("1", "1.2", "1.12", "2.10"): segmento a segmento, numéricamente.
  *
  * <p>El orden lexicográfico NO sirve, aunque lo parezca con datos pequeños:
@@ -285,7 +285,7 @@ item` del JPQL y ordena en memoria, porque Postgres no sabe hacerlo:
      * ordenado por {@code item} en orden <b>natural</b>
      * ({@link ec.uce.propuestas.common.ItemJerarquico}).
      *
-     * <p>Plan 033 — el orden ya no se delega a {@code ORDER BY item} de SQL:
+     * <p>Plan 042 — el orden ya no se delega a {@code ORDER BY item} de SQL:
      * sobre {@code VARCHAR} eso es orden lexicográfico y devuelve "1.12" antes
      * que "1.2". Postgres no tiene orden natural para cadenas, así que la
      * comparación se hace en memoria. El conjunto es el árbol de un solo
