@@ -357,7 +357,9 @@ in `docs/modulos/01-proyecto.md`, `docs/modulos/README.md`,
 `V004__seed_escenarios.sql` (723 KB, ~2600 líneas) añade 3 proyectos completos,
 uno por estado, más soporte (`valor_referencia` Anexo A, `plantilla_apu`
 1 SISTEMA + 1 PERSONAL, `log_actividad` catálogo D-13 sin PII) y 2 usuarios
-logueables (John Doe / Ana de Armas, `Clave1234`, ids 1 y 2). Escenario C
+logueables (John Doe `john@uce.edu.ec` / Ana de Armas `ana@gmail.com`,
+`User123123`, ids 1 y 2; SUPER_ADMIN `admin@uce.edu.ec` / `admin` en V004,
+id 3). Escenario C
 (FINALIZADO) reutiliza el workbook real **Cetro Médico Tulcán** desde los
 fixtures del motor (298 rubros, 395115.32). **State: DONE.**
 

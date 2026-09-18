@@ -32,10 +32,11 @@ motor (GM) y datos de BD.
 1. **Un proyecto por estado**: BORRADOR, EN_PROCESO, FINALIZADO.
 2. **FINALIZADO = workbook real CMT**; EN_PROCESO y BORRADOR = sintéticos pero
    coherentes.
-3. **Usuarios seedeados con datos de Bruno**: John Doe (`john.doe@uce.edu.ec`)
-   y Ana de Armas (`ana.armas@gmail.com`), ambos contraseña `Clave1234`,
+3. **Usuarios seedeados con datos de Bruno**: John Doe (`john@uce.edu.ec`)
+   y Ana de Armas (`ana@gmail.com`), ambos contraseña `User123123`,
    `email_verificado = TRUE` (el login lo exige). La BD se borrará desde cero;
-   los ids serán 1 y 2.
+   los ids serán 1 y 2, más el SUPER_ADMIN `admin@uce.edu.ec` / `admin`
+   (id 3, solo-dev, viola D-01 a propósito) sembrado directo en V004.
 4. **Todo incluido**: `valor_referencia` (Anexo A, sin CAMICON — agenda A7),
    `log_actividad` (catálogo D-13, sin PII), `plantilla_apu` (1 SISTEMA +
    1 PERSONAL).
@@ -85,8 +86,9 @@ motor (GM) y datos de BD.
 
 | id | nombre | email | password (bcrypt `$2a$10$`, verificado contra `BcryptUtil.matches`) | rol |
 |---|---|---|---|---|
-| 1 | John Doe | john.doe@uce.edu.ec | `Clave1234` | USUARIO |
-| 2 | Ana de Armas | ana.armas@gmail.com | `Clave1234` | USUARIO |
+| 1 | John Doe | john@uce.edu.ec | `User123123` | USUARIO |
+| 2 | Ana de Armas | ana@gmail.com | `User123123` | USUARIO |
+| 3 | Admin | admin@uce.edu.ec | `admin` (solo-dev, viola D-01) | SUPER_ADMIN |
 
 Hashes bcrypt generados y verificados con el classpath real de Quarkus
 (WildFly Elytron `ModularCrypt.decode` + `PasswordFactory.verify`, exactamente
@@ -220,7 +222,7 @@ Comandos y salidas esperadas:
    seed no interfiere.
 2. Verificación SQL contra una BD limpia con las 4 migraciones aplicadas:
    ```sql
-   SELECT count(*) FROM usuario;                 -- 2
+    SELECT count(*) FROM usuario;                 -- 3 (2 USUARIO + 1 SUPER_ADMIN)
    SELECT count(*) FROM proyecto;                -- 3
    SELECT estado, count(*) FROM proyecto GROUP BY estado;  -- BORRADOR 1, EN_PROCESO 1, FINALIZADO 1
    SELECT count(*) FROM presupuesto;             -- 3 (1 vigente por proyecto)
@@ -247,8 +249,12 @@ Comandos y salidas esperadas:
 python3 -m venv /tmp/opencode/bcryptenv && /tmp/opencode/bcryptenv/bin/pip install bcrypt
 /tmp/opencode/bcryptenv/bin/python -c "
 import bcrypt
-print(bcrypt.hashpw(b'Clave1234', bcrypt.gensalt(rounds=10, prefix=b'2a')).decode())"
+for pwd in ['admin', 'User123123']:
+    print(bcrypt.hashpw(pwd.encode(), bcrypt.gensalt(rounds=10, prefix=b'2a')).decode())"
 ```
+V004 usa `$2a$10$ICytk6EFWtI9yMIFLMXDYu1EuYl1ArC8j/iz6/k/pbjJ3VN86MtNW`
+(`admin`) y `$2a$10$/G0fi1F1UeHBY4EKawPVxOyZyMNSrfCW7tRW/SCGA86VGIHRUB4.i`
+(`User123123`), verificados con checkpw.
 Los hashes `$2a$` fueron verificados con el classpath real de Quarkus
 (WildFly Elytron 2.9.1: `ModularCrypt.decode` + `PasswordFactory.verify` =
 `BcryptUtil.matches`). No cambiar a `$2b$` ni `$2y$` sin re-verificar.

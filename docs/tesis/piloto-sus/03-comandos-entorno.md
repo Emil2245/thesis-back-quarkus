@@ -9,9 +9,9 @@ cd thesis-back-quarkus
 ./gradlew --console=plain quarkusDev
 ```
 
-Bootstrap desechable (solo para la corrida local, no es migración): `psql "$QUARKUS_DATASOURCE_JDBC_URL" -v ON_ERROR_STOP=1 -c "UPDATE usuario SET rol='SUPER_ADMIN' WHERE email='john.doe@uce.edu.ec';"`; luego ejecutar `bru run ... --env dev --env-var adminEmail=john.doe@uce.edu.ec --env-var adminPassword=Clave1234`.
+Credenciales seed (V004 directo, sin bootstrap manual): `admin@uce.edu.ec` / `admin` (SUPER_ADMIN), `john@uce.edu.ec` / `User123123`, `ana@gmail.com` / `User123123`. El `dev.bru` ya trae `adminEmail`/`adminPassword` por defecto; para override: `bru run ... --env dev --env-var adminEmail=admin@uce.edu.ec --env-var adminPassword=admin`.
 
-El panel `12-admin` requiere un SUPER_ADMIN que V004 no siembra. No se añade migración ni seed de producción: proporcionar `adminEmail` y `adminPassword` mediante un environment local no versionado, o ejecutar el procedimiento operativo de desarrollo aprobado para promover temporalmente una cuenta sembrada de John/Ana usando su hash existente. La request `TC-12-00a` debe fallar con 401 si esas variables siguen vacías.
+El panel `12-admin` usa el SUPER_ADMIN sembrado por V004. No se añade otro seed de producción: para una cuenta temporal distinta, promover una cuenta con `UPDATE usuario SET rol='SUPER_ADMIN' WHERE email='john@uce.edu.ec';`. La request `TC-12-00a` debe fallar con 401 si esas variables siguen vacías.
 
 Frontend:
 

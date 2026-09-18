@@ -111,8 +111,9 @@ TC-10-19   APU manual sobre versión ajena → 404
 
 ### Pre-requisitos
 
-- `john.doe@uce.edu.ec` y `ana.armas@gmail.com` deben existir en la BD
-  con la password `Clave1234` (semilla V004). Si no, `00a`/`00b`
+- `john@uce.edu.ec` y `ana@gmail.com` deben existir en la BD
+  con la password `User123123` (semilla V004), y
+  `admin@uce.edu.ec` / `admin` como SUPER_ADMIN (V004). Si no, `00a`/`00b`
   devolverán 401 y los casos autenticados fallarán en cascada.
 - Postgres limpio o cualquier BD con `V001…V012` aplicados (Flyway corre
   al arrancar Quarkus).

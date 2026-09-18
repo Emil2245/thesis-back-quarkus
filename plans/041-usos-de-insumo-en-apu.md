@@ -438,7 +438,7 @@ grep -n "return java.util.List.of();" src/main/java/ec/uce/propuestas/insumo/res
 Con la aplicación levantada (`./gradlew --console=plain quarkusDev`) y la base
 sembrada con `V004__seed_escenarios.sql`:
 
-1. Autentícate como `john.doe@uce.edu.ec` / `Clave1234`.
+1. Autentícate como `john@uce.edu.ec` / `User123123`.
 2. Elige un insumo que el borrado rechace (el mensaje dice «referenciado en N
    parte(s) de APU»).
 3. `GET /api/v1/proyectos/{proyectoId}/insumos/{insumoId}/usos` debe devolver

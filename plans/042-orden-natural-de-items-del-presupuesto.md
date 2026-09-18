@@ -413,7 +413,7 @@ grep -rn 'Comparator.comparing(c -> c.item)\|Comparator.comparing(r -> r.item)' 
 Con la aplicación levantada (`./gradlew --console=plain quarkusDev`) y la base
 sembrada con `V004__seed_escenarios.sql`:
 
-1. Autentícate como `john.doe@uce.edu.ec` / `Clave1234`.
+1. Autentícate como `john@uce.edu.ec` / `User123123`.
 2. `GET /api/v1/presupuestos/{id}` del presupuesto vigente de "Cetro Médico
    Tulcán". Los `subcapitulos` del capítulo `1` deben venir
    `1.1, 1.2, …, 1.9, 1.10, 1.11, 1.12`, con `1.12` **el último**.

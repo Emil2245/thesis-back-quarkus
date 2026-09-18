@@ -105,7 +105,7 @@ class BrunoCobertura12AdminIT {
         for (String variable : Set.of(
                 "baseUrl", "u1Email", "u2Email", "p40ProyectoId", "p40PresupuestoId", "p40ApuId", "p41ProyectoViejoId"))
             assertTrue(env.contains("  " + variable + ":"), variable);
-        assertTrue(env.contains("u1Email: john.doe@uce.edu.ec") && env.contains("u2Email: ana.armas@gmail.com"));
+        assertTrue(env.contains("u1Email: john@uce.edu.ec") && env.contains("u2Email: ana@gmail.com"));
         assertFalse(env.matches("(?s).*\\}\\s+\\w+\\s*:.*"));
     }
 }

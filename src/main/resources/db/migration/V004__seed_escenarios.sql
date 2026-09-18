@@ -10,11 +10,15 @@
 -- Los IDs IDENTITY no se fijan; las hijas referencian por clave natural (email, nombre_proyecto, item, codigo).
 
 -- ============================================================
--- 1. USUARIOS (ids 1 y 2; BD recreada desde cero; login real en Bruno)
+-- 1. USUARIOS (ids 1, 2 y 3; BD recreada desde cero; login real en Bruno)
+-- NOTA: password 'admin' del SUPER_ADMIN viola D-01 a proposito (solo-dev).
+-- Funciona porque PasswordPolicy solo se valida en registro/cambio/reset,
+-- nunca en login ni en seed.
 -- ============================================================
 INSERT INTO usuario (public_id, nombre, email, password_hash, rol, email_verificado, activo) VALUES
-  ('0192f6c4-7c8a-7abc-8000-000000001001'::uuid, 'John Doe', 'john.doe@uce.edu.ec', '$2a$10$KOAVI0jaG1Ick9sS7cb1ueiymWQP.NjWezhlPzBMk4gRp.m5MnL3m', 'USUARIO', TRUE, TRUE),
-  ('0192f6c4-7c8a-7abc-8000-000000001002'::uuid, 'Ana de Armas', 'ana.armas@gmail.com', '$2a$10$Q2.wPP5hPAeQ4twFrhO2/ezyuwqyCUzcjttRXG9NamqXSYsLc0mJi', 'USUARIO', TRUE, TRUE);
+  ('0192f6c4-7c8a-7abc-8000-000000001001'::uuid, 'John Doe', 'john@uce.edu.ec', '$2a$10$/G0fi1F1UeHBY4EKawPVxOyZyMNSrfCW7tRW/SCGA86VGIHRUB4.i', 'USUARIO', TRUE, TRUE),
+  ('0192f6c4-7c8a-7abc-8000-000000001002'::uuid, 'Ana de Armas', 'ana@gmail.com', '$2a$10$/G0fi1F1UeHBY4EKawPVxOyZyMNSrfCW7tRW/SCGA86VGIHRUB4.i', 'USUARIO', TRUE, TRUE),
+  ('0192f6c4-7c8a-7abc-8000-000000001003'::uuid, 'Admin', 'admin@uce.edu.ec', '$2a$10$ICytk6EFWtI9yMIFLMXDYu1EuYl1ArC8j/iz6/k/pbjJ3VN86MtNW', 'SUPER_ADMIN', TRUE, TRUE);
 
 -- ============================================================
 -- 2. VALOR_REFERENCIA — Anexo A (sin CAMICON, agenda A7)
@@ -29,9 +33,9 @@ INSERT INTO valor_referencia (clave, valor, descripcion, fuente) VALUES
 -- 3. PROYECTOS (uno por estado)
 -- ============================================================
 INSERT INTO proyecto (public_id, usuario_id, nombre_proyecto, codigo, descripcion, anio, fecha_inicio, plazo_ejecucion, plazo_unidad, estado, direccion_institucional, subdireccion_institucional, titulo_et_1, titulo_et_2) VALUES
-  ('0192f6c4-7c8a-7abc-8000-000000001101'::uuid, (SELECT id FROM usuario WHERE email = 'ana.armas@gmail.com'),  'Adecuación de consultorio odontológico', 'UCE-CON-2026-A', 'Adecuación de consultorio odontológico en el campus universitario', 2026, DATE '2026-06-01', 4, 'MES', 'BORRADOR',    'Universidad Central del Ecuador', 'Facultad de Odontología', 'ESPECIFICACIONES TÉCNICAS', 'BORRADOR-ET'),
-  ('0192f6c4-7c8a-7abc-8000-000000001102'::uuid, (SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'),  'Rehabilitación de consultorios UCE',    'UCE-CON-2026-B', 'Rehabilitación integral de consultorios médicos universitarios', 2026, DATE '2026-03-02', 8, 'MES', 'EN_PROCESO',  'Universidad Central del Ecuador', 'Facultad de Medicina', 'ESPECIFICACIONES TÉCNICAS', 'EN-PROCESO-ET'),
-  ('0192f6c4-7c8a-7abc-8000-000000001103'::uuid, (SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'),  'Cetro Médico Tulcán',                    'CMT-2023',        'Construcción del Centro Médico Tulcán', 2023, DATE '2023-02-06', 12, 'MES', 'FINALIZADO', 'IESS', 'Dirección Provincial Carchi', 'ESPECIFICACIONES TÉCNICAS', 'ESTANCIA-ACADEMICA');
+  ('0192f6c4-7c8a-7abc-8000-000000001101'::uuid, (SELECT id FROM usuario WHERE email = 'ana@gmail.com'),  'Adecuación de consultorio odontológico', 'UCE-CON-2026-A', 'Adecuación de consultorio odontológico en el campus universitario', 2026, DATE '2026-06-01', 4, 'MES', 'BORRADOR',    'Universidad Central del Ecuador', 'Facultad de Odontología', 'ESPECIFICACIONES TÉCNICAS', 'BORRADOR-ET'),
+  ('0192f6c4-7c8a-7abc-8000-000000001102'::uuid, (SELECT id FROM usuario WHERE email = 'john@uce.edu.ec'),  'Rehabilitación de consultorios UCE',    'UCE-CON-2026-B', 'Rehabilitación integral de consultorios médicos universitarios', 2026, DATE '2026-03-02', 8, 'MES', 'EN_PROCESO',  'Universidad Central del Ecuador', 'Facultad de Medicina', 'ESPECIFICACIONES TÉCNICAS', 'EN-PROCESO-ET'),
+  ('0192f6c4-7c8a-7abc-8000-000000001103'::uuid, (SELECT id FROM usuario WHERE email = 'john@uce.edu.ec'),  'Cetro Médico Tulcán',                    'CMT-2023',        'Construcción del Centro Médico Tulcán', 2023, DATE '2023-02-06', 12, 'MES', 'FINALIZADO', 'IESS', 'Dirección Provincial Carchi', 'ESPECIFICACIONES TÉCNICAS', 'ESTANCIA-ACADEMICA');
 
 -- ============================================================
 -- 4. PARAMETROS_PROYECTO (copia de parametros_sistema; CI NULL → hereda, DM §11)
@@ -2707,7 +2711,7 @@ INSERT INTO plantilla_apu (public_id, nombre, tipo, usuario_id, descripcion_rubr
 -- ============================================================
 INSERT INTO plantilla_apu (public_id, nombre, tipo, usuario_id, descripcion_rubro, unidad, snapshot_secciones) VALUES
   ('0192f6c4-7c8a-7abc-8000-000000002002'::uuid, 'Replanteo y nivelación (John Doe)', 'PERSONAL',
-   (SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'),
+   (SELECT id FROM usuario WHERE email = 'john@uce.edu.ec'),
    'Replanteo y nivelación', 'm2',
    '{"secciones":[{"tipo":"EQUIPO","lineas":[{"esHerramientaMenor":true}]},{"tipo":"MANO_OBRA","lineas":[{"insumoCodigo":"MO-001","cantidad":0.1,"rendimiento":0.1,"precioOverride":null},{"insumoCodigo":"MO-002","cantidad":1.0,"rendimiento":0.1,"precioOverride":null}]},{"tipo":"MATERIAL","lineas":[]},{"tipo":"TRANSPORTE","lineas":[]}]}'::jsonb);
 
@@ -2715,37 +2719,37 @@ INSERT INTO plantilla_apu (public_id, nombre, tipo, usuario_id, descripcion_rubr
 -- 11. LOG_ACTIVIDAD — catálogo D-13, detalle JSONB sin PII (RNF-08)
 -- ============================================================
 INSERT INTO log_actividad (usuario_id, evento, entidad, entidad_id, detalle) VALUES
-  ((SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'),  'auth.registro',       'usuario', NULL, '{}'::jsonb),
-  ((SELECT id FROM usuario WHERE email = 'ana.armas@gmail.com'),  'auth.registro',       'usuario', NULL, '{}'::jsonb),
-  ((SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'),  'auth.login',          'usuario', NULL, '{}'::jsonb),
-  ((SELECT id FROM usuario WHERE email = 'ana.armas@gmail.com'),  'auth.login',          'usuario', NULL, '{}'::jsonb),
-  ((SELECT id FROM usuario WHERE email = 'ana.armas@gmail.com'),  'proyecto.creado',     'proyecto',
+  ((SELECT id FROM usuario WHERE email = 'john@uce.edu.ec'),  'auth.registro',       'usuario', NULL, '{}'::jsonb),
+  ((SELECT id FROM usuario WHERE email = 'ana@gmail.com'),  'auth.registro',       'usuario', NULL, '{}'::jsonb),
+  ((SELECT id FROM usuario WHERE email = 'john@uce.edu.ec'),  'auth.login',          'usuario', NULL, '{}'::jsonb),
+  ((SELECT id FROM usuario WHERE email = 'ana@gmail.com'),  'auth.login',          'usuario', NULL, '{}'::jsonb),
+  ((SELECT id FROM usuario WHERE email = 'ana@gmail.com'),  'proyecto.creado',     'proyecto',
      (SELECT id FROM proyecto WHERE nombre_proyecto = 'Adecuación de consultorio odontológico'), '{"estado":"BORRADOR"}'::jsonb),
-  ((SELECT id FROM usuario WHERE email = 'ana.armas@gmail.com'),  'base.insumos.copiada','base_insumos', NULL, '{"origen":"CENTRAL"}'::jsonb),
-  ((SELECT id FROM usuario WHERE email = 'ana.armas@gmail.com'),  'insumo.creado',       'insumo', NULL, '{"cantidad":5}'::jsonb),
-  ((SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'),  'proyecto.creado',     'proyecto',
+  ((SELECT id FROM usuario WHERE email = 'ana@gmail.com'),  'base.insumos.copiada','base_insumos', NULL, '{"origen":"CENTRAL"}'::jsonb),
+  ((SELECT id FROM usuario WHERE email = 'ana@gmail.com'),  'insumo.creado',       'insumo', NULL, '{"cantidad":5}'::jsonb),
+  ((SELECT id FROM usuario WHERE email = 'john@uce.edu.ec'),  'proyecto.creado',     'proyecto',
      (SELECT id FROM proyecto WHERE nombre_proyecto = 'Rehabilitación de consultorios UCE'), '{"estado":"EN_PROCESO"}'::jsonb),
-  ((SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'),  'presupuesto.version_creada', 'presupuesto',
+  ((SELECT id FROM usuario WHERE email = 'john@uce.edu.ec'),  'presupuesto.version_creada', 'presupuesto',
      (SELECT id FROM presupuesto WHERE proyecto_id = (SELECT id FROM proyecto WHERE nombre_proyecto = 'Rehabilitación de consultorios UCE') AND version = 1), '{"version":1}'::jsonb),
-  ((SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'),  'apu.creado',          'apu', NULL, '{"cantidad":2}'::jsonb),
-  ((SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'),  'rubro.creado',        'rubro', NULL, '{"cantidad":12}'::jsonb),
-  ((SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'),  'cronograma.creado',   'cronograma',
+  ((SELECT id FROM usuario WHERE email = 'john@uce.edu.ec'),  'apu.creado',          'apu', NULL, '{"cantidad":2}'::jsonb),
+  ((SELECT id FROM usuario WHERE email = 'john@uce.edu.ec'),  'rubro.creado',        'rubro', NULL, '{"cantidad":12}'::jsonb),
+  ((SELECT id FROM usuario WHERE email = 'john@uce.edu.ec'),  'cronograma.creado',   'cronograma',
      (SELECT id FROM cronograma WHERE presupuesto_id = (SELECT id FROM presupuesto WHERE proyecto_id = (SELECT id FROM proyecto WHERE nombre_proyecto = 'Rehabilitación de consultorios UCE') AND version = 1)), '{"periodos":8}'::jsonb),
-  ((SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'),  'proyecto.creado',     'proyecto',
+  ((SELECT id FROM usuario WHERE email = 'john@uce.edu.ec'),  'proyecto.creado',     'proyecto',
      (SELECT id FROM proyecto WHERE nombre_proyecto = 'Cetro Médico Tulcán'), '{"estado":"FINALIZADO"}'::jsonb),
-  ((SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'),  'presupuesto.version_creada', 'presupuesto',
+  ((SELECT id FROM usuario WHERE email = 'john@uce.edu.ec'),  'presupuesto.version_creada', 'presupuesto',
      (SELECT id FROM presupuesto WHERE proyecto_id = (SELECT id FROM proyecto WHERE nombre_proyecto = 'Cetro Médico Tulcán') AND version = 1), '{"version":1}'::jsonb),
-  ((SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'),  'apu.creado',          'apu', NULL, '{"cantidad":298}'::jsonb),
-  ((SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'),  'rubro.creado',        'rubro', NULL, '{"cantidad":298}'::jsonb),
-  ((SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'),  'cronograma.creado',   'cronograma',
+  ((SELECT id FROM usuario WHERE email = 'john@uce.edu.ec'),  'apu.creado',          'apu', NULL, '{"cantidad":298}'::jsonb),
+  ((SELECT id FROM usuario WHERE email = 'john@uce.edu.ec'),  'rubro.creado',        'rubro', NULL, '{"cantidad":298}'::jsonb),
+  ((SELECT id FROM usuario WHERE email = 'john@uce.edu.ec'),  'cronograma.creado',   'cronograma',
      (SELECT id FROM cronograma WHERE presupuesto_id = (SELECT id FROM presupuesto WHERE proyecto_id = (SELECT id FROM proyecto WHERE nombre_proyecto = 'Cetro Médico Tulcán') AND version = 1)), '{"periodos":12}'::jsonb),
-  ((SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'),  'presupuesto.vigente_marcado', 'presupuesto',
+  ((SELECT id FROM usuario WHERE email = 'john@uce.edu.ec'),  'presupuesto.vigente_marcado', 'presupuesto',
      (SELECT id FROM presupuesto WHERE proyecto_id = (SELECT id FROM proyecto WHERE nombre_proyecto = 'Cetro Médico Tulcán') AND version = 1), '{"es_vigente":true}'::jsonb),
-  ((SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'),  'documento.exportado',  'documento', NULL, '{"tipo":"presupuesto"}'::jsonb);
+  ((SELECT id FROM usuario WHERE email = 'john@uce.edu.ec'),  'documento.exportado',  'documento', NULL, '{"tipo":"presupuesto"}'::jsonb);
 
 -- PERSONAL catalog example: one owner, five reusable insumos, all four types.
 INSERT INTO base_insumos (public_id, nombre, tipo, usuario_id, archivada) VALUES
-  ('0192f6c4-7c8a-7abc-8000-000000000021'::uuid, 'mis-rubros', 'PERSONAL', (SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'), FALSE);
+  ('0192f6c4-7c8a-7abc-8000-000000000021'::uuid, 'mis-rubros', 'PERSONAL', (SELECT id FROM usuario WHERE email = 'john@uce.edu.ec'), FALSE);
 INSERT INTO insumo (public_id, base_id, codigo, tipo, descripcion, unidad, precio_unitario)
 SELECT v.public_id, (SELECT id FROM base_insumos WHERE nombre = 'mis-rubros'), v.codigo, v.tipo, v.descripcion, v.unidad, v.precio
 FROM (VALUES
@@ -2772,5 +2776,5 @@ SELECT p.id, a.id FROM presupuesto p JOIN apu a ON a.presupuesto_id = p.id ORDER
 INSERT INTO cronograma_actividad (presupuesto_id, rubro_id)
 SELECT p.id, r.id FROM presupuesto p JOIN rubro r ON r.capitulo_id IN (SELECT c.id FROM capitulo c WHERE c.presupuesto_id = p.id) ORDER BY r.id LIMIT 1;
 INSERT INTO plantilla_proyecto (public_id, usuario_id, nombre, snapshot_estructura)
-VALUES ('0192f6c4-7c8a-7abc-8000-000000000401'::uuid, (SELECT id FROM usuario WHERE email = 'john.doe@uce.edu.ec'), 'Plantilla Cetro estructural',
+VALUES ('0192f6c4-7c8a-7abc-8000-000000000401'::uuid, (SELECT id FROM usuario WHERE email = 'john@uce.edu.ec'), 'Plantilla Cetro estructural',
         '{"capitulos":[{"item":"1","apus":[{"codigo":"REP-TR-001"}]}]}'::jsonb);

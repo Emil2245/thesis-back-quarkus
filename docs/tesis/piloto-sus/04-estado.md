@@ -8,4 +8,4 @@
 
 El piloto humano no se ejecutó porque no se proporcionó evidencia de participantes. El frontend existe en `../thesis-front-react`; no se declara ausente. Proponer una sesión futura cuando haya participantes disponibles y un entorno local operativo. Esta plantilla no fabrica resultados ni puntajes y no mezcla el piloto con la medición I-12 (n≥5).
 
-Brecha operativa: la BD limpia solo contiene John Doe y Ana de Armas como USUARIO. La colección admin requiere variables `adminEmail`/`adminPassword` suministradas externamente o un bootstrap desechable de SUPER_ADMIN, sin modificar migraciones ni seeds.
+Brecha operativa (cerrada con seed directo en V004): la BD limpia ahora contiene John Doe y Ana de Armas como USUARIO más el SUPER_ADMIN `admin@uce.edu.ec` / `admin`. La colección admin usa `adminEmail`/`adminPassword` desde `environments/dev.bru` sin bootstrap manual.
