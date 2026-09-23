@@ -14,6 +14,7 @@ import ec.uce.propuestas.motor.SeccionTipo;
 import ec.uce.propuestas.plantilla.dto.AdvertenciaPlantillaResponse;
 import ec.uce.propuestas.plantilla.dto.PlantillaProyectoResponse;
 import ec.uce.propuestas.plantilla.dto.ProyectoDesdePlantillaResponse;
+import ec.uce.propuestas.plantilla.entity.PlantillaApu;
 import ec.uce.propuestas.plantilla.entity.PlantillaProyecto;
 import ec.uce.propuestas.plantilla.repository.PlantillaProyectoRepository;
 import ec.uce.propuestas.presupuesto.entity.Presupuesto;
@@ -126,15 +127,20 @@ public class PlantillaProyectoService {
     // Listar / detalle — owner-scoped via publicId (UUIDv7)
     // =========================================================================
 
-    /** Lista las plantillas del caller. No hay SISTEMA en este módulo (P-46 owner-only). */
-    public List<PlantillaProyectoResponse> listar(Long callerUsuarioId) {
-        return plantillaProyectoRepository.listarDeOwner(callerUsuarioId).stream()
+    /**
+     * Plan 044 — lista las plantillas visibles al caller: SISTEMA + sus
+     * PERSONALES. {@code tipo} ({@code null} = ambas) filtra por segmento.
+     */
+    public List<PlantillaProyectoResponse> listar(Long callerUsuarioId, PlantillaApu.Tipo tipo) {
+        return plantillaProyectoRepository.listarVisibles(callerUsuarioId).stream()
+                .filter(p -> tipo == null || p.tipo == tipo)
                 .map(p -> PlantillaProyectoResponse.from(p, snapshotProyectoMapper.parseJson(p.snapshotEstructura)))
                 .toList();
     }
 
+    /** Plan 044 — SISTEMA es legible por todo usuario autenticado; PERSONAL ajena → 404. */
     public PlantillaProyectoResponse detalle(UUID plantillaPublicId, Long callerUsuarioId) {
-        PlantillaProyecto p = cargarPorOwner(plantillaPublicId, callerUsuarioId);
+        PlantillaProyecto p = cargarVisible(plantillaPublicId, callerUsuarioId);
         return PlantillaProyectoResponse.from(p, snapshotProyectoMapper.parseJson(p.snapshotEstructura));
     }
 
@@ -150,6 +156,8 @@ public class PlantillaProyectoService {
      */
     @Transactional
     public void eliminar(UUID plantillaPublicId, Long callerUsuarioId) {
+        // Una SISTEMA no tiene dueño, así que el lookup owner-scoped ya la
+        // oculta: USUARIO no puede borrarla (404, igual que plantilla_apu).
         PlantillaProyecto p = cargarPorOwner(plantillaPublicId, callerUsuarioId);
         plantillaProyectoRepository.delete(p);
     }
@@ -203,6 +211,7 @@ public class PlantillaProyectoService {
         SnapshotProyectoMapper.Snapshot snap = construirSnapshotDesdeProyecto(proyecto);
 
         PlantillaProyecto plantilla = new PlantillaProyecto();
+        plantilla.tipo = PlantillaApu.Tipo.PERSONAL;
         plantilla.usuarioId = callerUsuarioId;
         plantilla.nombre = nombreTrim;
         plantilla.descripcion = descripcionNorm;
@@ -212,6 +221,36 @@ public class PlantillaProyectoService {
 
         return PlantillaProyectoResponse.from(
                 plantilla, snapshotProyectoMapper.parseJson(plantilla.snapshotEstructura));
+    }
+
+    /**
+     * Plan 044 — alta administrativa de una plantilla SISTEMA desde cualquier
+     * proyecto (mismo criterio que {@code PlantillaApuAdminService.crear}, que
+     * acepta cualquier APU). Reutiliza el snapshot price-free de
+     * {@link #guardarDesdeProyecto}: no hay una segunda forma de snapshot.
+     */
+    @Transactional
+    public PlantillaProyecto crearSistemaDesdeProyecto(UUID proyectoPublicId, String nombre, String descripcion) {
+        if (nombre == null || nombre.isBlank()) {
+            throw ProblemaException.validacion("nombre-requerido");
+        }
+        if (nombre.trim().length() > 200) {
+            throw ProblemaException.validacion("nombre excede 200 caracteres");
+        }
+        Proyecto proyecto = proyectoRepository
+                .find("publicId", proyectoPublicId)
+                .firstResultOptional()
+                .orElseThrow(() -> ProblemaException.validacion("proyecto-origen-no-encontrado"));
+
+        PlantillaProyecto plantilla = new PlantillaProyecto();
+        plantilla.tipo = PlantillaApu.Tipo.SISTEMA;
+        plantilla.usuarioId = null;
+        plantilla.nombre = nombre.trim();
+        plantilla.descripcion = descripcion == null || descripcion.isBlank() ? null : descripcion.trim();
+        plantilla.snapshotEstructura = snapshotProyectoMapper.escribir(construirSnapshotDesdeProyecto(proyecto));
+        plantillaProyectoRepository.persist(plantilla);
+        plantillaProyectoRepository.getEntityManager().flush();
+        return plantilla;
     }
 
     private SnapshotProyectoMapper.Snapshot construirSnapshotDesdeProyecto(Proyecto proyecto) {
@@ -442,7 +481,7 @@ public class PlantillaProyectoService {
         if (nombreProyecto.length() > 200) {
             throw ProblemaException.validacion("nombre excede 200 caracteres");
         }
-        PlantillaProyecto plantilla = cargarPorOwner(plantillaPublicId, callerUsuarioId);
+        PlantillaProyecto plantilla = cargarVisible(plantillaPublicId, callerUsuarioId);
         SnapshotProyectoMapper.Snapshot snap = snapshotProyectoMapper.leer(plantilla.snapshotEstructura);
 
         // 1) Proyecto nuevo BORRADOR (cabecera del snapshot + nombre del request).
@@ -812,5 +851,15 @@ public class PlantillaProyectoService {
             throw ProblemaException.noEncontrado("Plantilla de proyecto no encontrada");
         }
         return row.get();
+    }
+
+    /** Plan 044 — SISTEMA o PERSONAL propia; cualquier otra fila → 404 (RNF-05). */
+    private PlantillaProyecto cargarVisible(UUID plantillaPublicId, Long callerUsuarioId) {
+        if (plantillaPublicId == null) {
+            throw ProblemaException.noEncontrado("Plantilla de proyecto no encontrada");
+        }
+        return plantillaProyectoRepository
+                .findVisibleByPublicId(plantillaPublicId, callerUsuarioId)
+                .orElseThrow(() -> ProblemaException.noEncontrado("Plantilla de proyecto no encontrada"));
     }
 }

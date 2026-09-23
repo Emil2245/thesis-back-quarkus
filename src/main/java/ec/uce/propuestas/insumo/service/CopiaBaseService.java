@@ -52,8 +52,11 @@ public class CopiaBaseService {
     @Inject
     LogActividadService logActividadService;
 
+    @Inject
+    BasesPersonalesService basesPersonalesService;
+
     /**
-     * Copia una base de insumos (CENTRAL o PROYECTO) hacia la base PROYECTO del
+     * Copia una base de insumos (CENTRAL, PERSONAL o PROYECTO) hacia la base PROYECTO del
      * proyecto destino del caller. Aplica scope de owner tanto al destino como
      * a la fuente PROYECTO: una fila ajena o de tipo incorrecto devuelve 404
      * (nunca 403 — RNF-05). La fuente CENTRAL es legible globalmente pero debe
@@ -79,8 +82,10 @@ public class CopiaBaseService {
             throw ProblemaException.validacion("baseId requerido");
         }
         if (req.fuenteTipo() == null
-                || (!"CENTRAL".equalsIgnoreCase(req.fuenteTipo()) && !"PROYECTO".equalsIgnoreCase(req.fuenteTipo()))) {
-            throw ProblemaException.validacion("fuenteTipo debe ser CENTRAL o PROYECTO");
+                || (!"CENTRAL".equalsIgnoreCase(req.fuenteTipo())
+                        && !"PROYECTO".equalsIgnoreCase(req.fuenteTipo())
+                        && !"PERSONAL".equalsIgnoreCase(req.fuenteTipo()))) {
+            throw ProblemaException.validacion("fuenteTipo debe ser CENTRAL, PERSONAL o PROYECTO");
         }
 
         // Plan 07 — frontera JSON: ambos ids llegan como UUID; Jackson acepta
@@ -100,6 +105,11 @@ public class CopiaBaseService {
             // El seam del repositorio ya filtra por tipo en findCentralByPublicId.
             origenBase = baseInsumosRepository
                     .findCentralByPublicId(origenPublicId)
+                    .orElseThrow(() -> ProblemaException.noEncontrado("Base origen no encontrada"));
+        } else if ("PERSONAL".equalsIgnoreCase(req.fuenteTipo())) {
+            // Plan 044 — fuente PERSONAL: owner-scoped; ajena o de otro tipo -> 404.
+            origenBase = basesPersonalesService
+                    .buscarPorPublicId(origenPublicId, callerUsuarioId)
                     .orElseThrow(() -> ProblemaException.noEncontrado("Base origen no encontrada"));
         } else {
             // Fuente PROYECTO — scope de owner: la fila debe pertenecer al caller.

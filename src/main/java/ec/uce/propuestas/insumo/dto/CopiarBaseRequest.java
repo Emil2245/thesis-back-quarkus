@@ -9,13 +9,14 @@ import java.util.UUID;
  * UUIDv7 se hace en el resource; este DTO sólo fija la no-nullabilidad.
  *
  * <p>{@code fuenteTipo} discrimina el origen de la copia
- * ({@code CENTRAL} | {@code PROYECTO}). Para {@code CENTRAL}, {@code baseId}
- * apunta al {@code publicId} UUIDv7 de la base central. Para {@code PROYECTO},
+ * ({@code CENTRAL} | {@code PERSONAL} | {@code PROYECTO}). Para {@code CENTRAL}
+ * y {@code PERSONAL} (Plan 044, owner-scoped), {@code baseId} apunta al
+ * {@code publicId} UUIDv7 de la base. Para {@code PROYECTO},
  * apunta al {@code publicId} UUIDv7 del proyecto fuente (la copia materializa
  * desde su base PROYECTO). El {@code proyectoId} destino es siempre el
  * {@code publicId} UUIDv7 del proyecto del caller.</p>
  */
 public record CopiarBaseRequest(
-        @NotNull String fuenteTipo, // CENTRAL | PROYECTO
+        @NotNull String fuenteTipo, // CENTRAL | PERSONAL | PROYECTO
         UUID baseId,
         UUID proyectoId) {}

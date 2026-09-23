@@ -3,6 +3,7 @@ package ec.uce.propuestas.plantilla.resource;
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.common.UuidV7;
 import ec.uce.propuestas.plantilla.dto.PlantillaProyectoResponse;
+import ec.uce.propuestas.plantilla.entity.PlantillaApu;
 import ec.uce.propuestas.plantilla.service.PlantillaProyectoService;
 import ec.uce.propuestas.usuario.UsuarioRepository;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -19,8 +20,9 @@ import java.util.UUID;
  * Ruta {@code /plantillas-proyecto}. Reglas:
  *
  * <ul>
- *   <li>GET/DELETE — owner-scoped (RNF-05 → 404 si ajeno o no existe).</li>
- *   <li>Sin SISTEMA — el contrato solo expone plantillas del usuario (P-46).</li>
+ *   <li>GET — SISTEMA + PERSONALES propias (Plan 044); PERSONAL ajena → 404 (RNF-05).</li>
+ *   <li>DELETE — solo PERSONAL propia; SISTEMA o ajena → 404. Las SISTEMA se
+ *       gestionan en {@code /admin/plantillas-proyecto}.</li>
  * </ul>
  *
  * <p>El guardado es {@code POST /proyectos/{proyectoId}/guardar-plantilla} (en
@@ -50,14 +52,26 @@ public class PlantillaProyectoResource {
                 .orElseThrow(() -> ProblemaException.noEncontrado("Usuario autenticado no encontrado"));
     }
 
-    /** GET /plantillas-proyecto — plantillas PERSONALES del caller. */
+    /**
+     * GET /plantillas-proyecto?tipo= — Plan 044: SISTEMA + PERSONALES del
+     * caller. {@code tipo} opcional (SISTEMA | PERSONAL), como en
+     * {@code GET /plantillas-apu}.
+     */
     @GET
     @Consumes(MediaType.WILDCARD)
-    public List<PlantillaProyectoResponse> listar() {
-        return plantillaProyectoService.listar(usuarioId());
+    public List<PlantillaProyectoResponse> listar(@QueryParam("tipo") String tipo) {
+        PlantillaApu.Tipo filtro = null;
+        if (tipo != null && !tipo.isBlank()) {
+            try {
+                filtro = PlantillaApu.Tipo.valueOf(tipo.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw ProblemaException.validacion("tipo debe ser SISTEMA o PERSONAL");
+            }
+        }
+        return plantillaProyectoService.listar(usuarioId(), filtro);
     }
 
-    /** GET /plantillas-proyecto/{id} — detalle owner-scoped. UUIDv7 mal formado → 400. */
+    /** GET /plantillas-proyecto/{id} — SISTEMA o propia. UUIDv7 mal formado → 400. */
     @GET
     @Path("/{id}")
     @Consumes(MediaType.WILDCARD)

@@ -32,8 +32,17 @@ public class PlantillaProyecto extends PanacheEntityBase {
     @Column(name = "public_id", insertable = false, updatable = false)
     public UUID publicId;
 
-    @Column(name = "usuario_id", nullable = false)
+    /** Plan 044 (V013) — {@code null} si y solo si {@code tipo = SISTEMA}. */
+    @Column(name = "usuario_id")
     public Long usuarioId;
+
+    /**
+     * Plan 044 (V013) — mismo modelo que {@link PlantillaApu#tipo}: SISTEMA la
+     * gestiona SUPER_ADMIN y USUARIO solo la lee y la aplica.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 10)
+    public PlantillaApu.Tipo tipo = PlantillaApu.Tipo.PERSONAL;
 
     @Column(nullable = false)
     public String nombre;

@@ -665,6 +665,7 @@ repositorio. Planes escritos contra el commit `b4d2275` (`origin/main`).
 | 041 | [Usos de insumo en APU (P-18)](./041-usos-de-insumo-en-apu.md) | P1 | **DONE** (2026-09-17, `94ff3c0`; 5 IT nuevos verdes contra Postgres real, suite 763→768 sin fallos nuevos) | — |
 | 042 | [Orden natural de los `item` del presupuesto](./042-orden-natural-de-items-del-presupuesto.md) | P1 | **DONE** (2026-09-17, `3ab7e53`; los 4 sitios, suite 768→776 sin fallos nuevos) | — |
 | 043 | [La renumeracion de rubros corrompe el orden](./043-renumeracion-de-rubros-corrompe-el-orden.md) | **P0** | **DONE** (2026-09-17, `131c08f`; 2 IT con doce rubros, vistos en rojo primero; suite 776-778 sin regresiones) | 042 |
+| 044 | [Insumos en bases personales y plantillas de proyecto SISTEMA](./044-bases-personales-y-plantillas-proyecto-sistema.md) | P1 | **DONE** (2026-09-23, sin commit; V013 + endpoints nuevos; plantilla/insumo/schema/identifier 243/243, suite completa no ejecutada) | — |
 
 041 y 042 tocan modulos disjuntos y se ejecutaron en paralelo. **043 depende de
 042** y salio de su ejecucion: su ejecutor encontro dos sitios mas con el mismo

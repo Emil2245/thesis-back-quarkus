@@ -104,8 +104,8 @@ class PlantillaProyectoServiceTest {
         persistirPresupuestoVigente(pAlice.id);
         PlantillaProyecto plantillaAlice = persistPlantillaDesdeProyecto(alice.id, pAlice.publicId, "Plantilla Alice");
 
-        List<PlantillaProyectoResponse> deAlice = plantillaProyectoService.listar(alice.id);
-        List<PlantillaProyectoResponse> deBob = plantillaProyectoService.listar(bob.id);
+        List<PlantillaProyectoResponse> deAlice = plantillaProyectoService.listar(alice.id, null);
+        List<PlantillaProyectoResponse> deBob = plantillaProyectoService.listar(bob.id, null);
 
         assertEquals(1, deAlice.size(), "Alice ve su plantilla");
         assertEquals(plantillaAlice.publicId, deAlice.get(0).id());
