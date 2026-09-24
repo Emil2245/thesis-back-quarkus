@@ -24,9 +24,10 @@ por estado** (`BORRADOR`, `EN_PROCESO`, `FINALIZADO`), con todas sus tablas
 relacionadas llenas de forma coherente, más las tablas de soporte
 (`valor_referencia`, `log_actividad`, `plantilla_apu`) y los dos usuarios de
 demo logueables. Uno de los escenarios (FINALIZADO) reutiliza el workbook real
-**Cetro Médico Tulcán** (7 capítulos, 26 subcapítulos, 298 rubros, 18 APUs con
-detalle) ya importado como fixtures del motor — cerrando el bucle entre
-motor (GM) y datos de BD.
+**Cetro Médico Tulcán** (7 capítulos, 26 subcapítulos, 298 rubros, 288 APUs con
+composición importada desde el workbook y 10 APUs con composición provisional
+explícitamente marcada por falta de hoja fuente) ya importado como fixtures del
+motor — cerrando el bucle entre motor (GM) y datos de BD.
 
 **Decisiones del autor (2026-08-02):**
 1. **Un proyecto por estado**: BORRADOR, EN_PROCESO, FINALIZADO.
@@ -68,8 +69,8 @@ motor (GM) y datos de BD.
 | Archivo | Contenido |
 |---|---|
 | `presupuesto-apus-cetro-medico-tulcan.json` | 7 capítulos, 26 subcapítulos, **298 rubros** (item, codigo, descripcion, unidad, cantidad, precioUnitario 2dp, precioTotal). Total general **395115.32** |
-| `apus-sample-apus-cetro-medico-tulcan.json` | **18 APUs reales con detalle** (4 secciones, líneas MO/EQ/MA, HM 5%MO, costoDirecto, costoTotal). Códigos: 501BM6, 501B64, 501D1V, 501DQR, 501D00, 501AKN, 502897, 500AT8, 502ARV, 503B30, 500ASU, 501DH5, 505APQ, 504BA0, 504B3I, 500C2S, 500AT1, 501772 |
-| `insumos-seed-apus-cetro-medico-tulcan.csv` | 93 insumos (ya en V003: MO-001…MO-016, EQ-001…EQ-011, MA-001…MA-066) |
+| `apus-sample-apus-cetro-medico-tulcan.json` | Fixture histórico de **18 APUs reales** usado por los golden masters del motor. La carga completa del workbook se realiza en `V014__seed_cmt_apu_details.sql`. |
+| `insumos-seed-apus-cetro-medico-tulcan.csv` | 93 insumos base (V003); `V014__seed_cmt_apu_details.sql` agrega los insumos faltantes observados en el workbook a la base PROYECTO CMT. |
 
 **Distribución por capítulo:** 1=102 rubros, 2=51, 3=26, 4=43, 5=52, 6=8, 7=16.
 
@@ -160,13 +161,13 @@ El presupuesto completo del Cetro Médico Tulcán.
 | `proyecto` | 1 | estado `FINALIZADO`, nombre real, año 2023 |
 | `parametros_proyecto` | 1 | |
 | `firmante` | 3 | consolidado + 2 aprobados |
-| `base_insumos` + `insumo` | 1 + 18 | base PROYECTO con los insumos usados por las 18 APUs reales |
+| `base_insumos` + `insumo` | 1 + workbook inputs | base PROYECTO con los 93 insumos base y los insumos faltantes importados por V014 |
 | `presupuesto` | 1 | version 1, vigente, total = **395115.32** |
 | `capitulo` | 7 + 26 sub | estructura real del workbook |
-| `apu` | 298 | 18 con detalle real + 280 stubs (solo CD/CT del fixture) |
-| `apu_seccion` + `apu_detalle` | 18×4 + filas | solo en las 18 APUs reales |
+| `apu` | 298 | 288 con composición del workbook + 10 composiciones provisionales etiquetadas |
+| `apu_seccion` + `apu_detalle` | 298×4 + 2.583 detalles | composición completa para cada APU; los 40 detalles V016 son placeholders contables/UI, no especificaciones técnicas |
 | `rubro` | 298 | datos reales: item, codigo, descripcion, unidad, cantidad, precioUnitario (2dp), precioTotal |
-| `cronograma` + `actividad` | 1 + 298 | 1:1 con rubro, pesos 100%, avances completos (100%) |
+| `cronograma` + `actividad` | 1 + 298 | 1:1 con rubro, pesos 100%, distribución secuencial generada en V015 sobre 12 meses |
 | `log_actividad` | ~25 | eventos del ciclo completo + documento.exportado |
 | `plantilla_apu` | 1 SISTEMA | snapshot del APU 501BM6 |
 
