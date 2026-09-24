@@ -1,31 +1,38 @@
 create table proyecto
 (
-    id                         bigint generated always as identity
+    id                           bigint generated always as identity
         primary key,
-    usuario_id                 bigint                                                         not null
+    public_id                    uuid                     default uuidv7()                      not null
+        unique,
+    usuario_id                   bigint                                                         not null
         references usuario
             on delete restrict,
-    nombre_proyecto            text                                                           not null,
-    codigo                     varchar(50),
-    descripcion                text,
-    anio                       smallint                                                       not null,
-    fecha_inicio               date,
-    plazo_ejecucion            smallint
+    nombre_proyecto              text                                                           not null,
+    codigo                       varchar(50),
+    descripcion                  text,
+    anio                         smallint                                                       not null,
+    fecha_inicio                 date,
+    plazo_ejecucion              smallint
         constraint proyecto_plazo_ejecucion_check
             check (plazo_ejecucion > 0),
-    plazo_unidad               varchar(10)
+    plazo_unidad                 varchar(10)
         constraint proyecto_plazo_unidad_check
             check ((plazo_unidad)::text = ANY
                    ((ARRAY ['SEMANA'::character varying, 'MES'::character varying])::text[])),
-    estado                     varchar(12)              default 'BORRADOR'::character varying not null
+    estado                       varchar(12)              default 'BORRADOR'::character varying not null
         constraint proyecto_estado_check
             check ((estado)::text = ANY
                    ((ARRAY ['BORRADOR'::character varying, 'EN_PROCESO'::character varying, 'FINALIZADO'::character varying])::text[])),
-    direccion_institucional    varchar(200)                                                   not null,
-    subdireccion_institucional varchar(200),
-    logo                       bytea,
-    created_at                 timestamp with time zone default now()                         not null,
-    updated_at                 timestamp with time zone default now()                         not null
+    direccion_institucional      varchar(200)                                                   not null,
+    subdireccion_institucional   varchar(200),
+    logo                         bytea,
+    titulo_et_1                  text,
+    titulo_et_2                  text,
+    plantilla_proyecto_origen_id bigint
+                                                                                                references plantilla_proyecto
+                                                                                                    on delete set null,
+    created_at                   timestamp with time zone default now()                         not null,
+    updated_at                   timestamp with time zone default now()                         not null
 );
 
 alter table proyecto
@@ -33,4 +40,11 @@ alter table proyecto
 
 create index ix_proyecto_usuario
     on proyecto (usuario_id);
+
+create trigger trg_public_id_immutable
+    before update
+        of public_id
+    on proyecto
+    for each row
+execute procedure fn_assert_public_id_immutable();
 

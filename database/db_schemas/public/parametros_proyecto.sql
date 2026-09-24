@@ -4,15 +4,9 @@ create table parametros_proyecto
         primary key
         references proyecto
             on delete cascade,
-    porcentaje_herramienta_menor   numeric(5, 4)            default 0.0500                             not null
-        constraint parametros_proyecto_porcentaje_herramienta_menor_check
-            check ((porcentaje_herramienta_menor >= (0)::numeric) AND (porcentaje_herramienta_menor <= 0.2000)),
-    porcentaje_indirecto           numeric(5, 4)
-        constraint parametros_proyecto_porcentaje_indirecto_check
-            check ((porcentaje_indirecto >= (0)::numeric) AND (porcentaje_indirecto <= 1.0000)),
-    iva                            numeric(5, 4)            default 0.1500                             not null
-        constraint parametros_proyecto_iva_check
-            check ((iva >= (0)::numeric) AND (iva <= 0.3000)),
+    porcentaje_herramienta_menor   numeric(5, 4)            default 0.0500                             not null,
+    porcentaje_indirecto           numeric(5, 4),
+    iva                            numeric(5, 4)            default 0.1500                             not null,
     moneda                         varchar(10)              default 'USD'::character varying           not null,
     mostrar_secciones_vacias       boolean                  default true                               not null,
     sufijos_seccion_activos        boolean                  default true                               not null,

@@ -4,15 +4,17 @@ create table parametros_sistema
         primary key
         constraint parametros_sistema_id_check
             check (id = 1),
-    porcentaje_herramienta_menor   numeric(5, 4)            default 0.0500                             not null
-        constraint parametros_sistema_porcentaje_herramienta_menor_check
-            check ((porcentaje_herramienta_menor >= (0)::numeric) AND (porcentaje_herramienta_menor <= 0.2000)),
-    porcentaje_indirecto           numeric(5, 4)
-        constraint parametros_sistema_porcentaje_indirecto_check
-            check ((porcentaje_indirecto >= (0)::numeric) AND (porcentaje_indirecto <= 1.0000)),
-    iva                            numeric(5, 4)            default 0.1500                             not null
-        constraint parametros_sistema_iva_check
-            check ((iva >= (0)::numeric) AND (iva <= 0.3000)),
+    porcentaje_herramienta_menor   numeric(5, 4)            default 0.0500                             not null,
+    porcentaje_indirecto           numeric(5, 4),
+    iva                            numeric(5, 4)            default 0.1500                             not null,
+    rango_hm_min                   numeric(5, 4)            default 0.0000                             not null,
+    rango_hm_max                   numeric(5, 4)            default 0.2000                             not null,
+    rango_ci_min                   numeric(5, 4)            default 0.0000                             not null,
+    rango_ci_max                   numeric(5, 4)            default 1.0000                             not null,
+    rango_descuento_min            numeric(5, 4)            default 0.0000                             not null,
+    rango_descuento_max            numeric(5, 4)            default 0.5000                             not null,
+    rango_iva_min                  numeric(5, 4)            default 0.0000                             not null,
+    rango_iva_max                  numeric(5, 4)            default 0.3000                             not null,
     moneda                         varchar(10)              default 'USD'::character varying           not null,
     mostrar_secciones_vacias       boolean                  default true                               not null,
     sufijos_seccion_activos        boolean                  default true                               not null,

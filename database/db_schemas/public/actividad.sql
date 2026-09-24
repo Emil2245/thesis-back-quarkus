@@ -10,7 +10,9 @@ create table actividad
         references rubro
             on delete cascade,
     peso_ponderado     numeric(7, 4) default 0           not null,
-    avance_por_periodo jsonb         default '{}'::jsonb not null
+    avance_por_periodo jsonb         default '{}'::jsonb not null,
+    public_id          uuid          default uuidv7()    not null
+        unique
 );
 
 alter table actividad
@@ -18,4 +20,11 @@ alter table actividad
 
 create index ix_actividad_cronograma
     on actividad (cronograma_id);
+
+create trigger trg_public_id_immutable
+    before update
+        of public_id
+    on actividad
+    for each row
+execute procedure fn_assert_public_id_immutable();
 

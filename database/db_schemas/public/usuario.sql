@@ -2,6 +2,8 @@ create table usuario
 (
     id               bigint generated always as identity
         primary key,
+    public_id        uuid                     default uuidv7()                     not null
+        unique,
     nombre           varchar(200)                                                  not null,
     email            varchar(320)                                                  not null
         unique,
@@ -18,4 +20,11 @@ create table usuario
 
 alter table usuario
     owner to postgres;
+
+create trigger trg_public_id_immutable
+    before update
+        of public_id
+    on usuario
+    for each row
+execute procedure fn_assert_public_id_immutable();
 
