@@ -5,6 +5,9 @@ import static io.restassured.http.ContentType.JSON;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.matchesPattern;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ec.uce.propuestas.support.AuthSupport;
 import ec.uce.propuestas.usuario.auth.RecordingEnviadorCorreo;
@@ -16,6 +19,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -303,6 +307,31 @@ class InsumoResourceIT {
         return "/api/v1/proyectos/" + proyectoId + "/insumos/" + insumoId + "/usos";
     }
 
+    private long idDePublicId(String tabla, String publicId) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT id FROM " + tabla + " WHERE public_id = ?")) {
+            ps.setObject(1, UUID.fromString(publicId));
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        }
+    }
+
+    private boolean hayPutEsperandoLockDeProyecto(long holderPid) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT EXISTS (SELECT 1 FROM pg_stat_activity a "
+                        + "WHERE a.wait_event_type = 'Lock' "
+                        + "AND a.query ILIKE '%select id from proyecto where id%' "
+                        + "AND ? = ANY(pg_blocking_pids(a.pid)))")) {
+            ps.setLong(1, holderPid);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getBoolean(1);
+            }
+        }
+    }
+
     /** 1 — un insumo usado en un APU devuelve una entrada con los datos del APU. */
     @Test
     void TC_P18_01_insumo_usado_en_un_apu_devuelve_una_entrada() throws Exception {
@@ -439,6 +468,165 @@ class InsumoResourceIT {
                 .statusCode(200)
                 .body("size()", is(1))
                 .body("[0].codigo", equalTo("APU-A"));
+    }
+
+    @Test
+    void editar_precio_espera_el_lock_del_proyecto_y_recalcula_con_ci_confirmado() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "insumo-ci-race@ex.com");
+        String proyecto = crearProyecto(token);
+        String presupuesto = presupuestoDeProyecto(proyecto);
+        String insumo = crearInsumo(token, proyecto, "MAT-CI", "MATERIAL", "Material", "kg", 1.0);
+        String apu = crearApu(token, presupuesto, "APU-CI", "APU CI");
+        agregarDetalle(token, apu, "MATERIAL", insumo, 2.0, null, 2, 0);
+
+        long proyectoId = idDePublicId("proyecto", proyecto);
+        long apuId = idDePublicId("apu", apu);
+        long presupuestoId = idDePublicId("presupuesto", presupuesto);
+        long insumoId = idDePublicId("insumo", insumo);
+        long capituloId;
+        long rubroId;
+        try (Connection con = ds.getConnection()) {
+            try (PreparedStatement ps =
+                    con.prepareStatement("INSERT INTO capitulo (presupuesto_id, item, descripcion, orden, total) "
+                            + "VALUES (?, '1', 'Capítulo', 1, 0) RETURNING id")) {
+                ps.setLong(1, presupuestoId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    rs.next();
+                    capituloId = rs.getLong(1);
+                }
+            }
+            try (PreparedStatement ps = con.prepareStatement(
+                    "INSERT INTO rubro (capitulo_id, apu_id, item, codigo, descripcion, unidad, cantidad, "
+                            + "precio_unitario, precio_total) VALUES (?, ?, '1', 'APU-CI', 'APU CI', 'u', 2, 0, 0) "
+                            + "RETURNING id")) {
+                ps.setLong(1, capituloId);
+                ps.setLong(2, apuId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    rs.next();
+                    rubroId = rs.getLong(1);
+                }
+            }
+        }
+
+        var holderReady = new java.util.concurrent.CompletableFuture<Long>();
+        var response = new java.util.concurrent.CompletableFuture<Integer>();
+        var releaseHolder = new java.util.concurrent.CountDownLatch(1);
+        var putWasBlocked = new java.util.concurrent.atomic.AtomicBoolean();
+        var responseWasPendingAtLock = new java.util.concurrent.atomic.AtomicBoolean();
+        var holderFailure = new java.util.concurrent.atomic.AtomicReference<Throwable>();
+        Thread holderThread = new Thread(
+                () -> {
+                    try (Connection holder = ds.getConnection()) {
+                        holder.setAutoCommit(false);
+                        long holderPid;
+                        try (Statement st = holder.createStatement();
+                                ResultSet rs = st.executeQuery("SELECT pg_backend_pid()")) {
+                            rs.next();
+                            holderPid = rs.getLong(1);
+                        }
+                        try (PreparedStatement ps =
+                                holder.prepareStatement("SELECT id FROM proyecto WHERE id = ? FOR UPDATE")) {
+                            ps.setLong(1, proyectoId);
+                            ps.executeQuery().close();
+                        }
+                        try (PreparedStatement ps = holder.prepareStatement(
+                                "UPDATE parametros_proyecto SET porcentaje_indirecto = 0.2000 WHERE proyecto_id = ?")) {
+                            ps.setLong(1, proyectoId);
+                            assertEquals(1, ps.executeUpdate());
+                        }
+                        holderReady.complete(holderPid);
+                        if (!releaseHolder.await(15, TimeUnit.SECONDS)) {
+                            throw new AssertionError("Timed out waiting to release project lock");
+                        }
+                        holder.commit();
+                    } catch (Throwable failure) {
+                        holderFailure.set(failure);
+                        holderReady.completeExceptionally(failure);
+                    }
+                },
+                "project-ci-holder");
+        Thread requestThread = new Thread(
+                () -> {
+                    try {
+                        int status = given().contentType(JSON)
+                                .header("Authorization", "Bearer " + token)
+                                .body(Map.of("descripcion", "Material", "unidad", "kg", "precioUnitario", 10.0))
+                                .when()
+                                .put("/api/v1/proyectos/" + proyecto + "/insumos/" + insumo)
+                                .statusCode();
+                        response.complete(status);
+                    } catch (Throwable failure) {
+                        response.completeExceptionally(failure);
+                    }
+                },
+                "insumo-price-put");
+        Thread observer = new Thread(
+                () -> {
+                    try {
+                        long holderPid = holderReady.get(10, TimeUnit.SECONDS);
+                        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+                        while (System.nanoTime() < deadline) {
+                            if (hayPutEsperandoLockDeProyecto(holderPid)) {
+                                putWasBlocked.set(true);
+                                responseWasPendingAtLock.set(!response.isDone());
+                                return;
+                            }
+                            Thread.sleep(25);
+                        }
+                    } catch (Throwable failure) {
+                        holderFailure.compareAndSet(null, failure);
+                    }
+                },
+                "project-ci-lock-observer");
+        holderThread.start();
+        try {
+            holderReady.get(10, TimeUnit.SECONDS);
+            requestThread.start();
+            observer.start();
+            observer.join(10_000);
+            assertFalse(observer.isAlive(), "El observador debe terminar dentro del límite");
+            assertTrue(putWasBlocked.get(), "El PUT debe esperar por el lock de fila del proyecto");
+            assertTrue(responseWasPendingAtLock.get(), "La respuesta debe seguir pendiente mientras espera el lock");
+        } finally {
+            releaseHolder.countDown();
+            if (requestThread.getState() != Thread.State.NEW) requestThread.join(10_000);
+            if (observer.getState() != Thread.State.NEW) observer.join(10_000);
+            holderThread.join(10_000);
+        }
+        assertFalse(holderThread.isAlive(), "La transacción que retiene el lock debe terminar");
+        assertFalse(requestThread.isAlive(), "La petición PUT debe terminar");
+        assertFalse(observer.isAlive(), "El observador debe terminar");
+        assertEquals(200, response.get(1, TimeUnit.SECONDS));
+        assertTrue(holderFailure.get() == null, "La transacción que actualizó el CI debe completarse");
+
+        assertEquals(
+                new java.math.BigDecimal("24.000000"), leerDecimal("SELECT costo_total FROM apu WHERE id = ?", apuId));
+        assertEquals(
+                new java.math.BigDecimal("24.000000"),
+                leerDecimal("SELECT precio_unitario FROM rubro WHERE id = ?", rubroId));
+        assertEquals(
+                new java.math.BigDecimal("48.000000"),
+                leerDecimal("SELECT precio_total FROM rubro WHERE id = ?", rubroId));
+        assertEquals(
+                new java.math.BigDecimal("48.000000"),
+                leerDecimal("SELECT total FROM presupuesto WHERE id = ?", presupuestoId));
+        assertEquals(
+                new java.math.BigDecimal("48.000000"),
+                leerDecimal("SELECT total FROM capitulo WHERE id = ?", capituloId));
+        assertEquals(
+                new java.math.BigDecimal("10.000000"),
+                leerDecimal("SELECT precio_unitario FROM insumo WHERE id = ?", insumoId));
+    }
+
+    private java.math.BigDecimal leerDecimal(String sql, long id) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setLong(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getBigDecimal(1);
+            }
+        }
     }
 
     /** 5 — RNF-05 owner-to-404: otro usuario no distingue «ajeno» de «inexistente». */

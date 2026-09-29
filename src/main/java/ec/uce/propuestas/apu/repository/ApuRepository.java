@@ -88,6 +88,20 @@ public class ApuRepository implements PanacheRepositoryBase<Apu, Long> {
                 .findFirst();
     }
 
+    /** Project ids whose APU details inherit the current price of the given input. */
+    public List<Long> proyectosQueHeredanInsumo(Long insumoId) {
+        return getEntityManager()
+                .createQuery(
+                        "select distinct p.proyectoId from Apu a, Presupuesto p, ApuSeccion s, ApuDetalle d "
+                                + "where d.insumoId = :insumoId and d.seccionId = s.id and s.apuId = a.id "
+                                + "and a.presupuestoId = p.id "
+                                + "and (d.tarifaJornal is null and s.tipo in ('EQUIPO','MANO_OBRA') "
+                                + "  or d.precioUnitarioTarifa is null and s.tipo in ('MATERIAL','TRANSPORTE'))",
+                        Long.class)
+                .setParameter("insumoId", insumoId)
+                .getResultList();
+    }
+
     /** Serializes project CI saves and individual-APU CI changes on the project row. */
     public void lockProyectoCi(Long proyectoId) {
         getEntityManager()

@@ -348,6 +348,7 @@ public class ApuCrudService {
 
     @Transactional
     public void eliminar(Long apuId) {
+        bloquearProyectoDeApu(apuId);
         Apu apu = _validar(apuId);
         if (apuRepository.estaVinculado(apuId)) {
             throw ProblemaException.apuReferenciado(

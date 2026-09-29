@@ -1,5 +1,6 @@
 package ec.uce.propuestas.insumo.service;
 
+import ec.uce.propuestas.apu.repository.ApuRepository;
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.insumo.dto.InsumoCrearRequest;
 import ec.uce.propuestas.insumo.dto.InsumoEditarRequest;
@@ -21,6 +22,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.util.Map;
+import java.util.TreeSet;
 import java.util.UUID;
 
 /**
@@ -41,6 +43,9 @@ public class InsumoCrudService {
 
     @Inject
     RecalculoService recalculoService;
+
+    @Inject
+    ApuRepository apuRepository;
 
     @Inject
     BaseInsumosRepository baseInsumosRepository;
@@ -88,6 +93,14 @@ public class InsumoCrudService {
     @Transactional
     public InsumoResponse actualizar(Long baseId, UUID insumoPublicId, InsumoEditarRequest req) {
         Insumo e = validarExistencia(baseId, insumoPublicId);
+        BaseInsumos base = baseInsumosRepository.findById(e.baseId);
+        TreeSet<Long> proyectosBloqueados = new TreeSet<>(apuRepository.proyectosQueHeredanInsumo(e.id));
+        if (base != null && base.tipo == TipoBase.PROYECTO && base.proyectoId != null) {
+            proyectosBloqueados.add(base.proyectoId);
+        }
+        for (Long proyectoId : proyectosBloqueados) {
+            apuRepository.lockProyectoCi(proyectoId);
+        }
         e.descripcion = req.descripcion();
         aplicarUnidad(e, e.tipo, req.unidad());
         e.precioUnitario = req.precioUnitario();
