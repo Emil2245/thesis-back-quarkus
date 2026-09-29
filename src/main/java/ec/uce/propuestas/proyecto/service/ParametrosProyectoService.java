@@ -75,6 +75,27 @@ public class ParametrosProyectoService {
                 ParametrosProyectoMapper.toResponse(p, proyecto));
     }
 
+    /**
+     * Legacy parameter endpoint: keeps HM/IVA/currency writable while routing every CI
+     * change through the dedicated endpoint, which requires override policy and recalculation.
+     */
+    @Transactional
+    public ParametrosProyectoCambio actualizarParametrosLegado(
+            Long usuarioId, UUID proyectoPublicId, ParametrosProyectoEditarRequest req) {
+        Proyecto proyecto = proyectoService.validarPropietario(usuarioId, proyectoPublicId);
+        parametrosRepository
+                .getEntityManager()
+                .createNativeQuery("select id from proyecto where id = ?1 for update")
+                .setParameter(1, proyecto.id)
+                .getSingleResult();
+        ParametrosProyecto actuales = obtenerOCrear(proyecto.id);
+        if (cambioNumerico(actuales.porcentajeIndirecto, req.porcentajeIndirecto())) {
+            throw ProblemaException.validacion(
+                    "porcentajeIndirecto debe actualizarse mediante PUT /api/v1/proyectos/" + proyectoPublicId + "/ci");
+        }
+        return actualizar(usuarioId, proyectoPublicId, req);
+    }
+
     /** True si {@code solicitado} difiere numéricamente de {@code previo}. Null-safe. */
     private static boolean cambioNumerico(BigDecimal previo, BigDecimal solicitado) {
         if (previo == null && solicitado == null) return false;

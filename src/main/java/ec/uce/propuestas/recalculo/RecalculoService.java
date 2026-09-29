@@ -85,6 +85,31 @@ public class RecalculoService {
     @Inject
     ec.uce.propuestas.cronograma.service.CronogramaSincronizacionService cronogramaSincronizacionService;
 
+    /** Recalculates inheriting APUs in a project and consolidates each linked version once. */
+    @Transactional
+    public void recalcularCiProyecto(Long proyectoId) {
+        // Stable PK order makes project-wide calculation and failure order deterministic.
+        List<Apu> apus = apuRepository
+                .getEntityManager()
+                .createQuery(
+                        "select a from Apu a, Presupuesto p "
+                                + "where a.presupuestoId = p.id and p.proyectoId = :proyectoId "
+                                + "and a.porcentajeIndirecto is null order by a.id asc",
+                        Apu.class)
+                .setParameter("proyectoId", proyectoId)
+                .getResultList();
+        Set<Long> versionesAfectadas = new LinkedHashSet<>();
+        for (Apu apu : apus) {
+            apuCalculoService.recalcular(apu);
+            if (rubroRepository.find("apuId = ?1", apu.id).firstResult() != null) {
+                versionesAfectadas.add(apu.presupuestoId);
+            }
+        }
+        for (Long presupuestoId : versionesAfectadas) {
+            consolidarVersionYPropagar(presupuestoId);
+        }
+    }
+
     @Transactional
     public void recalcular(Alcance alcance) {
         switch (alcance) {

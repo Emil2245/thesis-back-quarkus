@@ -121,6 +121,20 @@ class ApuResourceIT {
         }
     }
 
+    private void habilitarCiIndividual(String token, String proyectoId) {
+        Map<String, Object> request = new java.util.LinkedHashMap<>();
+        request.put("porcentajeIndirecto", null);
+        request.put("ciIndividualHabilitado", true);
+        request.put("politicaOverrides", "PRESERVAR");
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(request)
+                .when()
+                .put("/api/v1/proyectos/" + proyectoId + "/ci")
+                .then()
+                .statusCode(200);
+    }
+
     private String crearApu(String token, String presupuestoId, String codigo) {
         return given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
@@ -691,6 +705,7 @@ class ApuResourceIT {
         String proyectoId = crearProyecto(token);
         String presupuestoId = insertarPresupuesto(proyectoId);
         String apuId = crearApu(token, presupuestoId, "PCT-001");
+        habilitarCiIndividual(token, proyectoId);
 
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)
@@ -1012,6 +1027,57 @@ class ApuResourceIT {
     }
 
     @Test
+    void b3_duplicating_legacy_individual_ci_is_denied_while_project_mode_is_disabled() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "b3-duplicate-ci@ex.com");
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
+        String apuId = crearApu(token, presupuestoId, "B3-CI-ORIGIN");
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps =
+                        con.prepareStatement("UPDATE apu SET porcentaje_indirecto = 0.2500 WHERE id = ?")) {
+            ps.setLong(1, internalApuId(apuId));
+            ps.executeUpdate();
+        }
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of())
+                .when()
+                .post("/api/v1/apus/" + apuId + "/duplicar")
+                .then()
+                .statusCode(409)
+                .body("codigo", equalTo("ci-individual-deshabilitado"));
+
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT count(*) FROM apu WHERE presupuesto_id = ?")) {
+            ps.setLong(1, internalPresupuestoId(presupuestoId));
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                org.junit.jupiter.api.Assertions.assertEquals(1L, rs.getLong(1));
+            }
+        }
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of(
+                        "porcentajeIndirecto", "0.1800",
+                        "ciIndividualHabilitado", true,
+                        "politicaOverrides", "PRESERVAR"))
+                .when()
+                .put("/api/v1/proyectos/" + proyectoId + "/ci")
+                .then()
+                .statusCode(200);
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of())
+                .when()
+                .post("/api/v1/apus/" + apuId + "/duplicar")
+                .then()
+                .statusCode(201)
+                .body("porcentajeIndirecto", comparesTo(new BigDecimal("0.2500")));
+    }
+
+    @Test
     void TC_P46_02_duplicar_copiarET_true_copia_especificacion_tecnica() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p46ettrue@ex.com");
         String proyectoId = crearProyecto(token);
@@ -1324,6 +1390,7 @@ class ApuResourceIT {
         String mo = crearInsumo(token, proyectoId, "MO-P27-2", "MANO_OBRA", "Soldador", "h", 5.0);
         String mat = crearInsumo(token, proyectoId, "MA-P27-2", "MATERIAL", "Cemento", "kg", 1.5);
         String apuId = crearApu(token, presupuestoId, "P27-VALS");
+        habilitarCiIndividual(token, proyectoId);
 
         given().contentType(JSON)
                 .header("Authorization", "Bearer " + token)

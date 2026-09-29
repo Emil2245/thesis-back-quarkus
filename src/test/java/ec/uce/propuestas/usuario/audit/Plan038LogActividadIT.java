@@ -22,10 +22,12 @@ import ec.uce.propuestas.insumo.service.ImportacionInsumoService;
 import ec.uce.propuestas.insumo.service.InsumoCrudService;
 import ec.uce.propuestas.presupuesto.entity.Presupuesto;
 import ec.uce.propuestas.presupuesto.repository.PresupuestoRepository;
+import ec.uce.propuestas.proyecto.dto.ParametrosProyectoCiRequest;
 import ec.uce.propuestas.proyecto.dto.ProyectoCrearRequest;
 import ec.uce.propuestas.proyecto.dto.ProyectoEditarRequest;
 import ec.uce.propuestas.proyecto.entity.Proyecto;
 import ec.uce.propuestas.proyecto.repository.ProyectoRepository;
+import ec.uce.propuestas.proyecto.service.ProyectoCiService;
 import ec.uce.propuestas.proyecto.service.ProyectoService;
 import ec.uce.propuestas.usuario.Rol;
 import ec.uce.propuestas.usuario.Usuario;
@@ -85,6 +87,9 @@ class Plan038LogActividadIT {
 
     @Inject
     ProyectoService proyectoService;
+
+    @Inject
+    ProyectoCiService proyectoCiService;
 
     @Inject
     ProyectoRepository proyectoRepository;
@@ -223,6 +228,11 @@ class Plan038LogActividadIT {
     @Test
     void apu_emite_crear_tres_ediciones_de_agregado_y_eliminar() {
         Contexto contexto = crearContexto("apu@ex.com");
+        proyectoCiService.guardar(
+                contexto.usuario.id,
+                contexto.proyecto.publicId,
+                new ParametrosProyectoCiRequest(
+                        new BigDecimal("0.0500"), true, ParametrosProyectoCiRequest.PoliticaOverrides.PRESERVAR));
         Presupuesto presupuesto = presupuestoRepository
                 .findVigenteDeProyecto(contexto.proyecto.id)
                 .orElseThrow();

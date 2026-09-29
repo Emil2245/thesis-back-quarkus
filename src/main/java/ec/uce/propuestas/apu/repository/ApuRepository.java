@@ -75,6 +75,48 @@ public class ApuRepository implements PanacheRepositoryBase<Apu, Long> {
                 .findFirst();
     }
 
+    /** Resolves a budget's project only when that project belongs to the caller. */
+    public Optional<Long> proyectoDePresupuestoOwnerScope(UUID presupuestoPublicId, Long callerUsuarioId) {
+        return getEntityManager()
+                .createNativeQuery("select pr.id from presupuesto p "
+                        + "join proyecto pr on pr.id = p.proyecto_id "
+                        + "where p.public_id = ?1 and pr.usuario_id = ?2")
+                .setParameter(1, presupuestoPublicId)
+                .setParameter(2, callerUsuarioId)
+                .getResultStream()
+                .map(o -> ((Number) o).longValue())
+                .findFirst();
+    }
+
+    /** Serializes project CI saves and individual-APU CI changes on the project row. */
+    public void lockProyectoCi(Long proyectoId) {
+        getEntityManager()
+                .createNativeQuery("select id from proyecto where id = ?1 for update")
+                .setParameter(1, proyectoId)
+                .getSingleResult();
+    }
+
+    /** Counts APUs with an explicit CI override in a project. */
+    public long contarOverridesCiDeProyecto(Long proyectoId) {
+        Number count = (Number) getEntityManager()
+                .createNativeQuery("select count(*) from apu a "
+                        + "join presupuesto p on p.id = a.presupuesto_id "
+                        + "where p.proyecto_id = ?1 and a.porcentaje_indirecto is not null")
+                .setParameter(1, proyectoId)
+                .getSingleResult();
+        return count.longValue();
+    }
+
+    /** Clears explicit CI overrides from every APU version belonging to a project. */
+    public int limpiarOverridesCiDeProyecto(Long proyectoId) {
+        return getEntityManager()
+                .createNativeQuery("update apu set porcentaje_indirecto = null "
+                        + "where porcentaje_indirecto is not null and presupuesto_id in "
+                        + "(select id from presupuesto where proyecto_id = ?1)")
+                .setParameter(1, proyectoId)
+                .executeUpdate();
+    }
+
     /** Resuelve el proyecto dueño de un APU (vía su versión). */
     public Optional<Long> proyectoDeApu(Long apuId) {
         return getEntityManager()

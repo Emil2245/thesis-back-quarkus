@@ -53,6 +53,7 @@ public class ApuDuplicarService {
             throw ProblemaException.noEncontrado("APU no encontrado");
         }
         boolean copiarET = copiarETRaw != null && copiarETRaw;
+        apuCrudService.validarOverrideIndividualHabilitado(origen.presupuestoId, origen.porcentajeIndirecto);
 
         Apu copia = new Apu();
         copia.presupuestoId = origen.presupuestoId;

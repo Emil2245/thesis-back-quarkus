@@ -29,9 +29,45 @@ class CentroMedicoTulcanSeedIT {
 
     @Test
     void v016_completes_provisional_source_gaps_without_changing_existing_data() throws Exception {
-        String nonProvisionalDetailsBeforeV016 = rebuildThroughV015ThenApplyLatest();
+        MigrationBaseline baseline = rebuildThroughV015ThenApplyLatest();
 
         assertEquals(298, queryLong("SELECT count(*) FROM apu a " + cmtApuScope()));
+        assertEquals(
+                298,
+                queryLong("SELECT count(*) FROM apu a " + cmtApuScope() + " AND a.porcentaje_indirecto IS NOT NULL"),
+                "all CMT APUs must retain their explicit CI overrides");
+        assertEquals(
+                baseline.cmtOverrides(),
+                queryString(cmtOverridesFingerprintSql()),
+                "V017 must preserve every CMT APU CI override");
+        assertEquals(
+                1,
+                queryLong("SELECT count(*) FROM parametros_proyecto pp "
+                        + "JOIN proyecto pr ON pr.id = pp.proyecto_id "
+                        + "WHERE pr.nombre_proyecto = 'Cetro Médico Tulcán' AND pp.ci_individual_habilitado"),
+                "the CMT project must be opted into individual CI mode");
+        assertTrue(
+                !baseline.otherOverrideProjects().isEmpty(), "the legacy seed must exercise other override projects");
+        assertEquals(
+                baseline.otherOverrideProjects().size(),
+                queryLong("SELECT count(DISTINCT pr.nombre_proyecto) FROM proyecto pr "
+                        + "JOIN presupuesto p ON p.proyecto_id = pr.id "
+                        + "JOIN apu a ON a.presupuesto_id = p.id "
+                        + "JOIN parametros_proyecto pp ON pp.proyecto_id = pr.id "
+                        + "WHERE a.porcentaje_indirecto IS NOT NULL "
+                        + "AND pr.nombre_proyecto <> 'Cetro Médico Tulcán' "
+                        + "AND pp.ci_individual_habilitado"),
+                "every pre-existing non-CMT project with CI overrides must be enabled");
+        assertEquals(
+                0,
+                queryLong("SELECT count(DISTINCT pr.nombre_proyecto) FROM proyecto pr "
+                        + "JOIN presupuesto p ON p.proyecto_id = pr.id "
+                        + "JOIN apu a ON a.presupuesto_id = p.id "
+                        + "JOIN parametros_proyecto pp ON pp.proyecto_id = pr.id "
+                        + "WHERE a.porcentaje_indirecto IS NOT NULL "
+                        + "AND pr.nombre_proyecto <> 'Cetro Médico Tulcán' "
+                        + "AND NOT pp.ci_individual_habilitado"),
+                "no pre-existing non-CMT project with overrides may remain disabled");
         assertEquals(
                 298,
                 queryLong("SELECT count(*) FROM rubro r JOIN capitulo c ON c.id = r.capitulo_id "
@@ -85,7 +121,7 @@ class CentroMedicoTulcanSeedIT {
                         + " AND p.version = 1"),
                 "the existing CMT budget total must remain unchanged");
         assertEquals(
-                nonProvisionalDetailsBeforeV016,
+                baseline.nonProvisionalDetails(),
                 queryString(nonProvisionalDetailsFingerprintSql()),
                 "V016 must not change any non-provisional APU details");
 
@@ -112,7 +148,7 @@ class CentroMedicoTulcanSeedIT {
                 "non-HM details must reference the CMT project base");
     }
 
-    private String rebuildThroughV015ThenApplyLatest() throws Exception {
+    private MigrationBaseline rebuildThroughV015ThenApplyLatest() throws Exception {
         Flyway.configure()
                 .dataSource(dataSource)
                 .locations("classpath:db/migration")
@@ -129,9 +165,31 @@ class CentroMedicoTulcanSeedIT {
         Flyway.configure()
                 .dataSource(dataSource)
                 .locations("classpath:db/migration")
+                .target(org.flywaydb.core.api.MigrationVersion.fromVersion("16"))
                 .load()
                 .migrate();
-        return nonProvisionalDetailsBeforeV016;
+        String cmtOverrides = queryString(cmtOverridesFingerprintSql());
+        List<String> otherOverrideProjects = queryStrings("SELECT DISTINCT pr.nombre_proyecto FROM proyecto pr "
+                + "JOIN presupuesto p ON p.proyecto_id = pr.id "
+                + "JOIN apu a ON a.presupuesto_id = p.id "
+                + "WHERE a.porcentaje_indirecto IS NOT NULL "
+                + "AND pr.nombre_proyecto <> 'Cetro Médico Tulcán' ORDER BY pr.nombre_proyecto");
+        Flyway.configure()
+                .dataSource(dataSource)
+                .locations("classpath:db/migration")
+                .load()
+                .migrate();
+        return new MigrationBaseline(nonProvisionalDetailsBeforeV016, cmtOverrides, otherOverrideProjects);
+    }
+
+    private record MigrationBaseline(
+            String nonProvisionalDetails, String cmtOverrides, List<String> otherOverrideProjects) {}
+
+    private static String cmtOverridesFingerprintSql() {
+        return "SELECT md5(coalesce(string_agg(concat_ws('|', a.codigo, a.porcentaje_indirecto), E'\\n' "
+                + "ORDER BY a.codigo, a.id), '')) FROM apu a "
+                + "JOIN presupuesto p ON p.id = a.presupuesto_id JOIN proyecto pr ON pr.id = p.proyecto_id "
+                + "WHERE pr.nombre_proyecto = 'Cetro Médico Tulcán' AND p.version = 1";
     }
 
     private long queryLong(String sql) throws Exception {

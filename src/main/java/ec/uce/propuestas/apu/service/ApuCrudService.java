@@ -89,6 +89,7 @@ public class ApuCrudService {
      */
     @Transactional
     public ResultadoCrear crearSinRecalculo(Long presupuestoId, ApuCrearRequest req, Long callerUsuarioId) {
+        validarOverrideIndividualHabilitado(presupuestoId, null);
         if (req.codigo() != null
                 && !req.codigo().isBlank()
                 && apuRepository
@@ -125,6 +126,7 @@ public class ApuCrudService {
             throw ProblemaException.codigoDuplicado("Código duplicado en esta versión del presupuesto");
         }
         validarPorcentaje(porcentajeIndirecto, BigDecimal.ONE, "porcentajeIndirecto");
+        validarOverrideIndividualHabilitado(presupuestoId, porcentajeIndirecto);
 
         Apu apu = new Apu();
         apu.presupuestoId = presupuestoId;
@@ -193,6 +195,7 @@ public class ApuCrudService {
 
     @Transactional
     public ResultadoCrear crear(Long presupuestoId, ApuCrearRequest req, Long callerUsuarioId) {
+        validarOverrideIndividualHabilitado(presupuestoId, null);
         if (req.codigo() != null
                 && !req.codigo().isBlank()
                 && apuRepository
@@ -287,6 +290,7 @@ public class ApuCrudService {
     @Transactional
     public ApuResponse actualizarPorcentajeIndirecto(Long apuId, BigDecimal valor) {
         Apu apu = _validar(apuId);
+        validarOverrideIndividualHabilitado(apu.presupuestoId, valor);
         validarPorcentaje(valor, BigDecimal.ONE, "porcentajeIndirecto");
         apu.porcentajeIndirecto = valor;
         apuRepository.persist(apu);
@@ -323,6 +327,18 @@ public class ApuCrudService {
     }
 
     private static final int MAX_ET_BYTES = 65_536;
+
+    /** Rejects materializing or propagating an individual CI override while the project mode is disabled. */
+    public void validarOverrideIndividualHabilitado(Long presupuestoId, BigDecimal porcentajeIndirecto) {
+        Long proyectoId = apuRepository
+                .proyectoDePresupuesto(presupuestoId)
+                .orElseThrow(() -> ProblemaException.noEncontrado("Presupuesto no encontrado"));
+        apuRepository.lockProyectoCi(proyectoId);
+        if (porcentajeIndirecto != null && !parametrosService.obtenerOCrear(proyectoId).ciIndividualHabilitado) {
+            throw ProblemaException.conflicto(
+                    "ci-individual-deshabilitado", "El CI individual está deshabilitado para este proyecto");
+        }
+    }
 
     private static void validarPorcentaje(BigDecimal valor, BigDecimal maximo, String campo) {
         if (valor != null && (valor.signum() < 0 || valor.compareTo(maximo) > 0)) {

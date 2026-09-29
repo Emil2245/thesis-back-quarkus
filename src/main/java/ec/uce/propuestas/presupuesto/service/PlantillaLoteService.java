@@ -2,6 +2,7 @@ package ec.uce.propuestas.presupuesto.service;
 
 import ec.uce.propuestas.apu.dto.ApuCrearRequest;
 import ec.uce.propuestas.apu.entity.Apu;
+import ec.uce.propuestas.apu.repository.ApuRepository;
 import ec.uce.propuestas.apu.service.ApuCrudService;
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.common.UuidV7;
@@ -26,6 +27,9 @@ import java.util.UUID;
 public class PlantillaLoteService {
     @Inject
     PresupuestoRepository presupuestoRepository;
+
+    @Inject
+    ApuRepository apuRepository;
 
     @Inject
     CapituloRepository capituloRepository;
@@ -55,6 +59,10 @@ public class PlantillaLoteService {
         }
         UUID capituloPublicId =
                 req.capituloId() == null ? null : UuidV7.parse(req.capituloId().toString());
+        Long proyectoId = apuRepository
+                .proyectoDePresupuestoOwnerScope(presupuestoPublicId, callerUsuarioId)
+                .orElseThrow(() -> ProblemaException.noEncontrado("Presupuesto no encontrado"));
+        apuRepository.lockProyectoCi(proyectoId);
         Presupuesto presupuesto = presupuestoRepository
                 .findByPublicIdOwnerScopeForUpdate(presupuestoPublicId, callerUsuarioId)
                 .orElseThrow(() -> ProblemaException.noEncontrado("Presupuesto no encontrado"));

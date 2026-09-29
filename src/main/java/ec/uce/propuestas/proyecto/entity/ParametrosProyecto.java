@@ -19,6 +19,9 @@ public class ParametrosProyecto extends PanacheEntityBase {
     @Column(name = "porcentaje_indirecto", precision = 5, scale = 4)
     public BigDecimal porcentajeIndirecto;
 
+    @Column(name = "ci_individual_habilitado", nullable = false)
+    public boolean ciIndividualHabilitado;
+
     @Column(nullable = false, precision = 5, scale = 4)
     public BigDecimal iva = new BigDecimal("0.1500");
 

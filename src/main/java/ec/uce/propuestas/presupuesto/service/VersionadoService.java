@@ -6,6 +6,7 @@ import ec.uce.propuestas.apu.entity.ApuSeccion;
 import ec.uce.propuestas.apu.repository.ApuDetalleRepository;
 import ec.uce.propuestas.apu.repository.ApuRepository;
 import ec.uce.propuestas.apu.repository.ApuSeccionRepository;
+import ec.uce.propuestas.apu.service.ApuCrudService;
 import ec.uce.propuestas.common.ItemJerarquico;
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.presupuesto.dto.CapituloRaizComparacion;
@@ -117,6 +118,9 @@ public class VersionadoService {
     ApuRepository apuRepository;
 
     @Inject
+    ApuCrudService apuCrudService;
+
+    @Inject
     ApuSeccionRepository apuSeccionRepository;
 
     @Inject
@@ -166,6 +170,9 @@ public class VersionadoService {
         // «leer max(version) → insertar nueva versión» para que dos POSTs
         // concurrentes no elijan la misma `version` y choquen con la UNIQUE.
         presupuestoRepository.lockProyectoRow(proyecto.id);
+        for (Apu apuOrigen : apuRepository.listarDePresupuesto(origen.id, null, 0, Integer.MAX_VALUE)) {
+            apuCrudService.validarOverrideIndividualHabilitado(origen.id, apuOrigen.porcentajeIndirecto);
+        }
 
         Short maxVersion = presupuestoRepository.maxVersionDeProyecto(proyecto.id);
         short nuevaVersion = (short) (maxVersion == null ? 1 : maxVersion + 1);

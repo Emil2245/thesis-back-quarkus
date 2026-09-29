@@ -116,12 +116,19 @@ class ParametrosRangoDinamicoTest {
                 .body("rangoIvaMax", equalTo(0.3000f))
                 .body("rangoDescuentoMax", equalTo(0.5000f));
 
-        // %HM 0.0500 está dentro de [0.0000, 0.2000] — debe persistir.
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/proyectos/" + proyectoId + "/ci")
+                .then()
+                .statusCode(200)
+                .body("ciIndividualHabilitado", equalTo(false))
+                .body("cantidadOverrides", equalTo(0));
+
+        // %HM 0.0500 está dentro del rango; la tasa CI se guarda en su ruta dedicada.
         given().header("Authorization", "Bearer " + token)
                 .contentType(JSON)
                 .body(Map.of(
                         "porcentajeHerramientaMenor", 0.0500,
-                        "porcentajeIndirecto", 0.1800,
                         "iva", 0.1500,
                         "moneda", "USD"))
                 .when()
@@ -130,6 +137,16 @@ class ParametrosRangoDinamicoTest {
                 .statusCode(200)
                 .body("porcentajeHerramientaMenor", equalTo(0.0500f))
                 .body("iva", equalTo(0.1500f));
+
+        given().header("Authorization", "Bearer " + token)
+                .contentType(JSON)
+                .body(Map.of("porcentajeIndirecto", "0.1800", "ciIndividualHabilitado", false))
+                .when()
+                .put("/api/v1/proyectos/" + proyectoId + "/ci")
+                .then()
+                .statusCode(200)
+                .body("porcentajeIndirecto", equalTo(0.1800f))
+                .body("ciIndividualHabilitado", equalTo(false));
     }
 
     @Test

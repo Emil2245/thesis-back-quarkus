@@ -238,6 +238,7 @@ class ApuManualCompletoResourceIT {
         String presupuestoId = presupuestoDeProyecto(proyectoId);
         crearCapitulo(token, presupuestoId, "Obras");
         String material = crearInsumo(token, proyectoId, "MA-CI", "MATERIAL", "Arena", "m3", 10.0);
+        habilitarCiIndividual(token, proyectoId);
 
         crearManual(
                         token,
@@ -250,6 +251,42 @@ class ApuManualCompletoResourceIT {
                 .body("apu.costoDirecto", comparesTo(new BigDecimal("20")))
                 .body("apu.costoIndirecto", comparesTo(new BigDecimal("5")))
                 .body("apu.costoTotal", comparesTo(new BigDecimal("25")));
+    }
+
+    @Test
+    void b3_ci_individual_manual_creation_requires_enabled_project_mode() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "b3-manual-ci@ex.com");
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = presupuestoDeProyecto(proyectoId);
+        String capituloId = crearCapitulo(token, presupuestoId, "Obras");
+        String material = crearInsumo(token, proyectoId, "MA-B3-CI", "MATERIAL", "Arena", "m3", 10.0);
+        Map<String, Object> apuBody =
+                body("B3-CI-001", capituloId, "0.2500", List.of(detalle("MATERIAL", material, "2", null)));
+
+        crearManual(token, presupuestoId, apuBody)
+                .then()
+                .statusCode(409)
+                .body("codigo", equalTo("ci-individual-deshabilitado"));
+        assertEquals(0L, count("select count(*) from apu"));
+        assertEquals(0L, count("select count(*) from rubro"));
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of(
+                        "porcentajeIndirecto", "0.1800",
+                        "ciIndividualHabilitado", true,
+                        "politicaOverrides", "PRESERVAR"))
+                .when()
+                .put("/api/v1/proyectos/" + proyectoId + "/ci")
+                .then()
+                .statusCode(200)
+                .body("ciIndividualHabilitado", is(true));
+
+        crearManual(token, presupuestoId, apuBody)
+                .then()
+                .statusCode(201)
+                .body("apu.porcentajeIndirecto", comparesTo(new BigDecimal("0.2500")))
+                .body("apu.porcentajeIndirectoEfectivo", comparesTo(new BigDecimal("0.2500")));
     }
 
     @Test
@@ -319,6 +356,19 @@ class ApuManualCompletoResourceIT {
                 .then()
                 .statusCode(404)
                 .body("codigo", equalTo("no-encontrado"));
+    }
+
+    private void habilitarCiIndividual(String token, String proyectoId) {
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of(
+                        "porcentajeIndirecto", "0.1800",
+                        "ciIndividualHabilitado", true,
+                        "politicaOverrides", "PRESERVAR"))
+                .when()
+                .put("/api/v1/proyectos/" + proyectoId + "/ci")
+                .then()
+                .statusCode(200);
     }
 
     private io.restassured.response.Response crearManual(String token, String presupuestoId, Map<String, Object> body) {
