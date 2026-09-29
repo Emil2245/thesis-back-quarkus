@@ -359,6 +359,7 @@ public class ApuCrudService {
 
     @Transactional
     public ApuResponse agregarDetalle(Long apuId, ApuDetalleCrearRequest req, Long callerUsuarioId) {
+        bloquearProyectoDeApu(apuId);
         Apu apu = _validar(apuId);
         Long proyectoId = apuRepository
                 .proyectoDePresupuesto(apu.presupuestoId)
@@ -401,6 +402,7 @@ public class ApuCrudService {
 
     @Transactional
     public ApuResponse editarDetalle(Long apuId, Long detalleId, ApuDetallePatchRequest req) {
+        bloquearProyectoDeApu(apuId);
         Apu apu = _validar(apuId);
         ApuDetalle d = resolverDetalle(apuId, detalleId);
         SeccionTipo tipo = tipoDeDetalle(apuId, d.seccionId);
@@ -511,6 +513,7 @@ public class ApuCrudService {
 
     @Transactional
     public ApuResponse eliminarDetalle(Long apuId, Long detalleId) {
+        bloquearProyectoDeApu(apuId);
         Apu apu = _validar(apuId);
         ApuDetalle d = resolverDetalle(apuId, detalleId);
         if (d.esHerramientaMenor) {
@@ -528,6 +531,14 @@ public class ApuCrudService {
         Proyecto proyecto = proyectoRepository.findById(proyectoId);
         Long usuarioId = proyecto == null ? null : proyecto.usuarioId;
         logActividadService.emitir(usuarioId, evento, "apu", apu.publicId, Map.of());
+    }
+
+    /** Acquire the project serialization lock before reading or mutating an APU aggregate. */
+    private void bloquearProyectoDeApu(Long apuId) {
+        Long proyectoId = apuRepository
+                .proyectoDeApu(apuId)
+                .orElseThrow(() -> ProblemaException.noEncontrado("APU no encontrado"));
+        apuRepository.lockProyectoCi(proyectoId);
     }
 
     private Apu _validar(Long apuId) {

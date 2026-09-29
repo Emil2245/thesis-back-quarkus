@@ -16,6 +16,11 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -181,6 +186,15 @@ class ApuResourceIT {
         }
     }
 
+    private String scalar(String sql) throws Exception {
+        try (Connection con = ds.getConnection();
+                Statement st = con.createStatement();
+                ResultSet rs = st.executeQuery(sql)) {
+            rs.next();
+            return rs.getString(1);
+        }
+    }
+
     private BigDecimal precioTotalRubroDeApu(Long apuId) throws Exception {
         try (Connection con = ds.getConnection();
                 PreparedStatement ps = con.prepareStatement("SELECT precio_total FROM rubro WHERE apu_id = ?")) {
@@ -225,6 +239,83 @@ class ApuResourceIT {
                 .body("secciones[3].tipo", equalTo("TRANSPORTE"))
                 .body("secciones[0].detalles[0].esHerramientaMenor", is(true))
                 .body("secciones[0].detalles[0].descripcion", equalTo("Herramienta Menor 5%MO"));
+    }
+
+    @Test
+    void agregar_detalle_espera_lock_del_proyecto_y_recalcula_con_ci_confirmado() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "ci-detail-lock@ex.com");
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = insertarPresupuesto(proyectoId);
+        String material = crearInsumo(token, proyectoId, "MAT-CI-LOCK", "MATERIAL", "Material", "kg", 10.0);
+        String apuId = crearApu(token, presupuestoId, "CI-LOCK-001");
+        long proyectoInterno = internalProyectoId(proyectoId);
+        insertarRubroVinculado(presupuestoId, internalApuId(apuId), "1", "CI-LOCK-001");
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try (Connection holder = ds.getConnection()) {
+            holder.setAutoCommit(false);
+            try (PreparedStatement ps = holder.prepareStatement("SELECT id FROM proyecto WHERE id = ? FOR UPDATE")) {
+                ps.setLong(1, proyectoInterno);
+                ps.executeQuery().close();
+            }
+            try (PreparedStatement ps = holder.prepareStatement(
+                    "UPDATE parametros_proyecto SET porcentaje_indirecto = 0.2000 WHERE proyecto_id = ?")) {
+                ps.setLong(1, proyectoInterno);
+                ps.executeUpdate();
+            }
+            int holderPid;
+            try (Statement statement = holder.createStatement();
+                    ResultSet rs = statement.executeQuery("SELECT pg_backend_pid()")) {
+                rs.next();
+                holderPid = rs.getInt(1);
+            }
+
+            CountDownLatch requestStarted = new CountDownLatch(1);
+            Future<Integer> response = executor.submit(() -> {
+                requestStarted.countDown();
+                return given().contentType(JSON)
+                        .header("Authorization", "Bearer " + token)
+                        .body(Map.of("seccionTipo", "MATERIAL", "insumoId", material, "cantidad", 1.0))
+                        .when()
+                        .post("/api/v1/apus/" + apuId + "/detalles")
+                        .statusCode();
+            });
+            org.junit.jupiter.api.Assertions.assertTrue(requestStarted.await(5, TimeUnit.SECONDS));
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+            boolean waitingOnProjectLock = false;
+            while (System.nanoTime() < deadline && !response.isDone()) {
+                try (Connection observer = ds.getConnection();
+                        PreparedStatement statement =
+                                observer.prepareStatement("SELECT EXISTS (SELECT 1 FROM pg_stat_activity a "
+                                        + "WHERE a.wait_event_type = 'Lock' "
+                                        + "AND a.query ILIKE '%select id from proyecto where id%' "
+                                        + "AND ? = ANY(pg_blocking_pids(a.pid)))")) {
+                    statement.setInt(1, holderPid);
+                    try (ResultSet rs = statement.executeQuery()) {
+                        rs.next();
+                        waitingOnProjectLock = rs.getBoolean(1);
+                    }
+                }
+                if (waitingOnProjectLock) break;
+                Thread.sleep(25);
+            }
+            org.junit.jupiter.api.Assertions.assertTrue(
+                    waitingOnProjectLock, "HTTP detail transaction should be observed waiting on the project row lock");
+            org.junit.jupiter.api.Assertions.assertFalse(response.isDone(), "request must not finish before CI commit");
+
+            holder.commit();
+            org.junit.jupiter.api.Assertions.assertEquals(201, response.get(10, TimeUnit.SECONDS));
+        } finally {
+            executor.shutdownNow();
+        }
+
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "12.000000", scalar("SELECT costo_total::text FROM apu WHERE public_id = '" + apuId + "'::uuid"));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "12.000000", scalar("SELECT precio_total::text FROM rubro WHERE apu_id = " + internalApuId(apuId)));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "12.000000",
+                scalar("SELECT total::text FROM presupuesto WHERE id = " + internalPresupuestoId(presupuestoId)));
     }
 
     @Test
