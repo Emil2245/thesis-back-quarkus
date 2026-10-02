@@ -293,6 +293,44 @@ Notas de la ejecución:
 - El APU real `501772` del fixture no tiene sección MO → no lleva fila HM
   (19 filas HM totales: 17 CMT + 2 escenario B). Coherente con el fixture.
 
+## 8. Unidades de avance y programación parcial (V018–V020)
+
+El contrato vigente guarda **puntos porcentuales ponderados del presupuesto**
+como strings decimales JSON con hasta cuatro decimales; no fracciones de cada
+actividad. V018 normaliza tipos, no convierte unidades. V019 corrige el patrón
+original CMT; V020 corrige exclusivamente el cohorte original UCE-B v1, MES/8,
+sin modificar ninguna migración histórica ni otros proyectos (incluido Daule).
+
+V004 dejó UCE-B deliberadamente incompleto: las primeras seis actividades
+reparten ocho fracciones de `0.125` (100% de su peso); las últimas seis solo
+cuatro (50%), sin claves de meses 5–8. V020 multiplica cada fracción por el
+peso almacenado, redondea a cuatro decimales y asigna el residuo al último
+período existente en orden numérico. La suma por actividad coincide exactamente
+con su objetivo redondeado (peso completo o medio peso). Los primeros pesos
+suman `42.6409`, los últimos `57.3591`: el agregado sin redondear es
+`71.3204500`; redondeando **cada objetivo parcial** resulta **`71.3206`**, no
+un objetivo global de 100 ni el redondeo global `71.3205`.
+
+El guard exige los doce pares item/código, sus pesos y mapas exactos, configuración
+y pertenencia coherente al presupuesto. Una sola edición, actividad adicional,
+traslado o cambio de configuración protege todo el cronograma. La conversión es
+idempotente y conserva pesos, claves originales y metadatos de revisión, aunque
+estos ya sean no NULL; no fabrica una aprobación ni una revisión actualizada.
+
+La auditoría de unidades cubrió los **tres proyectos seed**: CMT (298 actividades,
+100 puntos y cero desviaciones tras V019), UCE-B (12 actividades, originalmente
+9 unidades fraccionarias y doce desviaciones) y UCE-A (sin presupuesto/cronograma).
+La regresión añade el caso UCE a los 18 tests enfocados existentes de migraciones
+CMT/avance y parser: comprueba precisión/tipos, claves ausentes, protección ante
+ediciones y conservación de datos/revisión mediante Flyway programático en
+PostgreSQL aislado de Dev Services. No constituye verificación de UI ni aplica
+la migración a la BD de trabajo.
+
+Tras V020, las primeras seis actividades no presentan desviación y las últimas
+seis siguen a medio peso. El preflight real permanece **bloqueado** para XLSX,
+PDF y MSPDI. **Una persona debe terminar la programación antes de exportar**;
+corregir unidades no autoriza completar períodos ausentes automáticamente.
+
 ## Escape hatches
 
 - Si un INSERT de la seed falla por CHECK/FK, **STOP y reportar** con el
