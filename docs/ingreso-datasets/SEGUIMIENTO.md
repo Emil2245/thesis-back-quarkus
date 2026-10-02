@@ -1,9 +1,9 @@
 # Seguimiento humano del ingreso de datasets
 
-**COPY-02: reconstrucción limpia, carga y startup/health verificados; adopción funcional pendiente.**
-Resultado actual y recibos nuevos al final. La revisión independiente del rebuild
-queda pendiente. Las secciones siguientes hasta COPY-02 documentan la **carga
-histórica anterior al reset**, no el estado actual de proyectos.
+**CMT-02: reconstrucción limpia con Flyway 019, recarga Daule y health verificados;
+adopción funcional pendiente.** Resultado actual y recibos nuevos al final.
+La revisión independiente del rebuild queda pendiente. COPY-02 y las cargas
+anteriores se conservan como evidencia histórica, no como inventario actual.
 
 Revisión independiente histórica: **PASS del conjunto de datos/recibos**; resultado
 global **PARCIAL** por runtime/API y concurrencia no probados y evidencia de
@@ -135,3 +135,47 @@ Instancia temporal propia PID **884660** detenida con SIGTERM después de los
 checks; backend preexistente preservado y PostgreSQL sigue levantado.
 `graphify update .` PASS (5271 nodos/16347 aristas); extracción SQL incompleta
 por `tree_sitter_sql` ausente, sin instalar dependencias.
+
+## CMT-02: reconstrucción con V019 y recarga Daule (2026-10-02)
+
+El padre ejecutó el reset Compose autorizado; este executor no ejecutó comandos
+destructivos. Desde el backend: `docker compose --project-directory "$PWD"
+-f "$PWD/docker-compose.yml" up -d postgres`, readiness acotada y SELECT inicial
+`propuestas|0` tablas públicas. El fast-jar previamente construido contenía V019
+idéntica al source y aplicó **19 migraciones**, todas success, versión **019**.
+Instancia propia **PID 958963**, puerto **8090**; `/q/health` HTTP 200/UP.
+
+Baseline tras Flyway: **5 bases / 768 insumos / 13 plantillas**. CMT: 298
+actividades, pesos y avances suman **100.0000**, cero desviaciones, MES/12 y
+298 mapas iguales al peso almacenado en el período original. No se recalcularon
+pesos ni costos. La huella revisada sigue ausente: requiere revisión explícita
+para quitar el warning stale, no una aprobación fabricada. UCE conserva su
+borrador (avance 9.000, 12 desviaciones), no se normalizó su programación.
+
+`prepare` validó la release existente sin regeneración. Operador desde backend:
+`python3 -B database/dataset_ingestion/operator_daule.py` con acciones
+`dry-run`, `apply --confirm-local-apply`, `verify`, replay apply y verify final.
+Ensayo ROLLBACK; primera apply **1/1372/937**, readback posterior al commit PASS;
+replay **0/0/0** y ambos verify PASS. Release y operador mantienen los sellos
+COPY-02. Recibos nuevos en `database/dataset_ingestion/releases/daule-v1/`:
+
+- `receipt-dry-run-1790923458685945157.json`
+- `receipt-apply-1790923459917844917.json`
+- `receipt-verify-1790923460542440719.json`
+- `receipt-apply-1790923461761193180.json` (replay)
+- `receipt-verify-1790923462384733365.json`
+
+Totales finales **6 bases / 2140 insumos / 950 plantillas**; sin cambios de
+proyectos/presupuestos/APUs/rubros (3/2/311/310). Conteos y MD5 de filas seed de
+las **27 tablas** idénticos antes/después, excluyendo únicamente UUID Daule de
+las tres tablas destino. Evidencia: `build/cmt-seed-{baseline,final}.json`,
+`build/cmt-seed-local-preconditions.json`, logs `build/cmt-daule-*` y
+`build/cmt-seed-rebuild-{startup,health,shutdown}.*`.
+
+SELECT local confirma CMT sin defectos P-32, total positivo y fecha inicial
+presente; coincide con preflight real verificado en Dev Services en CMT-01.
+No se ejecutó preflight HTTP autenticado, descarga, UI, interoperabilidad ni
+concurrencia; no se reclama PASS funcional integral ni revisión independiente.
+La instancia propia terminó con SIGTERM tras health final; backend apagado y
+PostgreSQL Compose permanece levantado. Sin SQL manual de corrección, cambios
+al operador, commits ni staging.
