@@ -65,7 +65,13 @@ de planificar/ejecutar es:
   [`plans/plans_busquedas_plantilla/`](../plans/plans_busquedas_plantilla/README.md))
   DONE 2026-09-10/11.
 
-## 5. Documentación histórica
+## 5. Ingreso de datasets (solo datos)
+
+- [`ingreso-datasets/README.md`](ingreso-datasets/README.md) — diagnóstico Daule V1,
+  planes secuenciales y seguimiento. Documentación únicamente: preflight pendiente;
+  preparación, ensayo y carga bloqueados por aprobaciones. Sin rediseño de BD/backend.
+
+## 6. Documentación histórica
 
 - [`modulos/planes-para-estar-al-dia/00.md`](modulos/planes-para-estar-al-dia/00.md)
   — índice histórico de I-06. No reabrir ni renumerar.
