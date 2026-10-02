@@ -1,0 +1,31 @@
+{
+  "version_dataset": "1.0",
+  "nombre": "Biblioteca global V1 de APUs e insumos — Daule, dos proyectos 2025",
+  "objetivo": "Catálogo de referencia para insumos y plantillas APU; NO contiene plantillas de proyecto.",
+  "fuentes_esperadas": 2,
+  "apus_origen_esperados": 1575,
+  "politica_deduplicacion_insumos": "Solo coincidencia exacta tras normalización conservadora de tipo+unidad+HM+descripción. Fuzzy queda en reporte de revisión.",
+  "politica_deduplicacion_apus": "Solo estructuras exactamente equivalentes por fingerprint; costos/precios no intervienen. Mismo nombre con estructura distinta se conserva como variante.",
+  "precio_referencia_v1": "Mediana ponderada de precios documentales observados; no es cotización de mercado actual.",
+  "conteos": {
+    "fuentes.csv": 2,
+    "archivos_fuente.csv": 3,
+    "insumos_v1.csv": 1374,
+    "insumo_aliases.csv": 1412,
+    "precios_observados_v1.csv": 1410,
+    "apu_conceptos_v1.csv": 934,
+    "apus_v1.csv": 937,
+    "apu_componentes_v1.csv": 7742,
+    "apu_origenes.csv": 1575,
+    "apu_detalles_origen.csv": 13143,
+    "insumos_posibles_duplicados.csv": 734,
+    "apus_posibles_equivalentes.csv": 571,
+    "validaciones_consolidacion.csv": 0,
+    "apus_entrada_total": 1575,
+    "insumos_entrada_total": 1412,
+    "detalles_entrada_total": 13143
+  },
+  "validaciones": {},
+  "apto_estructuralmente_para_seed": true,
+  "nota_legal": "Verificar licencia/condiciones de reutilización de los adjuntos antes de redistribuir o publicar comercialmente."
+}

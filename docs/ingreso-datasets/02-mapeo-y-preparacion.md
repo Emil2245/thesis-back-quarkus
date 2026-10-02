@@ -17,10 +17,10 @@ escritura de BD. Depende de [01 aprobado](01-preflight-y-aprobaciones.md).
 
 ## Entradas
 
-- [Insumos](../../../thesis-docs/res/datasets_presupuestos/exports/dataset_maestro_daule_v1/insumos_v1.csv).
-- [Variantes](../../../thesis-docs/res/datasets_presupuestos/exports/dataset_maestro_daule_v1/apus_v1.csv)
-  y [componentes](../../../thesis-docs/res/datasets_presupuestos/exports/dataset_maestro_daule_v1/apu_componentes_v1.csv).
-- [Precios observados](../../../thesis-docs/res/datasets_presupuestos/exports/dataset_maestro_daule_v1/precios_observados_v1.csv).
+- [Insumos](../../database/dataset_ingestion/sources/dataset_maestro_daule_v1/insumos_v1.csv).
+- [Variantes](../../database/dataset_ingestion/sources/dataset_maestro_daule_v1/apus_v1.csv)
+  y [componentes](../../database/dataset_ingestion/sources/dataset_maestro_daule_v1/apu_componentes_v1.csv).
+- [Precios observados](../../database/dataset_ingestion/sources/dataset_maestro_daule_v1/precios_observados_v1.csv).
 - [Mapper actual](../../src/main/java/ec/uce/propuestas/plantilla/service/SnapshotApuMapper.java)
   y [V012](../../src/main/resources/db/migration/V012__seed_catalogo_plantillas_apu.sql).
 - Acta de 01 localizable desde [SEGUIMIENTO](SEGUIMIENTO.md).

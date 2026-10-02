@@ -9,7 +9,44 @@ import uuid
 from pathlib import Path
 import operator_daule as op
 
-SOURCE = Path(__file__).resolve().parents[3] / 'thesis-docs/res/datasets_presupuestos/exports/dataset_maestro_daule_v1'
+SOURCE = Path(__file__).resolve().parent / 'sources/dataset_maestro_daule_v1'
+
+
+class RelocationTests(unittest.TestCase):
+    def test_default_source_is_backend_local(self):
+        expected = Path(__file__).resolve().parent / 'sources/dataset_maestro_daule_v1'
+        self.assertEqual(expected, op.SOURCE)
+        self.assertEqual(expected, SOURCE)
+        self.assertTrue(expected.is_dir())
+
+    def test_checked_in_release_preserves_payload_and_identities(self):
+        release = json.loads(op.RELEASE.read_text())
+        invariant = {k: v for k, v in release.items()
+                     if k not in ('operator_hashes', 'release_sha256')}
+        self.assertEqual('5ee1e2760c6e94b5dbc3d06a2ef15df1ac6ee793e620abbb288d77c8f1f70176',
+                         op.digest(invariant))
+        payload = op.transform(op.read_tables(op.SOURCE), 'DV1', 'Daule V1')
+        hashes = op.source_hashes(op.SOURCE)
+        self.assertEqual(release, op.validate_release(release, payload, hashes))
+        self.assertEqual(hashes, release['source_hashes'])
+        # In-memory artifacts only: production release and source stay untouched.
+        for field in ('source_hashes', 'operator_hashes'):
+            damaged = copy.deepcopy(release)
+            damaged[field][next(iter(damaged[field]))] = 'tampered'
+            damaged['release_sha256'] = op.digest(
+                {k: v for k, v in damaged.items() if k != 'release_sha256'})
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                op.validate_release(damaged, payload, hashes)
+        damaged = copy.deepcopy(release)
+        damaged['base']['public_id'] = str(uuid.uuid4())
+        damaged['release_sha256'] = op.digest(
+            {k: v for k, v in damaged.items() if k != 'release_sha256'})
+        with self.assertRaises(ValueError):
+            op.validate_release(damaged, payload, hashes)
+        damaged = copy.deepcopy(release)
+        damaged['release_sha256'] = 'tampered'
+        with self.assertRaises(ValueError):
+            op.validate_release(damaged, payload, hashes)
 
 
 class TransformTests(unittest.TestCase):

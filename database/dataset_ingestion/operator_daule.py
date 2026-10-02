@@ -15,7 +15,7 @@ import uuid
 
 TYPES = ('EQUIPO', 'MANO_OBRA', 'MATERIAL', 'TRANSPORTE')
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE = ROOT.parent / 'thesis-docs/res/datasets_presupuestos/exports/dataset_maestro_daule_v1'
+SOURCE = Path(__file__).resolve().parent / 'sources/dataset_maestro_daule_v1'
 RELEASE = Path(__file__).parent / 'releases/daule-v1/release.json'
 PACKAGE = ('README.md', 'apu_componentes_v1.csv', 'apu_conceptos_v1.csv',
            'apu_detalles_origen.csv', 'apu_origenes.csv', 'apus_posibles_equivalentes.csv',

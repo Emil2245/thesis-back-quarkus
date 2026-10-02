@@ -21,8 +21,8 @@ Dependencia: lectura y revisión de [00](00-diagnostico-y-decisiones.md).
 
 ## Entradas
 
-- [Export y política V1](../../../thesis-docs/res/datasets_presupuestos/exports/dataset_maestro_daule_v1/README.md).
-- [Manifiesto fuente](../../../thesis-docs/res/datasets_presupuestos/exports/dataset_maestro_daule_v1/manifiesto.json).
+- [Export y política V1](../../database/dataset_ingestion/sources/dataset_maestro_daule_v1/README.md).
+- [Manifiesto fuente](../../database/dataset_ingestion/sources/dataset_maestro_daule_v1/manifiesto.json).
 - [Contrato de BD](../03-BASE-DATOS.md), [V001](../../src/main/resources/db/migration/V001__baseline.sql).
 - [Resolver vigente](../../src/main/java/ec/uce/propuestas/plantilla/service/ResolverInsumoPlantillaService.java).
 - [Registro de decisiones](SEGUIMIENTO.md).
@@ -52,7 +52,7 @@ sin necesidad demostrada. No confundir permiso de lectura con permiso de escritu
 4. Resolver HM: aceptar adaptación a porcentaje del proyecto para variantes
    enumeradas o ponerlas en cuarentena. Las 935 al 5% y dos al 1% requieren
    disposición explícita. Usuario aprobó todas con adopción actual 5%; conservar
-   ambas originales 1% externas. [Notas canónicas](../../../thesis-docs/res/datasets_presupuestos/exports/dataset_maestro_daule_v1/NOTAS_INTEGRACION_BACKEND.md).
+   ambas originales 1% externas. [Notas canónicas](../../database/dataset_ingestion/sources/dataset_maestro_daule_v1/NOTAS_INTEGRACION_BACKEND.md).
 5. Aceptar que CI histórico 20% y precios originales no viajan en plantilla;
    totales futuros son del proyecto y no una reproducción del workbook.
 6. Medir las 24 unidades: longitud real ≤10, EQ/MO `h`, consumidores soportados.

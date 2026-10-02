@@ -64,15 +64,18 @@ No ejecución automática de migraciones al arrancar como paso de carga.
 
 - [Tarea DOC-01/DOC-02](../../odd/tasks/dataset-daule-data-only-plans.md).
 - [Guía del backend](../../CLAUDE.md) y [planes vigentes](../../plans/README.md).
-- [Dataset exportado](../../../thesis-docs/res/datasets_presupuestos/exports/dataset_maestro_daule_v1/README.md).
+- [Dataset exportado](../../database/dataset_ingestion/sources/dataset_maestro_daule_v1/README.md).
 - [Índice del backend](../INDICE.md).
 
 La autorización posterior está registrada en [tarea LOAD](../../odd/tasks/dataset-daule-data-only-load.md).
 Depósito: `database/dataset_ingestion/releases/daule-v1/`; destino fijo Compose
-local `propuestas`. [Notas junto al dataset](../../../thesis-docs/res/datasets_presupuestos/exports/dataset_maestro_daule_v1/NOTAS_INTEGRACION_BACKEND.md)
+local `propuestas`. [Notas junto al dataset](../../database/dataset_ingestion/sources/dataset_maestro_daule_v1/NOTAS_INTEGRACION_BACKEND.md)
 separan hechos originales de adaptaciones aprobadas. Los cuatro recibos de
 apply/verify están enlazados en [SEGUIMIENTO](SEGUIMIENTO.md); los 15 hashes fuente
-y release SHA256 permanecen iguales.
+permanecen iguales. Los recibos conservan el sello histórico, no el checksum
+actual tras COPY-01; véase [relocación y sellos](../../database/dataset_ingestion/README.md#copy-01-fuente-local-y-migración-del-sello).
+La fuente operativa actual está incluida en el backend; la carga histórica usó
+`../thesis-docs/res/datasets_presupuestos/exports/dataset_maestro_daule_v1`.
 
 ## Siguiente paso
 

@@ -22,8 +22,8 @@ Este diagnóstico no autoriza acciones operativas; su salida alimenta [01](01-pr
 
 ## Entradas y trazabilidad
 
-- [README del export](../../../thesis-docs/res/datasets_presupuestos/exports/dataset_maestro_daule_v1/README.md)
-  y [manifiesto](../../../thesis-docs/res/datasets_presupuestos/exports/dataset_maestro_daule_v1/manifiesto.json).
+- [README del export](../../database/dataset_ingestion/sources/dataset_maestro_daule_v1/README.md)
+  y [manifiesto](../../database/dataset_ingestion/sources/dataset_maestro_daule_v1/manifiesto.json).
 - [SnapshotApuMapper](../../src/main/java/ec/uce/propuestas/plantilla/service/SnapshotApuMapper.java).
 - [ResolverInsumoPlantillaService](../../src/main/java/ec/uce/propuestas/plantilla/service/ResolverInsumoPlantillaService.java).
 - [V001](../../src/main/resources/db/migration/V001__baseline.sql),

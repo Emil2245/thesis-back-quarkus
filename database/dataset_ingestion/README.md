@@ -1,6 +1,9 @@
 # Daule V1: preparación durable y carga local controlada
 
-Operador **standalone Python stdlib**, sin API, cambios Java, migraciones ni dependencias. **Carga verificada en BD; validación funcional de aplicación pendiente.** El ensayo local ROLLBACK pasó, apply insertó 1 CENTRAL/1372 insumos/937 plantillas y replay insertó 0/0/0; dos verify exactos PASS. Revisión final independiente datos/recibos PASS; resultado global PARCIAL, no PASS integral. [Registro y cuatro recibos](../../docs/ingreso-datasets/SEGUIMIENTO.md).
+Operador **standalone Python stdlib**, sin API, cambios Java, migraciones ni dependencias. **COPY-02: reconstrucción limpia y carga local verificadas; adopción funcional de aplicación pendiente.** Flyway ejecutó las 17 migraciones/seeds reales; startup temporal en 8091 y `/q/health` HTTP 200. Apply insertó 1 CENTRAL/1372 insumos/937 plantillas; replay 0/0/0 y dos verify exactos PASS. Revisión independiente de esta reconstrucción pendiente; no se reclama PASS funcional integral. [Registro y recibos nuevos e históricos](../../docs/ingreso-datasets/SEGUIMIENTO.md).
+
+La fuente predeterminada es `sources/dataset_maestro_daule_v1`, incluida íntegramente
+junto al operador. No requiere `thesis-docs` ni otro repositorio hermano.
 
 ## Ruta rápida (desde la raíz del workspace)
 
@@ -38,6 +41,81 @@ Si hay timeout, retorno fallido, recibo ausente o fallo al guardarlo después de
 
 `--source <paquete-compatible> --release <release.json> --prefix <MAYUSCULAS> --base-name <nombre>` permiten otra preparación con el mismo contrato de 15 archivos/headers, no un framework general. Cada versión requiere archivo nuevo y autorización de superficies/destino; una misma release con fuente distinta falla. No usar rutas sensibles. El destino sigue exclusivamente Compose local.
 
-Evidencia actual: **10 tests unittest PASS**, dry-run ROLLBACK PASS, apply/replay y dos verify PostgreSQL PASS. Revisor confirmó payload completo 1372/937, precios originales seleccionados, UUIDv7, recibos y 15 hashes intactos. Totales locales: **6 bases/2140 insumos/950 plantillas**. Nueve tablas MD5 de preservación confirmadas independientemente; SHA worker de 27 tablas reportado, no reproducido por revisor. Inventario actual **27 tablas/245 columnas/Flyway 17**; fingerprint DDL previo completo no reproducido independientemente. No reset ni cambios schema/Java/seeds/commits. **Runtime/API/roundtrip con proyecto y concurrencia no probados**; suite Quarkus no ejecutada. Resultado global PARCIAL. Las tres unidades de implementación exceden conjuntamente la guía 400 líneas para mantener validaciones, recuperación y pruebas legibles; no se minifican ni omiten tests.
+Evidencia histórica de la carga anterior al reset: **10 tests unittest PASS**, dry-run ROLLBACK PASS, apply/replay y dos verify PostgreSQL PASS. Revisor confirmó payload completo 1372/937, precios originales seleccionados, UUIDv7, recibos y 15 hashes intactos. Totales históricos locales: **6 bases/2140 insumos/950 plantillas**. Nueve tablas MD5 de preservación confirmadas independientemente; SHA worker de 27 tablas reportado, no reproducido por revisor. Inventario histórico **27 tablas/245 columnas/Flyway 17**; fingerprint DDL previo completo no reproducido independientemente. No reset ni cambios schema/Java/seeds/commits. **Runtime/API/roundtrip con proyecto y concurrencia no probados**; suite Quarkus no ejecutada. Resultado global PARCIAL. Las tres unidades de implementación exceden conjuntamente la guía 400 líneas para mantener validaciones, recuperación y pruebas legibles; no se minifican ni omiten tests.
 
-Semántica aprobada, excepciones y procedencia: [NOTAS_INTEGRACION_BACKEND](../../../thesis-docs/res/datasets_presupuestos/exports/dataset_maestro_daule_v1/NOTAS_INTEGRACION_BACKEND.md). Seguimiento humano: [docs/ingreso-datasets](../../docs/ingreso-datasets/README.md).
+Semántica aprobada, excepciones y procedencia: [NOTAS_INTEGRACION_BACKEND](sources/dataset_maestro_daule_v1/NOTAS_INTEGRACION_BACKEND.md). Seguimiento humano: [docs/ingreso-datasets](../../docs/ingreso-datasets/README.md).
+
+## COPY-01: fuente local y migración del sello
+
+Copia completa, no movimiento: **16 archivos / 9 550 677 bytes**, sin symlinks,
+idénticos al original `../thesis-docs/res/datasets_presupuestos/exports/dataset_maestro_daule_v1`.
+Original preservado. README y NOTAS copiados sin edición; sus enlaces entre
+repositorios son contexto archivado, no dependencias del operador.
+
+Cambio aprobado exclusivamente de `operator_hashes` y `release_sha256`; no se
+regeneró la release. Payload, política, 15 hashes fuente y **2310 UUIDv7** intactos.
+`load.sql` e `insert.sql` conservan sus hashes. Sellos SHA256:
+
+| Sello | Antes | Después |
+|---|---|---|
+| Release (campo `release_sha256`, JSON canónico sin ese campo) | `e2e19accb4e723b3c7920f4344cead6a3aadc570a009014a8986bd285fcdff35` | `111a736b9f60ec6ba8ccfe35ce3686f239f0db9be79fa2e7c3a9c8ec66b8c45e` |
+| `operator_daule.py` | `9dbfbb6e8e5005fb4ef51221f735b1381b859b93f4e8427d53d0a508f4d6e97b` | `a5800ca858e0a82068f59aa6bbd4735f12ab6d5c162fc7e2f78af3bb5fbd5ab9` |
+
+Baseline previo verificado después de copiar:
+- SHA256 del JSON canónico de todos los campos excepto los dos sellos:
+  `5ee1e2760c6e94b5dbc3d06a2ef15df1ac6ee793e620abbb288d77c8f1f70176`.
+- SHA256 del inventario `{ruta relativa: SHA256 bytes}` (JSON ordenado compacto):
+  `2e075ba9b71592227a92552f7a84014b62073b81739046d994c23fc25facf315`.
+  Incluye NOTAS; original y copia coinciden con el baseline previo.
+
+**Los recibos históricos siguen siendo evidencia de la carga anterior**, realizada
+con la ubicación original y el sello anterior. No deben coincidir con el nuevo
+checksum ni se reescriben. COPY-01 no ejecuta BD ni genera recibos: 12 tests locales
+PASS (10 previos + 2 regresiones de ruta, invariantes y rechazo de manipulación).
+La validación funcional de aplicación continúa pendiente.
+
+## COPY-02: reconstrucción limpia desde el backend (2026-10-02)
+
+Reset `down -v` del proyecto canónico `thesis-backend` ejecutado externamente
+por el padre con autorización explícita. Este executor ejecutó `up -d postgres`
+y readiness acotada. SELECT inicial: `propuestas`, cero tablas públicas.
+Java 25.0.3 / Gradle 9.5.1; `./gradlew --offline --console=plain build -x test`
+PASS. El fast-jar ejecutó realmente las **17 migraciones Flyway** sobre BD vacía;
+falló después por 8090 ocupado. Se preservó el backend previo y se arrancó otra
+instancia temporal en **8091**, startup PASS y `/q/health` **HTTP 200**.
+
+Desde el cwd backend, sin leer repositorios hermanos:
+`python3 -B -m unittest discover -s database/dataset_ingestion -p 'test_*.py'`
+**12/12 PASS**; operador `dry-run` ROLLBACK, `apply --confirm-local-apply`,
+`verify`, replay apply y verify final PASS. Primer commit confirmado con
+readback posterior antes del replay; inserciones **1/1372/937**, replay **0/0/0**.
+
+Baseline limpio observado: **5 bases / 768 insumos / 13 plantillas**;
+totales actuales: **6 / 2140 / 950**. Proyectos seed **3**, presupuestos **2**,
+APUs **311**, rubros **310**; no son proyectos nuevos creados por la carga.
+SELECT por UUID durable confirmó **1 CENTRAL / 1372 insumos / 937 plantillas**.
+Conteos y MD5 de las filas seed de **27 tablas**, excluyendo únicamente los UUID
+Daule de las tres tablas de destino, idénticos antes/después. Flyway SELECT:
+**17 / versión 017 / todas success**. Evidencia local en
+`build/copy02-baseline.json`, `build/copy02-final.json` y logs de startup;
+reproducción independiente pendiente.
+
+Release actual **111a736b9f60ec6ba8ccfe35ce3686f239f0db9be79fa2e7c3a9c8ec66b8c45e**;
+operador **a5800ca858e0a82068f59aa6bbd4735f12ab6d5c162fc7e2f78af3bb5fbd5ab9**.
+Payload, UUID y fuentes sin cambios; recibos anteriores conservan su sello histórico.
+Recibos nuevos en `database/dataset_ingestion/releases/daule-v1/`:
+
+- `receipt-dry-run-1790917461660039940.json`
+- `receipt-apply-1790917471114804611.json`
+- `receipt-verify-1790917481410029501.json`
+- `receipt-apply-1790917483867238234.json` (replay)
+- `receipt-verify-1790917485096547019.json`
+
+No cambios Java/schema/seeds ni commits. Startup/health no prueban adopción
+API, roundtrip de proyecto, exportación ni concurrencia; esos checks siguen
+pendientes. COPY-02 DB/startup PASS, no PASS funcional integral.
+
+Instancia temporal propia PID **884660** detenida con SIGTERM después de los
+checks; backend preexistente preservado y PostgreSQL sigue levantado.
+`graphify update .` PASS (5271 nodos/16347 aristas); extracción SQL incompleta
+por `tree_sitter_sql` ausente, sin instalar dependencias.
