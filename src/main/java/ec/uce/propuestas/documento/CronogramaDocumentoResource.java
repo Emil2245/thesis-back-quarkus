@@ -6,6 +6,7 @@ import ec.uce.propuestas.cronograma.dto.BloqueoExportDetalle;
 import ec.uce.propuestas.cronograma.dto.CronogramaExportPreflightResponse;
 import ec.uce.propuestas.cronograma.export.CronogramaDescargaService;
 import ec.uce.propuestas.cronograma.export.CronogramaExportPreflightService;
+import ec.uce.propuestas.cronograma.export.CronogramaPdfWriter.Papel;
 import ec.uce.propuestas.cronograma.export.FormatoExportacion;
 import ec.uce.propuestas.usuario.UsuarioRepository;
 import ec.uce.propuestas.usuario.audit.EventoLogActividad;
@@ -86,6 +87,23 @@ public class CronogramaDocumentoResource {
         return f;
     }
 
+    @jakarta.ws.rs.core.Context
+    jakarta.ws.rs.core.UriInfo uriInfo;
+
+    private Papel parsearPapel(String papel, FormatoExportacion formato) {
+        // RESTEasy convierte el valor vacío a null; distinguirlo de la ausencia.
+        boolean presente = uriInfo.getQueryParameters().containsKey("papel");
+        if (!presente) {
+            return Papel.A4;
+        }
+        if (formato != FormatoExportacion.PDF
+                || uriInfo.getQueryParameters().get("papel").size() != 1
+                || !("a4".equals(papel) || "a3".equals(papel))) {
+            throw ProblemaException.validacion("Papel no soportado: solo PDF permite papel=a4 | a3");
+        }
+        return papel.equals("a3") ? Papel.A3 : Papel.A4;
+    }
+
     /**
      * Preflight: devuelve la respuesta canónica con bloqueos y warnings. No
      * genera bytes; permite al cliente decidir antes de la descarga.
@@ -94,9 +112,12 @@ public class CronogramaDocumentoResource {
     @Path("/{presupuestoId}/preflight")
     @Produces(MediaType.APPLICATION_JSON)
     public CronogramaExportPreflightResponse preflight(
-            @PathParam("presupuestoId") String presupuestoId, @QueryParam("formato") String formato) {
+            @PathParam("presupuestoId") String presupuestoId,
+            @QueryParam("formato") String formato,
+            @QueryParam("papel") String papel) {
         UUID publicId = UuidV7.parse(presupuestoId);
         FormatoExportacion f = parsearFormato(formato);
+        parsearPapel(papel, f);
         try {
             return preflightService.evaluarPreflight(publicId, usuarioId(), f);
         } catch (IllegalArgumentException e) {
@@ -121,14 +142,18 @@ public class CronogramaDocumentoResource {
     })
     @io.smallrye.common.annotation.Blocking
     @Transactional
-    public Response descargar(@PathParam("presupuestoId") String presupuestoId, @QueryParam("formato") String formato) {
+    public Response descargar(
+            @PathParam("presupuestoId") String presupuestoId,
+            @QueryParam("formato") String formato,
+            @QueryParam("papel") String papel) {
         UUID publicId = UuidV7.parse(presupuestoId);
         FormatoExportacion f = parsearFormato(formato);
+        Papel opcionPapel = parsearPapel(papel, f);
         Long callerUsuarioId = usuarioId();
 
         CronogramaDescargaService.ResultadoDescarga gen;
         try {
-            gen = descargaService.generar(publicId, callerUsuarioId, f);
+            gen = descargaService.generar(publicId, callerUsuarioId, f, opcionPapel);
         } catch (IllegalArgumentException e) {
             // Mapeo canónico: cualquier IAE del seam preflight/descarga es
             // semánticamente «no-encontrado» (404 — preserva RNF-05 owner-to-404).

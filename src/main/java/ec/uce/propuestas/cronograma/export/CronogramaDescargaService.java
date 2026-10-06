@@ -91,6 +91,16 @@ public class CronogramaDescargaService {
      */
     @Transactional
     public ResultadoDescarga generar(UUID presupuestoPublicId, Long callerUsuarioId, FormatoExportacion formato) {
+        return generar(presupuestoPublicId, callerUsuarioId, formato, CronogramaPdfWriter.Papel.A4);
+    }
+
+    @Transactional
+    public ResultadoDescarga generar(
+            UUID presupuestoPublicId,
+            Long callerUsuarioId,
+            FormatoExportacion formato,
+            CronogramaPdfWriter.Papel papel) {
+        java.util.Objects.requireNonNull(papel, "papel es obligatorio");
         if (formato == null) {
             throw new IllegalArgumentException("formato es obligatorio");
         }
@@ -120,7 +130,7 @@ public class CronogramaDescargaService {
             }
             case PDF -> {
                 ProyeccionExportacion p = proyeccionService.construirProyeccionCompleta(snap);
-                bytes = CronogramaPdfWriter.renderizar(p);
+                bytes = CronogramaPdfWriter.renderizar(p, papel);
                 extension = "pdf";
                 mediaType = ArchivoGenerado.PDF_MEDIA_TYPE;
             }

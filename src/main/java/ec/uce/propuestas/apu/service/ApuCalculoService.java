@@ -81,16 +81,38 @@ public class ApuCalculoService {
         List<ApuSeccion> secciones = seccionRepository.listarDeApu(apu.id);
         secciones.sort(Comparator.comparingInt(s -> s.tipo.ordinal()));
 
-        List<FilaSnapshot> filas = new ArrayList<>();
-
+        Map<Long, List<ApuDetalle>> detalles = new HashMap<>();
+        Map<Long, Insumo> insumos = new HashMap<>();
         for (ApuSeccion seccion : secciones) {
-            List<ApuDetalle> detalles = detalleRepository.listarDeSeccion(seccion.id);
-            for (ApuDetalle d : detalles) {
-                Insumo insumo = d.insumoId == null ? null : insumoRepository.findById(d.insumoId);
+            var rows = detalleRepository.listarDeSeccion(seccion.id);
+            detalles.put(seccion.id, rows);
+            for (ApuDetalle d : rows) {
+                if (d.insumoId != null) insumos.put(d.insumoId, insumoRepository.findById(d.insumoId));
+            }
+        }
+        return calcular(apu, secciones, detalles, insumos, params);
+    }
+
+    /**
+     * Pure read seam for export capture. The caller supplies complete, scope-validated
+     * sections, ordered details, project inputs and effective parameters from one snapshot.
+     * No repository reads, parameter creation or derived-state persistence occur here.
+     */
+    public ApuCalculado calcular(
+            Apu apu,
+            List<ApuSeccion> secciones,
+            Map<Long, List<ApuDetalle>> detalles,
+            Map<Long, Insumo> insumos,
+            ParametrosProyecto params) {
+        List<FilaSnapshot> filas = new ArrayList<>();
+        for (ApuSeccion seccion : secciones.stream()
+                .sorted(Comparator.comparingInt(s -> s.tipo.ordinal()))
+                .toList()) {
+            for (ApuDetalle d : detalles.get(seccion.id)) {
+                Insumo insumo = d.insumoId == null ? null : insumos.get(d.insumoId);
                 filas.add(snapshotDeDetalle(d, seccion.tipo, insumo, params.porcentajeHerramientaMenor));
             }
         }
-
         return Motor.calcularApu(
                 new ApuSnapshot(apu.codigo, apu.porcentajeIndirecto, filas),
                 new ParametrosCalculo(params.porcentajeHerramientaMenor, params.porcentajeIndirecto));

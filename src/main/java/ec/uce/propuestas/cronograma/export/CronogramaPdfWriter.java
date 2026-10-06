@@ -46,6 +46,12 @@ public final class CronogramaPdfWriter {
         "Item", "Código", "Descripción", "Unidad", "Cant.", "P.Unit.", "P.Total", "Peso"
     };
 
+    /** Opción documental local: no modifica el modelo ni los gates del cronograma. */
+    public enum Papel {
+        A4,
+        A3
+    }
+
     private CronogramaPdfWriter() {}
 
     /**
@@ -55,12 +61,17 @@ public final class CronogramaPdfWriter {
      * vez por JVM (cache estatica del {@link BaseFont}).
      */
     public static byte[] renderizar(ProyeccionExportacion proyeccion) {
+        return renderizar(proyeccion, Papel.A4);
+    }
+
+    public static byte[] renderizar(ProyeccionExportacion proyeccion, Papel papel) {
+        java.util.Objects.requireNonNull(papel, "papel es obligatorio");
         CronogramaXlsxWriter.ProyeccionXlsx p = proyeccion.hoja();
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             // A4 landscape: 842 x 595 pt. PageSize.A4.rotate() no aplica
             // swap en OpenPDF 2.0.3 — creamos el rectángulo explícitamente.
-            Rectangle a4 = new Rectangle(842, 595);
-            Document doc = new Document(a4, 18, 18, 28, 24);
+            Rectangle pagina = papel == Papel.A3 ? new Rectangle(1191, 842) : new Rectangle(842, 595);
+            Document doc = new Document(pagina, 18, 18, 28, 24);
             PdfWriter writer = PdfWriter.getInstance(doc, baos);
             writer.setPageEvent(new FooterEvent());
             doc.open();
@@ -91,85 +102,153 @@ public final class CronogramaPdfWriter {
             Paragraph espacio = new Paragraph(" ", subtitulo);
             doc.add(espacio);
 
-            int columnas = CABECERAS_FIJAS.length + p.numeroPeriodos();
-            PdfPTable tabla = new PdfPTable(columnas);
-            tabla.setWidthPercentage(100);
-            float[] anchos = new float[columnas];
-            for (int i = 0; i < CABECERAS_FIJAS.length; i++) {
-                anchos[i] = switch (i) {
-                    case 0, 1 -> 0.7f;
-                    case 2 -> 2.3f;
-                    case 3, 4, 5, 6, 7 -> 0.8f;
-                    default -> 0.8f;
-                };
-            }
-            for (int i = CABECERAS_FIJAS.length; i < columnas; i++) {
-                anchos[i] = 0.85f;
-            }
-            tabla.setWidths(anchos);
-
-            Color cabeceraBg = new Color(220, 220, 220);
-            Color resumenBg = new Color(255, 245, 200);
-
+            float disponible = pagina.getWidth() - 36;
+            float[] fijos = {32, 45, 140, 32, 55, 65, 65, 50};
             String etiquetaPeriodo = "SEMANA".equalsIgnoreCase(p.unidadTiempo()) ? "Semana" : "Mes";
-            for (String c : CABECERAS_FIJAS) {
-                agregarCelda(tabla, c, subtitulo, cabeceraBg, Element.ALIGN_CENTER);
+            float anchoPeriodo = Math.max(52, bf.getWidthPoint(etiquetaPeriodo + " " + p.numeroPeriodos(), 9) + 6);
+            // Preserve the existing 9pt schema and 7pt exact decimals; never micro-size.
+            for (var serie : java.util.List.of(
+                    proyeccion.parcialPorcentaje(),
+                    proyeccion.acumuladoPorcentaje(),
+                    proyeccion.parcialMonto(),
+                    proyeccion.acumuladoMonto())) {
+                for (BigDecimal valor : serie)
+                    anchoPeriodo = Math.max(anchoPeriodo, bf.getWidthPoint(valor.toPlainString(), 7) + 6);
             }
-            for (int i = 0; i < p.numeroPeriodos(); i++) {
-                agregarCelda(tabla, etiquetaPeriodo + " " + (i + 1), subtitulo, cabeceraBg, Element.ALIGN_CENTER);
-            }
-
-            // Filas de rubros.
-            for (CronogramaXlsxWriter.FilaHoja fh : p.filas()) {
-                agregarCelda(
-                        tabla,
-                        CronogramaXlsxWriter.neutralizar(seguro(fh.fila().item())),
-                        normal,
-                        null,
-                        Element.ALIGN_LEFT);
-                agregarCelda(
-                        tabla,
-                        CronogramaXlsxWriter.neutralizar(seguro(fh.fila().codigo())),
-                        normal,
-                        null,
-                        Element.ALIGN_LEFT);
-                agregarCelda(
-                        tabla,
-                        CronogramaXlsxWriter.neutralizar(seguro(fh.fila().descripcion())),
-                        normal,
-                        null,
-                        Element.ALIGN_LEFT);
-                agregarCelda(
-                        tabla,
-                        CronogramaXlsxWriter.neutralizar(seguro(fh.fila().unidad())),
-                        normal,
-                        null,
-                        Element.ALIGN_CENTER);
-                agregarCeldaNumerica(tabla, fh.fila().cantidad(), normal, Element.ALIGN_RIGHT);
-                agregarCeldaNumerica(tabla, fh.fila().precioUnitario(), normal, Element.ALIGN_RIGHT);
-                agregarCeldaNumerica(tabla, fh.fila().precioTotal(), normal, Element.ALIGN_RIGHT);
-                agregarCeldaNumerica(tabla, fh.fila().peso(), normal, Element.ALIGN_RIGHT);
-                for (int i = 0; i < p.numeroPeriodos(); i++) {
-                    BigDecimal pct = i < fh.porcentajesPorPeriodo().size()
-                            ? fh.porcentajesPorPeriodo().get(i)
-                            : null;
-                    agregarCeldaNumerica(tabla, pct, normal, Element.ALIGN_RIGHT);
+            for (var fila : p.filas()) {
+                BigDecimal[] valores = {
+                    fila.fila().cantidad(),
+                    fila.fila().precioUnitario(),
+                    fila.fila().precioTotal(),
+                    fila.fila().peso()
+                };
+                for (int i = 0; i < valores.length; i++) {
+                    if (valores[i] != null)
+                        fijos[4 + i] = Math.max(fijos[4 + i], bf.getWidthPoint(valores[i].toPlainString(), 7) + 6);
+                }
+                for (BigDecimal valor : fila.porcentajesPorPeriodo()) {
+                    if (valor != null)
+                        anchoPeriodo = Math.max(anchoPeriodo, bf.getWidthPoint(valor.toPlainString(), 7) + 6);
                 }
             }
+            float anchoFijo = 0;
+            for (float ancho : fijos) anchoFijo += ancho;
+            int porBloque = Math.max(1, (int) ((disponible - anchoFijo) / anchoPeriodo));
+            for (int desde = 0; desde < p.numeroPeriodos(); desde += porBloque) {
+                int hasta = Math.min(p.numeroPeriodos(), desde + porBloque);
+                if (desde > 0) doc.newPage();
+                int columnas = CABECERAS_FIJAS.length + hasta - desde;
+                PdfPTable tabla = new PdfPTable(columnas);
+                tabla.setWidthPercentage(100);
+                tabla.setSplitLate(true);
+                float[] anchos = java.util.Arrays.copyOf(fijos, columnas);
+                java.util.Arrays.fill(
+                        anchos, CABECERAS_FIJAS.length, columnas, (disponible - anchoFijo) / (hasta - desde));
+                tabla.setWidths(anchos);
+                String nombre = CronogramaXlsxWriter.neutralizar(seguro(p.proyectoNombre()));
+                String preview = nombre.length() > 80 ? nombre.substring(0, 80) + "…" : nombre;
+                PdfPCell identidad = new PdfPCell(new Phrase(
+                        "Proyecto: " + preview + " · Períodos " + (desde + 1) + "–" + hasta + " de "
+                                + p.numeroPeriodos(),
+                        normal));
+                identidad.setColspan(columnas);
+                identidad.setPadding(3);
+                tabla.addCell(identidad);
 
-            // Resumen: consumir totales pre-computados de la proyeccion canonica
-            // (cumple "writers must consume ProyeccionExportacion values only").
-            BigDecimal[] parcialPct = proyeccion.parcialPorcentaje().toArray(new BigDecimal[0]);
-            BigDecimal[] acumPct = proyeccion.acumuladoPorcentaje().toArray(new BigDecimal[0]);
-            BigDecimal[] parcialMonto = proyeccion.parcialMonto().toArray(new BigDecimal[0]);
-            BigDecimal[] acumMonto = proyeccion.acumuladoMonto().toArray(new BigDecimal[0]);
+                Color cabeceraBg = new Color(220, 220, 220);
+                Color resumenBg = new Color(255, 245, 200);
 
-            agregarFilaResumen(tabla, "% PARCIAL", parcialPct, resumenFont, resumenBg);
-            agregarFilaResumen(tabla, "% ACUMULADO", acumPct, resumenFont, resumenBg);
-            agregarFilaResumen(tabla, "MONTO PARCIAL", parcialMonto, resumenFont, resumenBg);
-            agregarFilaResumen(tabla, "MONTO ACUMULADO", acumMonto, resumenFont, resumenBg);
+                for (String c : CABECERAS_FIJAS) {
+                    agregarCelda(tabla, c, subtitulo, cabeceraBg, Element.ALIGN_CENTER);
+                }
+                for (int i = desde; i < hasta; i++) {
+                    agregarCelda(tabla, etiquetaPeriodo + " " + (i + 1), subtitulo, cabeceraBg, Element.ALIGN_CENTER);
+                }
 
-            doc.add(tabla);
+                tabla.setHeaderRows(2);
+                // Last activity and summaries form one bounded row, protected from orphaning.
+                PdfPTable cuerpo = tabla;
+                for (CronogramaXlsxWriter.FilaHoja fh : p.filas()) {
+                    if (fh == p.filas().get(p.filas().size() - 1)) {
+                        tabla = new PdfPTable(columnas);
+                        tabla.setWidths(anchos);
+                    }
+                    agregarCelda(
+                            tabla,
+                            CronogramaXlsxWriter.neutralizar(seguro(fh.fila().item())),
+                            normal,
+                            null,
+                            Element.ALIGN_LEFT);
+                    agregarCelda(
+                            tabla,
+                            CronogramaXlsxWriter.neutralizar(seguro(fh.fila().codigo())),
+                            normal,
+                            null,
+                            Element.ALIGN_LEFT);
+                    agregarCelda(
+                            tabla,
+                            CronogramaXlsxWriter.neutralizar(seguro(fh.fila().descripcion())),
+                            normal,
+                            null,
+                            Element.ALIGN_LEFT);
+                    agregarCelda(
+                            tabla,
+                            CronogramaXlsxWriter.neutralizar(seguro(fh.fila().unidad())),
+                            normal,
+                            null,
+                            Element.ALIGN_CENTER);
+                    agregarCeldaNumerica(tabla, fh.fila().cantidad(), normal, Element.ALIGN_RIGHT);
+                    agregarCeldaNumerica(tabla, fh.fila().precioUnitario(), normal, Element.ALIGN_RIGHT);
+                    agregarCeldaNumerica(tabla, fh.fila().precioTotal(), normal, Element.ALIGN_RIGHT);
+                    agregarCeldaNumerica(tabla, fh.fila().peso(), normal, Element.ALIGN_RIGHT);
+                    for (int i = desde; i < hasta; i++) {
+                        BigDecimal pct = i < fh.porcentajesPorPeriodo().size()
+                                ? fh.porcentajesPorPeriodo().get(i)
+                                : null;
+                        agregarCeldaNumerica(tabla, pct, normal, Element.ALIGN_RIGHT);
+                    }
+                }
+
+                // Resumen: consumir totales pre-computados de la proyeccion canonica
+                // (cumple "writers must consume ProyeccionExportacion values only").
+                BigDecimal[] parcialPct = proyeccion.parcialPorcentaje().toArray(new BigDecimal[0]);
+                BigDecimal[] acumPct = proyeccion.acumuladoPorcentaje().toArray(new BigDecimal[0]);
+                BigDecimal[] parcialMonto = proyeccion.parcialMonto().toArray(new BigDecimal[0]);
+                BigDecimal[] acumMonto = proyeccion.acumuladoMonto().toArray(new BigDecimal[0]);
+
+                agregarFilaResumen(
+                        tabla,
+                        "% PARCIAL",
+                        java.util.Arrays.copyOfRange(parcialPct, desde, hasta),
+                        resumenFont,
+                        resumenBg);
+                agregarFilaResumen(
+                        tabla,
+                        "% ACUMULADO",
+                        java.util.Arrays.copyOfRange(acumPct, desde, hasta),
+                        resumenFont,
+                        resumenBg);
+                agregarFilaResumen(
+                        tabla,
+                        "MONTO PARCIAL",
+                        java.util.Arrays.copyOfRange(parcialMonto, desde, hasta),
+                        resumenFont,
+                        resumenBg);
+                agregarFilaResumen(
+                        tabla,
+                        "MONTO ACUMULADO",
+                        java.util.Arrays.copyOfRange(acumMonto, desde, hasta),
+                        resumenFont,
+                        resumenBg);
+                if (tabla != cuerpo) {
+                    PdfPCell cierre = new PdfPCell(tabla);
+                    cierre.setColspan(columnas);
+                    cierre.setPadding(0);
+                    cierre.setBorder(Rectangle.NO_BORDER);
+                    cuerpo.addCell(cierre);
+                }
+                doc.add(cuerpo);
+            }
             doc.close();
             return baos.toByteArray();
         } catch (Exception e) {
@@ -189,11 +268,11 @@ public final class CronogramaPdfWriter {
      */
     private static void agregarFilaResumen(
             PdfPTable tabla, String etiqueta, BigDecimal[] valores, Font font, Color bg) {
-        agregarCelda(tabla, etiqueta, font, bg, Element.ALIGN_LEFT);
-        // 7 celdas vacías para alinear con las columnas fijas (con background).
-        for (int i = 1; i < CABECERAS_FIJAS.length; i++) {
-            agregarCelda(tabla, "", font, bg, Element.ALIGN_CENTER);
-        }
+        PdfPCell label = new PdfPCell(new Phrase(etiqueta, font));
+        label.setColspan(CABECERAS_FIJAS.length);
+        label.setBackgroundColor(bg);
+        label.setPadding(2);
+        tabla.addCell(label);
         // Celdas numéricas de período — todas con background (audit closure).
         for (int i = 0; i < valores.length; i++) {
             agregarCeldaNumericaConFondo(tabla, valores[i], font, bg, Element.ALIGN_RIGHT);

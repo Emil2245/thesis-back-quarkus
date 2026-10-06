@@ -304,14 +304,24 @@ public class CronogramaExportPreflightService {
      * preflight (Plan 031 §Preflight / §Warning stale).
      */
     public boolean esStale(SnapshotCompleto snap) {
-        if (snap.cronograma.totalGeneralRevisado == null || snap.cronograma.presupuestoFingerprintRevisado == null) {
+        return esStale(snap.cronograma(), snap.presupuesto(), snap.totalGeneral());
+    }
+
+    /** Canonical read-only detector without distribution or export gates. */
+    public boolean esStale(Cronograma cronograma, Presupuesto presupuesto) {
+        BigDecimal total = presupuesto.total == null ? BigDecimal.ZERO : presupuesto.total.setScale(6);
+        return esStale(cronograma, presupuesto, total);
+    }
+
+    private boolean esStale(Cronograma cronograma, Presupuesto presupuesto, BigDecimal total) {
+        if (cronograma.totalGeneralRevisado == null || cronograma.presupuestoFingerprintRevisado == null) {
             return true;
         }
-        if (snap.cronograma.totalGeneralRevisado.setScale(6).compareTo(snap.totalGeneral) != 0) {
+        if (cronograma.totalGeneralRevisado.setScale(6).compareTo(total) != 0) {
             return true;
         }
-        String actual = calcularFingerprint(snap.presupuesto.id);
-        return !snap.cronograma.presupuestoFingerprintRevisado.trim().equals(actual);
+        String actual = calcularFingerprint(presupuesto.id);
+        return !cronograma.presupuestoFingerprintRevisado.trim().equals(actual);
     }
 
     private String calcularFingerprint(Long presupuestoId) {

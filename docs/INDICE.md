@@ -38,11 +38,21 @@ backend `thesis-back-quarkus`.
   — búsqueda FTS y creación de APUs desde plantillas. Plans 001–005
   DONE 2026-09-10/11.
 
+### Exportación de presupuesto y APUs (extensión autorizada)
+
+- [Módulo07 — índice y gates](modulos/07-exportacion-presupuestos-apus/00.md):
+  planes01/02 cerrados en alcance; [plan03](modulos/07-exportacion-presupuestos-apus/03-backend-apus.md)
+  cerrado en alcance verificado, APU-01–06 incluidos y cierre documental
+  independiente PASS. Descargas APU implementadas y cronograma PDF A4/A3 por slices
+  autorizado/verificado. [Contrato observado](modulos/07-exportacion-presupuestos-apus/01-formatos-y-contrato.md#contrato-http-observado-al-reconciliar-plan-03).
+  Frontend04 no autorizado/iniciado. Sin commits ni suite global única verde;
+  3 fallos baseline y1 skip preservados, sin aprobación RDD nativa.
+
 ## 4. Trabajo pendiente del backend
 
 I-01 a I-11 (técnico) están implementadas y verificadas; el piloto SUS 1–2
-queda pendiente de frontend y participantes humanos. Lo único pendiente
-de planificar/ejecutar es:
+queda pendiente de frontend y participantes humanos. APU-06 cerrado en alcance
+verificado; queda pendiente de planificar/ejecutar:
 
 1. I-12 — hardening, mediciones finales, SUS n ≥ 5 y paquete de evidencias
    de tesis.

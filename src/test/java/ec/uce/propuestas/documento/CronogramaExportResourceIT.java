@@ -264,6 +264,93 @@ class CronogramaExportResourceIT {
         return presupuestoId;
     }
 
+    /** EXP-02 — MediaBox real, no inferido del header ni del nombre del archivo. */
+    @Test
+    void papel_pdf_a4_default_y_a3_horizontal() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "exp02-papel@ex.com");
+        String presupuestoId = armarEscenarioExportable(token);
+        for (String opcion : new String[] {"", "&papel=a4", "&papel=a3"}) {
+            given().header("Authorization", "Bearer " + token)
+                    .get("/api/v1/documentos/cronograma/" + presupuestoId + "/preflight?formato=pdf" + opcion)
+                    .then()
+                    .statusCode(200)
+                    .body("exportable", equalTo(true));
+            Response r = given().header("Authorization", "Bearer " + token)
+                    .get("/api/v1/documentos/cronograma/" + presupuestoId + "?formato=pdf" + opcion);
+            assertEquals(200, r.statusCode());
+            try (var pdf = org.apache.pdfbox.Loader.loadPDF(r.asByteArray())) {
+                for (var pagina : pdf.getPages()) {
+                    assertEquals(
+                            opcion.endsWith("a3") ? 1191f : 842f,
+                            pagina.getMediaBox().getWidth());
+                    assertEquals(
+                            opcion.endsWith("a3") ? 842f : 595f,
+                            pagina.getMediaBox().getHeight());
+                    assertEquals(0, pagina.getRotation());
+                }
+            }
+        }
+    }
+
+    /** Opciones ajenas o malformadas fallan antes de generar documentos. */
+    @Test
+    void papel_invalido_y_combinaciones_devuelven_400() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "exp02-invalid@ex.com");
+        String presupuestoId = armarEscenarioExportable(token);
+        for (String consulta : new String[] {
+            "formato=pdf&papel=",
+            "formato=pdf&papel=letter",
+            "formato=pdf&papel=A3",
+            "formato=pdf&papel=%20a3",
+            "formato=xlsx&papel=a4",
+            "formato=mspdi&papel=a3"
+        }) {
+            for (String ruta : new String[] {"", "/preflight"}) {
+                Response r = given().header("Authorization", "Bearer " + token)
+                        .get("/api/v1/documentos/cronograma/" + presupuestoId + ruta + "?" + consulta);
+                assertEquals(400, r.statusCode(), consulta + ruta);
+                assertEquals("validacion", r.jsonPath().getString("codigo"));
+                assertEquals(null, r.getHeader("Content-Disposition"));
+            }
+        }
+        assertEquals(0L, contarDocumentoExportado("PDF"));
+    }
+
+    /** A3 conserva UUID estricto, ownership y bloqueo sin attachment. */
+    @Test
+    void papel_a3_conserva_gates() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "exp02-owner@ex.com");
+        String intruso = AuthSupport.registrarConToken(mailbox, "exp02-other@ex.com");
+        String presupuestoId = armarEscenarioExportable(token);
+        for (String ruta : new String[] {"", "/preflight"}) {
+            given().header("Authorization", "Bearer " + intruso)
+                    .get("/api/v1/documentos/cronograma/" + presupuestoId + ruta + "?formato=pdf&papel=a3")
+                    .then()
+                    .statusCode(404)
+                    .body("codigo", equalTo("no-encontrado"));
+            for (String id : new String[] {"incorrecto", UUID_NO_V7}) {
+                given().header("Authorization", "Bearer " + token)
+                        .get("/api/v1/documentos/cronograma/" + id + ruta + "?formato=pdf&papel=a3")
+                        .then()
+                        .statusCode(400)
+                        .body("codigo", equalTo("validacion"));
+            }
+        }
+        sembrarAvance(actividadDeRubro(presupuestoId, "1.1"), "{}");
+        given().header("Authorization", "Bearer " + token)
+                .get("/api/v1/documentos/cronograma/" + presupuestoId + "/preflight?formato=pdf&papel=a3")
+                .then()
+                .statusCode(200)
+                .body("exportable", equalTo(false));
+        Response r = given().header("Authorization", "Bearer " + token)
+                .get("/api/v1/documentos/cronograma/" + presupuestoId + "?formato=pdf&papel=a3");
+        assertEquals(409, r.statusCode());
+        assertEquals("export-bloqueado", r.jsonPath().getString("codigo"));
+        assertEquals(null, r.getHeader("Content-Disposition"));
+        assertFalse(r.asString().startsWith("%PDF"));
+        assertEquals(0L, contarDocumentoExportado("PDF"));
+    }
+
     // ──────────────────────────────────────────────────────────────────────
     // Preflight
     // ──────────────────────────────────────────────────────────────────────
