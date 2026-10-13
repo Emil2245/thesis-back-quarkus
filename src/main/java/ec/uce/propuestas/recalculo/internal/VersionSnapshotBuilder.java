@@ -22,18 +22,20 @@ import ec.uce.propuestas.motor.RubroSnapshot;
 import ec.uce.propuestas.motor.VersionSnapshot;
 import ec.uce.propuestas.presupuesto.entity.Capitulo;
 import ec.uce.propuestas.presupuesto.entity.Presupuesto;
+import ec.uce.propuestas.presupuesto.entity.Rubro;
 import ec.uce.propuestas.presupuesto.repository.CapituloRepository;
 import ec.uce.propuestas.presupuesto.repository.PresupuestoRepository;
 import ec.uce.propuestas.presupuesto.repository.RubroRepository;
 import ec.uce.propuestas.proyecto.entity.ParametrosProyecto;
 import ec.uce.propuestas.proyecto.service.ParametrosProyectoService;
-import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Helper package-localizado (visible al paquete {@code ec.uce.propuestas.recalculo}
@@ -98,9 +100,33 @@ public class VersionSnapshotBuilder {
         ParametrosCalculo motorParams =
                 new ParametrosCalculo(params.porcentajeHerramientaMenor, params.porcentajeIndirecto);
 
+        // All tree state belongs to this build and this budget only.
+        Map<Long, List<Capitulo>> hijosPorPadre = new HashMap<>();
+        for (Capitulo capitulo : capituloRepository.listarPorPresupuesto(presupuestoId)) {
+            hijosPorPadre
+                    .computeIfAbsent(capitulo.parentId, ignored -> new ArrayList<>())
+                    .add(capitulo);
+        }
+        for (List<Capitulo> hermanos : hijosPorPadre.values()) {
+            hermanos.sort(Comparator.comparingInt(capitulo -> capitulo.orden));
+        }
+        List<Capitulo> capitulosRaiz = hijosPorPadre.getOrDefault(null, List.of());
+        List<Long> alcanzables = new ArrayList<>();
+        for (Capitulo raiz : capitulosRaiz) {
+            agregarAlcanzables(raiz, hijosPorPadre, alcanzables);
+        }
+        Map<Long, List<Rubro>> rubrosPorCapitulo = new HashMap<>();
+        for (Rubro rubro : rubroRepository.listarPorCapitulos(alcanzables)) {
+            rubrosPorCapitulo
+                    .computeIfAbsent(rubro.capituloId, ignored -> new ArrayList<>())
+                    .add(rubro);
+        }
+        for (List<Rubro> rubros : rubrosPorCapitulo.values()) {
+            rubros.sort(Comparator.comparing(rubro -> rubro.item, ItemJerarquico.ORDEN));
+        }
         List<CapituloSnapshot> raices = new ArrayList<>();
-        for (Capitulo raiz : capitulosRaicesDe(presupuestoId)) {
-            raices.add(construirCapitulo(raiz, presupuestoId, motorParams));
+        for (Capitulo raiz : capitulosRaiz) {
+            raices.add(construirCapitulo(raiz, 1, motorParams, hijosPorPadre, rubrosPorCapitulo));
         }
         CronogramaSnapshot cronogramaSnap = cargarCronogramaSnapshot(presupuestoId);
         return new VersionSnapshot(motorParams, raices, cronogramaSnap);
@@ -159,59 +185,29 @@ public class VersionSnapshotBuilder {
         return new CronogramaSnapshot(numeroPeriodos, snaps);
     }
 
-    private List<Capitulo> capitulosRaicesDe(Long presupuestoId) {
-        return capituloRepository
-                .find(
-                        "presupuestoId = :pid and parentId is null order by orden",
-                        new Parameters().and("pid", presupuestoId))
-                .list();
+    private void agregarAlcanzables(Capitulo cap, Map<Long, List<Capitulo>> hijosPorPadre, List<Long> alcanzables) {
+        // Preserve root-based reachability: cross-budget parents and disconnected cycles stay excluded.
+        alcanzables.add(cap.id);
+        for (Capitulo hijo : hijosPorPadre.getOrDefault(cap.id, List.of())) {
+            agregarAlcanzables(hijo, hijosPorPadre, alcanzables);
+        }
     }
 
-    private CapituloSnapshot construirCapitulo(Capitulo cap, Long presupuestoId, ParametrosCalculo motorParams) {
-        // Subcapítulos hijos (un nivel recursivo vía parent_id; el caso real IESS
-        // tiene subcapítulos anidados pero el modelo SQL es plano con self-FK,
-        // por lo que esta implementación procesa exactamente 1 nivel. Plan 022
-        // ampliará a recursivo si los fixtures I-07 lo exigen).
+    private CapituloSnapshot construirCapitulo(
+            Capitulo cap,
+            int depth,
+            ParametrosCalculo motorParams,
+            Map<Long, List<Capitulo>> hijosPorPadre,
+            Map<Long, List<Rubro>> rubrosPorCapitulo) {
         List<CapituloSnapshot> subs = new ArrayList<>();
-        List<Capitulo> hijos = capituloRepository
-                .find(
-                        "presupuestoId = :pid and parentId = :parentId order by orden",
-                        Parameters.with("pid", presupuestoId).and("parentId", cap.id))
-                .list();
-        for (Capitulo hijo : hijos) {
-            subs.add(construirCapitulo(hijo, presupuestoId, motorParams));
+        for (Capitulo hijo : hijosPorPadre.getOrDefault(cap.id, List.of())) {
+            subs.add(construirCapitulo(hijo, depth + 1, motorParams, hijosPorPadre, rubrosPorCapitulo));
         }
-
-        // Rubros directos del capítulo.
-        //
-        // Plan 043 — el orden ya no se delega a `ORDER BY item` de SQL: sobre
-        // VARCHAR eso es orden lexicográfico y devuelve "1.10" antes que "1.2".
-        // Aquí el snapshot sólo alimenta sumas de BigDecimal, que no dependen
-        // del orden, así que no había corrupción — se cambia por coherencia con
-        // el resto de lecturas y para que el orden de los rubros dentro del
-        // CapituloSnapshot sea el que el usuario ve.
         List<RubroSnapshot> rubros = new ArrayList<>();
-        List<ec.uce.propuestas.presupuesto.entity.Rubro> rubrosEnt = new ArrayList<>(rubroRepository
-                .find("capituloId = :cid", Parameters.with("cid", cap.id))
-                .list());
-        rubrosEnt.sort(
-                Comparator.comparing((ec.uce.propuestas.presupuesto.entity.Rubro r) -> r.item, ItemJerarquico.ORDEN));
-        for (ec.uce.propuestas.presupuesto.entity.Rubro r : rubrosEnt) {
-            rubros.add(construirRubro(r, motorParams));
+        for (Rubro rubro : rubrosPorCapitulo.getOrDefault(cap.id, List.of())) {
+            rubros.add(construirRubro(rubro, motorParams));
         }
-        return new CapituloSnapshot(cap.item, cap.descripcion, depthDe(cap), subs, rubros);
-    }
-
-    private int depthDe(Capitulo cap) {
-        int depth = 1;
-        Long parent = cap.parentId;
-        while (parent != null) {
-            depth++;
-            Capitulo parentCap = capituloRepository.findById(parent);
-            if (parentCap == null) break;
-            parent = parentCap.parentId;
-        }
-        return depth;
+        return new CapituloSnapshot(cap.item, cap.descripcion, depth, subs, rubros);
     }
 
     private RubroSnapshot construirRubro(ec.uce.propuestas.presupuesto.entity.Rubro r, ParametrosCalculo motorParams) {
