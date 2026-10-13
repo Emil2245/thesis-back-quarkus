@@ -4,6 +4,7 @@ import ec.uce.propuestas.apu.entity.ApuDetalle;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -11,6 +12,12 @@ import java.util.UUID;
 /** Acceso a {@code apu_detalle}. Reglas de negocio en los services. */
 @ApplicationScoped
 public class ApuDetalleRepository implements PanacheRepositoryBase<ApuDetalle, Long> {
+
+    public List<ApuDetalle> listarPorSecciones(Collection<Long> ids) {
+        return ids.isEmpty()
+                ? List.of()
+                : find("seccionId in ?1 order by orden", ids).list();
+    }
 
     public List<ApuDetalle> listarDeSeccion(Long seccionId) {
         return find("seccionId = :seccionId order by orden", Parameters.with("seccionId", seccionId))

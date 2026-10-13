@@ -10,6 +10,7 @@ import io.quarkus.panache.common.Page;
 import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -17,6 +18,10 @@ import java.util.UUID;
 /** Acceso a {@code insumo}. Reglas de negocio en los services. */
 @ApplicationScoped
 public class InsumoRepository implements PanacheRepositoryBase<Insumo, Long> {
+
+    public List<Insumo> listarPorIds(Collection<Long> ids) {
+        return ids.isEmpty() ? List.of() : find("id in ?1", ids).list();
+    }
 
     public Optional<Insumo> findByBaseYcodigo(Long baseId, String codigo) {
         return find(

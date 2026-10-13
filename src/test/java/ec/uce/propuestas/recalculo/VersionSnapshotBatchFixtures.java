@@ -59,6 +59,70 @@ final class VersionSnapshotBatchFixtures {
                 codigo);
     }
 
+    long apus(int count) throws Exception {
+        long presupuesto = presupuesto();
+        long foreign = presupuesto();
+        ejecutar(
+                "UPDATE parametros_proyecto SET porcentaje_herramienta_menor=0.07 "
+                        + "WHERE proyecto_id=(SELECT proyecto_id FROM presupuesto WHERE id=?)",
+                foreign);
+        long capitulo = capitulo(presupuesto, null, "1", 1);
+        long base = insertar("INSERT INTO base_insumos (nombre,tipo) VALUES ('Batch','CENTRAL') RETURNING id");
+        ejecutar(
+                "INSERT INTO insumo (base_id,codigo,tipo,descripcion,unidad,precio_unitario) "
+                        + "SELECT ?,tipo,tipo,tipo,CASE WHEN tipo IN ('EQUIPO','MANO_OBRA') THEN 'h' ELSE 'u' END,"
+                        + "10+n FROM (VALUES ('EQUIPO',1),('MANO_OBRA',2),('MATERIAL',3),('TRANSPORTE',4)) t(tipo,n)",
+                base);
+        ejecutar(
+                "INSERT INTO apu (presupuesto_id,codigo,descripcion,unidad,porcentaje_indirecto) "
+                        + "SELECT CASE WHEN n=? THEN ? ELSE ? END,'A'||n,'APU '||n,'u',"
+                        + "CASE WHEN n%2=0 THEN 0.12 ELSE NULL END FROM generate_series(1,?) n ORDER BY n DESC",
+                count, foreign, presupuesto, count);
+        ejecutar(
+                "INSERT INTO rubro (capitulo_id,apu_id,item,codigo,descripcion,unidad,cantidad) "
+                        + "SELECT ?,id,'1.'||substring(codigo FROM 2),codigo,descripcion,'u',2 FROM apu "
+                        + "WHERE presupuesto_id IN (?,?)",
+                capitulo,
+                presupuesto,
+                foreign);
+        ejecutar(
+                "INSERT INTO apu_seccion (apu_id,tipo,orden) SELECT a.id,t.tipo,t.n "
+                        + "FROM apu a CROSS JOIN (VALUES ('TRANSPORTE',1),('MATERIAL',2),('MANO_OBRA',3),('EQUIPO',4)) t(tipo,n) "
+                        + "WHERE a.presupuesto_id IN (?,?)",
+                presupuesto,
+                foreign);
+        ejecutar(
+                "INSERT INTO apu_detalle (seccion_id,insumo_id,descripcion,orden,cantidad,rendimiento,"
+                        + "tarifa_jornal,precio_unitario_tarifa) SELECT s.id,CASE WHEN n<3 THEN i.id ELSE NULL END,"
+                        + "'Row '||n,n,n+1,0.5,CASE WHEN n=2 AND s.tipo IN ('EQUIPO','MANO_OBRA') THEN 20 END,"
+                        + "CASE WHEN n=2 AND s.tipo IN ('MATERIAL','TRANSPORTE') THEN 30 END "
+                        + "FROM apu_seccion s JOIN apu a ON a.id=s.apu_id JOIN insumo i ON i.tipo=s.tipo AND i.base_id=? "
+                        + "CROSS JOIN generate_series(1,3) n WHERE a.presupuesto_id IN (?,?) ORDER BY n DESC",
+                base,
+                presupuesto,
+                foreign);
+        ejecutar(
+                "INSERT INTO apu_detalle (seccion_id,descripcion,orden,es_herramienta_menor) "
+                        + "SELECT s.id,'HM',4,TRUE FROM apu_seccion s JOIN apu a ON a.id=s.apu_id "
+                        + "WHERE s.tipo='EQUIPO' AND a.presupuesto_id IN (?,?)",
+                presupuesto,
+                foreign);
+        // An unlinked APU in the same budget must not enter the version snapshot.
+        ejecutar(
+                "INSERT INTO apu (presupuesto_id,codigo,descripcion,unidad) VALUES (?,'excluded','excluded','u')",
+                presupuesto);
+        return presupuesto;
+    }
+
+    private void ejecutar(String sql, Object... valores) throws Exception {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            for (int i = 0; i < valores.length; i++) {
+                statement.setObject(i + 1, valores[i]);
+            }
+            statement.executeUpdate();
+        }
+    }
+
     private long insertar(String sql, Object... valores) throws Exception {
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             for (int i = 0; i < valores.length; i++) {

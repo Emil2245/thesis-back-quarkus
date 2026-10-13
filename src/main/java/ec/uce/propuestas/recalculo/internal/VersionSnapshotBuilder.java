@@ -34,6 +34,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -124,9 +125,10 @@ public class VersionSnapshotBuilder {
         for (List<Rubro> rubros : rubrosPorCapitulo.values()) {
             rubros.sort(Comparator.comparing(rubro -> rubro.item, ItemJerarquico.ORDEN));
         }
+        Map<Long, ApuSnapshot> apus = cargarApus(rubrosPorCapitulo, presupuesto, params);
         List<CapituloSnapshot> raices = new ArrayList<>();
         for (Capitulo raiz : capitulosRaiz) {
-            raices.add(construirCapitulo(raiz, 1, motorParams, hijosPorPadre, rubrosPorCapitulo));
+            raices.add(construirCapitulo(raiz, 1, hijosPorPadre, rubrosPorCapitulo, apus));
         }
         CronogramaSnapshot cronogramaSnap = cargarCronogramaSnapshot(presupuestoId);
         return new VersionSnapshot(motorParams, raices, cronogramaSnap);
@@ -196,22 +198,22 @@ public class VersionSnapshotBuilder {
     private CapituloSnapshot construirCapitulo(
             Capitulo cap,
             int depth,
-            ParametrosCalculo motorParams,
             Map<Long, List<Capitulo>> hijosPorPadre,
-            Map<Long, List<Rubro>> rubrosPorCapitulo) {
+            Map<Long, List<Rubro>> rubrosPorCapitulo,
+            Map<Long, ApuSnapshot> apus) {
         List<CapituloSnapshot> subs = new ArrayList<>();
         for (Capitulo hijo : hijosPorPadre.getOrDefault(cap.id, List.of())) {
-            subs.add(construirCapitulo(hijo, depth + 1, motorParams, hijosPorPadre, rubrosPorCapitulo));
+            subs.add(construirCapitulo(hijo, depth + 1, hijosPorPadre, rubrosPorCapitulo, apus));
         }
         List<RubroSnapshot> rubros = new ArrayList<>();
         for (Rubro rubro : rubrosPorCapitulo.getOrDefault(cap.id, List.of())) {
-            rubros.add(construirRubro(rubro, motorParams));
+            rubros.add(construirRubro(rubro, apus));
         }
         return new CapituloSnapshot(cap.item, cap.descripcion, depth, subs, rubros);
     }
 
-    private RubroSnapshot construirRubro(ec.uce.propuestas.presupuesto.entity.Rubro r, ParametrosCalculo motorParams) {
-        Apu apu = apuRepository.findById(r.apuId);
+    private RubroSnapshot construirRubro(Rubro r, Map<Long, ApuSnapshot> apus) {
+        ApuSnapshot apu = apus.get(r.apuId);
         if (apu == null) {
             // D-09 garantiza 1:1 rubro↔apu; si falta, snapshot consistente con
             // la realidad — registramos un APU vacío para que Motor.calcularApu
@@ -219,38 +221,70 @@ public class VersionSnapshotBuilder {
             ApuSnapshot vacio = new ApuSnapshot(r.codigo, null, List.of());
             return new RubroSnapshot(r.codigo, r.cantidad, vacio);
         }
-        ApuSnapshot apuSnap = construirApuSnapshot(apu, motorParams);
-        return new RubroSnapshot(r.codigo, r.cantidad, apuSnap);
+        return new RubroSnapshot(r.codigo, r.cantidad, apu);
     }
 
-    /**
-     * Construye el snapshot de un APU. Se reutiliza el helper de
-     * {@link ApuCalculoService#snapshotDeDetalle} para mantener la semántica
-     * del write-through coherente (HM → cantidad = %HM × 100; insumo NULL →
-     * override 0). Plan 015: se omite el campo {@code porcentajeDescuento} del
-     * motor (ya retirado).
-     */
-    private ApuSnapshot construirApuSnapshot(Apu apu, ParametrosCalculo motorParams) {
-        // Resolver ParametrosProyecto para resolver la fila HM con el %HM vigente
-        // (motorParams ya trae el %HM; se obtiene el proyecto del apu para la
-        // descripción HM, pero el helper snapshotDeDetalle sólo usa el %HM).
-        Long proyectoId = apuRepository
-                .proyectoDePresupuesto(apu.presupuestoId)
-                .orElseThrow(() -> ProblemaException.noEncontrado("Presupuesto no encontrado"));
-        ParametrosProyecto params = parametrosService.obtenerOCrear(proyectoId);
-
-        List<ApuSeccion> secciones = seccionRepository.listarDeApu(apu.id);
-        secciones.sort(Comparator.comparingInt(s -> s.tipo.ordinal()));
-
-        List<FilaSnapshot> filas = new ArrayList<>();
-        for (ApuSeccion seccion : secciones) {
-            List<ApuDetalle> detalles = detalleRepository.listarDeSeccion(seccion.id);
-            for (ApuDetalle d : detalles) {
-                Insumo insumo = d.insumoId == null ? null : insumoRepository.findById(d.insumoId);
-                filas.add(ApuCalculoService.snapshotDeDetalle(
-                        d, seccion.tipo, insumo, params.porcentajeHerramientaMenor));
+    private Map<Long, ApuSnapshot> cargarApus(
+            Map<Long, List<Rubro>> rubrosPorCapitulo, Presupuesto presupuesto, ParametrosProyecto params) {
+        // Hydrate only the graph referenced by reachable rubros, never the whole project.
+        var ids = new HashSet<Long>();
+        for (List<Rubro> rubros : rubrosPorCapitulo.values()) {
+            for (Rubro rubro : rubros) {
+                ids.add(rubro.apuId);
             }
         }
-        return new ApuSnapshot(apu.codigo, apu.porcentajeIndirecto, filas);
+        List<Apu> apus = apuRepository.listarPorIds(ids);
+        ids.clear();
+        for (Apu apu : apus) {
+            ids.add(apu.id);
+        }
+        Map<Long, List<ApuSeccion>> seccionesPorApu = new HashMap<>();
+        List<ApuSeccion> secciones = seccionRepository.listarPorApus(ids);
+        ids.clear();
+        for (ApuSeccion seccion : secciones) {
+            ids.add(seccion.id);
+            seccionesPorApu
+                    .computeIfAbsent(seccion.apuId, ignored -> new ArrayList<>())
+                    .add(seccion);
+        }
+        Map<Long, List<ApuDetalle>> detallesPorSeccion = new HashMap<>();
+        List<ApuDetalle> detalles = detalleRepository.listarPorSecciones(ids);
+        ids.clear();
+        for (ApuDetalle detalle : detalles) {
+            detallesPorSeccion
+                    .computeIfAbsent(detalle.seccionId, ignored -> new ArrayList<>())
+                    .add(detalle);
+            if (detalle.insumoId != null) {
+                ids.add(detalle.insumoId);
+            }
+        }
+        Map<Long, Insumo> insumos = new HashMap<>();
+        for (Insumo insumo : insumoRepository.listarPorIds(ids)) {
+            insumos.put(insumo.id, insumo);
+        }
+        // Foreign-budget references retain their own project's HM and creation semantics.
+        Map<Long, Long> proyectosPorPresupuesto = new HashMap<>();
+        proyectosPorPresupuesto.put(presupuesto.id, presupuesto.proyectoId);
+        Map<Long, ParametrosProyecto> parametrosPorProyecto = new HashMap<>();
+        parametrosPorProyecto.put(presupuesto.proyectoId, params);
+        Map<Long, ApuSnapshot> snapshots = new HashMap<>();
+        for (Apu apu : apus) {
+            Long proyectoId = proyectosPorPresupuesto.computeIfAbsent(apu.presupuestoId, id -> apuRepository
+                    .proyectoDePresupuesto(id)
+                    .orElseThrow(() -> ProblemaException.noEncontrado("Presupuesto no encontrado")));
+            ParametrosProyecto propios =
+                    parametrosPorProyecto.computeIfAbsent(proyectoId, parametrosService::obtenerOCrear);
+            List<ApuSeccion> propias = seccionesPorApu.getOrDefault(apu.id, new ArrayList<>());
+            propias.sort(Comparator.comparingInt(s -> s.tipo.ordinal()));
+            List<FilaSnapshot> filas = new ArrayList<>();
+            for (ApuSeccion seccion : propias) {
+                for (ApuDetalle detalle : detallesPorSeccion.getOrDefault(seccion.id, List.of())) {
+                    filas.add(ApuCalculoService.snapshotDeDetalle(
+                            detalle, seccion.tipo, insumos.get(detalle.insumoId), propios.porcentajeHerramientaMenor));
+                }
+            }
+            snapshots.put(apu.id, new ApuSnapshot(apu.codigo, apu.porcentajeIndirecto, filas));
+        }
+        return snapshots;
     }
 }

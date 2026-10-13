@@ -4,6 +4,7 @@ import ec.uce.propuestas.apu.entity.Apu;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -11,6 +12,10 @@ import java.util.UUID;
 /** Acceso a {@code apu}. Reglas de negocio en los services. */
 @ApplicationScoped
 public class ApuRepository implements PanacheRepositoryBase<Apu, Long> {
+
+    public List<Apu> listarPorIds(Collection<Long> ids) {
+        return ids.isEmpty() ? List.of() : find("id in ?1", ids).list();
+    }
 
     public Optional<Apu> findByIdYPresupuesto(Long id, Long presupuestoId) {
         return find("id = ?1 and presupuestoId = ?2", id, presupuestoId).firstResultOptional();
