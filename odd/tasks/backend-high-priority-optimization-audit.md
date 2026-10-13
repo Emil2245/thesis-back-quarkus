@@ -27,9 +27,10 @@ Superficies de escritura: este seguimiento y los documentos nuevos
 
 ## Tareas recuperables
 
-- [ ] O01 — EN CURSO: guardar la investigación inicial con sus límites y
-      evidencias; verificar documentos y cerrar mediante commit local.
-- [ ] O02 — PENDIENTE: medir escenarios de solo lectura sobre Tulcán y evaluar
+- [x] O01 — CERRADO: revisión inicial e índice guardados y verificados;
+      enlaces, anclas, formato e integridad PASS. Commit local
+      `c5f317fa8867b02fa5a435802c3fd032cb847489` (solo documentación).
+- [ ] O02 — EN CURSO: medir escenarios de solo lectura sobre Tulcán y evaluar
       escalado a 300–1000 APUs; publicar únicamente prioridades altas justificadas
       y los candidatos descartados o no demostrados. Commit local de informe.
 - [ ] O03 — PENDIENTE: verificar evidencia, enlaces, integridad y estado final;

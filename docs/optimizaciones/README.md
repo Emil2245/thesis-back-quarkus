@@ -7,8 +7,9 @@ medidos**. No aplica correcciones ni confirma prioridades para producción.
 
 - [01 — Revisión inicial](01-revision-inicial.md): patrones, contraevidencia y
   condiciones necesarias para corroborarlos.
-- Pendiente: `02-prioridad-alta-proyectos-grandes.md`, investigación separada
-  para decidir únicamente prioridades altas con evidencia suficiente.
+- [02 — Prioridad alta preventiva para proyectos grandes](02-prioridad-alta-proyectos-grandes.md):
+  una recomendación de cargas por lote/reutilización en la consolidación completa,
+  corroborada por estructura y SQL acotado; no acredita SLA ni autoriza implementar.
 
 ## Límites
 
