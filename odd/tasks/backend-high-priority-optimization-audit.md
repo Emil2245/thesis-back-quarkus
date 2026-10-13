@@ -30,11 +30,30 @@ Superficies de escritura: este seguimiento y los documentos nuevos
 - [x] O01 — CERRADO: revisión inicial e índice guardados y verificados;
       enlaces, anclas, formato e integridad PASS. Commit local
       `c5f317fa8867b02fa5a435802c3fd032cb847489` (solo documentación).
-- [ ] O02 — EN CURSO: medir escenarios de solo lectura sobre Tulcán y evaluar
-      escalado a 300–1000 APUs; publicar únicamente prioridades altas justificadas
-      y los candidatos descartados o no demostrados. Commit local de informe.
-- [ ] O03 — PENDIENTE: verificar evidencia, enlaces, integridad y estado final;
-      cerrar seguimiento e integración local conforme a la política autorizada.
+- [x] O02 — CERRADO: Tulcán medido con consultas de solo lectura; informe
+      publicado y verificado con una prioridad alta preventiva de escalabilidad.
+      Commit local `063d10ee3d4fbc7885333d97b1ef46a85d73312c`.
+- [ ] O03 — EN CURSO: verificar evidencia, enlaces, integridad y estado final;
+      cerrar investigación en su rama, sin integrar automáticamente a `main`.
+
+## Evidencia y límites de la investigación
+
+- Tulcán v1: 298 APUs, 1192 secciones, 2583 detalles y 33 capítulos.
+- Reproducción SQL estrecha: detalles, 1192 consultas / 95,999 ms frente a
+  un lote / 3,291 ms; las 2583 filas son equivalentes. Secciones, 298 consultas /
+  32,692 ms frente a un lote / 1,660 ms; equivalencia no verificada por error
+  del parser de enum. No son tiempos de ORM, recálculo ni endpoint completo.
+- Primer script SQL: exit 3 por error del arnés después del rollback. Corrida
+  corregida: exit 0, READ ONLY, Repeatable Read, límites 15 s / 1 s y rollback.
+- Ensayo CPU sintético: resultados impresos, pero fallo de preferencias y
+  timeout al cerrar JShell. Evidencia provisional, no corrida completa PASS.
+- Los restantes candidatos no justifican prioridad alta con estos datos.
+  Rendimiento end-to-end, frecuencia y concurrencia siguen sin medirse.
+- Formato, enlaces, anclas, integridad y alcance documental: verificados.
+  No se ejecutaron suites, builds ni servicios mutantes; sin cambios de código,
+  configuración o datos. Optimizar requiere una nueva autorización del usuario.
+- Sin merge, push ni PR: la autorización anterior de integración de plan04 no
+  se extiende a esta investigación.
 
 ## Criterio de prioridad
 
