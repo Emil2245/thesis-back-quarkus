@@ -33,8 +33,10 @@ Superficies de escritura: este seguimiento y los documentos nuevos
 - [x] O02 — CERRADO: Tulcán medido con consultas de solo lectura; informe
       publicado y verificado con una prioridad alta preventiva de escalabilidad.
       Commit local `063d10ee3d4fbc7885333d97b1ef46a85d73312c`.
-- [ ] O03 — EN CURSO: verificar evidencia, enlaces, integridad y estado final;
-      cerrar investigación en su rama, sin integrar automáticamente a `main`.
+- [x] O03 — CERRADO: formato, 30 enlaces locales, 27 anclas y 25 rangos
+      verificados; solo documentación y seguimiento, sin cambios de producto.
+      Commit de verificación `cba2d4028b019b747acab8d422d70e13fd71bedd`.
+      Investigación cerrada en su rama; `main` conserva `0757d9a`.
 
 ## Evidencia y límites de la investigación
 
