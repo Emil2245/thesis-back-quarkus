@@ -12,12 +12,15 @@ completas al final, con prueba mínima previa y GREEN focalizado por unidad.
   `768d3728df6f93ddff0847681f7aed5ce8f0cb51`.
 - Unidad 1: `feat/backend-batch-recalculation-tree`, commit
   `556c10e61f50f7f58555f0be19fa1f96bef2b286`.
-- Unidad 2/checkout actual: `feat/backend-batch-recalculation-apu`, sobre unidad 1.
+- Unidad 2/checkout actual: `feat/backend-batch-recalculation-apu`, sobre unidad 1;
+  commit `1c400a3c8c1b0e0fa52c30fc35765d4a80b66635`.
 - Estrategia `auto-chain`, `chain_strategy=feature-branch-chain`; solo commits
   locales, sin merge a `main`, push, PR ni escrituras paralelas.
 - Pronóstico original: 400–600 líneas código/pruebas + 20–40 documentación.
   Unidad 1 real: 343 líneas writer; 390 con seguimiento, cinco archivos.
-  Registrar tamaño real restante; no recortar pruebas/claridad por el presupuesto.
+  Unidad 2 real: 400 líneas writer; 585 con seguimiento, nueve archivos.
+  La recuperación documental añade carga de revisión; conservar unidades separadas
+  de la cadena elegida, sin recortar pruebas/claridad por el presupuesto.
 - Editar solo builder, repositorios batch indispensables, pruebas y documentación.
   Motor, RecalculoService/persistencia, cronograma, bloqueos, migraciones,
   configuración/dependencias, búsqueda, proyección documental y XLSX fuera de alcance.
@@ -30,10 +33,14 @@ completas al final, con prueba mínima previa y GREEN focalizado por unidad.
       formato final PASS. Cierre con B01 en `556c10e`.
 - [x] B01 — CERRADO: capítulos/rubros batch; 11 statements para 3 y 33 capítulos,
       snapshots completos y Motor exacto equivalentes. Commit `556c10e`.
-- [ ] B02 — EN CURSO: APUs/secciones/detalles/insumos referenciados por lote y
-      reutilización local de proyecto/parámetros; equivalencia y escala 300/1000.
-- [ ] B03 — PENDIENTE: regresión funcional en DB aislada, evidencia final,
-      actualización AST del grafo y cierre local verificado.
+- [x] B02 — CERRADO: grafo APU referenciado por lote, parámetros locales;
+      300/1000 APUs con 11/11 statements y equivalencia exacta. Commit `1c400a3`.
+- [ ] B03 — EN CURSO: cohorte funcional dirigida 18/18 PASS en 41 s;
+      evidencia registrada, pendiente commit local de esta unidad.
+      Suite global incompleta: no afirmar validación global.
+- [ ] B04 — PENDIENTE: resolver el bloqueo de la suite global (OOM/timeout),
+      con causa aún desconocida; sin cambios de configuración ni fixes ajenos
+      automáticos. No cerrar como PASS con XML histórico o sin resumen final.
 
 Rutas: un writer delegado por cambios multiarchivo, verificaciones focalizadas
 propias y comprobación funcional final por verifier según ASSESS. El padre posee
@@ -96,5 +103,68 @@ No instalar dependencias, persistir overrides ni detener/reiniciar servicios.
    los artefactos B01, medium/modelo grande: verificación propia suficiente,
    sin verifier separado requerido. RDD off; sin review ni autoridad aprobada.
 
-B02/B03 siguen pendientes. Siguiente paso: batch APU directo y comprobaciones
-completas al final. Usar solo backend real: el grafo incluye copias scratch antiguas.
+7. B02 RED: 2110/7010 statements para 300/1000 APUs; snapshot/Motor exactos
+   pasaron antes de fallar cota SQL. GREEN combinado APU/Tree 2/2 PASS:
+   11/11 para 300/1000 APUs, 7/7 para 3/33 capítulos con APUs vacíos.
+   Órdenes, precios heredados/override/null, HM 5%/7% por proyecto, CI alterno,
+   insumos compartidos y APU no vinculado excluido comprobados. DB efímera JDBC
+   32779, HTTP 35841, 20 migraciones y guard pre-write. Spotless final/docs03/diff
+   PASS; test precede formato mecánico. Motor/servicios/schema/config sin cambios.
+8. ASSESS B02 medium/modelo grande, verificación propia suficiente; riesgo de
+   revisión por 585 líneas registrado, sin review RDD por decisión del usuario.
+
+9. Grafo AST actualizado una vez: 27398 nodos, 63686 aristas, 1109 comunidades;
+   backup graphify-out/2026-10-13. Límites: 84 fuentes sin nodos, parser SQL ausente
+   para 109 archivos, etiquetas/hubs semánticos desactualizados. Sin instalación,
+   relabel con API ni staging del repositorio exterior.
+10. B03 global: SpotlessCheck y compilación completaron; test --rerun-tasks
+    agotó 1200 s con OutOfMemoryError en tres métodos y un thread del worker:
+    ApuDescargaConcurrencyIT.blockersNeverInvokeEitherRealWriter,
+    ApuDocumentoEvidenceIT.fullSeedCapturePureOutputsAndServiceMeasurements y
+    PresupuestoDescargaConcurrencyIT.blockersNeverInvokeEitherRealWriter.
+    Sin resumen final ni XML nuevo: conteos frescos y cinco clases focalizadas
+    no verificables en esa corrida. XML anteriores de 2/2 no prueban este intento.
+    No se estableció causa ni atribución al código base/candidato; no hubo retry.
+    Prueba de puerto de la DB de esa corrida no disponible en artefactos finales.
+    Docs03/seguimiento, diff-check y nueve hashes B02 PASS; source sin cambios.
+
+11. Diagnóstico posterior: Java Gradle PID 101773/101811 y test PID 102138
+    activos en backend, creación reportada 2026-10-13 12:13:18–28 -05:00.
+    No se probó propiedad de nuestra ejecución; no se terminaron procesos ni
+    se inició la cohorte de cinco clases. Memoria disponible 19473392 kB no
+    explica el OOM previo. Listeners 8081 preservados, sin conexión o modificación.
+    No hubo nuevos formatter/Git/mirror checks en ese intento bloqueado.
+
+12. Decisión explícita del usuario: no detener el proceso de pruebas y dejar la
+    validación pendiente (preserve_active_tests). No se interrumpe ningún proceso
+    ni se inicia otra comprobación. B03/B04 no cerrados; sin nuevo commit de cierre.
+
+13. El usuario solicita continuar. La identificación directa posterior corrige
+    la clasificación anterior: PID 101773 ejecuta gradle-wrapper.jar/quarkusDev,
+    101811 es GradleDaemon y 102138 ejecuta propuestas-api-dev.jar (start_ticks
+    1178034). Es el servidor de desarrollo, no un ejecutor de pruebas independiente.
+    Inventario Java del backend: esos tres procesos; ningún test executor identificado.
+    No se detuvo ningún proceso. La ausencia de perfil test en argv no prueba
+    nada sobre variables de entorno; la identificación anterior era insuficiente.
+
+14. Cohorte dirigida final: BUILD SUCCESSFUL en 41 s; test ejecutado, XML fresco
+    18 pruebas, 0 fallos, 0 errores, 0 omitidas. VersionSnapshotApuBatchIT 1/1,
+    VersionSnapshotTreeBatchIT 1/1, RecalculoServiceIT 7/7, ProyectoCiRecalculoIT 1/1,
+    DocumentoSnapshotIT 8/8 (ec.uce.propuestas.documento.exportacion).
+    SQL: 11/11 para 300/1000 APUs; 7/7 para 3/33 capítulos con APUs vacíos.
+    Snapshot/Motor exactos y assertions de servicio, CI y documentos PASS.
+    PostgreSQL 18 Dev Services: 32797 (guard batch de puerto generado antes de
+    fixtures), 32795 (documentos); HTTP efímero 35145/39087. Sin conexión a 8081,
+    señales, escrituras en DB del usuario ni cambios de heap/configuración.
+    SQLState 25006 en consola (UPDATE en transacción read-only); XML sin fallos.
+    Prettier/docs03/seguimiento y diff-check PASS antes de añadir esta evidencia;
+    nueve hashes B02 coinciden; solo seguimiento dirty. SHA previo del seguimiento:
+    3ea5476727a54680c3c413a258e639b232015ed00e67690bc8e9b29c61702986.
+    Una ejecución filtrada, sin retry ni suite global. Resultado global anterior
+    preservado como incompleto; esta cohorte no prueba heap, latencia ni concurrencia.
+
+Próximo paso: comprobar el formato de esta evidencia y registrarla en commit local
+sobre la rama de trabajo. B04 pendiente; no investigar/arreglar el OOM automáticamente.
+Conservar servidor/daemons/PostgreSQL del usuario activos. Sin repetir suite global.
+B04 conserva el fallo global y su causa desconocida; no rebajar aceptación ni
+atribuirlo al código base. No nuevas auditorías ni review RDD.
