@@ -99,6 +99,8 @@ class CentroMedicoTulcanScheduleIT {
         Flyway.configure()
                 .dataSource(dataSource)
                 .locations("classpath:db/migration")
+                // This V015-focused test stops before V019's weighted-advance repair.
+                .target("15")
                 .load()
                 .migrate();
     }
