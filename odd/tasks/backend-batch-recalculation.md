@@ -35,10 +35,10 @@ completas al final, con prueba mínima previa y GREEN focalizado por unidad.
       snapshots completos y Motor exacto equivalentes. Commit `556c10e`.
 - [x] B02 — CERRADO: grafo APU referenciado por lote, parámetros locales;
       300/1000 APUs con 11/11 statements y equivalencia exacta. Commit `1c400a3`.
-- [ ] B03 — EN CURSO: cohorte funcional dirigida 18/18 PASS en 41 s;
-      evidencia registrada, pendiente commit local de esta unidad.
+- [x] B03 — CERRADO en alcance funcional dirigido: 18/18 PASS en 41 s;
+      evidencia/límites en `46c8d0ba5dd5d318f5d22ce24bad3d45b9e65621`.
       Suite global incompleta: no afirmar validación global.
-- [ ] B04 — PENDIENTE: resolver el bloqueo de la suite global (OOM/timeout),
+- [ ] B04 — EN CURSO, BLOQUEADO: resolver el bloqueo de la suite global (OOM/timeout),
       con causa aún desconocida; sin cambios de configuración ni fixes ajenos
       automáticos. No cerrar como PASS con XML histórico o sin resumen final.
 
@@ -163,8 +163,15 @@ No instalar dependencias, persistir overrides ni detener/reiniciar servicios.
     Una ejecución filtrada, sin retry ni suite global. Resultado global anterior
     preservado como incompleto; esta cohorte no prueba heap, latencia ni concurrencia.
 
-Próximo paso: comprobar el formato de esta evidencia y registrarla en commit local
-sobre la rama de trabajo. B04 pendiente; no investigar/arreglar el OOM automáticamente.
-Conservar servidor/daemons/PostgreSQL del usuario activos. Sin repetir suite global.
+15. Cierre funcional dirigido B03: evidencia/límites preservados en commit local
+    46c8d0ba5dd5d318f5d22ce24bad3d45b9e65621, solo seguimiento (78+/8-).
+    Formato de la evidencia y diff-check nuevamente PASS antes del commit.
+    Código y documentación de implementación sin cambios respecto de la cohorte.
+    El cierre no incluye la suite global ni declara resuelto su OOM; B04 bloqueado.
+
+Próximo paso: decidir por separado la investigación del bloqueo global B04;
+no repetirla ni cambiar heap/configuración automáticamente. Implementación y
+comprobación funcional dirigida terminadas en la cadena local, sin merge a main,
+push o PR. Conservar servidor/daemons/PostgreSQL del usuario activos.
 B04 conserva el fallo global y su causa desconocida; no rebajar aceptación ni
 atribuirlo al código base. No nuevas auditorías ni review RDD.
