@@ -14,16 +14,16 @@ Previous complete partitioned coverage: 114 classes, 895 tests;
 
 ## Tasks
 
-- [ ] F01: Isolate the V015 schedule test at Flyway target 15 in
+- [x] F01: Isolate the V015 schedule test at Flyway target 15 in
       `src/test/java/ec/uce/propuestas/schema/CentroMedicoTulcanScheduleIT.java`.
       Preserve every assertion. Verify the test and the V018-to-V019 repair test
       against disposable PostgreSQL with test credentials and HTTP port zero.
-- [ ] F02: Record a bounded disposition for the two pre-existing Motor goldens,
+- [x] F02: Record a bounded disposition for the two pre-existing Motor goldens,
       the missing EMELNORTE fixture skip, and the unresolved single-JVM OOM.
       No unproven production, golden, fixture, or configuration edits.
-- [ ] F03: Verify formatting, source scope and affected checks; report resolved
-      failures separately from deferred blockers. Commit requires an explicit
-      user request; no staging, commit, merge, push or PR in this attempt.
+- [x] F03: Verify formatting, source scope and affected checks; report resolved
+      failures separately from deferred blockers. Commit only with an explicit
+      user request; no merge, push or PR in this attempt.
 
 ## Evidence
 
@@ -66,7 +66,18 @@ Previous complete partitioned coverage: 114 classes, 895 tests;
   Only this test changed in source; no production/configuration/migration edits.
 
 The bounded functional attempt has finished; no further test replay is planned.
-The user explicitly authorized one local work-unit commit of this record and
-its verified test fix. Task checkboxes and commit evidence are finalized after
-observing that commit. Global verification remains blocked by the two Motor
-assertions and the single-JVM OOM; this is not approval or integration into main.
+Work-unit commit: `88363f1d2babb0e8fe400f39456da62c2b4f9228`,
+`test(schema): isolate V015 schedule regression`. Only the test and this record
+were included; the pre-existing batch task document was excluded.
+F01/F02/F03 are complete for this bounded fix-and-disposition attempt.
+Global verification remains blocked by the two Motor assertions and the
+single-JVM OOM; the bounded attempt did not establish global PASS.
+
+### Later human publication checkpoint authorization — 2026-10-14
+
+The user separately authorized saving both pending records, fast-forwarding
+backend `main`, and normal `origin` publication of both backend and frontend,
+accepting the documented two baseline Motor failures and monolithic OOM.
+This later grant supersedes the historical feature-only/no-merge scope; it does
+not fix deferred defects or turn global tests PASS. No checkpoint commit,
+integration or push is claimed here; the parent will record execution receipts.

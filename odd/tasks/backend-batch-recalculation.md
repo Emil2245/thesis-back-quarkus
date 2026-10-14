@@ -38,9 +38,11 @@ completas al final, con prueba mínima previa y GREEN focalizado por unidad.
 - [x] B03 — CERRADO en alcance funcional dirigido: 18/18 PASS en 41 s;
       evidencia/límites en `46c8d0ba5dd5d318f5d22ce24bad3d45b9e65621`.
       Suite global incompleta: no afirmar validación global.
-- [ ] B04 — EN CURSO, BLOQUEADO: resolver el bloqueo de la suite global (OOM/timeout),
-      con causa aún desconocida; sin cambios de configuración ni fixes ajenos
-      automáticos. No cerrar como PASS con XML histórico o sin resumen final.
+- [ ] B04 — BLOQUEADO: resultado HISTÓRICO particionado anterior al fix V015,
+      114/114 clases; 895 tests: 891 PASS/3 fallos/1 omitida. Ninguna clase pendiente.
+      Fix posterior `88363f1`: ScheduleIT y reparación V018→V019, 2/2 PASS independientes.
+      Bloqueos ACTUALES: dos aserciones de Motor y OOM monolítico sin resolver.
+      Sin nueva suite completa; cobertura histórica no significa aprobación global.
 
 Rutas: un writer delegado por cambios multiarchivo, verificaciones focalizadas
 propias y comprobación funcional final por verifier según ASSESS. El padre posee
@@ -169,9 +171,139 @@ No instalar dependencias, persistir overrides ni detener/reiniciar servicios.
     Código y documentación de implementación sin cambios respecto de la cohorte.
     El cierre no incluye la suite global ni declara resuelto su OOM; B04 bloqueado.
 
-Próximo paso: decidir por separado la investigación del bloqueo global B04;
-no repetirla ni cambiar heap/configuración automáticamente. Implementación y
-comprobación funcional dirigida terminadas en la cadena local, sin merge a main,
-push o PR. Conservar servidor/daemons/PostgreSQL del usuario activos.
-B04 conserva el fallo global y su causa desconocida; no rebajar aceptación ni
-atribuirlo al código base. No nuevas auditorías ni review RDD.
+16. El usuario autoriza continuar el pendiente B04. Registro original recuperado:
+    /tmp/pi-bash-c8aa68b345a9e241.log, 545 líneas/53850 bytes, mtime
+    2026-10-13T22:36:58Z, vinculado al comando global agotado a los 1200 s.
+    Primer OOM reportado: ApuDescargaConcurrencyIT vía QuarkusTestExtension:668;
+    los otros dos OOM y el worker se reportan después, sin causalidad demostrada.
+    NPE de Motor anterior en consola, sin demostrar fallo de test o relación al OOM.
+    Sin límites JVM, secuencia de perfiles, puerto DB ni total final originales.
+    org.gradle.parallel afecta tareas de proyectos, no demuestra tests paralelos;
+    settings declara un proyecto. Fuente sin fuga/resource leak confirmado.
+17. Reproducción controlada de tres métodos: 3/3 PASS en 2m05s, XML fresco;
+    probe Gradle help PASS en 14 s. Test min/maxHeapSize UNSET, maxParallelForks 1,
+    forkEvery 0, JUnit parallel UNSET. Sin modificar esas políticas ni el heap.
+    PG18 nuevos por perfil: 32799/32801/32803; HTTP 35439/46467/42969.
+    Init diagnóstico ignorado build/b04-diagnostics/oom-repro.init.gradle;
+    GC build/b04-diagnostics/gc-722355.log (267511 bytes). Source protegido sin
+    cambios, HEAD ab3c36c y main 0757d9a, estado Git limpio tras la reproducción.
+18. GC real de ese worker: máximo 536870912 bytes (512 MiB), antes de collection
+    hasta 520093696 (496 MiB), después de GC hasta 507510784 (484 MiB).
+    No confundir un valor tras young GC con memoria viva tras full GC. Fallo de
+    evacuación 494M→244M recuperado durante el último método; el test pasó.
+    Metaspace 448467K usado/452736K committed está fuera del cap del heap.
+    Presión observada, no prueba de fuga ni causa original. Manifest de evidencia
+    anterior fechado 2026-10-06 no prueba esta reproducción ni la corrida original;
+    sus samples/JMX lifetime peaks no se atribuyen a allocations de una tarea.
+
+19. Una ejecución global diagnóstica sin filtros, sin retry, falló en unos 14m20s:
+    Gradle Test Executor 1 salió 3 por java.lang.OutOfMemoryError: Java heap space.
+    Startup de clase/perfil ApuDescargaConcurrencyIT, 03:43:38.930–03:44:32.090Z
+    del 2026-10-14; ningún método de esa clase llegó a empezar. 75 XML frescos:
+    650 PASS/1 skipped, sin assertion failures/errors reportados antes de la salida.
+    Son resultados PARCIALES, no total final ni aprobación de toda la suite.
+    Artefactos ignorados: build/b04-diagnostics/full-20261014T033012Z-751782/;
+    init full-diagnostic.init.gradle y GC full-gc-752338.log. G1 máximo 512 MiB;
+    full compaction cerca de la salida 510M→510M(512M), 442.553 ms.
+    Metaspace usado 1085625344 bytes, fuera del heap. Fallo de evacuación anterior
+    en ventana Cmt. Presión acumulada compatible con contextos/bootstrap; no prueba
+    de fuga ni objetos retenidos identificados. No se obtuvo histograma antes de salir.
+    9 eventos de PG18 con puertos generados y 8 inicios test/HTTP registrados;
+    no asignar puerto al perfil fallido sin evidencia de su clase.
+    ExitOnOutOfMemoryError solo en el nuevo worker evitó hang; heap/forks intactos.
+    Prettier de docs03/seguimiento y diff-check PASS antes de este registro.
+    HEAD ab3c36c/main 0757d9a y nueve hashes protegidos iguales; solo seguimiento dirty.
+
+20. El scout posterior no recuperó timeline en la carpeta diagnóstica: solo init
+    y GC. Orden exacto de perfiles/fixtures batch previas al OOM no demostrado;
+    fuente Quarkus 3.37.4 no accesible a ese scout, no prueba de fuga ni ausencia
+    pública del tag. Ningún test ni cambio de código en ese análisis.
+    El usuario ahora pide intentar completar las verificaciones finales después
+    de ofrecer suite por grupos/JVMs independientes. Autoriza una ejecución
+    particionada completa: forkEvery=1 temporal, maxParallelForks permanece 1,
+    min/maxHeap sin modificar. Es un cambio de topología de verificación,
+    no una corrección de la retención ni equivalencia de interacción entre clases.
+    Mantener useJUnitPlatform y **/*Test.class / **/*IT.class sin filtros/exclusiones,
+    assertions y timeouts originales; ningún ignoreFailures/retry/skip añadido.
+    Inventario de candidatos compilados y XML/eventos frescos para cobertura real;
+    resultados incompletos no se presentan como totales globales. Solo archivos
+    ignorados build/b04-diagnostics para init, GC, inventario y salida guardada.
+    Cada JVM Quarkus usa PG generado/perfil test/HTTP 0, nunca servicios del usuario.
+
+21. Dos bloqueos del host, no resultados de tests: preflight PID 860940 incierto
+    y posterior stall de cuatro minutos generando argumentos. PID ausente en
+    snapshot 05:15:43Z, sin señales; conciliación 05:24:31Z sin carpetas particionadas
+    ni worker test. No inferir propietario/cause de salida; warning codemode no
+    demuestra causa y no se cambió Pi. Verificador nuevo con bash directo sí lanzó
+    el intento; supervisor expiró tras 30 minutos con bash aún ejecutándose.
+22. Recuperación read-only del intento partitioned-20261014T052854Z-880993:
+    inventario 114 clases; 63 con resultado, subtotal 515 tests: 512 PASS/2 FAIL/1 skip.
+    64 logs GC con máximo 512M, forkEvery=1/maxForks=1 reales. Última clase
+    SnapshotSinAuxiliaresTest comenzó 05:58:54Z sin resultado; 51 candidatos pendientes.
+    Sin XML, exit/root RUN_TOTAL ni BUILD final: no total global/completitud demostrada.
+    Consola 172–176: MotorConsolidacionTest.GM_20_totales_capitulos_raiz_tulcan
+    AssertionFailedError en línea 87; GM_19_total_general_tulcan en línea 50.
+    Causa/mismatch y método omitido aún sin recuperar; no atribuirlos al batch.
+    Timeline 05:58:55Z y consola 05:58:49Z; snapshot posterior sin testworker activo,
+    solo desarrollo. Sin nuevas señales/fixtures/código durante recuperación.
+    Logs/resultado binario propios conservados; no sustituirlos por XML antiguo.
+23. El usuario confirma que la invocación SDD fue accidental: continuar sin SDD.
+    Al reanudar, el ID del verificador anterior ya no aparece en el registro.
+    Conciliación read-only: ningún directorio de continuación/lotes nuevos;
+    66 registros de clase incluyen 3 duplicados, manteniendo 63 clases únicas
+    y el mismo subtotal 512 PASS/2 FAIL/1 skip; 51 pendientes sin cambios.
+    Snapshot acotado 2026-10-14T14:08:59Z sin Java con cwd del backend;
+    no prueba propietario ni salida normal del proceso histórico. Sin señales.
+    Continuación autorizada en verificador mv86zo58-2-b7xg, solo pendientes,
+    con lotes/artefactos propios y límites anteriores. No repetir Motor fallido,
+    corregir código/configuración ni aumentar heap; aún sin resultado final.
+24. El verificador expiró por stall del host de cuatro minutos después de bash.
+    El warning codemode no demuestra causa; no se modificó Pi. Recuperación
+    read-only comprobó que sí ejecutó cinco lotes completos de ocho clases:
+    continuación continuation-20261014T141927Z-21874, batch-01..05.
+    Timeline, XML recursivos y exits/BUILD finales: 48/109/82/27/53 tests,
+    exits 0/0/0/1/0. Son 40 clases nuevas, 319 tests: 318 PASS/1 fallo/0 skip.
+    Total entonces: 103/114 clases, 834 tests: 830 PASS/3 fallos/1 skip.
+    El scout inicial contó incompletamente XML/receipts; conciliación exacta
+    posterior confirma ocho suites por lote. No usar sus conteos provisionales.
+    Nuevo fallo real, no setup ni el NPE de consola: CentroMedicoTulcanScheduleIT.
+    v015_assigns_cmt_activities_to_sequential_completed_monthly_batches_only(),
+    AssertionFailedError en línea 31: expected 0, actual 298; cada actividad CMT
+    debía tener una clave de período con avance completo. Causa no establecida.
+    Batch APU/Tree, RecalculoServiceIT y ProyectoCiRecalculoIT PASS en batch-04.
+    ENV_PROOF antes de clases; PG/HTTP públicos confirmados en XML system-out,
+    no console.log. Cada lote conservó PostgreSQL efímero/perfil test/HTTP 0.
+    Quedaron solo once clases sin resultados, ocho y tres de batch-06/07.
+25. Últimos once ejecutados sin replay: batch-06 ocho clases/29 PASS, exit 0,
+    14:49:35–14:52:37Z; batch-07 tres clases/32 PASS, exit 0,
+    14:53:15–14:54:52Z del 2026-10-14. Artefactos propios:
+    build/b04-diagnostics/continuation-20261014T141927Z-21874-final11-20261014T144935Z-57663/.
+    XML/timelines/exits finales y PG/HTTP locales nuevos comprobados.
+    Unión disjunta 63 originales + 51 continuación = 114/114 candidatos;
+    895 tests, 891 PASS/3 FAIL/1 skip. Ninguna clase pendiente de ejecución.
+    Los dos fallos Motor originales no se repitieron ni corrigieron; detalle
+    de mismatch y método/motivo de skip siguen sin recuperar. El nuevo fallo
+    de cronograma también conservado, sin atribución al código base/candidato.
+    Cobertura completa CON FALLOS, no PASS global ni B04 resuelto; OOM intacto.
+    SpotlessCheck, Prettier docs03/seguimiento y diff-check PASS antes de añadir
+    esta evidencia. El verifier incluyó por error el seguimiento entre hashes;
+    comprobación directa del padre confirma nueve/nueve hashes protegidos B02
+    idénticos. HEAD ab3c36c/main 0757d9a intactos; solo seguimiento dirty.
+    Sin código/configuración/heap modificados ni stage/commit/merge/push/PR.
+
+Próximo paso: aclarar las dos aserciones de Motor pendientes, conservando resultados
+históricos y el OOM monolítico por separado. No lanzar más tests ni cambiar Motor,
+cronograma, fixtures, configuración o heap sin alcance acotado. El skip GM-24 ya
+está explicado: falta el fixture APU upstream de EMELNORTE. La optimización y su
+validación dirigida están completas; la regresión global no está aprobada.
+Formato final de docs03/registro y diff-check PASS después de añadir la evidencia
+histórica anterior. Sin merge/push/PR ni review RDD en aquel alcance.
+
+### Autorización posterior de publicación — 2026-10-14
+
+El usuario autoriza guardar ambos registros pendientes, integrar backend en `main`
+por fast-forward y publicar normalmente a `origin` ambos repositorios (backend y
+frontend), aceptando documentados los dos fallos baseline de Motor y el OOM.
+Esta concesión posterior sustituye el límite histórico de solo feature/sin merge;
+no convierte las pruebas globales en PASS. Commit/integración/push aún no se
+acreditan aquí; el padre registrará los recibos después de ejecutarlos.
