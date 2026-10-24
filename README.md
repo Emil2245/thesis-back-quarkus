@@ -97,6 +97,35 @@ Environment variables (see `.env.example`):
   — JWT keys (dev: `scripts/gen-jwt-keys.sh` → `.secrets/jwt/`; prod: Kubernetes
   Secret montado en `/etc/propuestas/jwt/`)
 
+## Contenedor y CI
+
+![CI](https://github.com/emil2245/thesis-back-quarkus/actions/workflows/ci.yml/badge.svg)
+
+Imagen OCI multi-stage (Gradle + Java 25 en el build, runtime UBI9 OpenJDK 25, usuario 185):
+
+```bash
+podman build -f src/main/docker/Dockerfile -t propuestas-api:dev .
+scripts/gen-jwt-keys.sh /tmp/jwt && chmod 644 /tmp/jwt/*   # solo para pruebas locales
+podman run --rm --network host --read-only --tmpfs /tmp \
+  -v /tmp/jwt:/etc/propuestas/jwt:ro,Z \
+  -e DB_URL=jdbc:postgresql://localhost:5436/propuestas -e DB_USER=postgres -e DB_PASSWORD=postgres \
+  -e OTEL_SDK_DISABLED=true propuestas-api:dev
+```
+
+Puertos: `8080` (API, `/api/v1`) y `9000` (gestion: `/q/health/{live,ready,started}`, `/q/metrics`).
+
+| Variable | Uso |
+|---|---|
+| `DB_URL`, `DB_USER`, `DB_PASSWORD` | Conexion PostgreSQL |
+| `JWT_PRIVATE_KEY_LOCATION`, `JWT_PUBLIC_KEY_LOCATION` | Claves JWT (default `file:/etc/propuestas/jwt/*.pem`) |
+| `JWT_ISSUER` | Issuer de firma y verificacion |
+| `CORS_ORIGINS` | Origenes permitidos (lista separada por comas) |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Endpoint OTLP gRPC (default `http://localhost:4317`) |
+| `OTEL_SDK_DISABLED` | `true`/`false` (default `false` en prod) |
+
+CI (`.github/workflows/ci.yml`): en cada push/PR ejecuta `./gradlew build` (spotless + tests),
+construye la imagen y la escanea con Trivy (solo reporte). La imagen no se publica desde este repo.
+
 ---
 
 ## Repo layout

@@ -48,7 +48,7 @@ nb-configuration.xml
 !src/test/resources/jwt/test-publicKey.pem
 .secrets/
 
-.github/
+# .github/ se versiona (CI)
 .claude/
 .agents/
 
