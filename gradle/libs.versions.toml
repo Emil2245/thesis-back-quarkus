@@ -17,6 +17,9 @@ quarkus-hibernate-orm-panache = { module = "io.quarkus:quarkus-hibernate-orm-pan
 quarkus-rest = { module = "io.quarkus:quarkus-rest" }
 quarkus-rest-jackson = { module = "io.quarkus:quarkus-rest-jackson" }
 quarkus-smallrye-health = { module = "io.quarkus:quarkus-smallrye-health" }
+quarkus-micrometer-registry-prometheus = { module = "io.quarkus:quarkus-micrometer-registry-prometheus" }
+quarkus-opentelemetry = { module = "io.quarkus:quarkus-opentelemetry" }
+quarkus-logging-json = { module = "io.quarkus:quarkus-logging-json" }
 quarkus-smallrye-jwt-build = { module = "io.quarkus:quarkus-smallrye-jwt-build" }
 quarkus-hibernate-validator = { module = "io.quarkus:quarkus-hibernate-validator" }
 quarkus-smallrye-jwt = { module = "io.quarkus:quarkus-smallrye-jwt" }

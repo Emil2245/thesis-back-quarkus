@@ -9,7 +9,20 @@
 # nativas: `quarkus.hibernate-orm.statistics.enabled`.
 
 "%test":
+  smallrye:
+    jwt:
+      sign:
+        key:
+          location: classpath:jwt/test-privateKey.pem
+  mp:
+    jwt:
+      verify:
+        publickey:
+          location: classpath:jwt/test-publicKey.pem
   quarkus:
+    otel:
+      sdk:
+        disabled: ${OTEL_SDK_DISABLED:true}
     hibernate-orm:
       statistics:
         enabled: true

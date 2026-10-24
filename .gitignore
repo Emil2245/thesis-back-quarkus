@@ -44,8 +44,11 @@ nb-configuration.xml
 # TLS Certificates
 .certs/
 *.pem
+!src/test/resources/jwt/test-privateKey.pem
+!src/test/resources/jwt/test-publicKey.pem
+.secrets/
 
-.github/
+# .github/ se versiona (CI)
 .claude/
 .agents/
 

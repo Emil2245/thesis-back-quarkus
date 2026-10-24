@@ -10,7 +10,7 @@ quarkus:
       proactive: false
     cors:
       enabled: true
-      origins: http://localhost:5173,http://localhost:3000
+      origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:3000}
       methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
       headers: accept,authorization,content-type
 
@@ -45,14 +45,33 @@ quarkus:
     extensions:
       enabled: true
 
+  otel:
+    sdk:
+      disabled: ${OTEL_SDK_DISABLED:false}
+    exporter:
+      otlp:
+        endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}
+    resource:
+      attributes: service.namespace=propuestas
+
+  micrometer:
+    export:
+      prometheus:
+        path: /q/metrics
+
+  log:
+    console:
+      json:
+        enabled: false
+
 # SmallRye JWT Build — key signing config (MP config keys, not quarkus-prefixed)
 smallrye:
   jwt:
     sign:
       key:
-        location: META-INF/resources/privateKey.pem
+        location: ${JWT_PRIVATE_KEY_LOCATION:file:/etc/propuestas/jwt/privateKey.pem}
     new-token:
-      issuer: https://propuestas-api.local
+      issuer: ${JWT_ISSUER:https://propuestas-api.local}
       lifespan: 3600           # 60 min access token — D-02
 
 # MicroProfile JWT verification config
@@ -60,8 +79,8 @@ mp:
   jwt:
     verify:
       publickey:
-        location: META-INF/resources/publicKey.pem
-      issuer: https://propuestas-api.local
+        location: ${JWT_PUBLIC_KEY_LOCATION:file:/etc/propuestas/jwt/publicKey.pem}
+      issuer: ${JWT_ISSUER:https://propuestas-api.local}
 
 # App-level auth knobs (business rules from D-01, D-02, D-11)
 app:
@@ -78,7 +97,20 @@ app:
     precision-porcentaje: ${DISPLAY_PRECISION_PORCENTAJE:4}
 
 "%dev":
+  smallrye:
+    jwt:
+      sign:
+        key:
+          location: ${JWT_PRIVATE_KEY_LOCATION:file:.secrets/jwt/privateKey.pem}
+  mp:
+    jwt:
+      verify:
+        publickey:
+          location: ${JWT_PUBLIC_KEY_LOCATION:file:.secrets/jwt/publicKey.pem}
   quarkus:
+    otel:
+      sdk:
+        disabled: ${OTEL_SDK_DISABLED:true}
     datasource:
       jdbc:
         url: ${DB_URL:jdbc:postgresql://localhost:5432/propuestas}
@@ -92,6 +124,18 @@ app:
 
 "%prod":
   quarkus:
+    log:
+      console:
+        json:
+          enabled: true
+    management:
+      enabled: true
+      port: 9000
+      host: 0.0.0.0
+    shutdown:
+      timeout: 20s
+    http:
+      host: 0.0.0.0
     datasource:
       jdbc:
         url: ${DB_URL:jdbc:postgresql://localhost:5432/propuestas}
