@@ -60,6 +60,8 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+    // Suite de ~900 tests con Dev Services agota el heap por defecto de 512m.
+    maxHeapSize = "3g"
     include("**/*Test.class")
     include("**/*IT.class")
     systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
