@@ -36,13 +36,16 @@ public class TokenService {
     @ConfigProperty(name = "app.auth.invitacion-ttl")
     Duration invitacionTtl;
 
+    @ConfigProperty(name = "smallrye.jwt.new-token.issuer")
+    String issuer;
+
     private static final long ACCESS_TOKEN_TTL_SECONDS = 3600L;
     private static final SecureRandom RANDOM = new SecureRandom();
 
     // ---------- Access token (JWT) ----------
 
     public String mintAccessToken(Usuario usuario) {
-        return Jwt.issuer("https://propuestas-api.local")
+        return Jwt.issuer(issuer)
                 .upn(usuario.email)
                 .groups(Set.of(usuario.rol.name()))
                 .expiresIn(ACCESS_TOKEN_TTL_SECONDS)
