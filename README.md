@@ -93,8 +93,9 @@ Endpoints in dev:
 
 Environment variables (see `.env.example`):
 - `DB_URL`, `DB_USER`, `DB_PASSWORD` — Postgres connection (dev/prod)
-- `MP_JWT_VERIFY_PUBLICKEY_LOCATION`, `SMALLRYE_JWT_SIGN_KEY_LOCATION`
-  — JWT keys (dev keys ship in the repo; **rotate for prod**)
+- `JWT_PRIVATE_KEY_LOCATION`, `JWT_PUBLIC_KEY_LOCATION`, `JWT_ISSUER`
+  — JWT keys (dev: `scripts/gen-jwt-keys.sh` → `.secrets/jwt/`; prod: Kubernetes
+  Secret montado en `/etc/propuestas/jwt/`)
 
 ---
 
@@ -113,7 +114,7 @@ src/main/java/ec/uce/propuestas/
 src/main/resources/
 ├── application.yml
 ├── db/migration/         # V001..V012 Flyway migrations
-└── META-INF/resources/   # publicKey.pem, privateKey.pem (dev-only)
+└── META-INF/               # (las claves JWT ya no viven en resources)
 
 src/test/java/ec/uce/propuestas/
 ├── usuario/auth/  # AuthResourceIT (@QuarkusTest), PasswordPolicyTest,

@@ -67,10 +67,10 @@ copiados de `thesis-docs/plan/domain/_artifacts/`.
 
 ## 6. Configuración de claves y secretos
 
-- Claves JWT dev: `src/main/resources/META-INF/resources/{publicKey,privateKey}.pem`.
+- Claves JWT dev: `scripts/gen-jwt-keys.sh` → `.secrets/jwt/`; prod: Secret de Kubernetes montado en `/etc/propuestas/jwt/`.
   **Nunca commitear claves de prod.** Rotar antes de desplegar.
 - Variables de entorno documentadas en `.env.example`: `DB_URL`, `DB_USER`,
-  `DB_PASSWORD`, `MP_JWT_VERIFY_PUBLICKEY_LOCATION`, `SMALLRYE_JWT_SIGN_KEY_LOCATION`.
+  `DB_PASSWORD`, `JWT_PRIVATE_KEY_LOCATION`, `JWT_PUBLIC_KEY_LOCATION`, `JWT_ISSUER`.
 
 ## 7. Cosas que el equipo decidió NO usar (con justificación)
 
