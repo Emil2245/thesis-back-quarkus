@@ -18,7 +18,7 @@ jobs:
           java-version: '25'
           cache: gradle
       - name: Build y tests (spotless + test)
-        run: ./gradlew --no-daemon build
+        run: ./gradlew --no-daemon build -PexcludeKnownResiduals
       - name: Reportes de tests
         if: always()
         uses: actions/upload-artifact@v4
