@@ -11,6 +11,8 @@ RUN ./gradlew --no-daemon quarkusBuild -x test -x spotlessCheck
 FROM registry.access.redhat.com/ubi9/openjdk-25-runtime:1.24
 LABEL org.opencontainers.image.source="https://github.com/emil2245/thesis-back-quarkus" \
       org.opencontainers.image.title="propuestas-api"
+USER root
+RUN microdnf -y update ca-certificates && microdnf clean all
 COPY --chown=185 --from=build /src/build/quarkus-app/lib/ /deployments/lib/
 COPY --chown=185 --from=build /src/build/quarkus-app/*.jar /deployments/
 COPY --chown=185 --from=build /src/build/quarkus-app/app/ /deployments/app/
