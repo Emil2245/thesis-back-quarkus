@@ -16,6 +16,8 @@ quarkus:
 
   datasource:
     db-kind: postgresql
+    jdbc:
+      telemetry: true
     username: ${DB_USER:propuestas}
     password: ${DB_PASSWORD:propuestas}
     # jdbc.url is NOT set here so Dev Services activates in %test.
