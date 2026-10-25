@@ -11,7 +11,6 @@ import ec.uce.propuestas.insumo.dto.InsumoCrearRequest;
 import ec.uce.propuestas.insumo.dto.InsumoEditarRequest;
 import ec.uce.propuestas.insumo.dto.InsumoResponse;
 import ec.uce.propuestas.insumo.entity.BaseInsumos;
-import ec.uce.propuestas.insumo.entity.TipoInsumo;
 import ec.uce.propuestas.insumo.repository.InsumoRepository;
 import ec.uce.propuestas.insumo.service.BaseInsumosService;
 import ec.uce.propuestas.insumo.service.ImportacionInsumoService;
@@ -238,8 +237,8 @@ public class AdminBaseCentralResource {
         }
         byte[] contenido = Files.readAllBytes(form.archivo.uploadedFile());
         if (soloValidar) {
-            CsvInsumoParser.parse(contenido, TipoInsumo.MATERIAL);
-            return new ImportResultadoResponse(0, 0, List.of());
+            CsvInsumoParser.parse(contenido);
+            return new ImportResultadoResponse(0, 0, 0, List.of());
         }
         ImportResultadoResponse response = importacionInsumoService.importarCsv(base.id, contenido);
         emitir(base, "importar", insumoRepository.contarDeBase(base.id));
