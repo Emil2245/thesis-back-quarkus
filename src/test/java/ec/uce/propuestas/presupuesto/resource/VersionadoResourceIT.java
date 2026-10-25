@@ -724,6 +724,46 @@ class VersionadoResourceIT {
         assertTrue(esVigenteOrigen, "El origen sigue siendo la version vigente");
     }
 
+    /** Plan 032: una version nueva persiste el costo propio de sus APU (no 0). */
+    @Test
+    void TC_P32_nueva_version_persiste_costo_de_sus_apus() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p32-c1@ex.com");
+        String proyectoId = crearProyecto(token, "Costos APU en copia");
+        String origenId = vigenteDeProyecto(proyectoId);
+        sembrarArbolCompacto(origenId);
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("origenId", origenId))
+                .when()
+                .post("/api/v1/proyectos/" + proyectoId + "/presupuestos")
+                .then()
+                .statusCode(201);
+
+        Long proyectoInt = internalProyectoId(proyectoId);
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps =
+                        con.prepareStatement("SELECT a.costo_total, a.costo_directo, r.precio_unitario FROM apu a "
+                                + "JOIN rubro r ON r.apu_id = a.id JOIN presupuesto p ON p.id = a.presupuesto_id "
+                                + "WHERE p.proyecto_id = ? AND p.version = 2")) {
+            ps.setLong(1, proyectoInt);
+            try (ResultSet rs = ps.executeQuery()) {
+                int n = 0;
+                while (rs.next()) {
+                    n++;
+                    BigDecimal ct = rs.getBigDecimal(1);
+                    assertEquals(0, new BigDecimal("8.4").compareTo(ct), "costo_total del APU copiado = origen");
+                    assertEquals(0, new BigDecimal("8.4").compareTo(rs.getBigDecimal(2)), "costo_directo copiado");
+                    assertEquals(
+                            0,
+                            ct.setScale(2, java.math.RoundingMode.DOWN).compareTo(rs.getBigDecimal(3)),
+                            "PU del rubro = trunc2(costo_total)");
+                }
+                assertEquals(1, n);
+            }
+        }
+    }
+
     /** TC-P31-01 bis: deep copy sin notas (campo opcional). */
     @Test
     void TC_P31_01b_deep_copy_sin_notas_devuelve_201() throws Exception {
