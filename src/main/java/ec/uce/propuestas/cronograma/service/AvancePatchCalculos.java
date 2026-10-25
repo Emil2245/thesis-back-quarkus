@@ -201,6 +201,66 @@ public final class AvancePatchCalculos {
         return new ResultadoMap(Map.copyOf(ordenado), false);
     }
 
+    /**
+     * Plan 021 — re-escala proporcionalmente el mapa cuando el peso de la
+     * actividad cambia de {@code w} a {@code wNuevo}: {@code v' = v · w'/w} a
+     * escala 4 HALF_UP; la suma destino es {@code round4(Σv · w'/w)} (un mapa
+     * parcial sigue siendo parcial) y el residual firmado va al último período
+     * con valor no cero. Si {@code w == 0} (o todos los valores son 0) y el mapa no está
+     * vacío, redistribuye uniforme entre las claves existentes. Mapa vacío →
+     * mapa vacío.
+     */
+    public static Map<String, String> reescalar(Map<String, String> mapa, BigDecimal w, BigDecimal wNuevo) {
+        if (mapa == null || mapa.isEmpty()) {
+            return new LinkedHashMap<>();
+        }
+        BigDecimal objetivo = (wNuevo == null ? BigDecimal.ZERO : wNuevo).setScale(4, RoundingMode.HALF_UP);
+        java.util.TreeMap<Integer, BigDecimal> ordenado = new java.util.TreeMap<>();
+        for (Map.Entry<String, String> kv : mapa.entrySet()) {
+            ordenado.put(Integer.parseInt(kv.getKey()), new BigDecimal(kv.getValue()));
+        }
+        boolean todoCero = ordenado.values().stream().allMatch(v -> v.signum() == 0);
+        if (w == null || w.signum() == 0 || todoCero) {
+            List<Integer> periodos = new ArrayList<>(ordenado.keySet());
+            int max = periodos.get(periodos.size() - 1);
+            return new LinkedHashMap<>(distribucionUniforme(objetivo, periodos, Math.max(max, 1)));
+        }
+        Map<Integer, Long> nuevos = new java.util.TreeMap<>();
+        BigDecimal sumaAntigua = ordenado.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+        // Suma destino proporcional: un mapa parcial sigue parcial (no se inventa programación).
+        long sumaDestino = aUnidades(sumaAntigua.multiply(objetivo).divide(w, 4, RoundingMode.HALF_UP));
+        long suma = 0L;
+        Integer ultimoNoCero = null;
+        for (Map.Entry<Integer, BigDecimal> e : ordenado.entrySet()) {
+            BigDecimal escalado = e.getValue().multiply(objetivo).divide(w, 4, RoundingMode.HALF_UP);
+            long u = aUnidades(escalado);
+            nuevos.put(e.getKey(), u);
+            suma += u;
+            if (e.getValue().signum() != 0) {
+                ultimoNoCero = e.getKey();
+            }
+        }
+        nuevos.put(ultimoNoCero, nuevos.get(ultimoNoCero) + sumaDestino - suma);
+        Map<String, String> resultado = new LinkedHashMap<>();
+        for (Map.Entry<Integer, Long> e : nuevos.entrySet()) {
+            resultado.put(e.getKey().toString(), deUnidades(e.getValue()));
+        }
+        return resultado;
+    }
+
+    /** Plan 021 — distribución uniforme por defecto sobre los períodos {@code 1..n}. */
+    public static Map<String, String> distribucionPorDefecto(BigDecimal peso, int numeroPeriodos) {
+        if (numeroPeriodos < 1) {
+            return new LinkedHashMap<>();
+        }
+        List<Integer> periodos = new ArrayList<>();
+        for (int p = 1; p <= numeroPeriodos; p++) {
+            periodos.add(p);
+        }
+        return new LinkedHashMap<>(
+                distribucionUniforme(peso == null ? BigDecimal.ZERO : peso, periodos, numeroPeriodos));
+    }
+
     // ──────────────────────────────────────────────────────────────────────
     // utilidades
     // ──────────────────────────────────────────────────────────────────────

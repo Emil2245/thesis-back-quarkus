@@ -47,7 +47,7 @@ import java.util.UUID;
  *       carrera se traduce a 409 {@code cronograma-ya-existe}, nunca 500.</li>
  *   <li><strong>Autoimportación.</strong> Exactamente una actividad por rubro
  *       de la versión, en orden presupuestario ({@code item}, desempate por id
- *       interno), con {@code avancePorPeriodo = {}} y peso cerrado por
+ *       interno), con distribución uniforme en {@code 1..numeroPeriodos} (Plan 021) y peso cerrado por
  *       {@link PesoPonderadoCalculador}. El body nunca aporta actividades,
  *       identidades ni pesos. La copia de versión (Plan 024) NO pasa por aquí:
  *       su SQL nativo ya inserta cronograma y actividades, de modo que no se
@@ -168,7 +168,8 @@ public class CronogramaService {
             actividad.cronogramaId = cronograma.id;
             actividad.rubroId = rubros.get(i).id;
             actividad.pesoPonderado = pesos.get(i);
-            actividad.avancePorPeriodo = "{}";
+            actividad.avancePorPeriodo = CronogramaMapper.escribirMapa(
+                    AvancePatchCalculos.distribucionPorDefecto(actividad.pesoPonderado, request.numeroPeriodos()));
             actividadRepository.persist(actividad);
         }
         actividadRepository.flush();

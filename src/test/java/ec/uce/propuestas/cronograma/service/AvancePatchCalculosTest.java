@@ -228,4 +228,78 @@ class AvancePatchCalculosTest {
         assertEquals("4.0000", r.mapa().get("5"));
         assertEquals(3, r.mapa().size());
     }
+
+    // Plan 021 — reescalar
+
+    @Test
+    void reescalar_exacto_duplica_los_valores() {
+        Map<String, String> r =
+                AvancePatchCalculos.reescalar(mapaPares("1", "5.0000", "2", "5.0000"), bd("10.0000"), bd("20.0000"));
+        assertEquals(mapaPares("1", "10.0000", "2", "10.0000"), r);
+    }
+
+    @Test
+    void reescalar_con_residual_en_el_ultimo_periodo_no_cero() {
+        Map<String, String> r = AvancePatchCalculos.reescalar(
+                mapaPares("1", "1.0000", "2", "1.0000", "3", "1.0000", "4", "0.0000"), bd("3"), bd("1"));
+        assertEquals(mapaPares("1", "0.3333", "2", "0.3333", "3", "0.3334", "4", "0.0000"), r);
+    }
+
+    @Test
+    void reescalar_a_peso_cero_pone_ceros() {
+        Map<String, String> r =
+                AvancePatchCalculos.reescalar(mapaPares("1", "5.0000", "2", "5.0000"), bd("10"), bd("0"));
+        assertEquals(mapaPares("1", "0.0000", "2", "0.0000"), r);
+    }
+
+    @Test
+    void reescalar_desde_peso_cero_distribuye_uniforme_entre_las_claves() {
+        Map<String, String> r =
+                AvancePatchCalculos.reescalar(mapaPares("2", "0.0000", "4", "0.0000"), bd("0"), bd("10"));
+        assertEquals(mapaPares("2", "5.0000", "4", "5.0000"), r);
+    }
+
+    @Test
+    void reescalar_mapa_vacio_sigue_vacio() {
+        assertEquals(Map.of(), AvancePatchCalculos.reescalar(Map.of(), bd("1"), bd("2")));
+    }
+
+    @Test
+    void distribucion_por_defecto_cubre_todos_los_periodos_y_suma_el_peso() {
+        Map<String, String> r = AvancePatchCalculos.distribucionPorDefecto(bd("10"), 3);
+        assertEquals(3, r.size());
+        assertEquals(
+                0,
+                r.values().stream()
+                        .map(BigDecimal::new)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+                        .compareTo(bd("10")));
+    }
+
+    @Test
+    void reescalar_mapa_parcial_sigue_parcial() {
+        Map<String, String> r =
+                AvancePatchCalculos.reescalar(mapaPares("1", "2.5000", "2", "2.5000"), bd("10.0000"), bd("20.0000"));
+        assertEquals(mapaPares("1", "5.0000", "2", "5.0000"), r);
+    }
+
+    @Test
+    void reescalar_mapa_completo_sigue_completo() {
+        Map<String, String> r =
+                AvancePatchCalculos.reescalar(mapaPares("1", "3.0000", "2", "7.0000"), bd("10.0000"), bd("15.0000"));
+        assertEquals(
+                0,
+                r.values().stream()
+                        .map(BigDecimal::new)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+                        .compareTo(bd("15")));
+    }
+
+    @Test
+    void reescalar_parcial_con_residual_va_al_ultimo_no_cero() {
+        // suma 2 de w=3 → w'=1: suma destino 0.6667; cada 1 → 0.3333, residual +0.0001 al último no cero.
+        Map<String, String> r =
+                AvancePatchCalculos.reescalar(mapaPares("1", "1.0000", "2", "1.0000", "3", "0.0000"), bd("3"), bd("1"));
+        assertEquals(mapaPares("1", "0.3333", "2", "0.3334", "3", "0.0000"), r);
+    }
 }

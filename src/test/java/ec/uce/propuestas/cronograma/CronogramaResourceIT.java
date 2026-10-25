@@ -291,7 +291,7 @@ class CronogramaResourceIT {
 
     /**
      * TC-P33-01 — alta con rubros {@code [1,1,4]}: 201, un cronograma, tres
-     * actividades, mapas {@code {}}, identidades UUIDv7 y cierre residual del
+     * actividades, mapas con distribución uniforme (Plan 021), identidades UUIDv7 y cierre residual del
      * peso a {@code 100.0000} (bases 100.0001 → residual −1 al mayor precio).
      */
     @Test
@@ -316,19 +316,19 @@ class CronogramaResourceIT {
                 .body("totalGeneralRevisado", equalTo("6.000000"))
                 .body("fechaRevision", matchesPattern("^\\d{4}-\\d{2}-\\d{2}T.*Z$"))
                 .body("desactualizado", equalTo(false))
-                .body("avanceFinal", equalTo("0.0000"))
+                .body("avanceFinal", equalTo("100.0000"))
                 .body("avancePorPeriodo", hasSize(12))
                 .body("avanceAcumulado", hasSize(12))
-                .body("estadoDistribucion", equalTo("BORRADOR"))
+                .body("estadoDistribucion", equalTo("COMPLETO"))
                 .body("actividades", hasSize(3))
                 .body("actividades.rubroId", contains(rubros.get(0), rubros.get(1), rubros.get(2)))
                 .body("actividades.item", contains("1.1", "1.2", "1.3"))
                 .body("actividades.precioTotal", contains("1.000000", "1.000000", "4.000000"))
                 .body("actividades.pesoPonderado", contains("16.6667", "16.6667", "66.6666"))
                 .body("actividades[0].id", matchesPattern(UUID_V7))
-                .body("actividades[0].avancePorPeriodo", equalTo(Map.of()))
-                .body("actividades[0].segmentos", hasSize(0))
-                .body("actividades[0].desviacion", equalTo("16.6667"));
+                .body("actividades[0].avancePorPeriodo.size()", equalTo(12))
+                .body("actividades[0].segmentos", hasSize(1))
+                .body("actividades[0].desviacion", equalTo("0.0000"));
 
         assertEquals(1, contarCronogramas(presupuestoId), "exactamente un cronograma");
         assertEquals(3, contarActividades(presupuestoId), "n rubros = n actividades");
@@ -1104,8 +1104,9 @@ class CronogramaResourceIT {
                 .body("unidadTiempo", equalTo("SEMANA"))
                 .body("numeroPeriodos", equalTo(10))
                 .body("actividades", hasSize(2))
-                .body("actividades[0].avancePorPeriodo.1", equalTo("5.0000"))
-                .body("actividades[0].avancePorPeriodo.4", equalTo("5.0000"))
+                // Plan 021: el recálculo de la copia re-escala el mapa al peso fresco (0 con APU sin detalles).
+                .body("actividades[0].avancePorPeriodo.1", equalTo("0.0000"))
+                .body("actividades[0].avancePorPeriodo.4", equalTo("0.0000"))
                 .extract()
                 .path("id");
         assertNotNull(cronogramaCopia);
@@ -1122,5 +1123,54 @@ class CronogramaResourceIT {
 
         assertEquals(10, periodosPersistidos(cronogramaOrigen), "el origen permanece intacto");
         assertEquals(20, periodosPersistidos(cronogramaCopia));
+    }
+
+    /** Plan 021: la copia de versión empareja actividades por identidad de rubro, no por código repetido. */
+    @Test
+    void copia_de_version_con_rubros_de_mismo_codigo_conserva_cada_mapa() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p21-dup@ex.com");
+        String proyectoId = crearProyecto(token, "P21 dup", "P-2026-K2");
+        String origenId = vigenteDeProyecto(proyectoId);
+        sembrarRubros(origenId, "2.000000", "3.000000");
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("UPDATE rubro SET codigo = 'DUP' WHERE capitulo_id IN "
+                        + "(SELECT id FROM capitulo WHERE presupuesto_id = ?)")) {
+            ps.setLong(1, internalId("presupuesto", origenId));
+            ps.executeUpdate();
+        }
+        crearCronograma(token, origenId, "SEMANA", 10);
+        List<String> actividades = given().header("Authorization", "Bearer " + token)
+                .get("/api/v1/presupuestos/" + origenId + "/cronograma")
+                .then()
+                .extract()
+                .path("actividades.id");
+        sembrarAvance(actividades.get(0), "{\"1\":\"2.0000\"}");
+        sembrarAvance(actividades.get(1), "{\"7\":\"3.0000\",\"8\":\"1.0000\"}");
+
+        String copiaId = given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("origenId", origenId))
+                .post("/api/v1/proyectos/" + proyectoId + "/presupuestos")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("presupuestoId");
+
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement(
+                        "SELECT r.item, (SELECT string_agg(k, ',' ORDER BY k::int) FROM jsonb_object_keys("
+                                + "a.avance_por_periodo) k) FROM actividad a JOIN rubro r ON r.id = a.rubro_id "
+                                + "JOIN cronograma c ON c.id = a.cronograma_id WHERE c.presupuesto_id = ? ORDER BY r.item")) {
+            ps.setLong(1, internalId("presupuesto", copiaId));
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals("1.1", rs.getString(1));
+                assertEquals("1", rs.getString(2));
+                assertTrue(rs.next());
+                assertEquals("1.2", rs.getString(1));
+                assertEquals("7,8", rs.getString(2));
+                assertTrue(!rs.next());
+            }
+        }
     }
 }

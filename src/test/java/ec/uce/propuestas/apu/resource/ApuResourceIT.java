@@ -564,7 +564,8 @@ class ApuResourceIT {
                 .then()
                 .statusCode(200)
                 .body("actividades[0].pesoPonderado", equalTo("57.1429"))
-                .body("actividades[0].avancePorPeriodo.1", equalTo("40.0000"));
+                // Plan 021: el mapa se re-escala con el peso (40 → 57.1429), ya no se conserva verbatim.
+                .body("actividades[0].avancePorPeriodo.1", equalTo("57.1429"));
         org.junit.jupiter.api.Assertions.assertEquals(
                 0, new BigDecimal("4.000000").compareTo(precioTotalRubroDeApu(internalApuId(apu1))));
 
@@ -582,7 +583,7 @@ class ApuResourceIT {
                 .statusCode(200)
                 .body("id", equalTo(cronogramaId))
                 .body("actividades[0].pesoPonderado", equalTo("72.7273"))
-                .body("actividades[0].avancePorPeriodo.1", equalTo("40.0000"));
+                .body("actividades[0].avancePorPeriodo.1", equalTo("72.7273"));
         org.junit.jupiter.api.Assertions.assertEquals(
                 0, new BigDecimal("8.000000").compareTo(precioTotalRubroDeApu(internalApuId(apu1))));
     }

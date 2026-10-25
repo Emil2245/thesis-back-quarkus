@@ -3,6 +3,7 @@ package ec.uce.propuestas.cronograma.service;
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.cronograma.entity.Actividad;
 import ec.uce.propuestas.cronograma.entity.Cronograma;
+import ec.uce.propuestas.cronograma.mapper.CronogramaMapper;
 import ec.uce.propuestas.cronograma.mapper.CronogramaMapper.ActividadConRubro;
 import ec.uce.propuestas.cronograma.repository.ActividadRepository;
 import ec.uce.propuestas.cronograma.repository.CronogramaRepository;
@@ -30,7 +31,8 @@ import java.util.Map;
  * (Plan 020) <strong>después</strong> de que los totales ya estén persistidos,
  * dentro de la misma transacción: la ausencia de cronograma es un no-op; los
  * rubros desaparecen y borran su actividad por la FK CASCADE; los rubros
- * nuevos crean la actividad con {@code {}}; los precios ya recalculados se
+ * nuevos crean la actividad con distribución uniforme en los períodos
+ * {@code 1..numeroPeriodos} (Plan 021); los precios ya recalculados se
  * traducen a pesoPonderado fresco con {@link PesoPonderadoCalculador}.</p>
  *
  * <p>Reglas operativas:
@@ -42,11 +44,11 @@ import java.util.Map;
  *       {@code actividadRepository.delete} explícitamente; <em>confía en la
  *       CASCADE de la FK</em> para evitar filas huérfanas.</li>
  *   <li>Creación 1:1: por cada {@code rubro_id} vigente sin actividad, crea
- *       una con {@code avancePorPeriodo = "{}"} y peso recalculado.</li>
- *   <li>Recalcular pesos sin tocar el mapa: el mapa no se borra silenciosamente;
- *       sólo se actualiza {@code peso_ponderado} cuando el total del presupuesto
- *       y la jerarquía de precios cambian (RESET del fingerprint, derivación
- *       natural).</li>
+ *       una con distribución uniforme del peso en {@code 1..numeroPeriodos} (Plan 021).</li>
+ *   <li>Recalcular pesos re-escalando el mapa (Plan 021): cuando cambia
+ *       {@code peso_ponderado}, el mapa se re-escala proporcionalmente
+ *       ({@link AvancePatchCalculos#reescalar}) para que su suma siga igualando
+ *       el peso; nunca se borra silenciosamente.</li>
  *   <li>Lock concurrente: adquiere {@code lockPresupuestoRow} antes de iterar;
  *       ordena por {@code item + codigo + precioTotal DESC} (orden canónico
  *       presupuestario).</li>
@@ -137,9 +139,15 @@ public class CronogramaSincronizacionService {
                 creada.cronogramaId = cronograma.id;
                 creada.rubroId = r.id;
                 creada.pesoPonderado = nuevoPeso;
-                creada.avancePorPeriodo = "{}";
+                creada.avancePorPeriodo = CronogramaMapper.escribirMapa(AvancePatchCalculos.distribucionPorDefecto(
+                        nuevoPeso, cronograma.numeroPeriodos == null ? 0 : cronograma.numeroPeriodos));
                 actividadRepository.persist(creada);
             } else if (existente.pesoPonderado == null || existente.pesoPonderado.compareTo(nuevoPeso) != 0) {
+                Map<String, String> mapa = CronogramaMapper.leerMapa(existente.avancePorPeriodo);
+                if (!mapa.isEmpty()) {
+                    existente.avancePorPeriodo = CronogramaMapper.escribirMapa(
+                            AvancePatchCalculos.reescalar(mapa, existente.pesoPonderado, nuevoPeso));
+                }
                 existente.pesoPonderado = nuevoPeso;
                 actividadRepository.persist(existente);
             }

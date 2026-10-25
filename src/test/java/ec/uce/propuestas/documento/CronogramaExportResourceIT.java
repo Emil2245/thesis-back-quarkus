@@ -386,7 +386,8 @@ class CronogramaExportResourceIT {
         sembrarRubro(pId, cap, "1.1", "R1", "10.000000");
         fijarTotalPresupuesto(presupuestoId, "10.000000");
         crearCronograma(token, presupuestoId, "SEMANA", 4);
-        // No sembramos avance → suma 0, avance final = 0 → bloqueado.
+        // Plan 021: la distribución por defecto completa el cronograma; se vacía el mapa → suma 0 → bloqueado.
+        sembrarAvance(actividadDeRubro(presupuestoId, "1.1"), "{}");
 
         given().header("Authorization", "Bearer " + token)
                 .when()
@@ -562,7 +563,8 @@ class CronogramaExportResourceIT {
         sembrarRubro(pId, cap, "1.1", "R1", "10.000000");
         fijarTotalPresupuesto(presupuestoId, "10.000000");
         crearCronograma(token, presupuestoId, "SEMANA", 4);
-        // No sembramos avance → borrador.
+        // Plan 021: se vacía el mapa por defecto para forzar el borrador.
+        sembrarAvance(actividadDeRubro(presupuestoId, "1.1"), "{}");
 
         given().header("Authorization", "Bearer " + token)
                 .when()
