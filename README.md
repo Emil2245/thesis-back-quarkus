@@ -35,7 +35,7 @@ the same commit set. Do not divergently re-decide things here.
 
 ## Stack
 
-- Java 25 (toolchain) · Gradle 9.5.1 (wrapper) · Quarkus 3.37.4
+- Java 25 (toolchain) · Gradle 9.8.2 (wrapper) · Quarkus 3.40.1
 - Panache ORM (Hibernate) · PostgreSQL 16
 - Flyway migrations
 - SmallRye JWT (bcrypt via Elytron)
@@ -101,7 +101,7 @@ Environment variables (see `.env.example`):
 
 ![CI](https://github.com/emil2245/thesis-back-quarkus/actions/workflows/ci.yml/badge.svg)
 
-Imagen OCI multi-stage (Gradle + Java 25 en el build, runtime UBI9 OpenJDK 25, usuario 185):
+Imagen OCI multi-stage (Gradle + Java 25 en el build, runtime UBI10 OpenJDK 25, usuario 185):
 
 ```bash
 podman build -f src/main/docker/Dockerfile -t propuestas-api:dev .

@@ -24,8 +24,8 @@ quarkus:
     # %dev and %prod override it below.
 
   hibernate-orm:
-    database:
-      generation: validate
+    schema-management:
+      strategy: validate
     log:
       sql: false
 
@@ -42,10 +42,6 @@ quarkus:
 
   smallrye-openapi:
     path: /q/openapi
-
-  health:
-    extensions:
-      enabled: true
 
   otel:
     sdk:

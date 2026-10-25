@@ -640,13 +640,12 @@ public class ApuCrudService {
     }
 
     private static void validarSeccionParaInsumo(SeccionTipo seccion, TipoInsumo tipoInsumo) {
-        boolean ok =
-                switch (seccion) {
-                    case EQUIPO -> tipoInsumo == TipoInsumo.EQUIPO;
-                    case MANO_OBRA -> tipoInsumo == TipoInsumo.MANO_OBRA;
-                    case MATERIAL -> tipoInsumo == TipoInsumo.MATERIAL;
-                    case TRANSPORTE -> tipoInsumo == TipoInsumo.TRANSPORTE;
-                };
+        boolean ok = switch (seccion) {
+            case EQUIPO -> tipoInsumo == TipoInsumo.EQUIPO;
+            case MANO_OBRA -> tipoInsumo == TipoInsumo.MANO_OBRA;
+            case MATERIAL -> tipoInsumo == TipoInsumo.MATERIAL;
+            case TRANSPORTE -> tipoInsumo == TipoInsumo.TRANSPORTE;
+        };
         if (!ok) {
             throw ProblemaException.validacion("El insumo no es compatible con la sección " + seccion);
         }

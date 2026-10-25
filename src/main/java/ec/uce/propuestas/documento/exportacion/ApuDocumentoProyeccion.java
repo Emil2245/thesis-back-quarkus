@@ -170,20 +170,18 @@ public final class ApuDocumentoProyeccion {
     }
 
     private static String etiqueta(SeccionTipo tipo, boolean sufijos) {
-        String nombre =
-                switch (tipo) {
-                    case EQUIPO -> "Equipos y herramientas";
-                    case MANO_OBRA -> "Mano de obra";
-                    case MATERIAL -> "Materiales";
-                    case TRANSPORTE -> "Transporte";
-                };
-        String sufijo =
-                switch (tipo) {
-                    case EQUIPO -> "M";
-                    case MANO_OBRA -> "N";
-                    case MATERIAL -> "O";
-                    case TRANSPORTE -> "P";
-                };
+        String nombre = switch (tipo) {
+            case EQUIPO -> "Equipos y herramientas";
+            case MANO_OBRA -> "Mano de obra";
+            case MATERIAL -> "Materiales";
+            case TRANSPORTE -> "Transporte";
+        };
+        String sufijo = switch (tipo) {
+            case EQUIPO -> "M";
+            case MANO_OBRA -> "N";
+            case MATERIAL -> "O";
+            case TRANSPORTE -> "P";
+        };
         return sufijos ? nombre + " (" + sufijo + ")" : nombre;
     }
 }

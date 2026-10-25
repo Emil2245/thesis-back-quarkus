@@ -48,12 +48,12 @@ dependencies {
     testImplementation(libs.jackson.databind)
     testImplementation(libs.jqwik)
     // Plan 031 (P-37) - PDFBox 3 API para parse-back del writer PDF.
-    // Apache-2.0; solo usado en tests (writer sigue siendo OpenPDF 2.0.3).
+    // Apache-2.0; solo usado en tests (writer sigue siendo OpenPDF 3.0.5).
     testImplementation(libs.pdfbox)
 }
 
-// CVE-2026-75595 (netty-handler 4.1.136, fijado por el BOM de Quarkus 3.37.4):
-// se fuerza el último parche 4.1.x hasta que el BOM lo incluya. Revisar al subir Quarkus.
+// CVE-2026-75595 (netty-handler 4.1.136): el BOM de Quarkus 3.40.x fija 4.1.138;
+// se fuerza el último parche 4.1.x (4.1.139) hasta que el BOM lo incluya. Revisar al subir Quarkus.
 configurations.configureEach {
     resolutionStrategy.eachDependency {
         if (requested.group == "io.netty" && requested.version?.startsWith("4.1.") == true) {

@@ -1,12 +1,12 @@
 [versions]
-quarkus = "3.37.4"
-poi = "5.4.0"
-openpdf = "2.0.3"
-pdfbox = "3.0.5"
-jqwik = "1.9.0"
-commons-csv = "1.12.0"
-jackson-databind-nullable = "0.2.10"
-spotless = "8.9.0"
+quarkus = "3.40.1.1"
+poi = "6.0.0"
+openpdf = "3.0.5"
+pdfbox = "3.0.8"
+jqwik = "1.10.2"
+commons-csv = "1.14.1"
+jackson-databind-nullable = "0.2.12"
+spotless = "8.10.4"
 
 [libraries]
 # Platform BOM
