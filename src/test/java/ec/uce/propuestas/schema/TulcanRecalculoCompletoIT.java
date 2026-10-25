@@ -85,11 +85,17 @@ class TulcanRecalculoCompletoIT {
                         "7", "7619.360300"),
                 caps);
 
-        // PU = trunc2(costo_total persistido) salvo 5 rubros documentados en el informe:
+        // Plan 033: sigma rubro.precio_total == total del presupuesto (exacto a escala 6: el motor
+        // agrega capitulos y total desde los mismos precioTotal a escala 6).
+        assertEquals(
+                "394019.171000",
+                leerString("SELECT sum(r.precio_total)::text FROM rubro r JOIN capitulo c ON c.id = r.capitulo_id "
+                        + "WHERE c.presupuesto_id = " + v2));
+
+        // PU = trunc2(costo_total persistido) salvo 4 rubros documentados en el informe:
         //  - 1.6.1, 1.6.2, 1.10.8, 5.1.3.4: stubs provisionales V016 cuyo CT exacto cae justo bajo un centavo
         //    y se persiste redondeado a escala 6 (el PU usa la precisión completa del motor);
-        //  - 1.3.3: RecalculoService.consolidarVersionYPropagar indexa por rubro.codigo, que se repite
-        //    (501AL2 en 1.3.3 y 4.2.25); gana el último. Defecto fuera de motor/**, reportado aparte.
+        //  (1.3.3 dejo de ser excepcion: plan 033 mapea los rubros por id, no por codigo repetido.)
         List<String> excepciones = new ArrayList<>();
         try (Connection c = ds.getConnection();
                 Statement st = c.createStatement();
@@ -98,7 +104,7 @@ class TulcanRecalculoCompletoIT {
                         + " AND r.precio_unitario <> trunc(a.costo_total, 2) ORDER BY r.item")) {
             while (rs.next()) excepciones.add(rs.getString(1));
         }
-        assertEquals(List.of("1.10.8", "1.3.3", "1.6.1", "1.6.2", "5.1.3.4"), excepciones);
+        assertEquals(List.of("1.10.8", "1.6.1", "1.6.2", "5.1.3.4"), excepciones);
     }
 
     private long leerLong(String sql) throws Exception {

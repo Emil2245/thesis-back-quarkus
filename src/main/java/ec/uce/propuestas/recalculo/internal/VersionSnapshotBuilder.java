@@ -219,9 +219,20 @@ public class VersionSnapshotBuilder {
             // la realidad — registramos un APU vacío para que Motor.calcularApu
             // no lance NPE y el total del rubro se quede en 0.
             ApuSnapshot vacio = new ApuSnapshot(r.codigo, null, List.of());
-            return new RubroSnapshot(r.codigo, r.cantidad, vacio);
+            return new RubroSnapshot(claveRubro(r.id), r.cantidad, vacio);
         }
-        return new RubroSnapshot(r.codigo, r.cantidad, apu);
+        return new RubroSnapshot(claveRubro(r.id), r.cantidad, apu);
+    }
+
+    /**
+     * Clave única del rubro en el snapshot (plan 033). {@code rubro.codigo} no
+     * es único dentro de una versión (varios rubros pueden compartir código
+     * con APU distintos), así que el campo {@code codigo} de
+     * {@link RubroSnapshot} lleva el id interno; el consumidor
+     * ({@code RecalculoService}) mapea los resultados con la misma clave.
+     */
+    public static String claveRubro(Long rubroId) {
+        return "r" + rubroId;
     }
 
     private Map<Long, ApuSnapshot> cargarApus(

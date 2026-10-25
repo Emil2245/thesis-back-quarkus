@@ -41,13 +41,17 @@ class VersionSnapshotTreeBatchIT {
     void chapterAndRubroReadsStayBoundedAsTreeGrows() throws Exception {
         long small;
         long large;
+        java.util.Map<String, Long> smallIds;
+        java.util.Map<String, Long> largeIds;
         try (Connection connection = isolatedConnection()) {
             VersionSnapshotBatchFixtures fixtures = new VersionSnapshotBatchFixtures(connection);
             small = tree(fixtures, 3);
             large = tree(fixtures, 33);
+            smallIds = fixtures.rubroIds(small);
+            largeIds = fixtures.rubroIds(large);
         }
-        long smallCount = measure(small, expected(3));
-        long largeCount = measure(large, expected(33));
+        long smallCount = measure(small, expected(3, smallIds));
+        long largeCount = measure(large, expected(33, largeIds));
         System.out.printf("Snapshot prepared statements: 3 chapters=%d, 33 chapters=%d%n", smallCount, largeCount);
         assertEquals(smallCount, largeCount, "chapter/rubro reads must not grow with chapter count");
     }
@@ -107,14 +111,20 @@ class VersionSnapshotTreeBatchIT {
         return presupuesto;
     }
 
-    private VersionSnapshot expected(int count) {
+    private VersionSnapshot expected(int count, java.util.Map<String, Long> rubroIds) {
         List<CapituloSnapshot> grandchildren = new ArrayList<>();
         for (int i = 4; i <= count; i++) {
             grandchildren.add(new CapituloSnapshot("1.1." + i, "1.1." + i, 3, List.of(), List.of()));
         }
         List<RubroSnapshot> rubros = List.of(
-                new RubroSnapshot("R2", new BigDecimal("2.000000"), new ApuSnapshot("R2", null, List.of())),
-                new RubroSnapshot("R10", new BigDecimal("2.000000"), new ApuSnapshot("R10", null, List.of())));
+                new RubroSnapshot(
+                        VersionSnapshotBuilder.claveRubro(rubroIds.get("R2")),
+                        new BigDecimal("2.000000"),
+                        new ApuSnapshot("R2", null, List.of())),
+                new RubroSnapshot(
+                        VersionSnapshotBuilder.claveRubro(rubroIds.get("R10")),
+                        new BigDecimal("2.000000"),
+                        new ApuSnapshot("R10", null, List.of())));
         return new VersionSnapshot(
                 new ParametrosCalculo(new BigDecimal("0.0500"), new BigDecimal("0.1800")),
                 List.of(

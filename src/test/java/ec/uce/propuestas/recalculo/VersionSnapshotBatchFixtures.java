@@ -114,6 +114,21 @@ final class VersionSnapshotBatchFixtures {
         return presupuesto;
     }
 
+    /** codigo de rubro -> id, para construir la clave unica del snapshot (plan 033). */
+    java.util.Map<String, Long> rubroIds(long presupuesto) throws Exception {
+        java.util.Map<String, Long> ids = new java.util.HashMap<>();
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT r.codigo, r.id FROM rubro r JOIN capitulo c ON c.id=r.capitulo_id WHERE c.presupuesto_id=?")) {
+            statement.setLong(1, presupuesto);
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) {
+                    ids.put(result.getString(1), result.getLong(2));
+                }
+            }
+        }
+        return ids;
+    }
+
     private void ejecutar(String sql, Object... valores) throws Exception {
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             for (int i = 0; i < valores.length; i++) {

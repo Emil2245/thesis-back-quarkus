@@ -197,11 +197,11 @@ public class RecalculoService {
     private void consolidarVersionYPropagar(Long presupuestoId) {
         VersionCalculada calc = Motor.consolidar(snapshotBuilder.build(presupuestoId));
 
-        // Map rubroCodigo -> RubroConPrecio (mismo orden de aparición que en
-        // Capítulos — el builder preserva el árbol).
-        Map<String, RubroConPrecio> rubrosPorCodigo = new LinkedHashMap<>();
+        // Map clave única de rubro ("r"+id, plan 033) -> RubroConPrecio.
+        // rubro.codigo puede repetirse en una versión, no sirve de clave.
+        Map<String, RubroConPrecio> rubrosPorClave = new LinkedHashMap<>();
         for (RubroConPrecio r : calc.rubros()) {
-            rubrosPorCodigo.put(r.codigo(), r);
+            rubrosPorClave.put(r.codigo(), r);
         }
 
         // Map capitulo.item -> CapituloConTotal (recorrido in-order del motor).
@@ -219,7 +219,7 @@ public class RecalculoService {
             for (Rubro rubro : rubroRepository
                     .find("capituloId = :cid", Parameters.with("cid", cap.id))
                     .list()) {
-                RubroConPrecio calculado = rubrosPorCodigo.get(rubro.codigo);
+                RubroConPrecio calculado = rubrosPorClave.get(VersionSnapshotBuilder.claveRubro(rubro.id));
                 if (calculado != null) {
                     rubro.precioUnitario = calculado.precioUnitario();
                     rubro.precioTotal = calculado.precioTotal();

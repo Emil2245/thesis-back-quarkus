@@ -36,13 +36,17 @@ class VersionSnapshotApuBatchIT {
     void referencedApuReadsStayBoundedWithExactSnapshotsAndMotor() throws Exception {
         long small;
         long large;
+        java.util.Map<String, Long> smallIds;
+        java.util.Map<String, Long> largeIds;
         try (Connection connection = isolatedConnection()) {
             VersionSnapshotBatchFixtures fixtures = new VersionSnapshotBatchFixtures(connection);
             small = fixtures.apus(300);
             large = fixtures.apus(1000);
+            smallIds = fixtures.rubroIds(small);
+            largeIds = fixtures.rubroIds(large);
         }
-        long smallCount = measure(small, expected(300), 300);
-        long largeCount = measure(large, expected(1000), 1000);
+        long smallCount = measure(small, expected(300, smallIds), 300);
+        long largeCount = measure(large, expected(1000, largeIds), 1000);
         System.out.printf("Snapshot prepared statements: 300 APUs=%d, 1000 APUs=%d%n", smallCount, largeCount);
         assertEquals(smallCount, largeCount, "APU/section/detail/project reads must not grow with APU count");
     }
@@ -81,7 +85,7 @@ class VersionSnapshotApuBatchIT {
         }
     }
 
-    private VersionSnapshot expected(int count) {
+    private VersionSnapshot expected(int count, java.util.Map<String, Long> rubroIds) {
         List<RubroSnapshot> rubros = new ArrayList<>();
         for (int i = 1; i <= count; i++) {
             List<FilaSnapshot> filas = new ArrayList<>();
@@ -111,7 +115,7 @@ class VersionSnapshotApuBatchIT {
                 }
             }
             rubros.add(new RubroSnapshot(
-                    "A" + i,
+                    VersionSnapshotBuilder.claveRubro(rubroIds.get("A" + i)),
                     decimal("2.000000"),
                     new ApuSnapshot("A" + i, i % 2 == 0 ? decimal("0.1200") : null, filas)));
         }
