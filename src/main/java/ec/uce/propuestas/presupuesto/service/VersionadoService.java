@@ -133,6 +133,9 @@ public class VersionadoService {
     RecalculoService recalculoService;
 
     @Inject
+    ec.uce.propuestas.apu.service.ApuCalculoService apuCalculoService;
+
+    @Inject
     LogActividadService logActividadService;
 
     /**
@@ -289,6 +292,10 @@ public class VersionadoService {
             em().flush();
 
             copiarSeccionesYDetalles(origen.id, copia.id);
+            em().flush();
+            // Plan 032: el recálculo de versión solo persiste rubro/capítulo/presupuesto;
+            // el costo propio del APU (y de sus filas) se escribe aquí, una vez por APU.
+            apuCalculoService.recalcular(copia);
         }
     }
 
