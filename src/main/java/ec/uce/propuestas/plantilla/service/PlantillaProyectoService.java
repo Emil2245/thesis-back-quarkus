@@ -7,6 +7,7 @@ import ec.uce.propuestas.apu.repository.ApuDetalleRepository;
 import ec.uce.propuestas.apu.repository.ApuRepository;
 import ec.uce.propuestas.apu.repository.ApuSeccionRepository;
 import ec.uce.propuestas.apu.service.ApuCalculoService;
+import ec.uce.propuestas.common.ItemJerarquico;
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.insumo.entity.Insumo;
 import ec.uce.propuestas.insumo.service.BaseInsumosService;
@@ -330,8 +331,8 @@ public class PlantillaProyectoService {
                 }
             }
         }
-        // Orden estable por item (lexicográfico respeta el orden jerárquico natural).
-        raices.sort(Comparator.comparing(SnapshotProyectoMapper.SnapshotCapitulo::item));
+        // Orden estable por item (natural, plan 023-A).
+        raices.sort(Comparator.comparing(SnapshotProyectoMapper.SnapshotCapitulo::item, ItemJerarquico.ORDEN));
         for (SnapshotProyectoMapper.SnapshotCapitulo cap : raices) {
             ordenarRecursivo(cap);
         }
@@ -339,7 +340,7 @@ public class PlantillaProyectoService {
     }
 
     private static void ordenarRecursivo(SnapshotProyectoMapper.SnapshotCapitulo cap) {
-        cap.hijos().sort(Comparator.comparing(SnapshotProyectoMapper.SnapshotCapitulo::item));
+        cap.hijos().sort(Comparator.comparing(SnapshotProyectoMapper.SnapshotCapitulo::item, ItemJerarquico.ORDEN));
         for (SnapshotProyectoMapper.SnapshotCapitulo h : cap.hijos()) {
             ordenarRecursivo(h);
         }
@@ -386,6 +387,7 @@ public class PlantillaProyectoService {
             out.add(new SnapshotProyectoMapper.SnapshotRubro(
                     (String) r[1], (String) r[2], (String) r[3], (String) r[4], apu));
         }
+        out.sort(Comparator.comparing(SnapshotProyectoMapper.SnapshotRubro::item, ItemJerarquico.ORDEN));
         return out;
     }
 

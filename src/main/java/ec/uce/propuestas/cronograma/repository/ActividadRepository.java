@@ -1,8 +1,11 @@
 package ec.uce.propuestas.cronograma.repository;
 
+import ec.uce.propuestas.common.ItemJerarquico;
 import ec.uce.propuestas.cronograma.entity.Actividad;
+import ec.uce.propuestas.presupuesto.entity.Rubro;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import jakarta.enterprise.context.ApplicationScoped;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -52,28 +55,35 @@ public class ActividadRepository implements PanacheRepositoryBase<Actividad, Lon
      * presupuestario sin columnas espejo ni una consulta N+1.
      */
     public List<Object[]> listarConRubroPorCronograma(Long cronogramaId) {
-        return getEntityManager()
+        List<Object[]> filas = getEntityManager()
                 .createQuery(
                         "select a, r, c.item from Actividad a, Rubro r, Capitulo c "
                                 + "where a.cronogramaId = :cronogramaId and a.rubroId = r.id "
                                 + "and r.capituloId = c.id "
-                                + "order by c.item, r.item, r.codigo, r.precioTotal",
+                                + "order by r.codigo, r.precioTotal",
                         Object[].class)
                 .setParameter("cronogramaId", cronogramaId)
                 .getResultList();
+        // Plan 023-A: orden natural ("1.2" antes de "1.10") en Java; ORDER BY item de SQL es lexicografico.
+        filas.sort(Comparator.comparing((Object[] f) -> (String) f[2], ItemJerarquico.ORDEN)
+                .thenComparing(f -> ((Rubro) f[1]).item, ItemJerarquico.ORDEN));
+        return filas;
     }
 
     /** Filas presupuestarias completas para el fingerprint, incluso sin actividad. */
     public List<Object[]> listarSnapshotPresupuesto(Long presupuestoId) {
-        return getEntityManager()
+        List<Object[]> filas = getEntityManager()
                 .createQuery(
                         "select c.item, r.item, r.codigo, r.precioTotal "
                                 + "from Rubro r, Capitulo c "
                                 + "where r.capituloId = c.id and c.presupuestoId = :presupuestoId "
-                                + "order by c.item, r.item, r.codigo, r.precioTotal",
+                                + "order by r.codigo, r.precioTotal",
                         Object[].class)
                 .setParameter("presupuestoId", presupuestoId)
                 .getResultList();
+        filas.sort(Comparator.comparing((Object[] f) -> (String) f[0], ItemJerarquico.ORDEN)
+                .thenComparing(f -> (String) f[1], ItemJerarquico.ORDEN));
+        return filas;
     }
 
     /**
@@ -82,13 +92,15 @@ public class ActividadRepository implements PanacheRepositoryBase<Actividad, Lon
      * 028+ expone UUIDv7.
      */
     public List<Actividad> listarPorCronograma(Long cronogramaId) {
-        return getEntityManager()
+        List<Object[]> filas = getEntityManager()
                 .createQuery(
-                        "select a from Actividad a, Rubro r "
+                        "select a, r.item from Actividad a, Rubro r "
                                 + "where a.cronogramaId = :cronogramaId and a.rubroId = r.id "
-                                + "order by r.item, a.id",
-                        Actividad.class)
+                                + "order by a.id",
+                        Object[].class)
                 .setParameter("cronogramaId", cronogramaId)
                 .getResultList();
+        filas.sort(Comparator.comparing((Object[] f) -> (String) f[1], ItemJerarquico.ORDEN));
+        return filas.stream().map(f -> (Actividad) f[0]).toList();
     }
 }

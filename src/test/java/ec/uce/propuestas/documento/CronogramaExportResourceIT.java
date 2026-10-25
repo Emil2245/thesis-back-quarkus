@@ -888,4 +888,57 @@ class CronogramaExportResourceIT {
             }
         }
     }
+
+    /**
+     * Plan 023-A — con doce rubros en un capitulo, el cronograma (GET) y el XLSX
+     * deben listarlos en orden natural 1.1, 1.2, ..., 1.10, 1.11, 1.12 (no 1.1, 1.10, 1.11, 1.12, 1.2...).
+     */
+    @Test
+    void TC_P23_A_cronograma_y_xlsx_ordenan_naturalmente_doce_rubros() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p23-orden@ex.com");
+        String proyectoId = crearProyecto(token, "P23-ORDEN");
+        fijarFechaInicio(proyectoId, LocalDate.parse("2026-01-01"));
+        String presupuestoId = vigenteDeProyecto(proyectoId);
+        Long pId = internalId("presupuesto", presupuestoId);
+        long cap = sembrarCapitulo(pId, null, "1", "Cap", (short) 1, "0");
+        java.util.List<String> esperado = new java.util.ArrayList<>();
+        for (int i = 1; i <= 12; i++) {
+            // pesos exactos (8 x10 + 10 x2 = 100) para no introducir desviacion por redondeo
+            sembrarRubro(pId, cap, "1." + i, "R" + i, i <= 10 ? "8.000000" : "10.000000");
+            esperado.add("1." + i);
+        }
+        fijarTotalPresupuesto(presupuestoId, "100.000000");
+        crearCronograma(token, presupuestoId, "SEMANA", 4);
+        // Plan 021: el cronograma nace con distribucion por defecto exportable.
+
+        java.util.List<String> items = given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/presupuestos/" + presupuestoId + "/cronograma")
+                .then()
+                .statusCode(200)
+                .extract()
+                .path("actividades.item");
+        assertEquals(esperado, items, "GET cronograma fuera de orden natural");
+
+        byte[] xlsx = given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/documentos/cronograma/" + presupuestoId + "?formato=xlsx")
+                .then()
+                .statusCode(200)
+                .extract()
+                .asByteArray();
+        java.util.List<String> enXlsx = new java.util.ArrayList<>();
+        try (org.apache.poi.ss.usermodel.Workbook wb =
+                org.apache.poi.ss.usermodel.WorkbookFactory.create(new java.io.ByteArrayInputStream(xlsx))) {
+            for (org.apache.poi.ss.usermodel.Row row : wb.getSheetAt(0)) {
+                for (org.apache.poi.ss.usermodel.Cell c : row) {
+                    if (c.getCellType() == org.apache.poi.ss.usermodel.CellType.STRING
+                            && c.getStringCellValue().matches("1\\.\\d+")) {
+                        enXlsx.add(c.getStringCellValue());
+                    }
+                }
+            }
+        }
+        assertEquals(esperado, enXlsx, "XLSX fuera de orden natural");
+    }
 }
