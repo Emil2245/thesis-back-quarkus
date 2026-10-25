@@ -69,6 +69,14 @@ the same commit set. Do not divergently re-decide things here.
 ./gradlew build -Dquarkus.native.enabled=true -Dquarkus.native.container-build=true
 ```
 
+## Correo
+
+Por defecto (`MAIL_MODE=log`) los correos no se envían: en dev/test el token se
+imprime en el log; en producción solo se registra el destinatario enmascarado.
+Para enviar por SMTP defina en `.env` `MAIL_MODE=smtp`, `QUARKUS_MAILER_HOST`,
+`_PORT`, `_USERNAME`, `_PASSWORD`, `_FROM`, `_START_TLS` y
+`APP_FRONTEND_BASE_URL` (ver `.env.example`). Los correos son texto plano.
+
 ## Formatting & lint
 
 The build uses **Spotless** (palantir-java-format) for Java style and

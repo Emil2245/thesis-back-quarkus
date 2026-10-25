@@ -46,6 +46,12 @@ public class Usuario extends PanacheEntityBase {
     @Column(nullable = false)
     public boolean activo = true;
 
+    @Column(name = "politica_aceptada_en")
+    public Instant politicaAceptadaEn;
+
+    @Column(name = "politica_version", length = 20)
+    public String politicaVersion;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     public Instant createdAt;
 

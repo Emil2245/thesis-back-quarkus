@@ -20,6 +20,9 @@
         publickey:
           location: classpath:jwt/test-publicKey.pem
   quarkus:
+    mailer:
+      mock: true
+      from: noreply@test.local
     otel:
       sdk:
         disabled: ${OTEL_SDK_DISABLED:true}

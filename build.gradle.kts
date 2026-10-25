@@ -36,6 +36,7 @@ dependencies {
     implementation(libs.quarkus.jdbc.postgresql)
     implementation(libs.quarkus.config.yaml)
     implementation(libs.quarkus.arc)
+    implementation(libs.quarkus.mailer)
     implementation(libs.quarkus.elytron.security.common)
 
     implementation(libs.poi.ooxml)
