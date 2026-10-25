@@ -109,7 +109,7 @@ Environment variables (see `.env.example`):
 
 ![CI](https://github.com/emil2245/thesis-back-quarkus/actions/workflows/ci.yml/badge.svg)
 
-Imagen OCI multi-stage (Gradle + Java 25 en el build, runtime UBI10 OpenJDK 25, usuario 185):
+Imagen OCI multi-stage (Gradle + Java 25 en el build, runtime UBI9 OpenJDK 25 (x86-64-v2; UBI10 exige x86-64-v3 y el clúster de laboratorio no lo soporta), usuario 185):
 
 ```bash
 podman build -f src/main/docker/Dockerfile -t propuestas-api:dev .
