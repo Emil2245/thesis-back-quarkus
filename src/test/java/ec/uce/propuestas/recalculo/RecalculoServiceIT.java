@@ -676,7 +676,7 @@ class RecalculoServiceIT {
         // Activar la sincronización vía recálculo del alcance.Version.
         recalculoService.recalcular(new Alcance.Version(presupuestoId));
 
-        // Actividad creada con mapa {} y un peso coherente con el total.
+        // Actividad creada con distribución uniforme y un peso coherente con el total.
         assertEquals(1L, contarActividades(presupuestoId), "1 actividad para 1 rubro (regla de cobertura 1:1)");
         try (Connection con = ds.getConnection();
                 PreparedStatement ps = con.prepareStatement(
@@ -687,8 +687,12 @@ class RecalculoServiceIT {
                 // peso 100.0000 (único rubro).
                 assertEquals(
                         new BigDecimal("100.0000"), rs.getBigDecimal(1).setScale(4, java.math.RoundingMode.HALF_UP));
-                // mapa {}
-                assertEquals("{}", rs.getString(2));
+                // Plan 021: distribución uniforme del peso en 1..numeroPeriodos (la suma iguala el peso).
+                assertEquals(
+                        0,
+                        new BigDecimal("100.0000")
+                                .compareTo(
+                                        new BigDecimal(sumaMapa(rs.getString(2)).toPlainString())));
             }
         }
         // Mutar el rubro y volver a calcular; el peso se conserva con el
@@ -756,5 +760,15 @@ class RecalculoServiceIT {
 
         // Sin cronograma, ninguna actividad. El contrato es no-op aquí.
         assertEquals(0L, contarActividades(presupuestoId));
+    }
+
+    private static BigDecimal sumaMapa(String json) throws Exception {
+        BigDecimal suma = BigDecimal.ZERO;
+        var nodo = new com.fasterxml.jackson.databind.ObjectMapper().readTree(json);
+        for (var it = nodo.elements(); it.hasNext(); ) {
+            suma = suma.add(new BigDecimal(it.next().asText()));
+        }
+        org.junit.jupiter.api.Assertions.assertTrue(nodo.size() > 0, "el mapa por defecto no puede estar vacío");
+        return suma;
     }
 }
