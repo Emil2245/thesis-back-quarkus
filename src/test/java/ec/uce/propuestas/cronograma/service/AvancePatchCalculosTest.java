@@ -275,4 +275,31 @@ class AvancePatchCalculosTest {
                         .reduce(BigDecimal.ZERO, BigDecimal::add)
                         .compareTo(bd("10")));
     }
+
+    @Test
+    void reescalar_mapa_parcial_sigue_parcial() {
+        Map<String, String> r =
+                AvancePatchCalculos.reescalar(mapaPares("1", "2.5000", "2", "2.5000"), bd("10.0000"), bd("20.0000"));
+        assertEquals(mapaPares("1", "5.0000", "2", "5.0000"), r);
+    }
+
+    @Test
+    void reescalar_mapa_completo_sigue_completo() {
+        Map<String, String> r =
+                AvancePatchCalculos.reescalar(mapaPares("1", "3.0000", "2", "7.0000"), bd("10.0000"), bd("15.0000"));
+        assertEquals(
+                0,
+                r.values().stream()
+                        .map(BigDecimal::new)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+                        .compareTo(bd("15")));
+    }
+
+    @Test
+    void reescalar_parcial_con_residual_va_al_ultimo_no_cero() {
+        // suma 2 de w=3 → w'=1: suma destino 0.6667; cada 1 → 0.3333, residual +0.0001 al último no cero.
+        Map<String, String> r =
+                AvancePatchCalculos.reescalar(mapaPares("1", "1.0000", "2", "1.0000", "3", "0.0000"), bd("3"), bd("1"));
+        assertEquals(mapaPares("1", "0.3333", "2", "0.3334", "3", "0.0000"), r);
+    }
 }

@@ -300,9 +300,6 @@ class V009SchemaIT {
                     .schemas(tempSchema)
                     .defaultSchema(tempSchema)
                     .locations("classpath:db/migration")
-                    // Plan 021: V021 re-escala los mapas de avance al peso; este IT verifica que V009
-                    // preserve el mapa verbatim, por lo que se detiene antes de esa normalización.
-                    .target(MigrationVersion.fromVersion("20"))
                     .load()
                     .migrate();
 

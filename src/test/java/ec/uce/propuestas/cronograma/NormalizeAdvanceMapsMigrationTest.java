@@ -12,7 +12,7 @@ import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 
-/** Plan 021 — V021 normaliza los mapas de avance para que sumen el peso de cada actividad. */
+/** Plan 021 — V021 rellena solo los mapas vacíos; no toca mapas parciales. */
 @QuarkusTest
 @TestProfile(NormalizeAdvanceMapsMigrationTest.AisladoProfile.class)
 class NormalizeAdvanceMapsMigrationTest {
@@ -23,37 +23,51 @@ class NormalizeAdvanceMapsMigrationTest {
     DataSource dataSource;
 
     @Test
-    void todas_las_actividades_suman_su_peso_tras_v021() throws Exception {
+    void solo_mapas_vacios_se_rellenan_tras_v021() throws Exception {
         migrate("20");
-        long vacias;
+        String parciales;
         try (Connection c = dataSource.getConnection();
                 Statement s = c.createStatement()) {
-            // Casos sintéticos sobre el seed: mapa vacío, mapa a ceros, mapa duplicado y mapa con residual.
-            s.execute("UPDATE actividad SET avance_por_periodo='{}' WHERE id=(SELECT min(id) FROM actividad)");
-            s.execute("UPDATE actividad SET avance_por_periodo='{\"1\":\"0.0000\",\"3\":\"0.0000\"}' "
+            // Mapas parciales intencionales (seed UCE al 50%) y un mapa no vacío desviado sintético.
+            s.execute("UPDATE actividad SET avance_por_periodo='{\"1\":\"1.0000\",\"2\":\"1.0000\"}' "
                     + "WHERE id=(SELECT min(id)+1 FROM actividad)");
-            s.execute("UPDATE actividad SET avance_por_periodo='{\"1\":\"1.0000\",\"2\":\"1.0000\",\"3\":\"1.0000\","
-                    + "\"4\":\"0.0000\"}' WHERE id=(SELECT min(id)+2 FROM actividad)");
+            s.execute("UPDATE actividad SET avance_por_periodo='{}' WHERE id=(SELECT min(id) FROM actividad)");
+            assertEquals("1", scalar(s, "SELECT count(*) FROM actividad WHERE avance_por_periodo='{}'"));
+            parciales = scalar(
+                    s,
+                    "SELECT jsonb_agg(to_jsonb(a) ORDER BY id)::text FROM actividad a "
+                            + "WHERE avance_por_periodo<>'{}'");
             assertTrue(Long.parseLong(scalar(s, DESVIADAS)) > 0);
-            vacias = Long.parseLong(scalar(s, "SELECT count(*) FROM actividad WHERE avance_por_periodo='{}'"));
-            assertEquals(1, vacias);
         }
         assertEquals(1, migrate("21"));
         try (Connection c = dataSource.getConnection();
                 Statement s = c.createStatement()) {
-            assertEquals("0", scalar(s, DESVIADAS), "V021 debe dejar cada mapa sumando su peso");
+            assertEquals("0", scalar(s, "SELECT count(*) FROM actividad WHERE avance_por_periodo='{}'"));
             assertEquals(
-                    "0",
-                    scalar(s, "SELECT count(*) FROM actividad WHERE avance_por_periodo='{}'"),
-                    "los mapas vacíos pasan a distribución uniforme");
-            // El mapa antes vacío cubre 1..numero_periodos.
+                    parciales,
+                    scalar(
+                            s,
+                            "SELECT jsonb_agg(to_jsonb(a) ORDER BY id)::text FROM actividad a WHERE id NOT IN "
+                                    + "(SELECT min(id) FROM actividad)"),
+                    "los mapas no vacíos (incluidos los parciales) no se modifican");
+            assertEquals(
+                    "6",
+                    scalar(
+                            s,
+                            "SELECT count(*) FROM actividad a JOIN cronograma cr ON cr.id=a.cronograma_id "
+                                    + "JOIN presupuesto p ON p.id=cr.presupuesto_id JOIN proyecto pr ON pr.id=p.proyecto_id "
+                                    + "WHERE pr.codigo='UCE-CON-2026-B' AND a.id <> (SELECT min(id)+1 FROM actividad) AND round(a.peso_ponderado,4) <> round((SELECT "
+                                    + "sum(value::numeric) FROM jsonb_each_text(a.avance_por_periodo)),4)"),
+                    "las seis actividades UCE al 50% conservan su suma parcial");
+            // La actividad antes vacía suma su peso y cubre 1..numero_periodos.
             try (ResultSet r = s.executeQuery("SELECT (SELECT count(*) FROM jsonb_object_keys(a.avance_por_periodo)), "
-                    + "cr.numero_periodos FROM actividad a JOIN cronograma cr ON cr.id=a.cronograma_id "
-                    + "WHERE a.id=(SELECT min(id) FROM actividad)")) {
+                    + "cr.numero_periodos, a.peso_ponderado = (SELECT sum(value::numeric) FROM "
+                    + "jsonb_each_text(a.avance_por_periodo)) FROM actividad a JOIN cronograma cr ON "
+                    + "cr.id=a.cronograma_id WHERE a.id=(SELECT min(id) FROM actividad)")) {
                 assertTrue(r.next());
                 assertEquals(r.getInt(2), r.getInt(1));
+                assertTrue(r.getBoolean(3));
             }
-            // Idempotente: una segunda pasada no cambia nada.
             String antes = scalar(s, "SELECT jsonb_agg(to_jsonb(a) ORDER BY id)::text FROM actividad a");
             try (var resource =
                     getClass().getResourceAsStream("/db/migration/V021__normalize_cronograma_advance_maps.sql")) {
