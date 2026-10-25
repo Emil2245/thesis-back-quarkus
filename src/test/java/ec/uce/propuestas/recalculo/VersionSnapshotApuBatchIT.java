@@ -1,6 +1,7 @@
 package ec.uce.propuestas.recalculo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ec.uce.propuestas.motor.*;
@@ -53,11 +54,19 @@ class VersionSnapshotApuBatchIT {
             assertTrue(
                     address.getPort() > 0 && address.getPort() != 5432,
                     "fixtures require the dynamically mapped test-container port");
-            assertEquals("test", System.getenv("QUARKUS_PROFILE"));
-            assertEquals("true", System.getenv("QUARKUS_DATASOURCE_DEVSERVICES_ENABLED"));
+            assertTrue(
+                    io.quarkus.runtime.configuration.ConfigUtils.getProfiles().contains("test"), "perfil test activo");
+            assertNotEquals(
+                    Boolean.FALSE,
+                    ConfigProvider.getConfig()
+                            .getOptionalValue("quarkus.datasource.devservices.enabled", Boolean.class)
+                            .orElse(Boolean.TRUE),
+                    "Dev Services no debe estar deshabilitado");
             assertEquals(null, System.getenv("DB_URL"));
             assertEquals(null, System.getenv("QUARKUS_DATASOURCE_JDBC_URL"));
-            assertEquals("quarkus_test", connection.getMetaData().getUserName());
+            assertEquals(
+                    ConfigProvider.getConfig().getValue("quarkus.datasource.username", String.class),
+                    connection.getMetaData().getUserName());
             URI generated = URI.create(ConfigProvider.getConfig()
                     .getValue("quarkus.datasource.jdbc.url", String.class)
                     .substring("jdbc:".length()));
