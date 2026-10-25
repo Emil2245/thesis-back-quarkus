@@ -82,6 +82,14 @@ mp:
 
 # App-level auth knobs (business rules from D-01, D-02, D-11)
 app:
+  frontend:
+    # Base para los enlaces de los correos (verificación, reset, invitación).
+    base-url: ${APP_FRONTEND_BASE_URL:http://localhost:5173}
+  mail:
+    # log (default; no envía) | smtp (requiere QUARKUS_MAILER_*).
+    mode: ${MAIL_MODE:log}
+  privacidad:
+    version: ${APP_PRIVACIDAD_VERSION:2026-10}
   auth:
     verificacion-ttl: PT24H
     reset-ttl: PT24H

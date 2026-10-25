@@ -132,7 +132,7 @@ class Plan038LogActividadIT {
 
     @Test
     void auth_emite_registro_login_logout_password_y_activacion_invitacion() {
-        authService.registrar(new RegistroRequest("Audit", "audit@ex.com", "Pass1234", "Pass1234"));
+        authService.registrar(new RegistroRequest("Audit", "audit@ex.com", "Pass1234", "Pass1234", true));
         String verification = tokenCorreo("verificacion", "audit@ex.com");
         authService.verificarEmail(verification);
 
@@ -147,8 +147,8 @@ class Plan038LogActividadIT {
 
         mailbox.clear();
         Usuario invitado = usuarioAdminService.invitar("Invitado", "inv@ex.com", Rol.USUARIO);
-        authService.aceptarInvitacion(
-                new AceptarInvitacionRequest(tokenCorreo("invitacion", "inv@ex.com"), "InvitePass9", "InvitePass9"));
+        authService.aceptarInvitacion(new AceptarInvitacionRequest(
+                tokenCorreo("invitacion", "inv@ex.com"), "InvitePass9", "InvitePass9", true));
 
         assertEquals(1, contar(EventoLogActividad.AUTH_REGISTRO));
         assertEquals(1, contar(EventoLogActividad.AUTH_LOGIN));
@@ -257,7 +257,7 @@ class Plan038LogActividadIT {
 
     @Test
     void detalles_plan038_no_contienen_pii_ni_secretos() {
-        authService.registrar(new RegistroRequest("Safe", "safe@ex.com", "Pass1234", "Pass1234"));
+        authService.registrar(new RegistroRequest("Safe", "safe@ex.com", "Pass1234", "Pass1234", true));
         String serialized = logRepository.listAll().stream()
                 .map(row -> row.detalle)
                 .reduce("", String::concat)

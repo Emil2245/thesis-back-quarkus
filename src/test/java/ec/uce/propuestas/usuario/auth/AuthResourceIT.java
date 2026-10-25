@@ -5,6 +5,7 @@ import static io.restassured.http.ContentType.JSON;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ec.uce.propuestas.usuario.auth.dto.*;
 import io.quarkus.test.junit.QuarkusTest;
@@ -42,7 +43,7 @@ class AuthResourceIT {
     void TC_P01_01_registro_y_verificacion_completo() {
         // Register
         given().contentType(JSON)
-                .body(new RegistroRequest("Ana", "ana@ex.com", "Pass1234", "Pass1234"))
+                .body(new RegistroRequest("Ana", "ana@ex.com", "Pass1234", "Pass1234", true))
                 .when()
                 .post("/api/v1/auth/registro")
                 .then()
@@ -66,18 +67,49 @@ class AuthResourceIT {
                 .statusCode(204);
     }
 
+    /** Plan 024: sin aceptaPolitica el registro devuelve 400. */
+    @Test
+    void registro_sin_aceptar_politica_400() {
+        given().contentType(JSON)
+                .body(new RegistroRequest("Sin", "sin@ex.com", "Pass1234", "Pass1234", false))
+                .when()
+                .post("/api/v1/auth/registro")
+                .then()
+                .statusCode(400)
+                .body("codigo", equalTo("validacion"));
+    }
+
+    /** Plan 024: con aceptaPolitica se guarda fecha y versión. */
+    @Test
+    void registro_con_politica_guarda_consentimiento() throws Exception {
+        given().contentType(JSON)
+                .body(new RegistroRequest("Con", "con@ex.com", "Pass1234", "Pass1234", true))
+                .when()
+                .post("/api/v1/auth/registro")
+                .then()
+                .statusCode(201);
+        try (Connection con = ds.getConnection();
+                Statement st = con.createStatement();
+                var rs = st.executeQuery(
+                        "SELECT politica_aceptada_en, politica_version FROM usuario WHERE email='con@ex.com'")) {
+            assertTrue(rs.next());
+            assertNotNull(rs.getTimestamp(1));
+            assertEquals("2026-10", rs.getString(2));
+        }
+    }
+
     /** TC-P01-02: Email duplicado devuelve 400 */
     @Test
     void TC_P01_02_email_duplicado() {
         given().contentType(JSON)
-                .body(new RegistroRequest("Ana", "dup@ex.com", "Pass1234", "Pass1234"))
+                .body(new RegistroRequest("Ana", "dup@ex.com", "Pass1234", "Pass1234", true))
                 .when()
                 .post("/api/v1/auth/registro")
                 .then()
                 .statusCode(201);
 
         given().contentType(JSON)
-                .body(new RegistroRequest("Ana2", "dup@ex.com", "Pass1234", "Pass1234"))
+                .body(new RegistroRequest("Ana2", "dup@ex.com", "Pass1234", "Pass1234", true))
                 .when()
                 .post("/api/v1/auth/registro")
                 .then()
@@ -89,7 +121,7 @@ class AuthResourceIT {
     @Test
     void TC_P01_03_reenvio_cooldown_429() {
         given().contentType(JSON)
-                .body(new RegistroRequest("Bob", "bob@ex.com", "Pass1234", "Pass1234"))
+                .body(new RegistroRequest("Bob", "bob@ex.com", "Pass1234", "Pass1234", true))
                 .when()
                 .post("/api/v1/auth/registro")
                 .then()
@@ -122,7 +154,7 @@ class AuthResourceIT {
     @Test
     void TC_P01_05_password_politica_400() {
         given().contentType(JSON)
-                .body(new RegistroRequest("Carl", "carl@ex.com", "corta", "corta"))
+                .body(new RegistroRequest("Carl", "carl@ex.com", "corta", "corta", true))
                 .when()
                 .post("/api/v1/auth/registro")
                 .then()
@@ -180,7 +212,7 @@ class AuthResourceIT {
     @Test
     void TC_P02_04_email_no_verificado_403() {
         given().contentType(JSON)
-                .body(new RegistroRequest("Fiona", "fiona@ex.com", "Pass1234", "Pass1234"))
+                .body(new RegistroRequest("Fiona", "fiona@ex.com", "Pass1234", "Pass1234", true))
                 .when()
                 .post("/api/v1/auth/registro")
                 .then()
@@ -409,7 +441,7 @@ class AuthResourceIT {
 
     private void registrarYVerificar(String email, String nombre, String password) {
         given().contentType(JSON)
-                .body(new RegistroRequest(nombre, email, password, password))
+                .body(new RegistroRequest(nombre, email, password, password, true))
                 .when()
                 .post("/api/v1/auth/registro")
                 .then()

@@ -16,6 +16,7 @@ import jakarta.ws.rs.core.Response;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 @ApplicationScoped
@@ -41,6 +42,9 @@ public class AuthService {
     @Inject
     LogActividadService logActividadService;
 
+    @ConfigProperty(name = "app.privacidad.version", defaultValue = "2026-10")
+    String politicaVersion;
+
     // -----------------------------------------------------------------------
     // Registration / verification
     // -----------------------------------------------------------------------
@@ -61,6 +65,7 @@ public class AuthService {
         u.nombre = req.nombre();
         u.email = req.email();
         u.passwordHash = passwordService.hash(req.password());
+        registrarConsentimiento(u);
         usuarioRepo.persist(u);
         usuarioRepo.flush();
 
@@ -73,6 +78,11 @@ public class AuthService {
                 u.id, EventoLogActividad.AUTH_REGISTRO, "auth", null, Map.of("usuarioId", u.publicId));
 
         return toUsuarioResponse(u);
+    }
+
+    private void registrarConsentimiento(Usuario u) {
+        u.politicaAceptadaEn = Instant.now();
+        u.politicaVersion = politicaVersion;
     }
 
     @Transactional
@@ -236,6 +246,7 @@ public class AuthService {
 
         Usuario u = usuarioRepo.findById(uid);
         u.passwordHash = passwordService.hash(req.password());
+        registrarConsentimiento(u);
         u.emailVerificado = true; // invitation implies admin vouched for the email
         u.activo = true;
         LOG.infof("Invitación aceptada: usuario id=%d", uid);

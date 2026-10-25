@@ -177,7 +177,7 @@ class LogActividadCoberturaD13CompletaTest {
     }
 
     private void producirAuthYUsuario() {
-        authService.registrar(new RegistroRequest("Audit", "audit@ex.com", "Pass1234", "Pass1234"));
+        authService.registrar(new RegistroRequest("Audit", "audit@ex.com", "Pass1234", "Pass1234", true));
         authService.verificarEmail(tokenCorreo("verificacion", "audit@ex.com"));
         var tokens = authService.login(new LoginRequest("audit@ex.com", "Pass1234", true));
         authService.logout(tokens.refreshToken());
@@ -192,8 +192,8 @@ class LogActividadCoberturaD13CompletaTest {
         usuarioAdminService.desactivar(invitado.publicId);
         usuarioAdminService.reactivar(invitado.publicId);
         usuarioAdminService.desactivar(invitado.publicId);
-        authService.aceptarInvitacion(
-                new AceptarInvitacionRequest(tokenCorreo("invitacion", "inv@ex.com"), "InvitePass9", "InvitePass9"));
+        authService.aceptarInvitacion(new AceptarInvitacionRequest(
+                tokenCorreo("invitacion", "inv@ex.com"), "InvitePass9", "InvitePass9", true));
     }
 
     private Contexto producirProyectoInsumoBaseYApu() {

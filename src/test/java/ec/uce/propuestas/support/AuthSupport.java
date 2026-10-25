@@ -19,7 +19,7 @@ public final class AuthSupport {
     public static String registrarConToken(RecordingEnviadorCorreo mailbox, String email) {
         String nombre = "Titular " + email;
         given().contentType(JSON)
-                .body(new RegistroRequest(nombre, email, "Pass1234", "Pass1234"))
+                .body(new RegistroRequest(nombre, email, "Pass1234", "Pass1234", true))
                 .when()
                 .post("/api/v1/auth/registro")
                 .then()

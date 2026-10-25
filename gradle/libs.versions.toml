@@ -28,6 +28,7 @@ quarkus-flyway = { module = "io.quarkus:quarkus-flyway" }
 quarkus-smallrye-openapi = { module = "io.quarkus:quarkus-smallrye-openapi" }
 quarkus-jdbc-postgresql = { module = "io.quarkus:quarkus-jdbc-postgresql" }
 quarkus-config-yaml = { module = "io.quarkus:quarkus-config-yaml" }
+quarkus-mailer = { module = "io.quarkus:quarkus-mailer" }
 quarkus-arc = { module = "io.quarkus:quarkus-arc" }
 quarkus-elytron-security-common = { module = "io.quarkus:quarkus-elytron-security-common" }
 

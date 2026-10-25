@@ -234,7 +234,7 @@ class UsuarioAdminResourceIT {
 
         // Acepta invitación con nueva contraseña
         given().contentType(JSON)
-                .body(new AceptarInvitacionRequest(raw, "Pass1234", "Pass1234"))
+                .body(new AceptarInvitacionRequest(raw, "Pass1234", "Pass1234", true))
                 .when()
                 .post("/api/v1/auth/aceptar-invitacion")
                 .then()
