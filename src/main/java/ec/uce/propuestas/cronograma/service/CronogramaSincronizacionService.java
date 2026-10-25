@@ -1,5 +1,6 @@
 package ec.uce.propuestas.cronograma.service;
 
+import ec.uce.propuestas.common.ItemJerarquico;
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.cronograma.entity.Actividad;
 import ec.uce.propuestas.cronograma.entity.Cronograma;
@@ -67,7 +68,7 @@ public class CronogramaSincronizacionService {
 
     /** Orden presupuestario canónico: item, desempate por id interno (BIGINT). */
     private static final Comparator<Rubro> ORDEN_PRESUPUESTARIO =
-            Comparator.comparing((Rubro r) -> r.item == null ? "" : r.item).thenComparing(r -> r.id);
+            Comparator.comparing((Rubro r) -> r.item, ItemJerarquico.ORDEN).thenComparing(r -> r.id);
 
     @Inject
     PresupuestoRepository presupuestoRepository;

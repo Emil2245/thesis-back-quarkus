@@ -1,5 +1,6 @@
 package ec.uce.propuestas.cronograma.service;
 
+import ec.uce.propuestas.common.ItemJerarquico;
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.cronograma.dto.ActividadProgramarRequest;
 import ec.uce.propuestas.cronograma.dto.CronogramaConfigurarRequest;
@@ -107,7 +108,7 @@ public class CronogramaService {
 
     /** Orden presupuestario canónico: {@code item} ascendente, desempate por id interno. */
     private static final Comparator<Rubro> ORDEN_PRESUPUESTARIO =
-            Comparator.comparing((Rubro r) -> r.item == null ? "" : r.item).thenComparing(r -> r.id);
+            Comparator.comparing((Rubro r) -> r.item, ItemJerarquico.ORDEN).thenComparing(r -> r.id);
 
     // ──────────────────────────────────────────────────────────────────────
     // GET /presupuestos/{presupuestoId}/cronograma

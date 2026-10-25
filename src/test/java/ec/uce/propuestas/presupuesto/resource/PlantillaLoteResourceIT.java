@@ -364,4 +364,67 @@ class PlantillaLoteResourceIT {
             return rs.getLong(1);
         }
     }
+
+    /**
+     * Plan 023-B — los APUs creados en lote desde plantillas con lineas valoradas
+     * deben quedar con costo_directo/costo_total persistidos (> 0) en GET /apus.
+     */
+    @Test
+    void TC_P23_B_lote_de_plantillas_con_lineas_valoradas_persiste_costo_del_apu() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p23-costo@ex.com");
+        String proyectoId = crearProyecto(token);
+        String presupuestoId = presupuestoDeProyecto(proyectoId);
+        crearCapitulo(token, presupuestoId, "Obras");
+        try (Connection con = ds.getConnection();
+                Statement st = con.createStatement()) {
+            st.execute("INSERT INTO base_insumos (nombre, tipo) VALUES ('Central P23', 'CENTRAL')");
+            st.execute("INSERT INTO insumo (base_id, codigo, tipo, descripcion, unidad, precio_unitario) "
+                    + "SELECT id, 'P23-MAT', 'MATERIAL', 'Material P23', 'u', 10 FROM base_insumos "
+                    + "WHERE nombre = 'Central P23'");
+        }
+        String snapshot = "{\"secciones\":["
+                + "{\"tipo\":\"EQUIPO\",\"lineas\":[{\"esHerramientaMenor\":true}]},"
+                + "{\"tipo\":\"MANO_OBRA\",\"lineas\":[]},"
+                + "{\"tipo\":\"MATERIAL\",\"lineas\":[{\"insumoCodigo\":\"P23-MAT\",\"cantidad\":2}]},"
+                + "{\"tipo\":\"TRANSPORTE\",\"lineas\":[]}]}";
+        UUID a = sembrarPlantillaSistemaConSnapshot("Costeada A", snapshot);
+        UUID b = sembrarPlantillaSistemaConSnapshot("Costeada B", snapshot);
+
+        given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(Map.of("plantillaIds", List.of(a, b)))
+                .when()
+                .post("/api/v1/presupuestos/" + presupuestoId + "/rubros/desde-plantillas")
+                .then()
+                .statusCode(201);
+
+        assertEquals(2L, count("select count(*) from apu where costo_directo > 0 and costo_total > 0"));
+        List<Object> costos = given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/presupuestos/" + presupuestoId + "/apus")
+                .then()
+                .statusCode(200)
+                .extract()
+                .path("items.costoTotal");
+        assertEquals(2, costos.size());
+        for (Object c : costos) {
+            org.junit.jupiter.api.Assertions.assertTrue(
+                    new java.math.BigDecimal(String.valueOf(c)).signum() > 0, "costoTotal del APU en cero: " + c);
+        }
+    }
+
+    private UUID sembrarPlantillaSistemaConSnapshot(String nombre, String snapshot) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement("INSERT INTO plantilla_apu "
+                        + "(nombre, tipo, descripcion_rubro, unidad, snapshot_secciones) "
+                        + "VALUES (?, 'SISTEMA', ?, 'u', ?::jsonb) RETURNING public_id")) {
+            ps.setString(1, nombre);
+            ps.setString(2, nombre + " descripción");
+            ps.setString(3, snapshot);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return (UUID) rs.getObject(1);
+            }
+        }
+    }
 }

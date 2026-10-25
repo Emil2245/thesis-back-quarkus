@@ -46,6 +46,9 @@ public class PlantillaLoteService {
     @Inject
     RecalculoService recalculoService;
 
+    @Inject
+    ec.uce.propuestas.apu.service.ApuCalculoService apuCalculoService;
+
     @Transactional
     public PlantillaLoteResponse aplicar(UUID presupuestoPublicId, PlantillaLoteRequest req, Long callerUsuarioId) {
         if (req == null
@@ -97,6 +100,9 @@ public class PlantillaLoteService {
                 // Resolve the managed APU by its public id through the response identity.
                 Apu entidad = apuService.buscarPorPublicId(creado.apu().id());
                 rubroService.crearRubroAppendOnlySinRecalculo(presupuesto, destino, entidad);
+                // Plan 023-B: el recalculo de version solo persiste rubro/capitulo/presupuesto;
+                // el costo propio del APU (costo_directo/costo_total) se escribe aqui, una vez por APU.
+                apuCalculoService.recalcular(entidad);
                 resultados.add(new PlantillaLoteResponse.Resultado(
                         plantilla.publicId,
                         plantilla.nombre,

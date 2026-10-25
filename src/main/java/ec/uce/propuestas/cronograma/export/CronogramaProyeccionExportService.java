@@ -1,5 +1,6 @@
 package ec.uce.propuestas.cronograma.export;
 
+import ec.uce.propuestas.common.ItemJerarquico;
 import ec.uce.propuestas.cronograma.dto.ProyeccionExportacion;
 import ec.uce.propuestas.cronograma.entity.Actividad;
 import ec.uce.propuestas.cronograma.entity.Cronograma;
@@ -235,7 +236,7 @@ public class CronogramaProyeccionExportService {
         void recolectar(List<CronogramaXlsxWriter.FilaHoja> out, Map<Long, ActividadCerrada> actPorRubro, int n) {
             // Rubros en orden estable: item + id.
             List<Rubro> orden = new ArrayList<>(rubrosList);
-            orden.sort(Comparator.comparing((Rubro r) -> r.item == null ? "" : r.item)
+            orden.sort(Comparator.comparing((Rubro r) -> r.item, ItemJerarquico.ORDEN)
                     .thenComparing(r -> r.id));
             for (Rubro r : orden) {
                 ActividadCerrada ac = actPorRubro.get(r.id);
