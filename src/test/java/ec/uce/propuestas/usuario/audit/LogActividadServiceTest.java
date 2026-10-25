@@ -71,8 +71,9 @@ class LogActividadServiceTest {
 
     @Test
     void rollback_exterior_elimina_el_evento() throws Exception {
-        assertThrows(IllegalStateException.class, () -> QuarkusTransaction.requiringNew()
-                .run(() -> {
+        assertThrows(
+                IllegalStateException.class,
+                () -> QuarkusTransaction.requiringNew().run(() -> {
                     service.emitir(null, EventoLogActividad.AUTH_LOGOUT, null, null, Map.of("resultado", "ok"));
                     throw new IllegalStateException("rollback intencional");
                 }));
@@ -81,9 +82,11 @@ class LogActividadServiceTest {
 
     @Test
     void validador_falla_antes_de_persistir() throws Exception {
-        assertThrows(IllegalStateException.class, () -> QuarkusTransaction.requiringNew()
-                .run(() ->
-                        service.emitir(null, EventoLogActividad.AUTH_LOGIN, null, null, Map.of("resultado", "fallo"))));
+        assertThrows(
+                IllegalStateException.class,
+                () -> QuarkusTransaction.requiringNew()
+                        .run(() -> service.emitir(
+                                null, EventoLogActividad.AUTH_LOGIN, null, null, Map.of("resultado", "fallo"))));
         assertEquals(0L, contar());
     }
 

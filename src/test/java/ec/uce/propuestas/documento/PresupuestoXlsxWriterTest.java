@@ -181,12 +181,11 @@ class PresupuestoXlsxWriterTest {
                         count++;
                         assertEquals(CellType.STRING, code.getCellType());
                         for (int column = 4; column <= 6; column++) {
-                            var expected =
-                                    switch (column) {
-                                        case 4 -> rubro.cantidad();
-                                        case 5 -> rubro.precioUnitario();
-                                        default -> rubro.precioTotal();
-                                    };
+                            var expected = switch (column) {
+                                case 4 -> rubro.cantidad();
+                                case 5 -> rubro.precioUnitario();
+                                default -> rubro.precioTotal();
+                            };
                             var cell = (org.apache.poi.xssf.usermodel.XSSFCell) row.getCell(column);
                             assertEquals(CellType.NUMERIC, cell.getCellType());
                             assertEquals(expected.toPlainString(), cell.getRawValue());

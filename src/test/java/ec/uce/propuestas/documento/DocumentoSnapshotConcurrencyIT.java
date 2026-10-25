@@ -29,8 +29,8 @@ class DocumentoSnapshotConcurrencyIT {
         var primeraLectura = new CountDownLatch(1);
         var continuar = new CountDownLatch(1);
         try (var executor = Executors.newSingleThreadExecutor()) {
-            var pending = executor.submit(
-                    () -> captura.capturar(f.id(), f.caller(), "apus", DocumentoSnapshotIT.opciones(), () -> {
+            var pending = executor.submit(() ->
+                    captura.capturar(f.id(), f.caller(), "apus", DocumentoSnapshotIT.opciones(), () -> {
                         primeraLectura.countDown();
                         try {
                             if (!continuar.await(15, TimeUnit.SECONDS)) throw new AssertionError("Writer no terminó");

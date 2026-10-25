@@ -274,13 +274,12 @@ class ApuCalculoPersistidoEvidenceIT {
             exact(result.costoTotal(), a.costoTotal(), a.id() + " captured CT");
             int index = 0;
             for (var section : a.secciones()) {
-                BigDecimal subtotal =
-                        switch (section.tipo()) {
-                            case EQUIPO -> result.subtotalM();
-                            case MANO_OBRA -> result.subtotalN();
-                            case MATERIAL -> result.subtotalO();
-                            case TRANSPORTE -> result.subtotalP();
-                        };
+                BigDecimal subtotal = switch (section.tipo()) {
+                    case EQUIPO -> result.subtotalM();
+                    case MANO_OBRA -> result.subtotalN();
+                    case MATERIAL -> result.subtotalO();
+                    case TRANSPORTE -> result.subtotalP();
+                };
                 exact(subtotal, section.subtotal(), a.id() + " " + section.tipo());
                 for (var detail : section.detalles()) {
                     var row = result.filas().get(index++);

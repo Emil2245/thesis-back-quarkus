@@ -238,12 +238,11 @@ class PresupuestoDocumentoEvidenceIT {
                             found.merge(item + "|" + value, 1, Integer::sum);
                             var expected = matching.getFirst();
                             for (int col = 4; col <= 6; col++) {
-                                var number =
-                                        switch (col) {
-                                            case 4 -> expected.cantidad();
-                                            case 5 -> expected.precioUnitario();
-                                            default -> expected.precioTotal();
-                                        };
+                                var number = switch (col) {
+                                    case 4 -> expected.cantidad();
+                                    case 5 -> expected.precioUnitario();
+                                    default -> expected.precioTotal();
+                                };
                                 var cell = (org.apache.poi.xssf.usermodel.XSSFCell) row.getCell(col);
                                 assertEquals(org.apache.poi.ss.usermodel.CellType.NUMERIC, cell.getCellType());
                                 assertEquals(number.toPlainString(), cell.getRawValue(), value + " column " + col);

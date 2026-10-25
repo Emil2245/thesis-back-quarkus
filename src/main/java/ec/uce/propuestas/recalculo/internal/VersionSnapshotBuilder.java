@@ -269,9 +269,11 @@ public class VersionSnapshotBuilder {
         parametrosPorProyecto.put(presupuesto.proyectoId, params);
         Map<Long, ApuSnapshot> snapshots = new HashMap<>();
         for (Apu apu : apus) {
-            Long proyectoId = proyectosPorPresupuesto.computeIfAbsent(apu.presupuestoId, id -> apuRepository
-                    .proyectoDePresupuesto(id)
-                    .orElseThrow(() -> ProblemaException.noEncontrado("Presupuesto no encontrado")));
+            Long proyectoId = proyectosPorPresupuesto.computeIfAbsent(
+                    apu.presupuestoId,
+                    id -> apuRepository
+                            .proyectoDePresupuesto(id)
+                            .orElseThrow(() -> ProblemaException.noEncontrado("Presupuesto no encontrado")));
             ParametrosProyecto propios =
                     parametrosPorProyecto.computeIfAbsent(proyectoId, parametrosService::obtenerOCrear);
             List<ApuSeccion> propias = seccionesPorApu.getOrDefault(apu.id, new ArrayList<>());
