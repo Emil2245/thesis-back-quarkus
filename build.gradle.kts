@@ -48,7 +48,7 @@ dependencies {
     testImplementation(libs.jackson.databind)
     testImplementation(libs.jqwik)
     // Plan 031 (P-37) - PDFBox 3 API para parse-back del writer PDF.
-    // Apache-2.0; solo usado en tests (writer sigue siendo OpenPDF 2.0.3).
+    // Apache-2.0; solo usado en tests (writer sigue siendo OpenPDF 3.0.5).
     testImplementation(libs.pdfbox)
 }
 

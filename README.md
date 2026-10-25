@@ -35,7 +35,7 @@ the same commit set. Do not divergently re-decide things here.
 
 ## Stack
 
-- Java 25 (toolchain) · Gradle 9.5.1 (wrapper) · Quarkus 3.37.4
+- Java 25 (toolchain) · Gradle 9.8.2 (wrapper) · Quarkus 3.40.1
 - Panache ORM (Hibernate) · PostgreSQL 16
 - Flyway migrations
 - SmallRye JWT (bcrypt via Elytron)

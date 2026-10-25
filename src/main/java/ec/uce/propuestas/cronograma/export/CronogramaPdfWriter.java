@@ -1,16 +1,5 @@
 package ec.uce.propuestas.cronograma.export;
 
-import com.lowagie.text.Document;
-import com.lowagie.text.Element;
-import com.lowagie.text.Font;
-import com.lowagie.text.Paragraph;
-import com.lowagie.text.Phrase;
-import com.lowagie.text.Rectangle;
-import com.lowagie.text.pdf.BaseFont;
-import com.lowagie.text.pdf.PdfPCell;
-import com.lowagie.text.pdf.PdfPTable;
-import com.lowagie.text.pdf.PdfPageEventHelper;
-import com.lowagie.text.pdf.PdfWriter;
 import ec.uce.propuestas.cronograma.dto.ProyeccionExportacion;
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
@@ -18,6 +7,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import org.openpdf.text.Document;
+import org.openpdf.text.Element;
+import org.openpdf.text.Font;
+import org.openpdf.text.Paragraph;
+import org.openpdf.text.Phrase;
+import org.openpdf.text.Rectangle;
+import org.openpdf.text.pdf.BaseFont;
+import org.openpdf.text.pdf.PdfPCell;
+import org.openpdf.text.pdf.PdfPTable;
+import org.openpdf.text.pdf.PdfPageEventHelper;
+import org.openpdf.text.pdf.PdfWriter;
 
 /**
  * Plan 031 (P-37) — writer PDF del cronograma (Lane A documental). Produce
@@ -373,7 +373,7 @@ public final class CronogramaPdfWriter {
             Phrase pie = new Phrase("Sistema APU · Cronograma Valorado · " + LocalDate.now(), font);
             float x = (doc.left() + doc.right()) / 2;
             float y = doc.bottom() - 12;
-            com.lowagie.text.pdf.ColumnText.showTextAligned(
+            org.openpdf.text.pdf.ColumnText.showTextAligned(
                     writer.getDirectContent(), Element.ALIGN_CENTER, pie, x, y, 0);
         }
     }
