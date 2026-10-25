@@ -8,7 +8,7 @@ RUN ./gradlew --no-daemon dependencies > /dev/null || true
 COPY src/ src/
 RUN ./gradlew --no-daemon quarkusBuild -x test -x spotlessCheck
 
-FROM registry.access.redhat.com/ubi9/openjdk-25-runtime:1.24
+FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24
 LABEL org.opencontainers.image.source="https://github.com/emil2245/thesis-back-quarkus" \
       org.opencontainers.image.title="propuestas-api"
 USER root
