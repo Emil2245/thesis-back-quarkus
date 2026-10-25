@@ -1,5 +1,5 @@
 [versions]
-quarkus = "3.37.4"
+quarkus = "3.40.1.1"
 poi = "5.4.0"
 openpdf = "2.0.3"
 pdfbox = "3.0.5"

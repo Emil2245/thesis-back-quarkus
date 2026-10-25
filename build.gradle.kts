@@ -52,8 +52,8 @@ dependencies {
     testImplementation(libs.pdfbox)
 }
 
-// CVE-2026-75595 (netty-handler 4.1.136, fijado por el BOM de Quarkus 3.37.4):
-// se fuerza el último parche 4.1.x hasta que el BOM lo incluya. Revisar al subir Quarkus.
+// CVE-2026-75595 (netty-handler 4.1.136): el BOM de Quarkus 3.40.x fija 4.1.138;
+// se fuerza el último parche 4.1.x (4.1.139) hasta que el BOM lo incluya. Revisar al subir Quarkus.
 configurations.configureEach {
     resolutionStrategy.eachDependency {
         if (requested.group == "io.netty" && requested.version?.startsWith("4.1.") == true) {
