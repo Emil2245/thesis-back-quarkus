@@ -17,6 +17,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import javax.sql.DataSource;
@@ -55,6 +56,9 @@ class CronogramaSincronizacionIT {
 
     @Inject
     RecalculoService recalculoService;
+
+    @Inject
+    ec.uce.propuestas.cronograma.service.CronogramaSincronizacionService sincronizacion;
 
     @BeforeEach
     void reset() throws Exception {
@@ -278,7 +282,96 @@ class CronogramaSincronizacionIT {
                 .statusCode(200)
                 .body("actividades", hasSize(2))
                 .body("actividades[0].pesoPonderado", equalTo("0.0000"))
-                .body("actividades[0].avancePorPeriodo.1", equalTo("25.0000"));
+                // Plan 021: el mapa se re-escala al peso fresco (0), ya no se conserva verbatim.
+                .body("actividades[0].avancePorPeriodo.1", equalTo("0.0000"));
+    }
+
+    /** Plan 021: tras cambiar precios, cada mapa suma su peso y el estado sigue COMPLETO. */
+    @Test
+    void cambio_de_precios_reescala_mapas_y_mantiene_completo() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p21-reescala@ex.com");
+        String proyectoId = crearProyecto(token, "P21 reescala");
+        String presupuestoId = vigenteDeProyecto(proyectoId);
+        String rubro1 = sembrarCapituloRubro(presupuestoId, "1.000000");
+        sembrarCapituloRubro(presupuestoId, "3.000000");
+        ejecutar("UPDATE presupuesto SET total = 4 WHERE public_id = ?", presupuestoId);
+        String cronogramaId = crearCronograma(token, presupuestoId, "SEMANA", 4);
+
+        // Programa explícitamente cada actividad al 100% de su peso (desviación 0).
+        List<Map<String, Object>> acts = given().header("Authorization", "Bearer " + token)
+                .get("/api/v1/presupuestos/" + presupuestoId + "/cronograma")
+                .then()
+                .statusCode(200)
+                .extract()
+                .path("actividades");
+        assertEquals(2, acts.size());
+        for (Map<String, Object> a : acts) {
+            given().contentType(JSON)
+                    .header("Authorization", "Bearer " + token)
+                    .body(Map.of(
+                            "operacion", "REEMPLAZAR_AVANCES", "avancePorPeriodo", Map.of("1", a.get("pesoPonderado"))))
+                    .patch("/api/v1/cronogramas/" + cronogramaId + "/actividades/" + a.get("id"))
+                    .then()
+                    .statusCode(200);
+        }
+        given().header("Authorization", "Bearer " + token)
+                .get("/api/v1/presupuestos/" + presupuestoId + "/cronograma")
+                .then()
+                .body("estadoDistribucion", equalTo("COMPLETO"));
+
+        // Cambio de precios: el rubro 1 pasa de 1 a 3 (y el total a 6).
+        ejecutar("UPDATE rubro SET precio_total = 3 WHERE public_id = ?", rubro1);
+        ejecutar("UPDATE presupuesto SET total = 6 WHERE public_id = ?", presupuestoId);
+        sincronizacion.sincronizar(internalId("presupuesto", presupuestoId));
+
+        given().header("Authorization", "Bearer " + token)
+                .get("/api/v1/presupuestos/" + presupuestoId + "/cronograma")
+                .then()
+                .statusCode(200)
+                .body("estadoDistribucion", equalTo("COMPLETO"));
+        assertSumasIgualanPesos(presupuestoId);
+    }
+
+    /** Plan 021: recálculo real (vía RecalculoService) deja mapas coherentes con el peso. */
+    @Test
+    void recalculo_real_deja_sumas_iguales_al_peso() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p21-recalculo@ex.com");
+        String proyectoId = crearProyecto(token, "P21 recalculo");
+        String presupuestoId = vigenteDeProyecto(proyectoId);
+        String rubro1 = sembrarCapituloRubro(presupuestoId, "1.000000");
+        sembrarCapituloRubro(presupuestoId, "3.000000");
+        ejecutar("UPDATE presupuesto SET total = 4 WHERE public_id = ?", presupuestoId);
+        crearCronograma(token, presupuestoId, "SEMANA", 4);
+        ejecutar("UPDATE rubro SET cantidad = 2 WHERE public_id = ?", rubro1);
+        recalculoService.recalcular(new Alcance.Version(internalId("presupuesto", presupuestoId)));
+        assertSumasIgualanPesos(presupuestoId);
+    }
+
+    private void ejecutar(String sql, String publicId) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setObject(1, UUID.fromString(publicId));
+            ps.executeUpdate();
+        }
+    }
+
+    private void assertSumasIgualanPesos(String presupuestoId) throws Exception {
+        try (Connection con = ds.getConnection();
+                PreparedStatement ps =
+                        con.prepareStatement("SELECT a.peso_ponderado, COALESCE((SELECT sum(value::numeric) FROM "
+                                + "jsonb_each_text(a.avance_por_periodo)), 0) FROM actividad a "
+                                + "JOIN cronograma c ON c.id = a.cronograma_id WHERE c.presupuesto_id = ?")) {
+            ps.setLong(1, internalId("presupuesto", presupuestoId));
+            try (ResultSet rs = ps.executeQuery()) {
+                int filas = 0;
+                while (rs.next()) {
+                    filas++;
+                    assertEquals(
+                            0, rs.getBigDecimal(1).compareTo(rs.getBigDecimal(2)), "suma del mapa debe igualar peso");
+                }
+                assertEquals(2, filas);
+            }
+        }
     }
 
     @Test

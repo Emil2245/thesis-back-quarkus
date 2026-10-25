@@ -194,10 +194,10 @@ public class VersionadoService {
         copiarApus(origen.id, nuevo.id);
         em().flush();
 
-        copiarRubros(origen.id, nuevo.id);
+        Map<Long, Long> rubroViejoANuevo = copiarRubros(origen.id, nuevo.id);
         em().flush();
 
-        copiarCronogramaYActividad(origen.id, nuevo.id);
+        copiarCronogramaYActividad(origen.id, nuevo.id, rubroViejoANuevo);
         em().flush();
 
         // Recálculo write-through (P-30): totales raíz → capítulos → rubros.
@@ -326,7 +326,10 @@ public class VersionadoService {
     }
 
     /**
-     * Plan 024 — clona rubros con FK remapeadas vía claves de dominio:
+     * Plan 024 — clona rubros con FK remapeadas vía claves de dominio. Devuelve
+     * el mapeo {@code id rubro origen → id rubro copia} (Plan 021): la copia de
+     * actividades empareja por identidad del rubro, no por {@code codigo}, que
+     * puede repetirse. Claves de dominio:
      * {@code item} del capítulo y {@code codigo} del APU. Como en una sola
      * versión {@code item} es UNIQUE y {@code codigo} también, basta con estas
      * claves para remitir las FK sin riesgo de ambigüedad.
@@ -334,7 +337,8 @@ public class VersionadoService {
      * <p>Los totales quedan en 0; el write-through de
      * {@link RecalculoService} los propaga al final del deep copy.</p>
      */
-    private void copiarRubros(Long origenPresupuestoId, Long nuevoPresupuestoId) {
+    private Map<Long, Long> copiarRubros(Long origenPresupuestoId, Long nuevoPresupuestoId) {
+        Map<Long, Long> rubroViejoANuevo = new HashMap<>();
         Map<String, Long> itemANuevoCap = itemANuevoId(origenPresupuestoId, nuevoPresupuestoId);
         Map<String, Long> codigoANuevoApu = codigoANuevoId(origenPresupuestoId, nuevoPresupuestoId);
 
@@ -369,7 +373,10 @@ public class VersionadoService {
             copia.precioUnitario = BigDecimal.ZERO;
             copia.precioTotal = BigDecimal.ZERO;
             rubroRepository.persist(copia);
+            rubroRepository.flush();
+            rubroViejoANuevo.put(r.id, copia.id);
         }
+        return rubroViejoANuevo;
     }
 
     /**
@@ -429,11 +436,11 @@ public class VersionadoService {
      * {@code public_id} desde SQL posterior.</p>
      *
      * <p>Si el origen no tiene cronograma, no se hace nada. Para actividad, el
-     * FK {@code rubro_id} se remite al rubro del destino con el mismo
-     * {@code codigo} (la UNIQUE sobre {@code apu_id} garantiza el vínculo
-     * 1:1 con el nuevo APU copiado).</p>
+     * FK {@code rubro_id} se remite al rubro copia del mismo origen
+     * (mapa de identidad id → id, Plan 021; los códigos pueden repetirse).</p>
      */
-    private void copiarCronogramaYActividad(Long origenPresupuestoId, Long nuevoPresupuestoId) {
+    private void copiarCronogramaYActividad(
+            Long origenPresupuestoId, Long nuevoPresupuestoId, Map<Long, Long> rubroViejoANuevo) {
         @SuppressWarnings("unchecked")
         List<Number> cronogramaIds = em().createNativeQuery("select id from cronograma where presupuesto_id = ?1")
                 .setParameter(1, origenPresupuestoId)
@@ -458,8 +465,8 @@ public class VersionadoService {
 
         @SuppressWarnings("unchecked")
         List<Object[]> actividades = em().createNativeQuery(
-                        "select a.peso_ponderado, a.avance_por_periodo::text, r.codigo "
-                                + "from actividad a join rubro r on r.id = a.rubro_id "
+                        "select a.peso_ponderado, a.avance_por_periodo::text, a.rubro_id "
+                                + "from actividad a "
                                 + "where a.cronograma_id = ?1")
                 .setParameter(1, origenCronogramaId)
                 .getResultList();
@@ -467,20 +474,10 @@ public class VersionadoService {
         for (Object[] row : actividades) {
             BigDecimal pesoPonderado = (BigDecimal) row[0];
             String avancePorPeriodo = (String) row[1];
-            String rubroCodigo = (String) row[2];
-
-            @SuppressWarnings("unchecked")
-            List<Number> nuevoRubroIds = em().createNativeQuery("select r.id from rubro r "
-                            + "join capitulo c on c.id = r.capitulo_id "
-                            + "where c.presupuesto_id = ?1 and r.codigo = ?2 "
-                            + "limit 1")
-                    .setParameter(1, nuevoPresupuestoId)
-                    .setParameter(2, rubroCodigo)
-                    .getResultList();
-            if (nuevoRubroIds.isEmpty()) {
+            Long nuevoRubroId = rubroViejoANuevo.get(((Number) row[2]).longValue());
+            if (nuevoRubroId == null) {
                 continue;
             }
-            long nuevoRubroId = nuevoRubroIds.get(0).longValue();
 
             em().createNativeQuery(
                             "insert into actividad (cronograma_id, rubro_id, peso_ponderado, avance_por_periodo) "
