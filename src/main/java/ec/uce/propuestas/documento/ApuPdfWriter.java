@@ -92,9 +92,9 @@ public final class ApuPdfWriter {
             var title = celda(b.etiqueta(), f.bold, false);
             title.setColspan(table.getNumberOfColumns());
             table.addCell(title);
-            for (String label : horario
-                    ? List.of("Descripción", "Cantidad", "Tarifa / Jornal", "Costo hora", "Rendimiento", "Costo")
-                    : List.of("Descripción", "Unidad", "Cantidad", "Precio / Tarifa", "Costo")) {
+            for (String label : ApuTextoPresentacion.encabezados(b.tipo()).stream()
+                    .filter(l -> !l.isEmpty())
+                    .toList()) {
                 table.addCell(celda(label, f.bold, false));
             }
             // Both section name and its own column schema repeat, never a previous section's schema.
@@ -127,7 +127,8 @@ public final class ApuPdfWriter {
         }
         for (var subtotal : a.pie().subtotales()) {
             // Reuse projected labels, including captured suffix policy, even for hidden empty blocks.
-            String label = etiqueta(subtotal.tipo(), d.parametros().sufijosSeccionActivos());
+            String label = ApuTextoPresentacion.tituloBloque(
+                    subtotal.tipo(), d.parametros().sufijosSeccionActivos());
             importe(doc, "Subtotal " + label, f.dinero(subtotal.valor()), f);
         }
         importe(doc, "Costo directo", f.dinero(a.pie().costoDirecto()), f);
@@ -150,15 +151,6 @@ public final class ApuPdfWriter {
                             + PresupuestoXlsxWriter.seguro(firmante.rol()),
                     f.normal);
         }
-    }
-
-    private static String etiqueta(SeccionTipo tipo, boolean sufijos) {
-        return switch (tipo) {
-            case EQUIPO -> "Equipos y herramientas" + (sufijos ? " (M)" : "");
-            case MANO_OBRA -> "Mano de obra" + (sufijos ? " (N)" : "");
-            case MATERIAL -> "Materiales" + (sufijos ? " (O)" : "");
-            case TRANSPORTE -> "Transporte" + (sufijos ? " (P)" : "");
-        };
     }
 
     private static void subtotal(PdfPTable table, String label, String amount, Formato f) {

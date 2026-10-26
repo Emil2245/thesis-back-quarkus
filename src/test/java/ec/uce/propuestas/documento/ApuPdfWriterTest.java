@@ -58,10 +58,10 @@ class ApuPdfWriterTest {
             }
             assertTrue(text.indexOf("Descripción") < text.indexOf("Herramienta Menor"));
             assertTrue(text.indexOf("@SUM(A1)") < text.indexOf("Herramienta Menor"));
-            assertTrue(text.indexOf("Equipos y herramientas (M)") < text.indexOf("Mano de obra (N)"));
-            assertTrue(text.indexOf("Mano de obra (N)") < text.indexOf("Materiales (O)"));
-            assertTrue(text.indexOf("Materiales (O)") < text.indexOf("Transporte (P)"));
-            assertEquals(2, ocurrencias(text, "Subtotal Equipos y herramientas (M)"));
+            assertTrue(text.indexOf("EQUIPOS (M)") < text.indexOf("MANO DE OBRA (N)"));
+            assertTrue(text.indexOf("MANO DE OBRA (N)") < text.indexOf("MATERIALES (O)"));
+            assertTrue(text.indexOf("MATERIALES (O)") < text.indexOf("TRANSPORTE (P)"));
+            assertEquals(2, ocurrencias(text, "Subtotal EQUIPOS (M)"));
             assertTrue(text.contains("Costo total 123.12"));
             assertTrue(text.contains("Valor ofertado 123.12"));
             assertTrue(text.indexOf("Legal ñ") < text.indexOf("Técnico ñ"));
@@ -98,8 +98,8 @@ class ApuPdfWriterTest {
             for (String absent : List.of(
                     "Proyecto:",
                     "Subtotal",
-                    "Mano de obra",
-                    "Transporte",
+                    "MANO DE OBRA",
+                    "TRANSPORTE",
                     "Legal ñ",
                     "Técnico ñ",
                     "Dirección institucional",
@@ -107,8 +107,8 @@ class ApuPdfWriterTest {
                     "Código: 1")) {
                 assertFalse(text.contains(absent), absent);
             }
-            assertTrue(text.contains("Equipos y herramientas"));
-            assertTrue(text.contains("Materiales"));
+            assertTrue(text.contains("EQUIPOS"));
+            assertTrue(text.contains("MATERIALES"));
             assertTrue(text.contains("18.0%"));
         }
     }
@@ -181,8 +181,8 @@ class ApuPdfWriterTest {
                 assertTrue(text.contains(a.id().toString()));
                 assertFalse(text.contains("COD1"));
                 if (text.contains("descripción") || text.contains("FILA")) {
-                    for (String header : List.of(
-                            "Descripción", "Cantidad", "Tarifa / Jornal", "Costo hora", "Rendimiento", "Costo")) {
+                    for (String header :
+                            List.of("Descripción", "Cantidad", "Tarifa", "Costo hora", "Rendimiento", "Costo")) {
                         assertTrue(text.contains(header), "Page " + p + " missing " + header);
                     }
                     assertTrue(text.indexOf("Descripción") < text.indexOf("descripción"));
@@ -264,8 +264,9 @@ class ApuPdfWriterTest {
             for (int p = 1; p <= pdf.getNumberOfPages(); p++) {
                 String text = pagina(pdf, p);
                 if (text.contains("material ñ")) {
-                    for (String h : List.of("Descripción", "Unidad", "Cantidad", "Precio / Tarifa", "Costo"))
+                    for (String h : List.of("Descripción", "Unidad", "Cantidad", "Costo"))
                         assertTrue(text.contains(h), text);
+                    assertTrue(text.contains("Precio unitario") || text.contains("Tarifa"), text);
                     assertFalse(text.contains("Rendimiento"));
                 }
             }

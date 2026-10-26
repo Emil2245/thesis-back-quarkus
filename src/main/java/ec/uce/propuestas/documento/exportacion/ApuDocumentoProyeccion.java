@@ -121,7 +121,7 @@ public final class ApuDocumentoProyeccion {
                         .toList();
                 bloques.add(new Bloque(
                         tipo,
-                        etiqueta(tipo, p.sufijosSeccionActivos()),
+                        ec.uce.propuestas.documento.ApuTextoPresentacion.tituloBloque(tipo, p.sufijosSeccionActivos()),
                         s == null ? null : s.orden(),
                         filas,
                         subtotal,
@@ -167,21 +167,5 @@ public final class ApuDocumentoProyeccion {
             rubros.addAll(c.rubros());
             recorrer(c.hijos(), rubros);
         }
-    }
-
-    private static String etiqueta(SeccionTipo tipo, boolean sufijos) {
-        String nombre = switch (tipo) {
-            case EQUIPO -> "Equipos y herramientas";
-            case MANO_OBRA -> "Mano de obra";
-            case MATERIAL -> "Materiales";
-            case TRANSPORTE -> "Transporte";
-        };
-        String sufijo = switch (tipo) {
-            case EQUIPO -> "M";
-            case MANO_OBRA -> "N";
-            case MATERIAL -> "O";
-            case TRANSPORTE -> "P";
-        };
-        return sufijos ? nombre + " (" + sufijo + ")" : nombre;
     }
 }

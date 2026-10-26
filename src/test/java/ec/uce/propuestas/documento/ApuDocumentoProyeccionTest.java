@@ -35,7 +35,7 @@ class ApuDocumentoProyeccionTest {
                 List.of(SeccionTipo.EQUIPO, SeccionTipo.MANO_OBRA, SeccionTipo.MATERIAL, SeccionTipo.TRANSPORTE),
                 a.bloques().stream().map(b -> b.tipo()).toList());
         var m = a.bloques().getFirst();
-        assertEquals("Equipos y herramientas (M)", m.etiqueta());
+        assertEquals("EQUIPOS (M)", m.etiqueta());
         assertEquals((short) 99, m.ordenCapturado());
         assertEquals(
                 List.of(id(31), id(32), id(33)),
@@ -68,7 +68,7 @@ class ApuDocumentoProyeccionTest {
         var s = ApuDocumentoFixture.snapshot(false, false, decimal("0.2500"));
         var a = ApuDocumentoProyeccion.proyectar(s).apus().get(1);
         assertEquals(2, a.bloques().size());
-        assertEquals("Equipos y herramientas", a.bloques().getFirst().etiqueta());
+        assertEquals("EQUIPOS", a.bloques().getFirst().etiqueta());
         assertFalse(a.bloques().getFirst().mostrarSubtotal());
         assertTrue(a.pie().subtotales().isEmpty());
         assertNull(a.nombreProyectoHeader());

@@ -423,12 +423,12 @@ class ApuXlsxWriterTest {
                     assertEquals(
                             empty ? 2 : 0,
                             labels.stream()
-                                    .filter(l -> l.startsWith("Mano de obra"))
+                                    .filter(l -> l.startsWith("MANO DE OBRA"))
                                     .count());
                     assertEquals(
                             empty ? 2 : 0,
                             labels.stream()
-                                    .filter(l -> l.startsWith("Transporte"))
+                                    .filter(l -> l.startsWith("TRANSPORTE"))
                                     .count());
                     for (var f : s.firmantes()) {
                         String name = PresupuestoXlsxWriter.seguro(f.nombre()) + " · "

@@ -62,12 +62,7 @@ public final class ApuXlsxWriter {
         c.linea("Unidad: " + a.unidad(), false);
         for (var b : a.bloques()) {
             boolean horario = b.tipo() == SeccionTipo.EQUIPO || b.tipo() == SeccionTipo.MANO_OBRA;
-            c.seccion(
-                    b.etiqueta(),
-                    horario
-                            ? List.of(
-                                    "Descripción", "Cantidad", "Tarifa / Jornal", "Costo hora", "Rendimiento", "Costo")
-                            : List.of("Descripción", "Unidad", "Cantidad", "Precio / Tarifa", "", "Costo"));
+            c.seccion(b.etiqueta(), ApuTextoPresentacion.encabezados(b.tipo()));
             for (var f : b.filas()) {
                 var v = f.detalle();
                 var chunks = ApuTextoPresentacion.fragmentos(f.descripcion());
