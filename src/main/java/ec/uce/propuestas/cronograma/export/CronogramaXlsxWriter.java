@@ -70,6 +70,12 @@ public final class CronogramaXlsxWriter {
     public record FilaHoja(
             Fila fila, List<BigDecimal> porcentajesPorPeriodo, Map<Integer, BigDecimal> montoPorPeriodo) {}
 
+    /**
+     * Fila de capítulo/subcapítulo: agrupación sin datos de actividad (CHK-22). {@code antesDeFila} es el
+     * índice, dentro de {@code filas}, de la primera fila de rubro que se imprime después de este capítulo.
+     */
+    public record CapituloHoja(String item, String descripcion, BigDecimal total, int antesDeFila) {}
+
     /** Proyección completa que recibe el writer (una sola estructura inmutable). */
     public record ProyeccionXlsx(
             String proyectoCodigo,
@@ -78,7 +84,65 @@ public final class CronogramaXlsxWriter {
             String unidadTiempo,
             int numeroPeriodos,
             LocalDate fechaInicio,
-            List<FilaHoja> filas) {}
+            List<FilaHoja> filas,
+            List<CapituloHoja> capitulos,
+            String institucion,
+            String subdireccion,
+            int precisionDinero,
+            int precisionPorcentaje) {
+        public ProyeccionXlsx {
+            capitulos = capitulos == null ? List.of() : List.copyOf(capitulos);
+            institucion = institucion == null ? "" : institucion;
+            subdireccion = subdireccion == null ? "" : subdireccion;
+        }
+
+        /** Sin capítulos, institución ni configuración de display: precisiones por defecto (2 y 4). */
+        public ProyeccionXlsx(
+                String proyectoCodigo,
+                String proyectoNombre,
+                int anio,
+                String unidadTiempo,
+                int numeroPeriodos,
+                LocalDate fechaInicio,
+                List<FilaHoja> filas) {
+            this(
+                    proyectoCodigo,
+                    proyectoNombre,
+                    anio,
+                    unidadTiempo,
+                    numeroPeriodos,
+                    fechaInicio,
+                    filas,
+                    List.of(),
+                    "",
+                    "",
+                    2,
+                    4);
+        }
+
+        /** Texto de la fila de institución del encabezado, vacío si el proyecto no la tiene. */
+        public String institucionVisible() {
+            return java.util.stream.Stream.of(institucion, subdireccion)
+                    .filter(s -> !s.isBlank())
+                    .collect(java.util.stream.Collectors.joining(" · "));
+        }
+
+        /** {@code valor} a {@code precisionDinero} dp (HALF_UP), solo presentación. */
+        public String dinero(BigDecimal valor) {
+            return valor == null
+                    ? ""
+                    : valor.setScale(precisionDinero, java.math.RoundingMode.HALF_UP)
+                            .toPlainString();
+        }
+
+        /** {@code valor} (ya en unidades de porcentaje) a {@code precisionPorcentaje} dp (HALF_UP). */
+        public String porcentaje(BigDecimal valor) {
+            return valor == null
+                    ? ""
+                    : valor.setScale(precisionPorcentaje, java.math.RoundingMode.HALF_UP)
+                            .toPlainString();
+        }
+    }
 
     /**
      * Renderiza el XLSX consumiendo la proyeccion canonica. La hoja viene
@@ -127,6 +191,21 @@ public final class CronogramaXlsxWriter {
         aplicarBordes(textoEstilo);
         textoEstilo.setVerticalAlignment(VerticalAlignment.TOP);
 
+        // Formatos de presentación (CHK-28): dinero a precisionDinero dp y porcentaje a precisionPorcentaje dp.
+        // El valor de la celda no cambia; solo cómo se muestra.
+        String fmtDinero = formato(p.precisionDinero());
+        String fmtPct = formato(p.precisionPorcentaje());
+        CellStyle dineroEstilo = numerico(wb, textoEstilo, fmtDinero);
+        CellStyle pctEstilo = numerico(wb, textoEstilo, fmtPct);
+        CellStyle resumenDinero = numerico(wb, resumenEstilo, fmtDinero);
+        CellStyle resumenPct = numerico(wb, resumenEstilo, fmtPct);
+        CellStyle capituloEstilo = wb.createCellStyle();
+        capituloEstilo.setFont(bold);
+        capituloEstilo.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        capituloEstilo.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        aplicarBordes(capituloEstilo);
+        CellStyle capituloDinero = numerico(wb, capituloEstilo, fmtDinero);
+
         // (1) Título + identidad
         Row r0 = sh.createRow(0);
         crearCelda(r0, 0, neutralizar("CRONOGRAMA VALORADO DE TRABAJOS"), tituloEstilo);
@@ -145,8 +224,16 @@ public final class CronogramaXlsxWriter {
                         + (p.fechaInicio() != null ? "  ·  Inicio: " + p.fechaInicio : ""),
                 null);
 
+        // Institución del proyecto (spec §4.2 «Identidad»); el modelo no tiene campo de ubicación.
         Row r2 = sh.createRow(2);
-        crearCelda(r2, 0, "Sistema APU — Cronograma Valorado de Trabajos", null);
+        String institucion = p.institucionVisible();
+        crearCelda(
+                r2,
+                0,
+                institucion.isEmpty()
+                        ? "Sistema APU — Cronograma Valorado de Trabajos"
+                        : "Institución: " + neutralizar(proyeccionSegura(institucion)),
+                null);
 
         // (2) Cabecera de columnas
         Row r3 = sh.createRow(3);
@@ -159,30 +246,42 @@ public final class CronogramaXlsxWriter {
             crearCelda(r3, 8 + i, etiqueta + " " + (i + 1), cabeceraEstilo);
         }
 
-        // (3) Filas de rubros
+        // (3) Filas de capítulo (agrupación, CHK-22) y de rubros
         int rowIdx = 4;
-        for (FilaHoja fh : p.filas()) {
+        int siguienteCapitulo = 0;
+        List<CapituloHoja> capitulos = p.capitulos();
+        for (int filaIdx = 0; filaIdx <= p.filas().size(); filaIdx++) {
+            while (siguienteCapitulo < capitulos.size()
+                    && capitulos.get(siguienteCapitulo).antesDeFila() <= filaIdx) {
+                var cap = capitulos.get(siguienteCapitulo++);
+                Row rc = sh.createRow(rowIdx++);
+                crearCelda(rc, 0, "Cap. " + neutralizar(cap.item()), capituloEstilo);
+                crearCelda(rc, 1, "", capituloEstilo);
+                crearCelda(rc, 2, neutralizar(cap.descripcion()), capituloEstilo);
+                for (int c = 3; c < columnas; c++) crearCelda(rc, c, "", capituloEstilo);
+                crearCeldaNumerica(rc, 6, cap.total(), capituloDinero);
+            }
+            if (filaIdx == p.filas().size()) break;
+            FilaHoja fh = p.filas().get(filaIdx);
             Row r = sh.createRow(rowIdx++);
             crearCelda(r, 0, neutralizar(fh.fila().item()), textoEstilo);
             crearCelda(r, 1, neutralizar(fh.fila().codigo()), textoEstilo);
             crearCelda(r, 2, neutralizar(fh.fila().descripcion()), textoEstilo);
             crearCelda(r, 3, neutralizar(fh.fila().unidad()), textoEstilo);
-            crearCeldaNumerica(r, 4, fh.fila().cantidad());
-            crearCeldaNumerica(r, 5, fh.fila().precioUnitario());
-            crearCeldaNumerica(r, 6, fh.fila().precioTotal());
-            crearCeldaNumerica(r, 7, fh.fila().peso());
-            // Períodos: porcentaje parcial (escala 4). Celda vacía si la
-            // columna no es activa; cero numérico si la columna es activa con
-            // valor 0.
+            crearCeldaNumerica(r, 4, fh.fila().cantidad(), dineroEstilo);
+            crearCeldaNumerica(r, 5, fh.fila().precioUnitario(), dineroEstilo);
+            crearCeldaNumerica(r, 6, fh.fila().precioTotal(), dineroEstilo);
+            crearCeldaNumerica(r, 7, fh.fila().peso(), pctEstilo);
+            // Períodos: porcentaje parcial. Celda vacía si la columna no es activa; cero numérico si la
+            // columna es activa con valor 0.
             for (int i = 0; i < p.numeroPeriodos(); i++) {
-                int periodo = i + 1;
                 BigDecimal pct = i < fh.porcentajesPorPeriodo().size()
                         ? fh.porcentajesPorPeriodo().get(i)
                         : null;
                 if (pct == null) {
                     crearCelda(r, 8 + i, "", textoEstilo);
                 } else {
-                    crearCeldaNumerica(r, 8 + i, pct);
+                    crearCeldaNumerica(r, 8 + i, pct, pctEstilo);
                 }
             }
         }
@@ -198,10 +297,10 @@ public final class CronogramaXlsxWriter {
         BigDecimal[] parcialMonto = totales.parcialMonto().toArray(new BigDecimal[0]);
         BigDecimal[] acumMonto = totales.acumuladoMonto().toArray(new BigDecimal[0]);
 
-        rowIdx = escribirResumen(sh, rowIdx, "% PARCIAL", parcialPct, resumenEstilo);
-        rowIdx = escribirResumen(sh, rowIdx, "% ACUMULADO", acumPct, resumenEstilo);
-        rowIdx = escribirResumen(sh, rowIdx, "MONTO PARCIAL", parcialMonto, resumenEstilo);
-        escribirResumen(sh, rowIdx, "MONTO ACUMULADO", acumMonto, resumenEstilo);
+        rowIdx = escribirResumen(sh, rowIdx, "% PARCIAL", parcialPct, resumenEstilo, resumenPct);
+        rowIdx = escribirResumen(sh, rowIdx, "% ACUMULADO", acumPct, resumenEstilo, resumenPct);
+        rowIdx = escribirResumen(sh, rowIdx, "MONTO PARCIAL", parcialMonto, resumenEstilo, resumenDinero);
+        escribirResumen(sh, rowIdx, "MONTO ACUMULADO", acumMonto, resumenEstilo, resumenDinero);
 
         // Auto-anchos razonables.
         for (int i = 0; i < columnas; i++) {
@@ -209,13 +308,25 @@ public final class CronogramaXlsxWriter {
         }
     }
 
-    private static int escribirResumen(Sheet sh, int rowIdx, String etiqueta, BigDecimal[] valores, CellStyle estilo) {
+    private static int escribirResumen(
+            Sheet sh, int rowIdx, String etiqueta, BigDecimal[] valores, CellStyle estilo, CellStyle estiloNumero) {
         Row r = sh.createRow(rowIdx);
         crearCelda(r, 0, etiqueta, estilo);
         for (int i = 0; i < valores.length; i++) {
-            crearCeldaNumerica(r, 8 + i, valores[i]);
+            crearCeldaNumerica(r, 8 + i, valores[i], estiloNumero);
         }
         return rowIdx + 1;
+    }
+
+    private static String formato(int decimales) {
+        return decimales <= 0 ? "0" : "0." + "0".repeat(decimales);
+    }
+
+    private static CellStyle numerico(Workbook wb, CellStyle base, String formato) {
+        CellStyle s = wb.createCellStyle();
+        s.cloneStyleFrom(base);
+        s.setDataFormat(wb.createDataFormat().getFormat(formato));
+        return s;
     }
 
     private static void crearCelda(Row fila, int col, String texto, CellStyle estilo) {
@@ -226,8 +337,9 @@ public final class CronogramaXlsxWriter {
         }
     }
 
-    private static void crearCeldaNumerica(Row fila, int col, BigDecimal valor) {
+    private static void crearCeldaNumerica(Row fila, int col, BigDecimal valor, CellStyle estilo) {
         Cell c = fila.createCell(col);
+        c.setCellStyle(estilo);
         if (valor == null) {
             c.setCellValue((String) null);
             return;

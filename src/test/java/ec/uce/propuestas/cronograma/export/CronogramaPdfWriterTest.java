@@ -296,8 +296,15 @@ class CronogramaPdfWriterTest {
                     for (var row : rows)
                         valuesInSlice.append(
                                 row.porcentajesPorPeriodo().get(period - 1).toPlainString());
-                    for (var values : expected)
-                        valuesInSlice.append(values.get(period - 1).toPlainString());
+                    // Presentación: porcentajes a precisionPorcentaje (4) y montos a precisionDinero (2).
+                    for (int series = 0; series < expected.size(); series++)
+                        valuesInSlice.append(
+                                series < 2
+                                        ? expected.get(series).get(period - 1).toPlainString()
+                                        : expected.get(series)
+                                                .get(period - 1)
+                                                .setScale(2, java.math.RoundingMode.HALF_UP)
+                                                .toPlainString());
                     // Vertical schema repeats are legitimate; activity and canonical summary values are not duplicated.
                     assertEquals(
                             valuesInSlice.toString(),
