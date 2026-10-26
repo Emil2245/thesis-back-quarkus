@@ -2,14 +2,12 @@ package ec.uce.propuestas.documento;
 
 import ec.uce.propuestas.documento.exportacion.ApuDocumentoProyeccion.*;
 import ec.uce.propuestas.documento.exportacion.OpcionesDocumento;
-import ec.uce.propuestas.documento.exportacion.SnapshotDocumento;
 import ec.uce.propuestas.motor.SeccionTipo;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import org.openpdf.text.Document;
 import org.openpdf.text.Element;
@@ -25,7 +23,7 @@ import org.openpdf.text.pdf.PdfReader;
 import org.openpdf.text.pdf.PdfStamper;
 import org.openpdf.text.pdf.PdfWriter;
 
-/** Pure A4 portrait serialization; persisted amounts never come from the diagnostic calculation. */
+/** Pure A4 portrait serialization; row amounts come from the projection, never recalculated here. */
 public final class ApuPdfWriter {
     private static volatile BaseFont fuente;
 
@@ -81,6 +79,8 @@ public final class ApuPdfWriter {
         linea(doc, "ANÁLISIS DE PRECIOS UNITARIOS", f.bold);
         linea(doc, d.proyecto().direccionInstitucional(), f.normal);
         linea(doc, d.proyecto().subdireccionInstitucional(), f.normal);
+        linea(doc, "PROYECTO: " + d.proyecto().nombre(), f.bold);
+        linea(doc, "Año: " + d.proyecto().anio(), f.normal);
         if (a.nombreProyectoHeader() != null) linea(doc, "Proyecto: " + a.nombreProyectoHeader(), f.normal);
         linea(doc, "Código: " + a.etiquetaCodigo(), f.bold);
         linea(doc, a.descripcion(), f.normal);
@@ -92,9 +92,9 @@ public final class ApuPdfWriter {
             var title = celda(b.etiqueta(), f.bold, false);
             title.setColspan(table.getNumberOfColumns());
             table.addCell(title);
-            for (String label : horario
-                    ? List.of("Descripción", "Cantidad", "Tarifa / Jornal", "Costo hora", "Rendimiento", "Costo")
-                    : List.of("Descripción", "Unidad", "Cantidad", "Precio / Tarifa", "Costo")) {
+            for (String label : ApuTextoPresentacion.encabezados(b.tipo()).stream()
+                    .filter(l -> !l.isEmpty())
+                    .toList()) {
                 table.addCell(celda(label, f.bold, false));
             }
             // Both section name and its own column schema repeat, never a previous section's schema.
@@ -112,10 +112,10 @@ public final class ApuPdfWriter {
                     table.addCell(celda(i == 0 ? efectivo(v.cantidad()) : "", f.normal, true));
                     table.addCell(celda(i == 0 ? f.dinero(v.precioEfectivo()) : "", f.normal, true));
                     if (horario) {
-                        table.addCell(celda(i == 0 ? f.dinero(v.costoHora()) : "", f.normal, true));
+                        table.addCell(celda(i == 0 ? f.dinero(row.costoHora()) : "", f.normal, true));
                         table.addCell(celda(i == 0 ? efectivo(v.rendimiento()) : "", f.normal, true));
                     }
-                    table.addCell(celda(i == 0 ? f.dinero(v.costo()) : "", f.normal, true));
+                    table.addCell(celda(i == 0 ? f.dinero(row.costo()) : "", f.normal, true));
                 }
             }
             // A header-only table is suppressed by OpenPDF; an explicit empty row keeps empty sections visible.
@@ -127,7 +127,8 @@ public final class ApuPdfWriter {
         }
         for (var subtotal : a.pie().subtotales()) {
             // Reuse projected labels, including captured suffix policy, even for hidden empty blocks.
-            String label = etiqueta(subtotal.tipo(), d.parametros().sufijosSeccionActivos());
+            String label = ApuTextoPresentacion.tituloBloque(
+                    subtotal.tipo(), d.parametros().sufijosSeccionActivos());
             importe(doc, "Subtotal " + label, f.dinero(subtotal.valor()), f);
         }
         importe(doc, "Costo directo", f.dinero(a.pie().costoDirecto()), f);
@@ -139,26 +140,8 @@ public final class ApuPdfWriter {
         importe(doc, "Costo total", f.dinero(a.pie().costoTotal()), f);
         importe(doc, "Valor ofertado", f.dinero(a.pie().valorOfertado()), f);
         linea(doc, a.pie().mensaje(), f.normal);
-        for (var firmante : d.firmantes().stream()
-                .sorted(Comparator.comparingInt(SnapshotDocumento.Firmante::orden)
-                        .thenComparing(s -> s.id().toString()))
-                .toList()) {
-            linea(
-                    doc,
-                    PresupuestoXlsxWriter.seguro(firmante.nombre()) + " · "
-                            + PresupuestoXlsxWriter.seguro(firmante.cargo()) + " · "
-                            + PresupuestoXlsxWriter.seguro(firmante.rol()),
-                    f.normal);
-        }
-    }
-
-    private static String etiqueta(SeccionTipo tipo, boolean sufijos) {
-        return switch (tipo) {
-            case EQUIPO -> "Equipos y herramientas" + (sufijos ? " (M)" : "");
-            case MANO_OBRA -> "Mano de obra" + (sufijos ? " (N)" : "");
-            case MATERIAL -> "Materiales" + (sufijos ? " (O)" : "");
-            case TRANSPORTE -> "Transporte" + (sufijos ? " (P)" : "");
-        };
+        for (var firma : ApuTextoPresentacion.firmas(d.firmantes()))
+            linea(doc, firma.texto(), firma.titulo() ? f.bold : f.normal);
     }
 
     private static void subtotal(PdfPTable table, String label, String amount, Formato f) {

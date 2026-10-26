@@ -99,7 +99,8 @@ class ApuDocumentoEvidenceIT {
         if (value != null) cells.add(new NumberCell(column, value.toPlainString()));
     }
 
-    // The oracle is captured persisted data, NOT a newly computed source financial history.
+    // The oracle is the projected printed value: persisted data, except per-row costo/costoHora that come from the
+    // captured engine result when the detail matches it (plan 034). NOT a newly computed source financial history.
     private static List<NumberCell> expected(ApuDocumentoProyeccion.Analisis a) {
         var cells = new ArrayList<NumberCell>();
         for (var b : a.bloques()) {
@@ -110,10 +111,10 @@ class ApuDocumentoEvidenceIT {
                 number(cells, hourly ? 1 : 2, d.cantidad());
                 number(cells, hourly ? 2 : 3, d.precioEfectivo());
                 if (hourly) {
-                    number(cells, 3, d.costoHora());
+                    number(cells, 3, row.costoHora());
                     number(cells, 4, d.rendimiento());
                 }
-                number(cells, 5, d.costo());
+                number(cells, 5, row.costo());
             }
             if (b.mostrarSubtotal()) number(cells, 5, b.subtotal());
         }
@@ -391,13 +392,12 @@ class ApuDocumentoEvidenceIT {
                             .findFirst();
                     assertEquals(
                             section.map(SnapshotDocumento.Seccion::subtotal).orElse(BigDecimal.ZERO), block.subtotal());
-                    for (var row : block.filas())
-                        assertEquals(
-                                section.orElseThrow().detalles().stream()
-                                        .filter(v -> v.id().equals(row.detalle().id()))
-                                        .findFirst()
-                                        .orElseThrow(),
-                                row.detalle());
+                    for (var row : block.filas()) {
+                        var persistido = section.flatMap(s -> s.detalles().stream()
+                                .filter(v -> v.id().equals(row.detalle().id()))
+                                .findFirst());
+                        assertEquals(persistido.orElseThrow(), row.detalle());
+                    }
                 }
             }
             var rows = new ArrayList<SnapshotDocumento.Rubro>();

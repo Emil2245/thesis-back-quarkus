@@ -56,18 +56,15 @@ public final class ApuXlsxWriter {
         c.linea("ANÁLISIS DE PRECIOS UNITARIOS", true);
         c.linea(d.proyecto().direccionInstitucional(), false);
         c.linea(d.proyecto().subdireccionInstitucional(), false);
+        c.linea("PROYECTO: " + d.proyecto().nombre(), true);
+        c.linea("Año: " + d.proyecto().anio(), false);
         if (a.nombreProyectoHeader() != null) c.linea("Proyecto: " + a.nombreProyectoHeader(), false);
         c.linea("Código: " + a.etiquetaCodigo(), true);
         c.linea(a.descripcion(), false);
         c.linea("Unidad: " + a.unidad(), false);
         for (var b : a.bloques()) {
             boolean horario = b.tipo() == SeccionTipo.EQUIPO || b.tipo() == SeccionTipo.MANO_OBRA;
-            c.seccion(
-                    b.etiqueta(),
-                    horario
-                            ? List.of(
-                                    "Descripción", "Cantidad", "Tarifa / Jornal", "Costo hora", "Rendimiento", "Costo")
-                            : List.of("Descripción", "Unidad", "Cantidad", "Precio / Tarifa", "", "Costo"));
+            c.seccion(b.etiqueta(), ApuTextoPresentacion.encabezados(b.tipo()));
             for (var f : b.filas()) {
                 var v = f.detalle();
                 var chunks = ApuTextoPresentacion.fragmentos(f.descripcion());
@@ -81,13 +78,13 @@ public final class ApuXlsxWriter {
                     if (horario) {
                         c.numero(row, 1, v.cantidad(), c.estilos.efectivo);
                         c.numero(row, 2, v.precioEfectivo(), c.estilos.dinero);
-                        c.numero(row, 3, v.costoHora(), c.estilos.dinero);
+                        c.numero(row, 3, f.costoHora(), c.estilos.dinero);
                         c.numero(row, 4, v.rendimiento(), c.estilos.efectivo);
                     } else {
                         c.numero(row, 2, v.cantidad(), c.estilos.efectivo);
                         c.numero(row, 3, v.precioEfectivo(), c.estilos.dinero);
                     }
-                    c.numero(row, 5, v.costo(), c.estilos.dinero);
+                    c.numero(row, 5, f.costo(), c.estilos.dinero);
                 }
             }
             if (b.mostrarSubtotal()) c.importe("Subtotal " + b.etiqueta(), b.subtotal());
@@ -102,15 +99,7 @@ public final class ApuXlsxWriter {
         c.importe("Costo total", a.pie().costoTotal());
         c.importe("Valor ofertado", a.pie().valorOfertado());
         c.linea(a.pie().mensaje(), false);
-        d.firmantes().stream()
-                .sorted(java.util.Comparator.comparingInt(
-                                ec.uce.propuestas.documento.exportacion.SnapshotDocumento.Firmante::orden)
-                        .thenComparing(f -> f.id().toString()))
-                .forEach(f -> c.linea(
-                        PresupuestoXlsxWriter.seguro(f.nombre()) + " · "
-                                + PresupuestoXlsxWriter.seguro(f.cargo()) + " · "
-                                + PresupuestoXlsxWriter.seguro(f.rol()),
-                        false));
+        for (var linea : ApuTextoPresentacion.firmas(d.firmantes())) c.linea(linea.texto(), linea.titulo());
     }
 
     private static String nombre(ApuDocumentoProyeccion.Analisis a, Set<String> usados) {

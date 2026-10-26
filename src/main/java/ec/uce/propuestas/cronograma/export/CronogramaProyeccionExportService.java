@@ -55,6 +55,9 @@ public class CronogramaProyeccionExportService {
     @Inject
     RubroRepository rubroRepository;
 
+    @Inject
+    ec.uce.propuestas.common.config.DisplayConfig display;
+
     /**
      * Proyección XLSX/PDF: misma estructura que la hoja del cronograma
      * valorizado. Las claves activas son exactamente las que la actividad
@@ -120,8 +123,9 @@ public class CronogramaProyeccionExportService {
                 else raices.add(nodo);
             }
         }
+        List<CronogramaXlsxWriter.CapituloHoja> capitulosHoja = new ArrayList<>();
         for (NodoCap r : raices) {
-            r.recolectar(filas, actPorRubro, n);
+            r.recolectar(filas, capitulosHoja, actPorRubro, n);
         }
 
         return new CronogramaXlsxWriter.ProyeccionXlsx(
@@ -131,7 +135,12 @@ public class CronogramaProyeccionExportService {
                 cronograma.unidadTiempo,
                 n,
                 proyecto.fechaInicio,
-                List.copyOf(filas));
+                List.copyOf(filas),
+                List.copyOf(capitulosHoja),
+                proyecto.direccionInstitucional,
+                proyecto.subdireccionInstitucional,
+                display.precision(),
+                display.precisionPorcentaje());
     }
 
     /**
@@ -233,7 +242,17 @@ public class CronogramaProyeccionExportService {
             this.rubrosList = rubros == null ? List.of() : rubros;
         }
 
-        void recolectar(List<CronogramaXlsxWriter.FilaHoja> out, Map<Long, ActividadCerrada> actPorRubro, int n) {
+        void recolectar(
+                List<CronogramaXlsxWriter.FilaHoja> out,
+                List<CronogramaXlsxWriter.CapituloHoja> capitulos,
+                Map<Long, ActividadCerrada> actPorRubro,
+                int n) {
+            // El capítulo se imprime justo antes de su primer rubro (índice actual de filas).
+            capitulos.add(new CronogramaXlsxWriter.CapituloHoja(
+                    cap.item == null ? "" : cap.item,
+                    cap.descripcion == null ? "" : cap.descripcion,
+                    cap.total == null ? BigDecimal.ZERO : cap.total.setScale(6, RoundingMode.HALF_UP),
+                    out.size()));
             // Rubros en orden estable: item + id.
             List<Rubro> orden = new ArrayList<>(rubrosList);
             orden.sort(Comparator.comparing((Rubro r) -> r.item, ItemJerarquico.ORDEN)
@@ -267,7 +286,7 @@ public class CronogramaProyeccionExportService {
                         monto));
             }
             for (NodoCap h : hijos) {
-                h.recolectar(out, actPorRubro, n);
+                h.recolectar(out, capitulos, actPorRubro, n);
             }
         }
     }

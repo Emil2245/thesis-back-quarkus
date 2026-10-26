@@ -8,7 +8,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.HorizontalAlignment;
@@ -21,7 +20,8 @@ import org.openxmlformats.schemas.spreadsheetml.x2006.main.STCellType;
 /** Serialización pura: no consulta ni calcula importes del dominio. */
 public final class PresupuestoXlsxWriter {
     static final String[] CABECERAS = {"Ítem", "Código", "Descripción", "Unidad", "Cantidad", "P.Unitario", "P.Total"};
-    static final String NOTA_IVA = "Los precios indicados no incluyen IVA (sin IVA).";
+    static final String NOTA_IVA = "Nota: los precios no incluyen IVA";
+    static final String TITULO_TABLA = "TABLA DE DESCRIPCIÓN DE RUBROS, UNIDADES, CANTIDADES Y PRECIOS";
 
     private PresupuestoXlsxWriter() {}
 
@@ -147,8 +147,9 @@ public final class PresupuestoXlsxWriter {
         if (s.proyecto().subdireccionInstitucional() != null
                 && !s.proyecto().subdireccionInstitucional().isBlank())
             result.add(seguro(s.proyecto().subdireccionInstitucional()));
-        result.add("Proyecto: " + seguro(s.proyecto().nombre()) + " · Código: "
+        result.add("PROYECTO: " + seguro(s.proyecto().nombre()) + " · Código: "
                 + seguro(s.proyecto().codigo()));
+        result.add(TITULO_TABLA);
         result.add("Año: " + s.proyecto().anio() + " · Versión: " + s.version());
         result.add("Presupuesto: " + s.presupuestoId());
         return List.copyOf(result);
@@ -158,10 +159,7 @@ public final class PresupuestoXlsxWriter {
         var result = new ArrayList<String>();
         result.add(NOTA_IVA);
         if (s.notas() != null && !s.notas().isBlank()) result.add(seguro(s.notas()));
-        s.firmantes().stream()
-                .sorted(Comparator.comparingInt(SnapshotDocumento.Firmante::orden)
-                        .thenComparing(f -> f.id().toString()))
-                .forEach(f -> result.add(seguro(f.nombre()) + " · " + seguro(f.cargo()) + " · " + seguro(f.rol())));
+        for (var firma : ApuTextoPresentacion.firmas(s.firmantes())) result.add(firma.texto());
         if (s.parametros().mensajeFooter() != null
                 && !s.parametros().mensajeFooter().isBlank())
             result.add(seguro(s.parametros().mensajeFooter()));

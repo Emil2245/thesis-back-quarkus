@@ -2,6 +2,7 @@ package ec.uce.propuestas.documento;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import ec.uce.propuestas.documento.exportacion.SnapshotDocumento;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -83,7 +84,9 @@ class PresupuestoXlsxWriterTest {
                     "Versión: 7",
                     PresupuestoDocumentoFixture.id(30).toString(),
                     PresupuestoDocumentoFixture.HOSTIL,
-                    "sin IVA",
+                    "Nota: los precios no incluyen IVA",
+                    "TABLA DE DESCRIPCIÓN DE RUBROS, UNIDADES, CANTIDADES Y PRECIOS",
+                    "PROYECTO: Proyecto histórico ñ",
                     "Legal ñ",
                     "Técnico ñ",
                     precision == 2 ? "4321.99" : "4321.9877"
@@ -119,13 +122,62 @@ class PresupuestoXlsxWriterTest {
     }
 
     @Test
+    void literalesDeCaratulaNotaIvaYBloqueDeFirmasSegunSpec() throws Exception {
+        var base = PresupuestoDocumentoFixture.snapshot(2, 0);
+        var firmantes = java.util.List.of(
+                new SnapshotDocumento.Firmante(
+                        PresupuestoDocumentoFixture.id(51), "Ana Dos", "Revisora", "APROBADO", (short) 2),
+                new SnapshotDocumento.Firmante(
+                        PresupuestoDocumentoFixture.id(52), "Beto Uno", "Aprobador", "APROBADO", (short) 1),
+                new SnapshotDocumento.Firmante(
+                        PresupuestoDocumentoFixture.id(53), "Carla", "Responsable", "CONSOLIDADO", (short) 1));
+        var s = new SnapshotDocumento(
+                base.presupuestoId(),
+                base.version(),
+                base.vigente(),
+                base.notas(),
+                base.total(),
+                base.proyecto(),
+                base.parametros(),
+                base.display(),
+                firmantes,
+                base.capitulos(),
+                base.apus(),
+                base.preflight());
+        try (var wb = new XSSFWorkbook(new ByteArrayInputStream(
+                PresupuestoXlsxWriter.renderizar(s, PresupuestoDocumentoFixture.opciones("xlsx", false))))) {
+            var col = new java.util.ArrayList<String>();
+            for (var row : wb.getSheetAt(0))
+                if (row.getCell(0) != null && row.getCell(0).getCellType() == CellType.STRING)
+                    col.add(row.getCell(0).getStringCellValue());
+            assertTrue(col.contains("TABLA DE DESCRIPCIÓN DE RUBROS, UNIDADES, CANTIDADES Y PRECIOS"));
+            int total = col.indexOf("TOTAL");
+            assertEquals("Nota: los precios no incluyen IVA", col.get(total + 1));
+            var firmas = col.subList(col.indexOf("CONSOLIDADO POR:"), col.size());
+            assertEquals(
+                    java.util.List.of(
+                            "CONSOLIDADO POR:",
+                            "Carla\nResponsable",
+                            "FIRMA:",
+                            "APROBADO POR:",
+                            "Beto Uno\nAprobador",
+                            "FIRMA:",
+                            "Ana Dos\nRevisora",
+                            "FIRMA:"),
+                    firmas.stream()
+                            .filter(x -> !x.equals(base.parametros().mensajeFooter()))
+                            .toList());
+        }
+    }
+
+    @Test
     void omiteInstitucionAusenteSinInventarCampos() throws Exception {
         var s = PresupuestoDocumentoFixture.sinInstitucion();
         try (var wb = new XSSFWorkbook(new ByteArrayInputStream(
                 PresupuestoXlsxWriter.renderizar(s, PresupuestoDocumentoFixture.opciones("xlsx", false))))) {
             var sh = wb.getSheetAt(0);
             assertEquals("PRESUPUESTO", sh.getRow(0).getCell(0).getStringCellValue());
-            assertTrue(sh.getRow(1).getCell(0).getStringCellValue().startsWith("Proyecto:"));
+            assertTrue(sh.getRow(1).getCell(0).getStringCellValue().startsWith("PROYECTO:"));
         }
     }
 
