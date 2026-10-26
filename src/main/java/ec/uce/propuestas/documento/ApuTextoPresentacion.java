@@ -1,6 +1,9 @@
 package ec.uce.propuestas.documento;
 
+import ec.uce.propuestas.documento.exportacion.SnapshotDocumento.Firmante;
 import ec.uce.propuestas.motor.SeccionTipo;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /** Bounded, Unicode-safe presentation chunks and fixed literals; contains no financial arithmetic. */
@@ -40,5 +43,37 @@ public final class ApuTextoPresentacion {
             case MATERIAL -> List.of("Descripción", "Unidad", "Cantidad", "Precio unitario", "", "Costo");
             case TRANSPORTE -> List.of("Descripción", "Unidad", "Cantidad", "Tarifa", "", "Costo");
         };
+    }
+
+    /** Línea del bloque de firmas: {@code titulo} marca los encabezados de sección (negrita). */
+    public record LineaFirma(String texto, boolean titulo) {}
+
+    /**
+     * Bloque de firmantes del spec §5 / CHK-26: secciones {@code CONSOLIDADO POR:} y {@code APROBADO POR:}
+     * (solo las que tienen firmantes), con {@code nombre\ncargo} por firmante en su orden y un slot
+     * {@code FIRMA:} vacío (sin firma electrónica, fuera de alcance). Un rol fuera de esos dos (la BD no lo
+     * permite) se emite al final bajo su propio encabezado {@code ROL:} para no perder al firmante.
+     */
+    public static List<LineaFirma> firmas(List<Firmante> firmantes) {
+        var ordenados = firmantes.stream()
+                .sorted(Comparator.comparingInt(Firmante::orden).thenComparing(f -> f.id().toString()))
+                .toList();
+        var porRol = new java.util.LinkedHashMap<String, List<Firmante>>();
+        for (var rol : List.of("CONSOLIDADO", "APROBADO")) porRol.put(rol, new ArrayList<>());
+        for (var f : ordenados)
+            porRol.computeIfAbsent(f.rol(), r -> new ArrayList<>()).add(f);
+        var lineas = new ArrayList<LineaFirma>();
+        porRol.forEach((rol, delRol) -> {
+            if (delRol.isEmpty()) return;
+            boolean conocido = rol.equals("CONSOLIDADO") || rol.equals("APROBADO");
+            lineas.add(new LineaFirma(PresupuestoXlsxWriter.seguro(rol) + (conocido ? " POR:" : ":"), true));
+            for (var f : delRol) {
+                lineas.add(new LineaFirma(
+                        PresupuestoXlsxWriter.seguro(f.nombre()) + "\n" + PresupuestoXlsxWriter.seguro(f.cargo()),
+                        false));
+                lineas.add(new LineaFirma("FIRMA:", false));
+            }
+        });
+        return List.copyOf(lineas);
     }
 }

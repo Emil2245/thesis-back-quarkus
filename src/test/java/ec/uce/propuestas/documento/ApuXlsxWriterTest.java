@@ -431,9 +431,8 @@ class ApuXlsxWriterTest {
                                     .filter(l -> l.startsWith("TRANSPORTE"))
                                     .count());
                     for (var f : s.firmantes()) {
-                        String name = PresupuestoXlsxWriter.seguro(f.nombre()) + " · "
-                                + PresupuestoXlsxWriter.seguro(f.cargo()) + " · "
-                                + PresupuestoXlsxWriter.seguro(f.rol());
+                        String name = PresupuestoXlsxWriter.seguro(f.nombre()) + "\n"
+                                + PresupuestoXlsxWriter.seguro(f.cargo());
                         assertEquals(
                                 footer ? 2 : 0,
                                 labels.stream().filter(name::equals).count());
@@ -487,12 +486,20 @@ class ApuXlsxWriterTest {
                 var expected = new java.util.ArrayList<String>();
                 expected.add("ANÁLISIS DE PRECIOS UNITARIOS");
                 for (String text : java.util.List.of(
-                        largo, largo, "Proyecto: " + largo, "Código: " + largo, largo, "Unidad: " + largo))
-                    expected.addAll(ApuTextoPresentacion.fragmentos(text));
+                        largo,
+                        largo,
+                        "PROYECTO: " + largo,
+                        "Año: " + base.proyecto().anio(),
+                        "Proyecto: " + largo,
+                        "Código: " + largo,
+                        largo,
+                        "Unidad: " + largo)) expected.addAll(ApuTextoPresentacion.fragmentos(text));
                 assertEquals(expected, labels.subList(0, expected.size()));
                 var cierre = new java.util.ArrayList<String>();
                 cierre.addAll(ApuTextoPresentacion.fragmentos(largo));
-                cierre.addAll(ApuTextoPresentacion.fragmentos(largo + " · " + largo + " · " + largo));
+                cierre.addAll(ApuTextoPresentacion.fragmentos(largo + ":"));
+                cierre.addAll(ApuTextoPresentacion.fragmentos(largo + "\n" + largo));
+                cierre.add("FIRMA:");
                 assertEquals(cierre, labels.subList(labels.size() - cierre.size(), labels.size()));
                 for (var row : rows(wb))
                     for (var cell : row)

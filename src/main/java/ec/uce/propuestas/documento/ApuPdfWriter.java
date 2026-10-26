@@ -2,14 +2,12 @@ package ec.uce.propuestas.documento;
 
 import ec.uce.propuestas.documento.exportacion.ApuDocumentoProyeccion.*;
 import ec.uce.propuestas.documento.exportacion.OpcionesDocumento;
-import ec.uce.propuestas.documento.exportacion.SnapshotDocumento;
 import ec.uce.propuestas.motor.SeccionTipo;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import org.openpdf.text.Document;
 import org.openpdf.text.Element;
@@ -81,6 +79,8 @@ public final class ApuPdfWriter {
         linea(doc, "ANÁLISIS DE PRECIOS UNITARIOS", f.bold);
         linea(doc, d.proyecto().direccionInstitucional(), f.normal);
         linea(doc, d.proyecto().subdireccionInstitucional(), f.normal);
+        linea(doc, "PROYECTO: " + d.proyecto().nombre(), f.bold);
+        linea(doc, "Año: " + d.proyecto().anio(), f.normal);
         if (a.nombreProyectoHeader() != null) linea(doc, "Proyecto: " + a.nombreProyectoHeader(), f.normal);
         linea(doc, "Código: " + a.etiquetaCodigo(), f.bold);
         linea(doc, a.descripcion(), f.normal);
@@ -140,17 +140,8 @@ public final class ApuPdfWriter {
         importe(doc, "Costo total", f.dinero(a.pie().costoTotal()), f);
         importe(doc, "Valor ofertado", f.dinero(a.pie().valorOfertado()), f);
         linea(doc, a.pie().mensaje(), f.normal);
-        for (var firmante : d.firmantes().stream()
-                .sorted(Comparator.comparingInt(SnapshotDocumento.Firmante::orden)
-                        .thenComparing(s -> s.id().toString()))
-                .toList()) {
-            linea(
-                    doc,
-                    PresupuestoXlsxWriter.seguro(firmante.nombre()) + " · "
-                            + PresupuestoXlsxWriter.seguro(firmante.cargo()) + " · "
-                            + PresupuestoXlsxWriter.seguro(firmante.rol()),
-                    f.normal);
-        }
+        for (var firma : ApuTextoPresentacion.firmas(d.firmantes()))
+            linea(doc, firma.texto(), firma.titulo() ? f.bold : f.normal);
     }
 
     private static void subtotal(PdfPTable table, String label, String amount, Formato f) {

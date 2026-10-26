@@ -56,6 +56,8 @@ public final class ApuXlsxWriter {
         c.linea("ANÁLISIS DE PRECIOS UNITARIOS", true);
         c.linea(d.proyecto().direccionInstitucional(), false);
         c.linea(d.proyecto().subdireccionInstitucional(), false);
+        c.linea("PROYECTO: " + d.proyecto().nombre(), true);
+        c.linea("Año: " + d.proyecto().anio(), false);
         if (a.nombreProyectoHeader() != null) c.linea("Proyecto: " + a.nombreProyectoHeader(), false);
         c.linea("Código: " + a.etiquetaCodigo(), true);
         c.linea(a.descripcion(), false);
@@ -97,15 +99,7 @@ public final class ApuXlsxWriter {
         c.importe("Costo total", a.pie().costoTotal());
         c.importe("Valor ofertado", a.pie().valorOfertado());
         c.linea(a.pie().mensaje(), false);
-        d.firmantes().stream()
-                .sorted(java.util.Comparator.comparingInt(
-                                ec.uce.propuestas.documento.exportacion.SnapshotDocumento.Firmante::orden)
-                        .thenComparing(f -> f.id().toString()))
-                .forEach(f -> c.linea(
-                        PresupuestoXlsxWriter.seguro(f.nombre()) + " · "
-                                + PresupuestoXlsxWriter.seguro(f.cargo()) + " · "
-                                + PresupuestoXlsxWriter.seguro(f.rol()),
-                        false));
+        for (var linea : ApuTextoPresentacion.firmas(d.firmantes())) c.linea(linea.texto(), linea.titulo());
     }
 
     private static String nombre(ApuDocumentoProyeccion.Analisis a, Set<String> usados) {
