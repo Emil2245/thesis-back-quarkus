@@ -175,7 +175,11 @@ observaciones, no asserts de lock ni allocation.
 ### Valores y seguridad del renderer
 
 - Importes APU, HM/transporte, subtotales/CD/CI/CT y presupuesto PU/PT/totales
-  son originales persistidos del snapshot. Cálculo canónico capturado es diagnóstico
+  son originales persistidos del snapshot, salvo `costo`/`costoHora` de cada fila de
+  detalle impresa, que salen del cálculo canónico capturado (escala 6) cuando el
+  detalle casa con él (plan 034, CHK-05/06/07; ver
+  [03](03-backend-apus.md#proyección-documental-no-segundo-calculador)). Cálculo
+  canónico capturado es por lo demás diagnóstico
   **separado**, no reemplazo ni normalización de históricos; no copiar tasas,
   descuentos o fórmulas fuente. APU usa M/N/O/P fijo de presentación y orden
   persistido dentro del bloque, incluida HM; no muta `orden` de secciones.

@@ -121,9 +121,9 @@ public final class ApuDocumentoProyeccion {
                 if (ss.size() > 1) throw new IllegalArgumentException("Seccion APU ambigua");
                 var s = ss.isEmpty() ? null : ss.getFirst();
                 var detalles = s == null ? List.<SnapshotDocumento.Detalle>of() : s.detalles();
-                // Conciliado: el subtotal impreso es el del motor, el mismo que suma sus filas impresas.
-                var subtotal =
-                        motor != null ? subtotalMotor(a.calculado(), tipo) : s == null ? BigDecimal.ZERO : s.subtotal();
+                // El subtotal impreso sigue siendo el persistido (contrato APU05): con la derivación fresca
+                // (versión recién calculada) coincide con la suma de las filas del motor.
+                var subtotal = s == null ? BigDecimal.ZERO : s.subtotal();
                 subtotales.add(new Subtotal(tipo, subtotal));
                 if (detalles.isEmpty() && !p.mostrarSeccionesVacias()) continue;
                 var filas = new ArrayList<Fila>(detalles.stream()
@@ -187,16 +187,6 @@ public final class ApuDocumentoProyeccion {
 
     private static BigDecimal escala6(BigDecimal v) {
         return v.setScale(ESCALA_PERSISTENCIA, RoundingMode.HALF_UP);
-    }
-
-    private static BigDecimal subtotalMotor(ApuCalculado c, SeccionTipo tipo) {
-        return escala6(
-                switch (tipo) {
-                    case EQUIPO -> c.subtotalM();
-                    case MANO_OBRA -> c.subtotalN();
-                    case MATERIAL -> c.subtotalO();
-                    case TRANSPORTE -> c.subtotalP();
-                });
     }
 
     private static String etiquetaHerramientaMenor(SnapshotDocumento.Parametros p) {
