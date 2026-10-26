@@ -76,13 +76,13 @@ public final class ApuXlsxWriter {
                     if (horario) {
                         c.numero(row, 1, v.cantidad(), c.estilos.efectivo);
                         c.numero(row, 2, v.precioEfectivo(), c.estilos.dinero);
-                        c.numero(row, 3, v.costoHora(), c.estilos.dinero);
+                        c.numero(row, 3, f.costoHora(), c.estilos.dinero);
                         c.numero(row, 4, v.rendimiento(), c.estilos.efectivo);
                     } else {
                         c.numero(row, 2, v.cantidad(), c.estilos.efectivo);
                         c.numero(row, 3, v.precioEfectivo(), c.estilos.dinero);
                     }
-                    c.numero(row, 5, v.costo(), c.estilos.dinero);
+                    c.numero(row, 5, f.costo(), c.estilos.dinero);
                 }
             }
             if (b.mostrarSubtotal()) c.importe("Subtotal " + b.etiqueta(), b.subtotal());

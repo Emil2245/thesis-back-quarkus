@@ -58,13 +58,13 @@ final class ApuConciliadoFixture {
         }
         var calc = Motor.calcularApu(new ApuSnapshot("APU" + n, null, filas), new ParametrosCalculo(HM, CI));
         var secciones = new ArrayList<SnapshotDocumento.Seccion>();
+        int contador = 0;
         for (var tipo : SeccionTipo.values()) {
             var detalles = new ArrayList<SnapshotDocumento.Detalle>();
             int orden = 0;
             // El motor ordena M con HM primero; los detalles persistidos conservan su orden de captura.
             var calcTipo =
                     calc.filas().stream().filter(f -> f.seccion() == tipo).toList();
-            int i = 0;
             int nonHm = 0;
             for (var e : entradas) {
                 if (e.tipo() != tipo) continue;
@@ -85,7 +85,7 @@ final class ApuConciliadoFixture {
                     costoHora = costoHora == null ? null : costoHora.add(decimal("2.250000"));
                 }
                 detalles.add(new SnapshotDocumento.Detalle(
-                        id(1000 + n * 100 + (i++)),
+                        id(1000 + n * 100 + (contador++)),
                         (short) (++orden),
                         e.hm(),
                         e.hm() ? "Herramienta Menor 5.00%MO" : e.texto(),

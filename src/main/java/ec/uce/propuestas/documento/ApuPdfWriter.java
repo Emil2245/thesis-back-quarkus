@@ -25,7 +25,7 @@ import org.openpdf.text.pdf.PdfReader;
 import org.openpdf.text.pdf.PdfStamper;
 import org.openpdf.text.pdf.PdfWriter;
 
-/** Pure A4 portrait serialization; persisted amounts never come from the diagnostic calculation. */
+/** Pure A4 portrait serialization; row amounts come from the projection, never recalculated here. */
 public final class ApuPdfWriter {
     private static volatile BaseFont fuente;
 
@@ -112,10 +112,10 @@ public final class ApuPdfWriter {
                     table.addCell(celda(i == 0 ? efectivo(v.cantidad()) : "", f.normal, true));
                     table.addCell(celda(i == 0 ? f.dinero(v.precioEfectivo()) : "", f.normal, true));
                     if (horario) {
-                        table.addCell(celda(i == 0 ? f.dinero(v.costoHora()) : "", f.normal, true));
+                        table.addCell(celda(i == 0 ? f.dinero(row.costoHora()) : "", f.normal, true));
                         table.addCell(celda(i == 0 ? efectivo(v.rendimiento()) : "", f.normal, true));
                     }
-                    table.addCell(celda(i == 0 ? f.dinero(v.costo()) : "", f.normal, true));
+                    table.addCell(celda(i == 0 ? f.dinero(row.costo()) : "", f.normal, true));
                 }
             }
             // A header-only table is suppressed by OpenPDF; an explicit empty row keeps empty sections visible.
