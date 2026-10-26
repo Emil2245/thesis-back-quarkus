@@ -45,16 +45,12 @@ class ApuDocumentoConciliacionTest {
     }
 
     @Test
-    void apuSinFilaHmImprimeUnaFilaHmSinteticaPrimeraConElValorDelMotor() {
+    void apuSinFilaHmNoImprimeFilaHmSintetica() {
         var a = unico(ApuConciliadoFixture.entradasSinHm(), true);
         var m = a.bloques().getFirst();
         assertEquals(SeccionTipo.EQUIPO, m.tipo());
-        long hm = m.filas().stream().filter(f -> f.detalle().herramientaMenor()).count();
-        assertEquals(1, hm);
-        var primera = m.filas().getFirst();
-        assertTrue(primera.detalle().herramientaMenor());
-        assertTrue(primera.descripcion().matches("Herramienta Menor 5(\\.0+)?%MO"), primera.descripcion());
-        assertEquals(0, primera.costo().compareTo(BigDecimal.ZERO));
+        assertTrue(m.filas().stream().noneMatch(f -> f.detalle().herramientaMenor()));
+        assertEquals(1, m.filas().size());
         assertEquals(0, sumaFilas(m).compareTo(m.subtotal()));
     }
 
@@ -71,7 +67,7 @@ class ApuDocumentoConciliacionTest {
     }
 
     @Test
-    void xlsxDeApuVencidoSinHmFilasSumanSubtotalYHayUnaFilaHm() throws Exception {
+    void xlsxDeApuVencidoSinHmFilasSumanSubtotalYNoHayFilaHm() throws Exception {
         var s = ApuConciliadoFixture.snapshot(
                 List.of(ApuConciliadoFixture.apu(20, ApuConciliadoFixture.entradasSinHm(), true)), true);
         byte[] xlsx = ApuXlsxWriter.renderizar(
@@ -103,7 +99,7 @@ class ApuDocumentoConciliacionTest {
                             .getCTCell()
                             .getV()));
             }
-            assertEquals(1, hm);
+            assertEquals(0, hm);
         }
     }
 

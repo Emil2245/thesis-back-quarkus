@@ -51,7 +51,7 @@ persistidos.
 | Bloques | M/N/O/P: equipos, mano de obra, materiales, transporte; orden fijo de presentación, sin mutar `orden` de dominio |
 | Detalles | Orden persistido dentro del bloque y posición HM; cantidades, rendimiento y precio efectivo guardados; `costo`/`costoHora` del motor (escala 6) si la instantánea es conciliable, si no los guardados |
 | Precios | Efectivos con overrides y base PROYECTO; no consultar CENTRAL/PERSONAL para rellenar |
-| HM | Porcentaje efectivo y costo del motor; campos nulos de cantidad/precio/rendimiento no se convierten en campos financieros inventados. Un APU sin fila HM persistida imprime una fila HM sintética en la posición 0 con el valor del motor (0: sin fila HM el motor no calcula herramienta menor); no cambia subtotales (CHK-05, plan 034) |
+| HM | Porcentaje efectivo y costo del motor; campos nulos de cantidad/precio/rendimiento no se convierten en campos financieros inventados. Un APU sin fila HM persistida no imprime ninguna (no se sintetiza; CHK-05 queda no conforme para esos APU, propiedad de los datos) (CHK-05, plan 034) |
 | Subtotales/pie | Subtotales originales por sección, CD/CI/CT persistidos; valor ofertado = CT, no PU del rubro |
 | CI | Override individual solo si habilitado; en otro caso porcentaje global capturado; importe persistido no recalculado |
 | Parámetros | Vacíos, sufijos, subtotales de bloque/pie, proyecto, enumeración, mensaje y responsables existentes |

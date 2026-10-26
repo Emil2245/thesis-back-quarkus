@@ -3,7 +3,6 @@ package ec.uce.propuestas.documento;
 import static org.junit.jupiter.api.Assertions.*;
 
 import ec.uce.propuestas.documento.exportacion.*;
-import ec.uce.propuestas.motor.SeccionTipo;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
@@ -397,18 +396,7 @@ class ApuDocumentoEvidenceIT {
                         var persistido = section.flatMap(s -> s.detalles().stream()
                                 .filter(v -> v.id().equals(row.detalle().id()))
                                 .findFirst());
-                        if (persistido.isPresent()) {
-                            assertEquals(persistido.get(), row.detalle());
-                        } else {
-                            // Única fila no persistida: la HM sintetizada de un APU sin HM (CHK-05, plan 034),
-                            // con el valor del motor (0: sin fila HM el motor no calcula herramienta menor).
-                            assertEquals(SeccionTipo.EQUIPO, block.tipo());
-                            assertTrue(row.detalle().herramientaMenor());
-                            assertTrue(section.map(s -> s.detalles().stream()
-                                            .noneMatch(SnapshotDocumento.Detalle::herramientaMenor))
-                                    .orElse(true));
-                            assertEquals(0, row.costo().signum());
-                        }
+                        assertEquals(persistido.orElseThrow(), row.detalle());
                     }
                 }
             }

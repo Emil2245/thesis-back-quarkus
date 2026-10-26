@@ -6,7 +6,6 @@ import ec.uce.propuestas.motor.FilaCalculada;
 import ec.uce.propuestas.motor.SeccionTipo;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -112,8 +111,6 @@ public final class ApuDocumentoProyeccion {
             var bloques = new ArrayList<Bloque>();
             var subtotales = new ArrayList<Subtotal>();
             var motor = conciliar(a);
-            boolean hayDetalles =
-                    a.secciones().stream().anyMatch(sec -> !sec.detalles().isEmpty());
             // Fixed documentary M/N/O/P order, irrespective of captured section orden.
             for (var tipo :
                     List.of(SeccionTipo.EQUIPO, SeccionTipo.MANO_OBRA, SeccionTipo.MATERIAL, SeccionTipo.TRANSPORTE)) {
@@ -126,20 +123,11 @@ public final class ApuDocumentoProyeccion {
                 var subtotal = s == null ? BigDecimal.ZERO : s.subtotal();
                 subtotales.add(new Subtotal(tipo, subtotal));
                 if (detalles.isEmpty() && !p.mostrarSeccionesVacias()) continue;
-                var filas = new ArrayList<Fila>(detalles.stream()
+                var filas = detalles.stream()
                         .sorted(Comparator.comparingInt(SnapshotDocumento.Detalle::orden)
                                 .thenComparing(d -> d.id().toString()))
                         .map(d -> fila(d, p, motor == null ? null : motor.get(d.id())))
-                        .toList());
-                // CHK-05: todo APU imprime exactamente una fila Herramienta Menor en el bloque M. Si no tiene
-                // fila persistida se sintetiza en la posición 0 con el valor del motor (sin HM fila el motor
-                // no calcula HM, por lo que su costo es 0 y los subtotales no cambian).
-                if (tipo == SeccionTipo.EQUIPO
-                        && motor != null
-                        && hayDetalles
-                        && filas.stream().noneMatch(f -> f.detalle().herramientaMenor())) {
-                    filas.addFirst(herramientaMenorSintetica(a, p, a.calculado().costoHm()));
-                }
+                        .toList();
                 bloques.add(new Bloque(
                         tipo,
                         ec.uce.propuestas.documento.ApuTextoPresentacion.tituloBloque(tipo, p.sufijosSeccionActivos()),
@@ -208,26 +196,6 @@ public final class ApuDocumentoProyeccion {
                 d.herramientaMenor() ? p.porcentajeHerramientaMenor() : null,
                 costo,
                 costoHora);
-    }
-
-    private static Fila herramientaMenorSintetica(
-            SnapshotDocumento.Apu a, SnapshotDocumento.Parametros p, BigDecimal costoHm) {
-        String etiqueta = etiquetaHerramientaMenor(p);
-        var detalle = new SnapshotDocumento.Detalle(
-                UUID.nameUUIDFromBytes(("herramienta-menor:" + a.id()).getBytes(StandardCharsets.UTF_8)),
-                (short) 0,
-                true,
-                etiqueta,
-                null,
-                p.porcentajeHerramientaMenor().movePointRight(2),
-                null,
-                null,
-                null,
-                null,
-                BigDecimal.ZERO.setScale(ESCALA_PERSISTENCIA),
-                escala6(costoHm),
-                null);
-        return new Fila(detalle, etiqueta, p.porcentajeHerramientaMenor(), detalle.costo(), detalle.costoHora());
     }
 
     /**
