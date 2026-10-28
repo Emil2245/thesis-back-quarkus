@@ -631,6 +631,34 @@ class VistasCronogramaResourceIT {
                 .body("valorizado.totales.actividadesSinAsignar", equalTo(2));
     }
 
+    /** Plan 039b — una actividad con distribución parcial (mapa no vacío, suma < peso) cuenta como incompleta. */
+    @Test
+    void TC_P39b_01_actividad_parcialmente_distribuida_cuenta_como_incompleta() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p39b-parcial@ex.com");
+        String proyectoId = crearProyecto(token, "P-2026-V39C");
+        String presupuestoId = vigenteDeProyecto(proyectoId);
+        Long pId = internalId("presupuesto", presupuestoId);
+        long cap = sembrarCapitulo(pId, null, "1", "Cap", (short) 1, "0");
+        sembrarRubro(pId, cap, "1.1", "R-A", "10.000000");
+        sembrarRubro(pId, cap, "1.2", "R-B", "30.000000");
+        sembrarRubro(pId, cap, "1.3", "R-C", "60.000000");
+        fijarTotalPresupuesto(presupuestoId, "100.000000");
+        String cronogramaId = crearCronograma(token, presupuestoId, "SEMANA", 4);
+
+        // 1.2 pesa 30.0000 y solo se distribuye la mitad; las demás quedan completas (uniforme).
+        sembrarAvance(actividadDeRubro(presupuestoId, "1.2"), "{\"1\":\"15.0000\"}");
+
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/cronogramas/" + cronogramaId + "/vistas")
+                .then()
+                .statusCode(200)
+                .body("gantt.cronograma.estadoDistribucion", equalTo("BORRADOR"))
+                .body("valorizado.totales.montoPresupuesto", equalTo("100.000000"))
+                .body("valorizado.totales.montoSinProgramar", equalTo("15.000000"))
+                .body("valorizado.totales.actividadesSinAsignar", equalTo(1));
+    }
+
     /** Plan 039 — con todo programado no hay brecha. */
     @Test
     void TC_P39_02_totales_completo_monto_sin_programar_es_cero() throws Exception {

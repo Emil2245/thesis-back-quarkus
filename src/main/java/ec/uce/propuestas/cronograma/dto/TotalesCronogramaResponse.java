@@ -25,8 +25,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * <p>Mientras haya actividades sin programar, el valorizado y la curva S suman
  * solo lo programado. Para no ocultar la brecha: {@code montoPresupuesto} es el
  * total del presupuesto, {@code montoSinProgramar} = max(0, montoPresupuesto -
- * montoTotalGeneral) y {@code actividadesSinAsignar} cuenta las actividades sin
- * distribución por período.</p>
+ * montoTotalGeneral) y {@code actividadesSinAsignar} cuenta las actividades con
+ * distribución incompleta (mapa vacío o con suma distinta de su peso; mismo criterio
+ * que el estado BORRADOR/COMPLETO). El nombre se conserva por compatibilidad.</p>
  */
 @JsonInclude(JsonInclude.Include.ALWAYS)
 public record TotalesCronogramaResponse(
