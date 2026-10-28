@@ -10,7 +10,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * <pre>
  * TotalesCronogramaResponse { "avanceFinalPorcentaje": "100.0000",
  *                             "montoTotalGeneral": "10000.000000",
- *                             "porcentajeCierre": "100.0000" }
+ *                             "porcentajeCierre": "100.0000",
+ *                             "montoPresupuesto": "10000.000000",
+ *                             "montoSinProgramar": "0.000000",
+ *                             "actividadesSinAsignar": 0 }
  * </pre>
  *
  * <p>Estos totales consolidan la serie por período en un solo resumen.
@@ -18,7 +21,18 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * estado de distribución pase a {@code COMPLETO} (Plan 026 §4). El monto
  * total general es Σ de {@code montoParcialPorPeriodo[1..n]} y reconcilia con
  * el precio total del presupuesto cuando la distribución está completa.</p>
+ *
+ * <p>Mientras haya actividades sin programar, el valorizado y la curva S suman
+ * solo lo programado. Para no ocultar la brecha: {@code montoPresupuesto} es el
+ * total del presupuesto, {@code montoSinProgramar} = max(0, montoPresupuesto -
+ * montoTotalGeneral) y {@code actividadesSinAsignar} cuenta las actividades sin
+ * distribución por período.</p>
  */
 @JsonInclude(JsonInclude.Include.ALWAYS)
 public record TotalesCronogramaResponse(
-        String avanceFinalPorcentaje, String montoTotalGeneral, String porcentajeCierre) {}
+        String avanceFinalPorcentaje,
+        String montoTotalGeneral,
+        String porcentajeCierre,
+        String montoPresupuesto,
+        String montoSinProgramar,
+        int actividadesSinAsignar) {}

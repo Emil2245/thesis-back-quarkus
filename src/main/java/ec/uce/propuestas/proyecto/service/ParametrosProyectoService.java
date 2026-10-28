@@ -67,6 +67,16 @@ public class ParametrosProyectoService {
         p.porcentajeIndirecto = req.porcentajeIndirecto();
         p.iva = req.iva();
         p.moneda = req.moneda();
+        if (req.mostrarSeccionesVacias() != null) p.mostrarSeccionesVacias = req.mostrarSeccionesVacias();
+        if (req.sufijosSeccionActivos() != null) p.sufijosSeccionActivos = req.sufijosSeccionActivos();
+        if (req.mostrarSubtotalesSeccion() != null) p.mostrarSubtotalesSeccion = req.mostrarSubtotalesSeccion();
+        if (req.mostrarSubtotalesPie() != null) p.mostrarSubtotalesPie = req.mostrarSubtotalesPie();
+        if (req.mostrarNombreProyectoHeader() != null) {
+            p.mostrarNombreProyectoHeader = req.mostrarNombreProyectoHeader();
+        }
+        if (req.enumerarApus() != null) p.enumerarApus = req.enumerarApus();
+        if (req.mensajeFooter() != null) p.mensajeFooter = req.mensajeFooter();
+        if (req.modoCodigoRubro() != null) p.modoCodigoRubro = req.modoCodigoRubro();
         parametrosRepository.persist(p);
         return new ParametrosProyectoCambio(
                 proyecto.publicId,

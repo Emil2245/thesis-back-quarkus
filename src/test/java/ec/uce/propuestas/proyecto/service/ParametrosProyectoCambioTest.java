@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ec.uce.propuestas.proyecto.dto.ParametrosProyectoEditarRequest;
 import ec.uce.propuestas.proyecto.entity.EstadoProyecto;
+import ec.uce.propuestas.proyecto.entity.ModoCodigoRubro;
 import ec.uce.propuestas.proyecto.entity.PlazoUnidad;
 import ec.uce.propuestas.proyecto.entity.Proyecto;
 import ec.uce.propuestas.proyecto.repository.ProyectoRepository;
@@ -170,6 +171,79 @@ class ParametrosProyectoCambioTest {
 
         assertTrue(cambio.porcentajeIndirectoCambio(), "0.1800 → null cuenta como cambio");
         assertFalse(cambio.porcentajeHerramientaMenorCambio(), "%HM sin tocar → no cambia");
+    }
+
+    private ParametrosProyectoEditarRequest reqPresentacion(
+            Boolean nombreHeader, Boolean enumerar, String footer, ModoCodigoRubro modo) {
+        return new ParametrosProyectoEditarRequest(
+                new BigDecimal("0.0500"),
+                new BigDecimal("0.1800"),
+                new BigDecimal("0.1500"),
+                "USD",
+                false,
+                false,
+                false,
+                true,
+                nombreHeader,
+                enumerar,
+                footer,
+                modo);
+    }
+
+    @Test
+    void TC_P39_a_presentacion_y_codificacion_se_persisten_y_se_leen() {
+        Long usuarioId = crearUsuario();
+        UUID proyectoPublicId = crearProyecto(usuarioId);
+
+        parametrosService.actualizar(
+                usuarioId, proyectoPublicId, reqPresentacion(true, true, "Pie personalizado", ModoCodigoRubro.MANUAL));
+
+        var leido = parametrosService.leer(usuarioId, proyectoPublicId);
+        assertFalse(leido.mostrarSeccionesVacias());
+        assertFalse(leido.sufijosSeccionActivos());
+        assertFalse(leido.mostrarSubtotalesSeccion());
+        assertTrue(leido.mostrarSubtotalesPie());
+        assertTrue(leido.mostrarNombreProyectoHeader());
+        assertTrue(leido.enumerarApus());
+        assertEquals("Pie personalizado", leido.mensajeFooter());
+        assertEquals(ModoCodigoRubro.MANUAL, leido.modoCodigoRubro());
+    }
+
+    @Test
+    void TC_P39_b_omitir_presentacion_conserva_valores_guardados() {
+        Long usuarioId = crearUsuario();
+        UUID proyectoPublicId = crearProyecto(usuarioId);
+        parametrosService.actualizar(
+                usuarioId, proyectoPublicId, reqPresentacion(true, true, "Pie personalizado", ModoCodigoRubro.MANUAL));
+
+        parametrosService.actualizar(usuarioId, proyectoPublicId, req("0.0600", "0.1800", "0.1500", "USD"));
+
+        var leido = parametrosService.leer(usuarioId, proyectoPublicId);
+        assertEquals(new BigDecimal("0.0600"), leido.porcentajeHerramientaMenor());
+        assertTrue(leido.mostrarNombreProyectoHeader());
+        assertTrue(leido.enumerarApus());
+        assertTrue(leido.mostrarSubtotalesPie());
+        assertFalse(leido.mostrarSeccionesVacias());
+        assertEquals("Pie personalizado", leido.mensajeFooter());
+        assertEquals(ModoCodigoRubro.MANUAL, leido.modoCodigoRubro());
+    }
+
+    @Test
+    void TC_P39_c_modo_codigo_rubro_manual_va_y_vuelve_a_autogenerado() {
+        Long usuarioId = crearUsuario();
+        UUID proyectoPublicId = crearProyecto(usuarioId);
+
+        parametrosService.actualizar(
+                usuarioId, proyectoPublicId, reqPresentacion(null, null, null, ModoCodigoRubro.MANUAL));
+        assertEquals(
+                ModoCodigoRubro.MANUAL,
+                parametrosService.leer(usuarioId, proyectoPublicId).modoCodigoRubro());
+
+        parametrosService.actualizar(
+                usuarioId, proyectoPublicId, reqPresentacion(null, null, null, ModoCodigoRubro.AUTOGENERADO));
+        assertEquals(
+                ModoCodigoRubro.AUTOGENERADO,
+                parametrosService.leer(usuarioId, proyectoPublicId).modoCodigoRubro());
     }
 
     @Test

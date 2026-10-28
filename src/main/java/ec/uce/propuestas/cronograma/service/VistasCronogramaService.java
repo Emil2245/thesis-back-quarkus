@@ -299,7 +299,11 @@ public class VistasCronogramaService {
                 parcialMonto,
                 acumuladoMonto,
                 montoTotalGeneral,
-                avanceFinal);
+                avanceFinal,
+                totalGeneral,
+                (int) actividadesCerradas.stream()
+                        .filter(a -> a.avancePorPeriodo.isEmpty())
+                        .count());
         CurvaSResponse curvaS = construirCurvaS(parcialPorcentaje, acumuladoPorcentaje, parcialMonto, acumuladoMonto);
 
         return new CronogramaVistasResponse(cronograma.publicId, gantt, valorizado, curvaS);
@@ -399,7 +403,11 @@ public class VistasCronogramaService {
             List<BigDecimal> parcialMonto,
             List<BigDecimal> acumuladoMonto,
             BigDecimal montoTotalGeneral,
-            BigDecimal avanceFinalPorcentaje) {
+            BigDecimal avanceFinalPorcentaje,
+            BigDecimal montoPresupuesto,
+            int actividadesSinAsignar) {
+        BigDecimal montoSinProgramar =
+                montoPresupuesto.subtract(montoTotalGeneral).max(BigDecimal.ZERO);
         List<PeriodoValorizadoResponse> periodos = new ArrayList<>(parcialPorcentaje.size());
         for (int i = 0; i < parcialPorcentaje.size(); i++) {
             periodos.add(new PeriodoValorizadoResponse(
@@ -417,7 +425,10 @@ public class VistasCronogramaService {
                         : acumuladoPorcentaje
                                 .get(acumuladoPorcentaje.size() - 1)
                                 .setScale(4, RoundingMode.HALF_UP)
-                                .toPlainString());
+                                .toPlainString(),
+                montoPresupuesto.setScale(6, RoundingMode.HALF_UP).toPlainString(),
+                montoSinProgramar.setScale(6, RoundingMode.HALF_UP).toPlainString(),
+                actividadesSinAsignar);
         return new ValorizadoBloqueResponse(List.copyOf(periodos), List.copyOf(jerarquia), totales);
     }
 

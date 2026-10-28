@@ -601,6 +601,61 @@ class VistasCronogramaResourceIT {
                 .body("valorizado.totales.montoTotalGeneral", equalTo("5.000000"));
     }
 
+    /** Plan 039 — totales exponen la brecha: actividades sin programar y monto faltante. */
+    @Test
+    void TC_P39_01_totales_incompleto_expone_monto_sin_programar_y_actividades_sin_asignar() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p39-incompleto@ex.com");
+        String proyectoId = crearProyecto(token, "P-2026-V39A");
+        String presupuestoId = vigenteDeProyecto(proyectoId);
+        Long pId = internalId("presupuesto", presupuestoId);
+        long cap = sembrarCapitulo(pId, null, "1", "Cap", (short) 1, "0");
+        sembrarRubro(pId, cap, "1.1", "R-A", "10.000000");
+        sembrarRubro(pId, cap, "1.2", "R-B", "30.000000");
+        sembrarRubro(pId, cap, "1.3", "R-C", "60.000000");
+        fijarTotalPresupuesto(presupuestoId, "100.000000");
+        String cronogramaId = crearCronograma(token, presupuestoId, "SEMANA", 4);
+
+        // Las actividades nacen con distribución uniforme; "sin programar" = mapa vacío.
+        sembrarAvance(actividadDeRubro(presupuestoId, "1.1"), "{\"1\":\"10.0000\"}");
+        sembrarAvance(actividadDeRubro(presupuestoId, "1.2"), "{}");
+        sembrarAvance(actividadDeRubro(presupuestoId, "1.3"), "{}");
+
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/cronogramas/" + cronogramaId + "/vistas")
+                .then()
+                .statusCode(200)
+                .body("valorizado.totales.montoTotalGeneral", equalTo("10.000000"))
+                .body("valorizado.totales.montoPresupuesto", equalTo("100.000000"))
+                .body("valorizado.totales.montoSinProgramar", equalTo("90.000000"))
+                .body("valorizado.totales.actividadesSinAsignar", equalTo(2));
+    }
+
+    /** Plan 039 — con todo programado no hay brecha. */
+    @Test
+    void TC_P39_02_totales_completo_monto_sin_programar_es_cero() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p39-completo@ex.com");
+        String proyectoId = crearProyecto(token, "P-2026-V39B");
+        String presupuestoId = vigenteDeProyecto(proyectoId);
+        Long pId = internalId("presupuesto", presupuestoId);
+        long cap = sembrarCapitulo(pId, null, "1", "Cap", (short) 1, "0");
+        sembrarRubro(pId, cap, "1.1", "R-Val", "6.000000");
+        fijarTotalPresupuesto(presupuestoId, "6.000000");
+        String cronogramaId = crearCronograma(token, presupuestoId, "SEMANA", 3);
+
+        String actividadId = actividadDeRubro(presupuestoId, "1.1");
+        sembrarAvance(actividadId, "{\"1\":\"33.3300\",\"2\":\"33.3300\",\"3\":\"33.3400\"}");
+
+        given().header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/cronogramas/" + cronogramaId + "/vistas")
+                .then()
+                .statusCode(200)
+                .body("valorizado.totales.montoPresupuesto", equalTo("6.000000"))
+                .body("valorizado.totales.montoSinProgramar", equalTo("0.000000"))
+                .body("valorizado.totales.actividadesSinAsignar", equalTo(0));
+    }
+
     /** TC_P35_07 — 1/3 residual: tres períodos a 0.3333 cada uno, suma Σ 0.9999. */
     @Test
     void TC_P35_07_un_tercio_residual_target_y_bases_reconcilian_precio() throws Exception {
