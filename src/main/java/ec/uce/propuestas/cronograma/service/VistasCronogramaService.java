@@ -232,6 +232,7 @@ public class VistasCronogramaService {
         }
         BigDecimal avanceFinal = BigDecimal.ZERO.setScale(4);
         boolean completo = !actividadesCerradas.isEmpty();
+        int actividadesIncompletas = 0;
         for (ActividadCerrada ac : actividadesCerradas) {
             BigDecimal sumaAvance = BigDecimal.ZERO.setScale(4);
             for (Map.Entry<String, String> e : ac.avancePorPeriodo.entrySet()) {
@@ -249,6 +250,7 @@ public class VistasCronogramaService {
             boolean sinClaveConPrecio = precioPositivo && ac.avancePorPeriodo.isEmpty();
             if (desviada || sinClaveConPrecio) {
                 completo = false;
+                actividadesIncompletas++;
             }
             for (Map.Entry<String, String> e : ac.montoPorPeriodo.entrySet()) {
                 int p = Integer.parseInt(e.getKey());
@@ -301,9 +303,7 @@ public class VistasCronogramaService {
                 montoTotalGeneral,
                 avanceFinal,
                 totalGeneral,
-                (int) actividadesCerradas.stream()
-                        .filter(a -> a.avancePorPeriodo.isEmpty())
-                        .count());
+                actividadesIncompletas);
         CurvaSResponse curvaS = construirCurvaS(parcialPorcentaje, acumuladoPorcentaje, parcialMonto, acumuladoMonto);
 
         return new CronogramaVistasResponse(cronograma.publicId, gantt, valorizado, curvaS);
