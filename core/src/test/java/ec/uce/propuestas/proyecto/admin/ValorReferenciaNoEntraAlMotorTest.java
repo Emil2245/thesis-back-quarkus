@@ -12,7 +12,7 @@ class ValorReferenciaNoEntraAlMotorTest {
 
     @Test
     void TC_P41_02_motor_no_depende_de_valor_referencia() throws Exception {
-        Path motor = Path.of("src/main/java/ec/uce/propuestas/motor");
+        Path motor = Path.of("core/src/main/java/ec/uce/propuestas/motor");
         assertTrue(Files.isDirectory(motor));
         try (Stream<Path> archivos = Files.walk(motor)) {
             boolean referencia =

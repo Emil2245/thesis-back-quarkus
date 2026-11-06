@@ -4,9 +4,11 @@ FROM docker.io/library/eclipse-temurin:25-jdk AS build
 WORKDIR /src
 COPY gradlew settings.gradle.kts build.gradle.kts gradle.properties ./
 COPY gradle/ gradle/
-RUN ./gradlew --no-daemon dependencies > /dev/null || true
-COPY src/ src/
-RUN ./gradlew --no-daemon quarkusBuild -x test -x spotlessCheck
+COPY core/build.gradle.kts core/build.gradle.kts
+COPY documentos/build.gradle.kts documentos/build.gradle.kts
+RUN ./gradlew --no-daemon :core:dependencies > /dev/null || true
+COPY core/src/ core/src/
+RUN ./gradlew --no-daemon :core:quarkusBuild -x :core:test -x :core:spotlessCheck
 
 # UBI9 (x86-64-v2): UBI10 exige x86-64-v3 y el clúster de laboratorio no lo soporta (plan 031).
 FROM registry.access.redhat.com/ubi9/openjdk-25-runtime:1.24
@@ -14,10 +16,10 @@ LABEL org.opencontainers.image.source="https://github.com/emil2245/thesis-back-q
       org.opencontainers.image.title="propuestas-api"
 USER root
 RUN microdnf -y update ca-certificates && microdnf clean all
-COPY --chown=185 --from=build /src/build/quarkus-app/lib/ /deployments/lib/
-COPY --chown=185 --from=build /src/build/quarkus-app/*.jar /deployments/
-COPY --chown=185 --from=build /src/build/quarkus-app/app/ /deployments/app/
-COPY --chown=185 --from=build /src/build/quarkus-app/quarkus/ /deployments/quarkus/
+COPY --chown=185 --from=build /src/core/build/quarkus-app/lib/ /deployments/lib/
+COPY --chown=185 --from=build /src/core/build/quarkus-app/*.jar /deployments/
+COPY --chown=185 --from=build /src/core/build/quarkus-app/app/ /deployments/app/
+COPY --chown=185 --from=build /src/core/build/quarkus-app/quarkus/ /deployments/quarkus/
 EXPOSE 8080 9000
 USER 185
 ENV QUARKUS_PROFILE=prod \

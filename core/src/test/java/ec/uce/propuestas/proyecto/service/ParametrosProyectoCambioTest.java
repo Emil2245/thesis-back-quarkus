@@ -248,8 +248,8 @@ class ParametrosProyectoCambioTest {
 
     @Test
     void TC_WU06_seam_neutral_no_importa_recalculo() throws Exception {
-        Path servicio = Path.of("src/main/java/ec/uce/propuestas/proyecto/service/ParametrosProyectoService.java");
-        Path costura = Path.of("src/main/java/ec/uce/propuestas/proyecto/service/ParametrosProyectoCambio.java");
+        Path servicio = Path.of("core/src/main/java/ec/uce/propuestas/proyecto/service/ParametrosProyectoService.java");
+        Path costura = Path.of("core/src/main/java/ec/uce/propuestas/proyecto/service/ParametrosProyectoCambio.java");
         assertTrue(Files.exists(servicio), "Debe existir el source del servicio");
         assertTrue(Files.exists(costura), "Debe existir el source del seam");
         String fuenteServicio = Files.readString(servicio).toLowerCase();

@@ -22,4 +22,4 @@
 
 No desplegar URLs S3 ni cambiar aún el frontend; no retirar cronograma de Core en esta etapa. Durante la transición, la ruta pública vigente debe seguir funcionando o contar con la migración compatible prevista en el plan 01.
 
-**Referencias:** [índice](README.md), [`settings.gradle.kts`](../../settings.gradle.kts), [`build.gradle.kts`](../../build.gradle.kts), [`ProyeccionDocumentoService`](../../src/main/java/ec/uce/propuestas/documento/exportacion/ProyeccionDocumentoService.java), [diseño canónico](../../../thesis-docs/plan/architecture/08-codebase-design.md).
+**Referencias:** [índice](README.md), [`settings.gradle.kts`](../../settings.gradle.kts), [`build.gradle.kts`](../../build.gradle.kts), [`ProyeccionDocumentoService`](../../core/src/main/java/ec/uce/propuestas/documento/exportacion/ProyeccionDocumentoService.java), [diseño canónico](../../../thesis-docs/plan/architecture/08-codebase-design.md).

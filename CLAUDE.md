@@ -266,12 +266,14 @@ siguiendo el patrón de `plans/006`. Cada cambio debe:
 ## Verification commands (memorize)
 
 ```bash
-./gradlew build -x test                                    # sanity build
-./gradlew test                                             # full suite (~2 min cold)
-./gradlew test --tests 'ec.uce.propuestas.motor.*'         # motor only
-./gradlew test --tests 'ec.uce.propuestas.usuario.*'       # auth only
-./gradlew --console=plain quarkusDev                       # live reload
-./gradlew build -Dquarkus.native.enabled=true -Dquarkus.native.container-build=true   # native (~10 min)
+./gradlew build -x test -PexcludeKnownResiduals            # both apps, no tests
+./gradlew test -PexcludeKnownResiduals                     # both suites
+./gradlew :core:test --tests 'ec.uce.propuestas.motor.*'   # motor only
+./gradlew :core:test --tests 'ec.uce.propuestas.usuario.*' # auth only
+./gradlew :documentos:test                                # independent service
+./gradlew --console=plain :core:quarkusDev                 # Core live reload
+./gradlew --console=plain :documentos:quarkusDev           # Documentos
+./gradlew :core:build -Dquarkus.native.enabled=true -Dquarkus.native.container-build=true
 ```
 
 Expected motor test count (post-Plan 015, 2026-09-01): **45 tests totales**
@@ -287,7 +289,7 @@ counts from the XML results instead of predicting them:
 
 ```bash
 grep -ho 'tests="[0-9]*"\|failures="[0-9]*"\|errors="[0-9]*"\|skipped="[0-9]*"' \
-  build/test-results/test/TEST-*.xml
+  core/build/test-results/test/TEST-*.xml documentos/build/test-results/test/TEST-*.xml
 ```
 
 ## Repo conventions
@@ -313,9 +315,11 @@ grep -ho 'tests="[0-9]*"\|failures="[0-9]*"\|errors="[0-9]*"\|skipped="[0-9]*"' 
   fails under `hibernate-orm.database.generation: validate`.
 - **Migrations**: `V{NNN}__{snake}.sql`. Never edit an applied migration;
   add a new one.
-- **Secrets**: dev keys ship in `src/main/resources/META-INF/resources/`
-  as `publicKey.pem` and `privateKey.pem`. Never commit prod keys.
-  `.env.example` documents all env vars.
+- **Secrets**: Core development keys are local under `.secrets/jwt/`; test
+  fixtures are under `core/src/test/resources/jwt/`. Ignored legacy keys in
+  `src/main/resources/META-INF/resources/` are not part of either module and
+  must not be moved or committed. Never commit production keys. `.env.example`
+  documents the relevant environment variables.
 
 ## Working with plans
 

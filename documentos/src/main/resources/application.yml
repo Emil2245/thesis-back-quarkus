@@ -1,0 +1,11 @@
+quarkus:
+  application:
+    name: propuestas-documentos
+  http:
+    port: ${DOCUMENTOS_HTTP_PORT:8081}
+    host: 0.0.0.0
+
+"%test":
+  quarkus:
+    http:
+      test-port: 0

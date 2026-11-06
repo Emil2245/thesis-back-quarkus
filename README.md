@@ -1,5 +1,10 @@
 # propuestas-api
 
+**Plan 02 en ejecución:** Gradle multiproyecto con `:core` (API existente,
+PostgreSQL/Flyway) y `:documentos` (servicio independiente sin base). La
+extracción de los writers y la frontera autenticada todavía deben verificarse;
+la nueva API POST/S3 del plan 01 sigue siendo contrato objetivo, no funcional.
+
 Quarkus backend for the SERCOP propuestas técnico-económicas platform —
 a cloud-native web application that automates APU calculation, budget
 consolidation, and execution-schedule generation for Ecuadorian public
@@ -36,7 +41,7 @@ the same commit set. Do not divergently re-decide things here.
 ## Stack
 
 - Java 25 (toolchain) · Gradle 9.8.2 (wrapper) · Quarkus 3.40.1
-- Panache ORM (Hibernate) · PostgreSQL 16
+- Core: Panache ORM (Hibernate) · PostgreSQL 18; Documentos: sin PostgreSQL
 - Flyway migrations
 - SmallRye JWT (bcrypt via Elytron)
 - SmallRye OpenAPI · Swagger UI at `/q/swagger-ui`
@@ -51,22 +56,22 @@ the same commit set. Do not divergently re-decide things here.
 ## Running locally
 
 ```bash
-# Dev mode with live reload (spins Postgres via Dev Services if Docker is up)
-./gradlew --console=plain quarkusDev
+# Core with live reload (Postgres via Dev Services when Docker is available)
+./gradlew --console=plain :core:quarkusDev
 
-# Full build (no tests)
+# Documentos (independent port 8081; no PostgreSQL datasource)
+./gradlew --console=plain :documentos:quarkusDev
+
+# Root tasks aggregate both applications; no tests in this command
 ./gradlew build -x test
 
-# Test suite — current state (HEAD ac84c945): 763 tests = 760 pass +
-# 2 accepted residual failures (GM-19, GM-20 — workbook-rounding
-# residuals documented in Plan 014/Plan 02; no se reabre el motor) +
-# 1 skipped (GM-24 @Disabled by upstream EMELNORTE fixture) + 0
-# errors. ./gradlew build -x test PASS; ./gradlew build fails only
-# on those accepted residuals.
-./gradlew test
+# Focused suites; legacy Core GETs stay in Core during migration
+./gradlew :core:test -PexcludeKnownResiduals
+./gradlew :documentos:test
+./gradlew test -PexcludeKnownResiduals
 
-# Native image (container build; ~10 min)
-./gradlew build -Dquarkus.native.enabled=true -Dquarkus.native.container-build=true
+# Core native image (container build; ~10 min)
+./gradlew :core:build -Dquarkus.native.enabled=true -Dquarkus.native.container-build=true
 ```
 
 ## Correo
@@ -112,7 +117,8 @@ Environment variables (see `.env.example`):
 Imagen OCI multi-stage (Gradle + Java 25 en el build, runtime UBI9 OpenJDK 25 (x86-64-v2; UBI10 exige x86-64-v3 y el clúster de laboratorio no lo soporta), usuario 185):
 
 ```bash
-podman build -f src/main/docker/Dockerfile -t propuestas-api:dev .
+podman build -f core/src/main/docker/Dockerfile -t propuestas-api:dev .
+podman build -fdocumentos/src/main/docker/Dockerfile -t propuestas-documentos:dev .
 scripts/gen-jwt-keys.sh /tmp/jwt && chmod 644 /tmp/jwt/*   # solo para pruebas locales
 podman run --rm --network host --read-only --tmpfs /tmp \
   -v /tmp/jwt:/etc/propuestas/jwt:ro,Z \
@@ -131,47 +137,35 @@ Puertos: `8080` (API, `/api/v1`) y `9000` (gestion: `/q/health/{live,ready,start
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | Endpoint OTLP gRPC (default `http://localhost:4317`) |
 | `OTEL_SDK_DISABLED` | `true`/`false` (default `false` en prod) |
 
-CI (`.github/workflows/ci.yml`): en cada push/PR ejecuta `./gradlew build` (spotless + tests),
-construye la imagen y la escanea con Trivy (solo reporte). La imagen no se publica desde este repo.
+CI (`.github/workflows/ci.yml`): en cada push/PR ejecuta `./gradlew build -PexcludeKnownResiduals` (Spotless + tests de ambas aplicaciones), construye las dos imágenes y las escanea con Trivy (solo reporte). Las imágenes no se publican desde este repo.
 
 ---
 
 ## Repo layout
 
 ```
-src/main/java/ec/uce/propuestas/
+build.gradle.kts                  # Root aggregate build/check/test/Spotless
+core/build.gradle.kts             # Existing API, PostgreSQL, Flyway and domain
+core/src/main/java/ec/uce/propuestas/
 ├── common/        # RestApplication, ErrorPayload, GlobalExceptionMapper
-├── usuario/       # Usuario, Rol, RefreshToken, TokenUsuario, TipoToken
-│   └── auth/      # AuthResource, PerfilResource, AuthService, TokenService,
-│       ├── dto/   #   PasswordService, PasswordPolicy, EnviadorCorreo port
-│       └── mail/  #   LogEnviadorCorreo (dev/prod fallback)
-└── motor/         # Pure Java calc engine (no framework)
-    └── internal/  #   CalculadorFila, Consolidador (package-private)
-
-src/main/resources/
+├── usuario/       # Auth, JWT, audit and roles
+├── documento/     # Existing GET adapters (kept during transition)
+└── motor/         # Pure Java calculation engine
+core/src/main/resources/
 ├── application.yml
-├── db/migration/         # V001..V012 Flyway migrations
-└── META-INF/               # (las claves JWT ya no viven en resources)
-
-src/test/java/ec/uce/propuestas/
-├── usuario/auth/  # AuthResourceIT (@QuarkusTest), PasswordPolicyTest,
-│                  # RecordingEnviadorCorreo (test alt)
-└── motor/         # MotorApuTest, MotorConsolidacionTest,
-                   # MotorPropiedadesTest, Fixtures helper
-
-src/test/resources/
-├── META-INF/beans.xml           # CDI alternatives for tests
-└── motor/fixtures/              # JSON + CSV golden-master fixtures
-                                 # (copied from thesis-docs/_artifacts/)
-
-plans/                           # Implementation plans (executable playbooks)
+└── db/migration/   # Only Core owns schema migrations
+core/src/test/     # Existing resource and domain test suites
+documentos/build.gradle.kts       # Separate Quarkus app, no DB/Flyway
+documentos/src/main/resources/application.yml  # Port 8081
+documentos/src/test/            # Separate startup and contract tests
+plans/                           # Implementation plans
 ```
 
 ---
 
-## Iteration status (functional code cut `ac84c945`)
+## Historical iteration snapshot (functional code cut `ac84c945`)
 
-**Current technical status** (backend `ac84c945`):
+**Historical technical status** (backend `ac84c945`; not a test result of the current multiproject branch):
 
 - **I-01 … I-11 — DONE técnico.** Bootstrap, auth, motor, APU núcleo y
   avanzado, presupuesto (P-28…P-32), cronograma (P-33…P-36),
@@ -222,7 +216,7 @@ plans/                           # Implementation plans (executable playbooks)
 
 - **"How does X in the domain work?"** → `../thesis-docs/plan/domain/`
 - **"How does the API expose Y?"** → `../thesis-docs/plan/architecture/07-api-contract.md`
-- **"What migration adds table Z?"** → `src/main/resources/db/migration/`
+- **"What migration adds table Z?"** → `core/src/main/resources/db/migration/`
 - **"What plan produced this file?"** → `plans/<NNN>-*.md`
 - **"How do I run tests locally?"** → `./gradlew test`
 
