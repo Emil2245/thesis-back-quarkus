@@ -90,7 +90,8 @@ Core populates `snapshot.apuRender` with ordered rows and reconciled printable
 amounts before transport; Documentos must not pair motor rows or recompute
 prices. While the
 writers are being moved in T3, a valid internal request deliberately returns
-503 and the existing public GET downloads remain in Core. This is not the
+503 and the existing public GET downloads remain in Core. The budget XLSX
+renderer is implemented against the DTO but is not yet wired to that endpoint. This is not the
 public POST/S3 proxy or evidence of deployed TLS.
 
 ## Correo
