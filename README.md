@@ -95,7 +95,8 @@ with `DOCUMENTOS_BASE_URL` (no default) and `DOCUMENTOS_SERVICE_SIGNING_KEY_LOCA
 (a dedicated RSA key); `DOCUMENTOS_TIMEOUT` defaults to `PT20S`. A missing URL,
 key, or remote response fails closed; production never falls back to Core's
 writers. The Core test suite retains legacy writer output using a test-only
-CDI alternative; it is not evidence of an end-to-end remote GET. Documentos
+CDI alternative; `RemotePublicGetIT` disables it and checks public GET routing
+against an isolated HTTP stub, but does not prove a two-app runtime. Documentos
 embeds the same tracked Liberation Sans font as Core for PDF output.
 This is not the public POST/S3 proxy or evidence of deployed TLS.
 
