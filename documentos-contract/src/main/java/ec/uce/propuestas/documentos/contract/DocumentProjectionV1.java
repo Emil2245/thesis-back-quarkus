@@ -28,11 +28,40 @@ public record DocumentProjectionV1(
             Display display,
             List<Firmante> firmantes,
             List<Capitulo> capitulos,
-            List<Apu> apus) {
+            List<Apu> apus,
+            List<ApuView> apuRender) {
         public Snapshot {
             firmantes = List.copyOf(firmantes);
             capitulos = List.copyOf(capitulos);
             apus = List.copyOf(apus);
+            apuRender = List.copyOf(apuRender);
+        }
+
+        public Snapshot(
+                UUID presupuestoId,
+                short version,
+                boolean vigente,
+                String notas,
+                BigDecimal total,
+                Proyecto proyecto,
+                Parametros parametros,
+                Display display,
+                List<Firmante> firmantes,
+                List<Capitulo> capitulos,
+                List<Apu> apus) {
+            this(
+                    presupuestoId,
+                    version,
+                    vigente,
+                    notas,
+                    total,
+                    proyecto,
+                    parametros,
+                    display,
+                    firmantes,
+                    capitulos,
+                    apus,
+                    List.of());
         }
     }
 
@@ -166,4 +195,54 @@ public record DocumentProjectionV1(
             BigDecimal precioUnitarioEfectivo,
             BigDecimal costoHora,
             BigDecimal costoFila) {}
+
+    /** Core-selected presentation order and reconciled printable amounts; Documentos never pairs motor rows. */
+    public record ApuView(
+            UUID id,
+            String codigo,
+            String etiquetaCodigo,
+            String descripcion,
+            String unidad,
+            String nombreProyectoHeader,
+            List<ApuBlock> bloques,
+            ApuFooter pie) {
+        public ApuView {
+            bloques = List.copyOf(bloques);
+            Objects.requireNonNull(pie, "pie");
+        }
+    }
+
+    public record ApuBlock(
+            SeccionTipo tipo,
+            String etiqueta,
+            Short ordenCapturado,
+            List<ApuRow> filas,
+            BigDecimal subtotal,
+            boolean mostrarSubtotal) {
+        public ApuBlock {
+            filas = List.copyOf(filas);
+        }
+    }
+
+    public record ApuRow(
+            Detalle detalle,
+            String descripcion,
+            BigDecimal porcentajeHerramientaMenor,
+            BigDecimal costo,
+            BigDecimal costoHora) {}
+
+    public record ApuSubtotal(SeccionTipo tipo, BigDecimal valor) {}
+
+    public record ApuFooter(
+            List<ApuSubtotal> subtotales,
+            BigDecimal porcentajeIndirecto,
+            BigDecimal costoDirecto,
+            BigDecimal costoIndirecto,
+            BigDecimal costoTotal,
+            BigDecimal valorOfertado,
+            String mensaje) {
+        public ApuFooter {
+            subtotales = List.copyOf(subtotales);
+        }
+    }
 }

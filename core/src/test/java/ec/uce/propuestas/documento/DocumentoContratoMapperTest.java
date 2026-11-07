@@ -2,9 +2,11 @@ package ec.uce.propuestas.documento;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import ec.uce.propuestas.documento.exportacion.ApuDocumentoProyeccion;
 import ec.uce.propuestas.documento.exportacion.DocumentoContratoMapper;
 import ec.uce.propuestas.documento.exportacion.PreflightDocumento;
 import ec.uce.propuestas.documento.exportacion.SnapshotDocumento;
@@ -36,6 +38,57 @@ class DocumentoContratoMapperTest {
         assertThrows(
                 UnsupportedOperationException.class,
                 () -> decoded.snapshot().capitulos().clear());
+    }
+
+    @Test
+    void sendsCoreReconciledPrintableApuRowsRatherThanStalePersistedAmounts() {
+        var apu = ApuConciliadoFixture.apu(20, ApuConciliadoFixture.entradasConHm(), true);
+        var original = ApuConciliadoFixture.snapshot(List.of(apu), false);
+        var preflight = new PreflightDocumento(
+                original.presupuestoId(),
+                original.version(),
+                "apus",
+                "xlsx",
+                Map.of("layout", "pestanas"),
+                true,
+                List.of(),
+                List.of());
+        var captured = new SnapshotDocumento(
+                original.presupuestoId(),
+                original.version(),
+                original.vigente(),
+                original.notas(),
+                original.total(),
+                original.proyecto(),
+                original.parametros(),
+                original.display(),
+                original.firmantes(),
+                original.capitulos(),
+                original.apus(),
+                preflight);
+        var expected = ApuDocumentoProyeccion.proyectar(captured)
+                .apus()
+                .getFirst()
+                .bloques()
+                .getFirst()
+                .filas()
+                .getFirst();
+        var projected = DocumentoContratoMapper.proyectar(
+                captured,
+                "apus",
+                new ec.uce.propuestas.documento.exportacion.OpcionesDocumento("xlsx", Map.of("layout", "pestanas")));
+        var actual = projected
+                .snapshot()
+                .apuRender()
+                .getFirst()
+                .bloques()
+                .getFirst()
+                .filas()
+                .getFirst();
+        assertEquals(expected.detalle().id(), actual.detalle().id());
+        assertEquals(expected.costo(), actual.costo());
+        assertEquals(expected.costoHora(), actual.costoHora());
+        assertNotEquals(expected.detalle().costo(), actual.costo());
     }
 
     @Test

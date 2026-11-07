@@ -71,7 +71,12 @@ public final class DocumentoContratoMapper {
                                 .toList(),
                         captured.apus().stream()
                                 .map(DocumentoContratoMapper::apu)
-                                .toList()));
+                                .toList(),
+                        "apus".equals(documento)
+                                ? ApuDocumentoProyeccion.proyectar(captured).apus().stream()
+                                        .map(DocumentoContratoMapper::apuView)
+                                        .toList()
+                                : java.util.List.of()));
     }
 
     private static Firmante firmante(SnapshotDocumento.Firmante source) {
@@ -130,6 +135,46 @@ public final class DocumentoContratoMapper {
                 source.secciones().stream()
                         .map(DocumentoContratoMapper::seccion)
                         .toList());
+    }
+
+    private static ApuView apuView(ApuDocumentoProyeccion.Analisis source) {
+        var pie = source.pie();
+        return new ApuView(
+                source.id(),
+                source.codigo(),
+                source.etiquetaCodigo(),
+                source.descripcion(),
+                source.unidad(),
+                source.nombreProyectoHeader(),
+                source.bloques().stream().map(DocumentoContratoMapper::apuBlock).toList(),
+                new ApuFooter(
+                        pie.subtotales().stream()
+                                .map(s -> new ApuSubtotal(
+                                        SeccionTipo.valueOf(s.tipo().name()), s.valor()))
+                                .toList(),
+                        pie.porcentajeIndirecto(),
+                        pie.costoDirecto(),
+                        pie.costoIndirecto(),
+                        pie.costoTotal(),
+                        pie.valorOfertado(),
+                        pie.mensaje()));
+    }
+
+    private static ApuBlock apuBlock(ApuDocumentoProyeccion.Bloque source) {
+        return new ApuBlock(
+                SeccionTipo.valueOf(source.tipo().name()),
+                source.etiqueta(),
+                source.ordenCapturado(),
+                source.filas().stream()
+                        .map(f -> new ApuRow(
+                                detalle(f.detalle()),
+                                f.descripcion(),
+                                f.porcentajeHerramientaMenor(),
+                                f.costo(),
+                                f.costoHora()))
+                        .toList(),
+                source.subtotal(),
+                source.mostrarSubtotal());
     }
 
     private static CalculatedRow calculatedRow(ec.uce.propuestas.motor.FilaCalculada source) {

@@ -85,7 +85,10 @@ bash scripts/check-document-contract.sh
 `/internal/v1/render` accepts only the signed Core service JWT and a
 `DocumentProjectionV1` from `:documentos-contract`. Core's HTTP transport
 limits serialized requests to 8 MiB, responses to 64 MiB, and requires a
-bounded request timeout; Documentos rejects bodies over 8 MiB. While the
+bounded request timeout; Documentos rejects bodies over 8 MiB. For APU exports,
+Core populates `snapshot.apuRender` with ordered rows and reconciled printable
+amounts before transport; Documentos must not pair motor rows or recompute
+prices. While the
 writers are being moved in T3, a valid internal request deliberately returns
 503 and the existing public GET downloads remain in Core. This is not the
 public POST/S3 proxy or evidence of deployed TLS.
