@@ -14,6 +14,45 @@ import org.openpdf.text.pdf.parser.PdfTextExtractor;
 
 class ApuPdfRendererTest {
     @Test
+    void repeatsIdentifierAcrossPhysicalPagesForLongApuText() throws Exception {
+        var id = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        var footer = new ApuFooter(
+                List.of(), BigDecimal.ZERO, BigDecimal.ONE, BigDecimal.ZERO, BigDecimal.ONE, BigDecimal.ONE, null);
+        var apu = new ApuView(id, "A-1", "A-1", "segmento ".repeat(650), "m³", null, List.of(), footer);
+        var project = new Proyecto(id, "Proyecto", "P", null, (short) 2025, null, null, null, null, null, null);
+        var parameters =
+                new Parametros(null, null, false, null, null, false, false, true, false, false, false, null, null);
+        var snapshot = new Snapshot(
+                id,
+                (short) 1,
+                true,
+                null,
+                BigDecimal.ONE,
+                project,
+                parameters,
+                new Display(2, 2),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(apu));
+        var projection = new DocumentProjectionV1(1, "apus", "pdf", Map.of(), snapshot);
+        var pdf = new PdfReader(ApuPdfRenderer.renderizar(projection));
+        try {
+            assertTrue(pdf.getNumberOfPages() > 1);
+            var extractor = new PdfTextExtractor(pdf);
+            for (int page = 1; page <= pdf.getNumberOfPages(); page++) {
+                var text = extractor.getTextFromPage(page);
+                assertTrue(text.contains("APU " + id), text);
+                assertTrue(text.contains("segmento"), text);
+                assertTrue(text.contains("Página " + page + " de " + pdf.getNumberOfPages()), text);
+            }
+            assertTrue(extractor.getTextFromPage(pdf.getNumberOfPages()).contains("Valor ofertado"));
+        } finally {
+            pdf.close();
+        }
+    }
+
+    @Test
     void rendersReconciledRowsAndSeparateA4IdentifierBands() throws Exception {
         var firstId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         var secondId = UUID.fromString("00000000-0000-0000-0000-000000000002");
