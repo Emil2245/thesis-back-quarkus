@@ -98,6 +98,8 @@ writers. The Core test suite retains legacy writer output using a test-only
 CDI alternative; `RemotePublicGetIT` disables it and checks public GET routing
 against an isolated HTTP stub, but does not prove a two-app runtime. Documentos
 embeds the same tracked Liberation Sans font as Core for PDF output.
+The specifications DOCX renderer accepts a separate technical-only immutable
+projection; its internal endpoint and Core GET are not yet connected.
 This is not the public POST/S3 proxy or evidence of deployed TLS.
 
 ## Correo
