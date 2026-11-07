@@ -34,7 +34,8 @@ public record DocumentProjectionV1(
             firmantes = List.copyOf(firmantes);
             capitulos = List.copyOf(capitulos);
             apus = List.copyOf(apus);
-            apuRender = List.copyOf(apuRender);
+            // Older budget payloads omit the APU-only presentation view.
+            apuRender = apuRender == null ? List.of() : List.copyOf(apuRender);
         }
 
         public Snapshot(

@@ -88,7 +88,8 @@ limits serialized requests to 8 MiB, responses to 64 MiB, and requires a
 bounded request timeout; Documentos rejects bodies over 8 MiB. For APU exports,
 Core populates `snapshot.apuRender` with ordered rows and reconciled printable
 amounts before transport; Documentos must not pair motor rows or recompute
-prices. While the
+prices. Budget payloads may omit this APU-only view; that does not alter their
+service-JWT checks. While the
 writers are being moved in T3, a valid internal request deliberately returns
 503 and the existing public GET downloads remain in Core. The budget XLSX
 renderer is implemented against the DTO but is not yet wired to that endpoint. This is not the
