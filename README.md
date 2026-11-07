@@ -100,7 +100,9 @@ against an isolated HTTP stub, but does not prove a two-app runtime. Documentos
 embeds the same tracked Liberation Sans font as Core for PDF output.
 The specifications DOCX renderer accepts a separate technical-only immutable
 projection; `/internal/v1/render/specifications` requires the Core service JWT and
-returns DOCX bytes. The public Core GET is not yet connected.
+returns DOCX bytes. Core captures ownership, effective titles and ordered
+technical content in a separate read-only transaction; the public GET and
+audit are not yet connected to this capture.
 This is not the public POST/S3 proxy or evidence of deployed TLS.
 
 ## Correo

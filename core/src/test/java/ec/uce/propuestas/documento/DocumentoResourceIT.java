@@ -195,6 +195,34 @@ class DocumentoResourceIT {
         return r.body().asByteArray();
     }
 
+    @Inject
+    EspecificacionesCapturaService capturaEspecificaciones;
+
+    @Test
+    void capturaTecnicaFiltraSinEtYResuelveTitulosAntesDelRender() throws Exception {
+        String email = "docx-capture-" + System.nanoTime() + "@ex.com";
+        String token = AuthSupport.registrarConToken(mailbox, email);
+        String project = crearProyecto(token, "Proyecto capturado", (short) 2026);
+        String budget = insertarPresupuesto(project);
+        String first = crearApu(token, budget, "A-1", "Losa", "m²");
+        crearApu(token, budget, "A-2", "Sin ET", "u");
+        ponerEt(token, first, "Hormigón armado");
+
+        var captured =
+                capturaEspecificaciones.capturar(java.util.UUID.fromString(budget), email, "  Título elegido  ", null);
+
+        assertEquals("Título elegido", captured.projection().titulo1());
+        assertEquals("Proyecto capturado", captured.projection().titulo2());
+        assertEquals(1, captured.projection().especificaciones().size());
+        assertEquals("A-1", captured.projection().especificaciones().getFirst().codigo());
+        assertEquals(
+                "Hormigón armado",
+                captured.projection().especificaciones().getFirst().especificacionTecnica());
+        assertEquals(java.util.UUID.fromString(budget), captured.projection().presupuestoId());
+        assertTrue(captured.proyectoInternoId() > 0);
+        assertTrue(captured.callerId() > 0);
+    }
+
     @Test
     void TC_P45_05_docx_precedencia_titulos_override_gana_sobre_proyecto() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p45t1@ex.com");
