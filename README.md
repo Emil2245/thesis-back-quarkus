@@ -91,8 +91,9 @@ amounts before transport; Documentos must not pair motor rows or recompute
 prices. Budget payloads may omit this APU-only view; that does not alter their
 service-JWT checks. While the
 writers are being moved in T3, a valid internal request deliberately returns
-503 and the existing public GET downloads remain in Core. The budget and APU XLSX renderers are implemented against the DTO, but are
-not yet wired to that endpoint. This is not the
+503 and the existing public GET downloads remain in Core. The budget XLSX/PDF and APU XLSX renderers are implemented against the DTO,
+but are not yet wired to that endpoint. Documentos embeds the same tracked
+Liberation Sans font as Core for PDF output. This is not the
 public POST/S3 proxy or evidence of deployed TLS.
 
 ## Correo
