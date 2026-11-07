@@ -99,7 +99,8 @@ CDI alternative; `RemotePublicGetIT` disables it and checks public GET routing
 against an isolated HTTP stub, but does not prove a two-app runtime. Documentos
 embeds the same tracked Liberation Sans font as Core for PDF output.
 The specifications DOCX renderer accepts a separate technical-only immutable
-projection; its internal endpoint and Core GET are not yet connected.
+projection; `/internal/v1/render/specifications` requires the Core service JWT and
+returns DOCX bytes. The public Core GET is not yet connected.
 This is not the public POST/S3 proxy or evidence of deployed TLS.
 
 ## Correo
