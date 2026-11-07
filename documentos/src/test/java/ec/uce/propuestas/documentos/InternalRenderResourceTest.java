@@ -1,6 +1,7 @@
 package ec.uce.propuestas.documentos;
 
 import static io.restassured.RestAssured.given;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
@@ -24,8 +25,35 @@ class InternalRenderResourceTest {
     }
 
     @Test
-    void acceptsOnlyServiceIdentityBeforeWritersAreWired() {
-        withToken(ServiceJwtTestProfile.serviceToken(), validPayload(1, "xlsx"), 503);
+    void rendersBudgetWorkbookForServiceIdentity() {
+        var response = given().auth()
+                .oauth2(ServiceJwtTestProfile.serviceToken())
+                .contentType("application/json")
+                .body(validPayload(1, "xlsx"))
+                .when()
+                .post(PATH)
+                .then()
+                .statusCode(200)
+                .contentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                .extract()
+                .response();
+        assertEquals('P', response.asByteArray()[0]);
+        assertEquals('K', response.asByteArray()[1]);
+    }
+
+    @Test
+    void rendersBudgetPdfForServiceIdentity() {
+        assertMagic(validPayload(1, "pdf"), "application/pdf", "%PDF");
+    }
+
+    @Test
+    void rendersApuPdfForServiceIdentity() {
+        assertMagic(apuPayload("pdf"), "application/pdf", "%PDF");
+    }
+
+    @Test
+    void rendersApuWorkbookForServiceIdentity() {
+        assertMagic(apuPayload("xlsx"), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "PK");
     }
 
     @Test
@@ -98,6 +126,36 @@ class InternalRenderResourceTest {
                  "nombre":"Ejemplo","codigo":"E","anio":2025},"parametros":{"moneda":"USD"},
                  "display":{"precision":2,"precisionPorcentaje":2},"firmantes":[],"capitulos":[],"apus":[]}}
                 """.formatted(version, formato);
+    }
+
+    private static String apuPayload(String formato) {
+        return validPayload(1, formato)
+                .replace("\"documento\":\"presupuesto\"", "\"documento\":\"apus\"")
+                .replace(
+                        "\"opciones\":{}",
+                        "\"opciones\":" + ("pdf".equals(formato) ? "{}" : "{\"layout\":\"pestanas\"}"))
+                .replace("\"apus\":[]}}", """
+                        "apus":[],"apuRender":[{"id":"01900000-0000-7000-8000-000000000001",
+                        "codigo":"A-1","etiquetaCodigo":"A-1","descripcion":"APU de prueba","unidad":"m³",
+                        "bloques":[],"pie":{"subtotales":[],"porcentajeIndirecto":0,"costoDirecto":1,
+                        "costoIndirecto":0,"costoTotal":1,"valorOfertado":1}}]}}
+                        """);
+    }
+
+    private static void assertMagic(String payload, String contentType, String magic) {
+        var response = given().auth()
+                .oauth2(ServiceJwtTestProfile.serviceToken())
+                .contentType("application/json")
+                .body(payload)
+                .when()
+                .post(PATH)
+                .then()
+                .statusCode(200)
+                .contentType(contentType)
+                .extract()
+                .response();
+        var bytes = response.asByteArray();
+        for (int i = 0; i < magic.length(); i++) assertEquals(magic.charAt(i), bytes[i]);
     }
 
     private static String token(String issuer, String audience, Set<String> roles, boolean userKey, long seconds) {

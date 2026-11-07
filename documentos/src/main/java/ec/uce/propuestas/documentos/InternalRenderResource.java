@@ -1,6 +1,10 @@
 package ec.uce.propuestas.documentos;
 
 import ec.uce.propuestas.documentos.contract.DocumentProjectionV1;
+import ec.uce.propuestas.documentos.render.ApuPdfRenderer;
+import ec.uce.propuestas.documentos.render.ApuXlsxRenderer;
+import ec.uce.propuestas.documentos.render.PresupuestoPdfRenderer;
+import ec.uce.propuestas.documentos.render.PresupuestoXlsxRenderer;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
@@ -16,7 +20,7 @@ import org.eclipse.microprofile.jwt.JsonWebToken;
 /** Internal service boundary. Core owns authorization, preflight and capture; only render values arrive here. */
 @Path("/internal/v1/render")
 @Consumes(MediaType.APPLICATION_JSON)
-@Produces(MediaType.APPLICATION_JSON)
+@Produces(MediaType.APPLICATION_OCTET_STREAM)
 @RolesAllowed("CORE_SERVICE")
 public class InternalRenderResource {
     @Inject
@@ -44,7 +48,23 @@ public class InternalRenderResource {
                 || request.snapshot().total() == null) {
             throw new BadRequestException("Invalid document projection");
         }
-        // Fail closed until the Documentos writers are migrated in T3.
-        return Response.status(Response.Status.SERVICE_UNAVAILABLE).build();
+        if ("apus".equals(request.documento()) && request.snapshot().apuRender().isEmpty()) {
+            throw new BadRequestException("Empty APU projection");
+        }
+        try {
+            byte[] bytes = switch (request.documento() + ":" + request.formato()) {
+                case "presupuesto:xlsx" -> PresupuestoXlsxRenderer.renderizar(request);
+                case "presupuesto:pdf" -> PresupuestoPdfRenderer.renderizar(request);
+                case "apus:xlsx" -> ApuXlsxRenderer.renderizar(request);
+                case "apus:pdf" -> ApuPdfRenderer.renderizar(request);
+                default -> throw new BadRequestException("Unsupported document format");
+            };
+            String type = "pdf".equals(request.formato())
+                    ? "application/pdf"
+                    : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            return Response.ok(bytes, type).build();
+        } catch (IllegalArgumentException invalid) {
+            throw new BadRequestException("Invalid document projection");
+        }
     }
 }

@@ -89,12 +89,11 @@ bounded request timeout; Documentos rejects bodies over 8 MiB. For APU exports,
 Core populates `snapshot.apuRender` with ordered rows and reconciled printable
 amounts before transport; Documentos must not pair motor rows or recompute
 prices. Budget payloads may omit this APU-only view; that does not alter their
-service-JWT checks. While the
-writers are being moved in T3, a valid internal request deliberately returns
-503 and the existing public GET downloads remain in Core. The budget and APU XLSX/PDF renderers are implemented against the DTO, but
-are not yet wired to that endpoint. Documentos embeds the same tracked
-Liberation Sans font as Core for PDF output. This is not the
-public POST/S3 proxy or evidence of deployed TLS.
+service-JWT checks. The internal endpoint now returns binary budget/APU
+XLSX or PDF from the DTO with the format's media type. The existing public
+GET downloads still use Core's writers until their services are connected.
+Documentos embeds the same tracked Liberation Sans font as Core for PDF output.
+This is not the public POST/S3 proxy or evidence of deployed TLS.
 
 ## Correo
 
