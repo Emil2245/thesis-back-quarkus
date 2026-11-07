@@ -1,8 +1,9 @@
 # propuestas-api
 
 **Plan 02 en ejecución:** Gradle multiproyecto con `:core` (API existente,
-PostgreSQL/Flyway) y `:documentos` (servicio independiente sin base). La
-extracción de los writers y la frontera autenticada todavía deben verificarse;
+PostgreSQL/Flyway), `:documentos` (servicio independiente sin base) y
+`:documentos-contract` (biblioteca de proyecciones tipadas, no un tercer
+servicio). La extracción de los writers y la frontera autenticada todavía deben verificarse;
 la nueva API POST/S3 del plan 01 sigue siendo contrato objetivo, no funcional.
 
 Quarkus backend for the SERCOP propuestas técnico-económicas platform —
@@ -60,6 +61,10 @@ the same commit set. Do not divergently re-decide things here.
 ./gradlew --console=plain :core:quarkusDev
 
 # Documentos (independent port 8081; no PostgreSQL datasource)
+# Configure MP_JWT_VERIFY_PUBLICKEY_LOCATION in Documentos with the dedicated
+# service public key; Core uses DOCUMENTOS_SERVICE_SIGNING_KEY_LOCATION for its
+# matching PKCS#8 private key. Core rejects reuse of its user JWT RSA key,
+# even if the same key material is copied to a different path.
 ./gradlew --console=plain :documentos:quarkusDev
 
 # Root tasks aggregate both applications; no tests in this command
@@ -69,6 +74,7 @@ the same commit set. Do not divergently re-decide things here.
 ./gradlew :core:test -PexcludeKnownResiduals
 ./gradlew :documentos:test
 ./gradlew test -PexcludeKnownResiduals
+bash scripts/check-document-contract.sh
 
 # Core native image (container build; ~10 min)
 ./gradlew :core:build -Dquarkus.native.enabled=true -Dquarkus.native.container-build=true
