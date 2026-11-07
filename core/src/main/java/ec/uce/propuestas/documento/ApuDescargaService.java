@@ -14,6 +14,9 @@ public class ApuDescargaService {
     @Inject
     CapturaDocumentoService captura;
 
+    @Inject
+    DocumentosRenderGateway renderer;
+
     public record Resultado(PreflightDocumento preflight, ArchivoGenerado archivo) {}
 
     // Suspend any caller transaction too: serialization must never hold database locks.
@@ -24,9 +27,7 @@ public class ApuDescargaService {
         if (!preflight.exportable()) return new Resultado(preflight, null);
         boolean pdf = "pdf".equals(preflight.formato());
         var capturadas = new OpcionesDocumento(preflight.formato(), preflight.opciones());
-        var documento = ec.uce.propuestas.documento.exportacion.ApuDocumentoProyeccion.proyectar(snapshot);
-        byte[] bytes =
-                pdf ? ApuPdfWriter.renderizar(documento, capturadas) : ApuXlsxWriter.renderizar(documento, capturadas);
+        byte[] bytes = renderer.render(snapshot, "apus", capturadas);
         String proyecto =
                 snapshot.proyecto().nombre() == null ? "" : snapshot.proyecto().nombre();
         // ASCII allowlist excludes controls, quotes, path separators and traversal.

@@ -14,6 +14,9 @@ public class PresupuestoDescargaService {
     @Inject
     CapturaDocumentoService captura;
 
+    @Inject
+    DocumentosRenderGateway renderer;
+
     public record Resultado(PreflightDocumento preflight, ArchivoGenerado archivo) {}
 
     // Suspend any caller transaction too: serialization must never hold database locks.
@@ -24,9 +27,7 @@ public class PresupuestoDescargaService {
         if (!preflight.exportable()) return new Resultado(preflight, null);
         boolean pdf = "pdf".equals(preflight.formato());
         var capturadas = new OpcionesDocumento(preflight.formato(), preflight.opciones());
-        byte[] bytes = pdf
-                ? PresupuestoPdfWriter.renderizar(snapshot, capturadas)
-                : PresupuestoXlsxWriter.renderizar(snapshot, capturadas);
+        byte[] bytes = renderer.render(snapshot, "presupuesto", capturadas);
         String proyecto =
                 snapshot.proyecto().nombre() == null ? "" : snapshot.proyecto().nombre();
         // ASCII allowlist excludes controls, quotes, path separators and traversal.

@@ -90,9 +90,13 @@ Core populates `snapshot.apuRender` with ordered rows and reconciled printable
 amounts before transport; Documentos must not pair motor rows or recompute
 prices. Budget payloads may omit this APU-only view; that does not alter their
 service-JWT checks. The internal endpoint now returns binary budget/APU
-XLSX or PDF from the DTO with the format's media type. The existing public
-GET downloads still use Core's writers until their services are connected.
-Documentos embeds the same tracked Liberation Sans font as Core for PDF output.
+XLSX or PDF from the DTO with the format's media type. Core's budget/APU GET services now send the completed capture to Documentos
+with `DOCUMENTOS_BASE_URL` (no default) and `DOCUMENTOS_SERVICE_SIGNING_KEY_LOCATION`
+(a dedicated RSA key); `DOCUMENTOS_TIMEOUT` defaults to `PT20S`. A missing URL,
+key, or remote response fails closed; production never falls back to Core's
+writers. The Core test suite retains legacy writer output using a test-only
+CDI alternative; it is not evidence of an end-to-end remote GET. Documentos
+embeds the same tracked Liberation Sans font as Core for PDF output.
 This is not the public POST/S3 proxy or evidence of deployed TLS.
 
 ## Correo
