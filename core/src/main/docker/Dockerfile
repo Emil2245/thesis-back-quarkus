@@ -6,8 +6,10 @@ COPY gradlew settings.gradle.kts build.gradle.kts gradle.properties ./
 COPY gradle/ gradle/
 COPY core/build.gradle.kts core/build.gradle.kts
 COPY documentos/build.gradle.kts documentos/build.gradle.kts
+COPY documentos-contract/build.gradle.kts documentos-contract/build.gradle.kts
 RUN ./gradlew --no-daemon :core:dependencies > /dev/null || true
 COPY core/src/ core/src/
+COPY documentos-contract/src/ documentos-contract/src/
 RUN ./gradlew --no-daemon :core:quarkusBuild -x :core:test -x :core:spotlessCheck
 
 # UBI9 (x86-64-v2): UBI10 exige x86-64-v3 y el clúster de laboratorio no lo soporta (plan 031).

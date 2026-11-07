@@ -6,8 +6,10 @@ COPY gradlew settings.gradle.kts build.gradle.kts gradle.properties ./
 COPY gradle/ gradle/
 COPY core/build.gradle.kts core/build.gradle.kts
 COPY documentos/build.gradle.kts documentos/build.gradle.kts
+COPY documentos-contract/build.gradle.kts documentos-contract/build.gradle.kts
 RUN ./gradlew --no-daemon :documentos:dependencies > /dev/null || true
 COPY documentos/src/ documentos/src/
+COPY documentos-contract/src/ documentos-contract/src/
 RUN ./gradlew --no-daemon :documentos:quarkusBuild -x :documentos:test -x :documentos:spotlessCheck
 
 FROM registry.access.redhat.com/ubi9/openjdk-25-runtime:1.24

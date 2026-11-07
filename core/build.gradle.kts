@@ -11,6 +11,7 @@ java {
 }
 
 dependencies {
+    implementation(project(":documentos-contract"))
     implementation(enforcedPlatform(libs.quarkus.platform.bom))
 
     implementation(libs.quarkus.hibernate.orm.panache)

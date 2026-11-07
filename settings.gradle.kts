@@ -10,4 +10,4 @@ plugins {
 }
 
 rootProject.name = "propuestas-api"
-include(":core", ":documentos")
+include(":core", ":documentos", ":documentos-contract")

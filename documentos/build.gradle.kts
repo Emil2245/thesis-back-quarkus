@@ -11,6 +11,7 @@ java {
 }
 
 dependencies {
+    implementation(project(":documentos-contract"))
     implementation(enforcedPlatform(libs.quarkus.platform.bom))
     implementation(libs.quarkus.rest)
     implementation(libs.quarkus.rest.jackson)
@@ -23,6 +24,7 @@ dependencies {
     implementation(libs.openpdf)
 
     testImplementation(libs.quarkus.junit5)
+    testImplementation(libs.quarkus.smallrye.jwt.build)
     testImplementation(libs.rest.assured)
     testImplementation(libs.jackson.databind)
 }

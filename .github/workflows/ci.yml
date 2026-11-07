@@ -20,7 +20,10 @@ jobs:
       - name: Build and test both Quarkus applications
         run: ./gradlew --no-daemon build -PexcludeKnownResiduals
       - name: Check application boundaries
-        run: bash scripts/check-multiproject.sh
+        timeout-minutes: 10
+        run: |
+          bash scripts/check-multiproject.sh
+          bash scripts/check-document-contract.sh
       - name: Test reports from both applications
         if: always()
         uses: actions/upload-artifact@v7
