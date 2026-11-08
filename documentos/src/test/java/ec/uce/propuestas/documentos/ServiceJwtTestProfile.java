@@ -50,6 +50,16 @@ public class ServiceJwtTestProfile implements QuarkusTestProfile {
                 false);
     }
 
+    static String exportToken(String operationId) {
+        return Jwt.upn("core-service")
+                .issuer("core")
+                .audience("documentos")
+                .groups(Set.of("CORE_SERVICE"))
+                .claim("operationId", operationId)
+                .expiresAt(Instant.now().plusSeconds(30).getEpochSecond())
+                .sign(CORE_KEY.getPrivate());
+    }
+
     private static KeyPair generateKey() {
         try {
             var generator = KeyPairGenerator.getInstance("RSA");

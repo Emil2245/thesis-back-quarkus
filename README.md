@@ -1,10 +1,11 @@
 # propuestas-api
 
-**Plan 02 en ejecución:** Gradle multiproyecto con `:core` (API existente,
-PostgreSQL/Flyway), `:documentos` (servicio independiente sin base) y
-`:documentos-contract` (biblioteca de proyecciones tipadas, no un tercer
-servicio). La extracción de los writers y la frontera autenticada todavía deben verificarse;
-la nueva API POST/S3 del plan 01 sigue siendo contrato objetivo, no funcional.
+**Plan 03 en ejecución:** Gradle multiproyecto con `:core` (API y PostgreSQL/Flyway),
+`:documentos` (servicio independiente sin base) y `:documentos-contract`
+(biblioteca de proyecciones tipadas, no un tercer servicio). Los GET públicos
+siguen funcionando. La nueva ruta interna de subida privada es una pieza aislada:
+el POST público, el ticket de Core, la limpieza a 24 horas y el despliegue aún no
+están implementados ni verificados.
 
 Quarkus backend for the SERCOP propuestas técnico-económicas platform —
 a cloud-native web application that automates APU calculation, budget
@@ -107,6 +108,32 @@ the authenticated Documentos transport outside that transaction, and records
 Remote errors fail closed without an export event; the local DOCX renderer is a
 test-only alternative, not a production fallback.
 This is not the public POST/S3 proxy or evidence of deployed TLS.
+
+## Internal private upload (stage 03, partial)
+
+`POST /internal/v1/export` accepts only the short-lived Core service JWT and an
+`ExportUploadV1` containing **one** versioned budget/APU or specification
+projection, a UUIDv7 `operationId`, its matching private `exports/<operationId>`
+key, a 64-character lowercase hex request fingerprint and a safe filename. The
+short-lived service JWT must contain the same `operationId` claim. Documentos renders and conditionally writes to its configured private
+S3 bucket (`If-None-Match: *`), then confirms object length, SHA-256 checksum
+fingerprint, MIME and filename with `HeadObject` before returning internal metadata; it never
+returns a public S3 URL. On an uncertain write, Core may call
+`POST /internal/v1/export/reconcile` with the same immutable projection and key:
+Documentos re-renders and confirms without another Put. A 412 conflict is not
+interpreted as success. Set `DOCUMENTOS_STORAGE_BUCKET` and configure the S3
+region/identity for deployment; no implicit bucket or DevServices container is
+created. SDK credentials in tests are fake and the local FLoCI check is opt-in:
+
+```bash
+RUN_STAGE03_FLOCI_S3_TEST=true \
+STAGE03_FLOCI_ENDPOINT=http://127.0.0.1:14568 \
+STAGE03_FLOCI_BUCKET=<task-owned-isolated-bucket> \
+./gradlew :documentos:test --tests '*S3PrivateObjectStoreFlociIT'
+```
+
+This check requires an explicitly isolated test bucket and does not establish
+production IAM, Pod Identity, TLS, object cleanup or public download behavior.
 
 To verify the five existing public GET formats against **both real applications**
 without using the repository's Compose volume, run:

@@ -1,13 +1,8 @@
 package ec.uce.propuestas.documentos;
 
 import ec.uce.propuestas.documentos.contract.DocumentProjectionV1;
-import ec.uce.propuestas.documentos.render.ApuPdfRenderer;
-import ec.uce.propuestas.documentos.render.ApuXlsxRenderer;
-import ec.uce.propuestas.documentos.render.PresupuestoPdfRenderer;
-import ec.uce.propuestas.documentos.render.PresupuestoXlsxRenderer;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.NotAuthorizedException;
 import jakarta.ws.rs.POST;
@@ -33,38 +28,7 @@ public class InternalRenderResource {
         if (issued <= 0 || expires <= issued || expires - issued > 60) {
             throw new NotAuthorizedException("Bearer");
         }
-        if (request == null || request.schemaVersion() != DocumentProjectionV1.VERSION) {
-            throw new BadRequestException("Unsupported document contract version");
-        }
-        boolean validFormat = ("presupuesto".equals(request.documento()) || "apus".equals(request.documento()))
-                && ("xlsx".equals(request.formato()) || "pdf".equals(request.formato()));
-        if (!validFormat
-                || request.snapshot() == null
-                || request.snapshot().presupuestoId() == null
-                || request.snapshot().proyecto() == null
-                || request.snapshot().proyecto().id() == null
-                || request.snapshot().parametros() == null
-                || request.snapshot().display() == null
-                || request.snapshot().total() == null) {
-            throw new BadRequestException("Invalid document projection");
-        }
-        if ("apus".equals(request.documento()) && request.snapshot().apuRender().isEmpty()) {
-            throw new BadRequestException("Empty APU projection");
-        }
-        try {
-            byte[] bytes = switch (request.documento() + ":" + request.formato()) {
-                case "presupuesto:xlsx" -> PresupuestoXlsxRenderer.renderizar(request);
-                case "presupuesto:pdf" -> PresupuestoPdfRenderer.renderizar(request);
-                case "apus:xlsx" -> ApuXlsxRenderer.renderizar(request);
-                case "apus:pdf" -> ApuPdfRenderer.renderizar(request);
-                default -> throw new BadRequestException("Unsupported document format");
-            };
-            String type = "pdf".equals(request.formato())
-                    ? "application/pdf"
-                    : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-            return Response.ok(bytes, type).build();
-        } catch (IllegalArgumentException invalid) {
-            throw new BadRequestException("Invalid document projection");
-        }
+        var rendered = DocumentRenderService.render(request);
+        return Response.ok(rendered.bytes(), rendered.mimeType()).build();
     }
 }
