@@ -2,17 +2,9 @@ package ec.uce.propuestas.documento;
 
 import ec.uce.propuestas.common.ProblemaException;
 import ec.uce.propuestas.common.UuidV7;
-import ec.uce.propuestas.presupuesto.entity.Presupuesto;
-import ec.uce.propuestas.presupuesto.repository.PresupuestoRepository;
-import ec.uce.propuestas.proyecto.entity.Proyecto;
-import ec.uce.propuestas.proyecto.service.ProyectoService;
-import ec.uce.propuestas.usuario.UsuarioRepository;
-import ec.uce.propuestas.usuario.audit.EventoLogActividad;
-import ec.uce.propuestas.usuario.audit.service.LogActividadService;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -20,7 +12,6 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -51,27 +42,7 @@ public class DocumentoResource {
     EspecificacionesTecnicasService especificacionesTecnicasService;
 
     @Inject
-    PresupuestoRepository presupuestoRepository;
-
-    @Inject
-    ProyectoService proyectoService;
-
-    @Inject
     SecurityIdentity identity;
-
-    @Inject
-    UsuarioRepository usuarioRepository;
-
-    @Inject
-    LogActividadService logActividadService;
-
-    private Long usuarioId() {
-        String email = identity.getPrincipal().getName();
-        return usuarioRepository
-                .findByEmail(email)
-                .map(u -> u.id)
-                .orElseThrow(() -> ProblemaException.noEncontrado("Usuario autenticado no encontrado"));
-    }
 
     /**
      * GET /documentos/especificaciones-tecnicas/{presupuestoId}?formato=docx&titulo1=&titulo2=
@@ -83,7 +54,6 @@ public class DocumentoResource {
      */
     @GET
     @Path("/especificaciones-tecnicas/{presupuestoId}")
-    @Transactional
     public Response exportarEspecificacionesTecnicas(
             @PathParam("presupuestoId") String presupuestoId,
             @QueryParam("formato") String formato,
@@ -93,19 +63,8 @@ public class DocumentoResource {
             throw ProblemaException.validacion("Formato no soportado: " + formato + " (solo DOCX en esta iteración)");
         }
         UUID presupuestoPublicId = UuidV7.parse(presupuestoId);
-        Long callerUsuarioId = usuarioId();
-        Presupuesto presupuesto = presupuestoRepository
-                .findByPublicIdAndOwnerScope(presupuestoPublicId, callerUsuarioId)
-                .orElseThrow(() -> ProblemaException.noEncontrado("Presupuesto no encontrado"));
-        Proyecto proyecto = proyectoService.validarPropietario(callerUsuarioId, presupuesto.proyectoId);
-
-        ArchivoGenerado archivo = especificacionesTecnicasService.generar(presupuesto.id, proyecto, titulo1, titulo2);
-        logActividadService.emitir(
-                callerUsuarioId,
-                EventoLogActividad.DOCUMENTO_EXPORTADO,
-                "presupuesto",
-                presupuestoPublicId,
-                Map.of("formato", "DOCX", "bytes", (long) archivo.bytes().length, "stale", false));
+        ArchivoGenerado archivo = especificacionesTecnicasService.generar(
+                presupuestoPublicId, identity.getPrincipal().getName(), titulo1, titulo2);
 
         return Response.ok(archivo.bytes(), archivo.mediaType())
                 .header("Content-Disposition", "attachment; filename=\"" + archivo.nombreArchivo() + "\"")

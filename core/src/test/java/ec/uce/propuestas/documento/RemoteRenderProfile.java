@@ -6,6 +6,6 @@ import java.util.Map;
 public class RemoteRenderProfile implements QuarkusTestProfile {
     @Override
     public Map<String, String> getConfigOverrides() {
-        return Map.of("documentos.test-local-render", "false");
+        return Map.of("documentos.test-local-render", "false", "documentos.timeout", "PT2S");
     }
 }

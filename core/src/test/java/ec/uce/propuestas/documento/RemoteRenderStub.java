@@ -11,12 +11,20 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.LongSupplier;
 
 /** Isolated test-only HTTP peer; it never starts Documentos or uses production keys. */
 public class RemoteRenderStub implements QuarkusTestResourceLifecycleManager {
     static final AtomicInteger calls = new AtomicInteger();
     static final AtomicReference<String> lastAuthorization = new AtomicReference<>();
     static final AtomicReference<String> lastProjection = new AtomicReference<>();
+    static final AtomicInteger specificationCalls = new AtomicInteger();
+    static final AtomicReference<String> specificationProjection = new AtomicReference<>();
+    static final AtomicReference<String> specificationAuthorization = new AtomicReference<>();
+    static final AtomicReference<Long> auditDuringRender = new AtomicReference<>();
+    static volatile LongSupplier auditCounter = () -> -1;
+    static volatile int specificationStatus = 200;
+    static volatile long specificationDelayMillis;
     private HttpServer server;
     private Path privateKey;
 
@@ -33,6 +41,25 @@ public class RemoteRenderStub implements QuarkusTestResourceLifecycleManager {
                             + "\n-----END PRIVATE KEY-----\n",
                     StandardCharsets.US_ASCII);
             server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+            server.createContext("/internal/v1/render/specifications", exchange -> {
+                specificationCalls.incrementAndGet();
+                specificationAuthorization.set(exchange.getRequestHeaders().getFirst("Authorization"));
+                specificationProjection.set(
+                        new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+                auditDuringRender.set(auditCounter.getAsLong());
+                try {
+                    Thread.sleep(specificationDelayMillis);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    exchange.close();
+                    return;
+                }
+                byte[] result = new byte[] {'P', 'K', 3, 4};
+                exchange.sendResponseHeaders(specificationStatus, result.length);
+                try (var output = exchange.getResponseBody()) {
+                    output.write(result);
+                }
+            });
             server.createContext("/internal/v1/render", exchange -> {
                 calls.incrementAndGet();
                 lastAuthorization.set(exchange.getRequestHeaders().getFirst("Authorization"));
