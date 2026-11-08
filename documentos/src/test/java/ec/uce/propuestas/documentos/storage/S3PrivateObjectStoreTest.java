@@ -1,6 +1,8 @@
 package ec.uce.propuestas.documentos.storage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -10,6 +12,7 @@ import java.security.MessageDigest;
 import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -37,6 +40,9 @@ class S3PrivateObjectStoreTest {
                 assertEquals(checksum, request.checksumSHA256());
                 assertEquals(FINGERPRINT, request.metadata().get("fingerprint"));
                 assertEquals("budget.pdf", request.metadata().get("filename"));
+                assertEquals(checksum, request.metadata().get("expected-checksum-sha256"));
+                assertEquals(
+                        Integer.toString(CONTENT.length), request.metadata().get("expected-size"));
                 assertEquals("application/pdf", request.contentType());
                 assertEquals(CONTENT.length, body.optionalContentLength().orElseThrow());
                 puts.incrementAndGet();
@@ -49,7 +55,7 @@ class S3PrivateObjectStoreTest {
                         .contentLength((long) CONTENT.length)
                         .checksumSHA256(checksum)
                         .contentType("application/pdf")
-                        .metadata(Map.of("fingerprint", FINGERPRINT, "filename", "budget.pdf"))
+                        .metadata(metadata(checksum, "budget.pdf"))
                         .build();
             }
             throw new AssertionError("Unexpected S3 call: " + method);
@@ -90,7 +96,7 @@ class S3PrivateObjectStoreTest {
                         .contentLength(3L)
                         .checksumSHA256("wrong")
                         .contentType("application/pdf")
-                        .metadata(Map.of("fingerprint", FINGERPRINT, "filename", "budget.pdf"))
+                        .metadata(metadata("wrong", "budget.pdf"))
                         .build();
             }
             throw new AssertionError("Unexpected S3 call: " + method);
@@ -112,7 +118,7 @@ class S3PrivateObjectStoreTest {
                         .contentLength((long) CONTENT.length)
                         .checksumSHA256(checksum)
                         .contentType("text/plain")
-                        .metadata(Map.of("fingerprint", FINGERPRINT, "filename", "other.pdf"))
+                        .metadata(metadata(checksum, "other.pdf"))
                         .build();
             }
             throw new AssertionError("Recovery must not write");
@@ -124,35 +130,102 @@ class S3PrivateObjectStoreTest {
     }
 
     @Test
-    void reconcilesUncertainPutOnlyWhenHeadStillMatches() throws Exception {
+    void reconcilesObjectStoredBeforePutResponseWasLostWithoutRerenderChecksum() throws Exception {
         var puts = new AtomicInteger();
+        var persisted = new AtomicReference<HeadObjectResponse>();
         String checksum = Base64.getEncoder()
                 .encodeToString(MessageDigest.getInstance("SHA-256").digest(CONTENT));
+        byte[] laterRerender = "same projection, new PDF timestamp".getBytes(StandardCharsets.UTF_8);
+        assertNotEquals(
+                checksum,
+                Base64.getEncoder()
+                        .encodeToString(MessageDigest.getInstance("SHA-256").digest(laterRerender)));
         S3Client s3 = stub((method, arguments) -> {
             if ("putObject".equals(method)) {
                 puts.incrementAndGet();
+                PutObjectRequest request = (PutObjectRequest) arguments[0];
+                RequestBody body = (RequestBody) arguments[1];
+                assertEquals(checksum, request.checksumSHA256());
+                persisted.set(HeadObjectResponse.builder()
+                        .contentLength(body.optionalContentLength().orElseThrow())
+                        .checksumSHA256(request.checksumSHA256())
+                        .contentType(request.contentType())
+                        .metadata(request.metadata())
+                        .build());
                 throw S3Exception.builder()
                         .statusCode(503)
                         .message("Connection lost after write")
                         .build();
             }
             if ("headObject".equals(method)) {
-                return HeadObjectResponse.builder()
-                        .contentLength((long) CONTENT.length)
-                        .checksumSHA256(checksum)
-                        .contentType("application/pdf")
-                        .metadata(Map.of("fingerprint", FINGERPRINT, "filename", "budget.pdf"))
-                        .build();
+                assertNotNull(persisted.get(), "Head must see an object actually stored by Put");
+                return persisted.get();
             }
             throw new AssertionError("Unexpected S3 call: " + method);
         });
         var storage = new S3PrivateObjectStore(s3, "private-test-bucket");
         assertThrows(
                 S3Exception.class, () -> storage.store(KEY, CONTENT, "application/pdf", "budget.pdf", FINGERPRINT));
-        var recovered = storage.confirm(KEY, CONTENT, "application/pdf", "budget.pdf", FINGERPRINT);
+        var recovered = storage.confirmExisting(KEY, "application/pdf", "budget.pdf", FINGERPRINT);
         assertEquals(KEY, recovered.key());
         assertEquals(checksum, recovered.checksumSha256());
         assertEquals(1, puts.get());
+    }
+
+    @Test
+    void uncertainRecoveryRejectsWrongFingerprintWithoutChangingStoredObject() throws Exception {
+        String checksum = Base64.getEncoder()
+                .encodeToString(MessageDigest.getInstance("SHA-256").digest(CONTENT));
+        S3Client s3 = stub((method, arguments) -> {
+            if ("headObject".equals(method)) {
+                return HeadObjectResponse.builder()
+                        .contentLength((long) CONTENT.length)
+                        .checksumSHA256(checksum)
+                        .contentType("application/pdf")
+                        .metadata(metadata(checksum, "budget.pdf"))
+                        .build();
+            }
+            throw new AssertionError("Recovery must not overwrite S3");
+        });
+        var storage = new S3PrivateObjectStore(s3, "private-test-bucket");
+        assertThrows(
+                IllegalStateException.class,
+                () -> storage.confirmExisting(KEY, "application/pdf", "budget.pdf", "b".repeat(64)));
+        assertEquals(
+                checksum,
+                storage.confirmExisting(KEY, "application/pdf", "budget.pdf", FINGERPRINT)
+                        .checksumSha256());
+    }
+
+    @Test
+    void recoveryRejectsHeadChecksumOrSizeDifferentFromOriginalPutMetadata() throws Exception {
+        String checksum = Base64.getEncoder()
+                .encodeToString(MessageDigest.getInstance("SHA-256").digest(CONTENT));
+        for (boolean wrongChecksum : new boolean[] {true, false}) {
+            S3Client s3 = stub((method, arguments) -> {
+                if ("headObject".equals(method)) {
+                    return HeadObjectResponse.builder()
+                            .contentLength((long) CONTENT.length)
+                            .checksumSHA256(checksum)
+                            .contentType("application/pdf")
+                            .metadata(Map.of(
+                                    "fingerprint",
+                                    FINGERPRINT,
+                                    "filename",
+                                    "budget.pdf",
+                                    "expected-checksum-sha256",
+                                    wrongChecksum ? "B".repeat(43) + "=" : checksum,
+                                    "expected-size",
+                                    wrongChecksum ? String.valueOf(CONTENT.length) : "999"))
+                            .build();
+                }
+                throw new AssertionError("Recovery must not overwrite S3");
+            });
+            assertThrows(
+                    IllegalStateException.class,
+                    () -> new S3PrivateObjectStore(s3, "private-test-bucket")
+                            .confirmExisting(KEY, "application/pdf", "budget.pdf", FINGERPRINT));
+        }
     }
 
     @Test
@@ -175,6 +248,18 @@ class S3PrivateObjectStoreTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> storage.store(KEY, CONTENT, "application/pdf", "../budget.pdf", FINGERPRINT));
+    }
+
+    private static Map<String, String> metadata(String checksum, String filename) {
+        return Map.of(
+                "fingerprint",
+                FINGERPRINT,
+                "filename",
+                filename,
+                "expected-checksum-sha256",
+                checksum,
+                "expected-size",
+                Integer.toString(CONTENT.length));
     }
 
     private static S3Client stub(S3Call call) {

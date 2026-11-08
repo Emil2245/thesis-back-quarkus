@@ -44,7 +44,11 @@ public class S3PrivateObjectStore {
                             .bucket(bucket)
                             .key(key)
                             .contentType(mimeType)
-                            .metadata(Map.of("fingerprint", fingerprint, "filename", filename))
+                            .metadata(Map.of(
+                                    "fingerprint", fingerprint,
+                                    "filename", filename,
+                                    "expected-checksum-sha256", checksum,
+                                    "expected-size", Integer.toString(bytes.length)))
                             .checksumSHA256(checksum)
                             .ifNoneMatch("*")
                             .build(),
@@ -58,27 +62,24 @@ public class S3PrivateObjectStore {
         return confirm(key, bytes.length, checksum, mimeType, filename, fingerprint);
     }
 
-    /** Re-rendered bytes allow recovery after an uncertain Put without trusting a S3 object merely by key. */
+    /** Known Put responses must match the exact bytes we just uploaded. */
     public StoredObject confirm(String key, byte[] bytes, String mimeType, String filename, String fingerprint) {
         validate(key, bytes, mimeType, filename, fingerprint);
         return confirm(key, bytes.length, sha256(bytes), mimeType, filename, fingerprint);
     }
 
-    /** A failed or timed-out Put is uncertain; only an independently matching Head can confirm it. */
-    private StoredObject confirm(
-            String key,
-            long expectedSize,
-            String expectedChecksum,
-            String mimeType,
-            String filename,
-            String fingerprint) {
+    /** Recover an uncertain Put by its Core-bound fingerprint and S3-validated stored checksum.
+     * Renderers may embed timestamps, so re-rendered bytes are not a valid expected checksum.
+     */
+    public StoredObject confirmExisting(String key, String mimeType, String filename, String fingerprint) {
         if (bucket.isBlank()
                 || !validKey(key)
-                || expectedSize <= 0
-                || expectedSize > MAX_BYTES
-                || expectedChecksum == null
+                || mimeType == null
+                || mimeType.isBlank()
+                || filename == null
+                || !filename.matches("[A-Za-z0-9._-]{1,128}")
                 || fingerprint == null
-                || fingerprint.isBlank()) {
+                || !fingerprint.matches("[0-9a-f]{64}")) {
             throw new IllegalArgumentException("Invalid private object confirmation");
         }
         HeadObjectResponse head = client.headObject(HeadObjectRequest.builder()
@@ -86,14 +87,35 @@ public class S3PrivateObjectStore {
                 .key(key)
                 .checksumMode(ChecksumMode.ENABLED)
                 .build());
-        if (head.contentLength() != expectedSize
-                || !expectedChecksum.equals(head.checksumSHA256())
+        Long size = head.contentLength();
+        String checksum = head.checksumSHA256();
+        if (size == null
+                || size <= 0
+                || size > MAX_BYTES
+                || checksum == null
+                || !checksum.matches("[A-Za-z0-9+/]{43}=")
+                || !checksum.equals(head.metadata().get("expected-checksum-sha256"))
+                || !Long.toString(size).equals(head.metadata().get("expected-size"))
                 || !fingerprint.equals(head.metadata().get("fingerprint"))
                 || !mimeType.equals(head.contentType())
                 || !filename.equals(head.metadata().get("filename"))) {
             throw new IllegalStateException("Cannot confirm private object with matching checksum and fingerprint");
         }
-        return new StoredObject(key, expectedSize, expectedChecksum, mimeType, filename);
+        return new StoredObject(key, size, checksum, mimeType, filename);
+    }
+
+    private StoredObject confirm(
+            String key,
+            long expectedSize,
+            String expectedChecksum,
+            String mimeType,
+            String filename,
+            String fingerprint) {
+        StoredObject stored = confirmExisting(key, mimeType, filename, fingerprint);
+        if (stored.size() != expectedSize || !stored.checksumSha256().equals(expectedChecksum)) {
+            throw new IllegalStateException("Cannot confirm private object with matching checksum and fingerprint");
+        }
+        return stored;
     }
 
     private void validate(String key, byte[] bytes, String mimeType, String filename, String fingerprint) {

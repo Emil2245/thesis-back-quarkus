@@ -65,9 +65,9 @@ class InternalExportResourceTest {
     }
 
     @Test
-    void reconcilesByCheckingTheReRenderedBytesWithoutPuttingAgain() {
+    void reconcilesByCheckingBoundS3MetadataWithoutDependingOnRerenderedBytes() {
         var confirmed = new S3PrivateObjectStore.StoredObject(KEY, 123, "checksum", "application/pdf", "budget.pdf");
-        when(storage.confirm(eq(KEY), any(byte[].class), eq("application/pdf"), eq("budget.pdf"), eq(FINGERPRINT)))
+        when(storage.confirmExisting(eq(KEY), eq("application/pdf"), eq("budget.pdf"), eq(FINGERPRINT)))
                 .thenReturn(confirmed);
         given().auth()
                 .oauth2(ServiceJwtTestProfile.exportToken(OPERATION_ID))
@@ -78,7 +78,7 @@ class InternalExportResourceTest {
                 .then()
                 .statusCode(200)
                 .body("key", equalTo(KEY));
-        verify(storage).confirm(eq(KEY), any(byte[].class), eq("application/pdf"), eq("budget.pdf"), eq(FINGERPRINT));
+        verify(storage).confirmExisting(eq(KEY), eq("application/pdf"), eq("budget.pdf"), eq(FINGERPRINT));
     }
 
     @Test

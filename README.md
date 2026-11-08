@@ -120,8 +120,12 @@ S3 bucket (`If-None-Match: *`), then confirms object length, SHA-256 checksum
 fingerprint, MIME and filename with `HeadObject` before returning internal metadata; it never
 returns a public S3 URL. On an uncertain write, Core may call
 `POST /internal/v1/export/reconcile` with the same immutable projection and key:
-Documentos re-renders and confirms without another Put. A 412 conflict is not
-interpreted as success. Set `DOCUMENTOS_STORAGE_BUCKET` and configure the S3
+Documentos validates the request and confirms the existing S3 object's
+fingerprint, S3-side SHA-256 checksum and size against the checksum/size
+metadata written with the original Put, plus MIME and filename, without
+another Put. Rendering the same PDF at another time is not byte-deterministic, so
+recovery must not compare newly rendered bytes with the original object. A 412
+conflict is not interpreted as success. Set `DOCUMENTOS_STORAGE_BUCKET` and configure the S3
 region/identity for deployment; no implicit bucket or DevServices container is
 created. SDK credentials in tests are fake and the local FLoCI check is opt-in:
 

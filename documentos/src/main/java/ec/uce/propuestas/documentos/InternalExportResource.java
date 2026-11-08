@@ -38,14 +38,13 @@ public class InternalExportResource {
                 request.key(), document.bytes(), document.mimeType(), request.filename(), request.fingerprint());
     }
 
-    /** Used only after an uncertain upload: HEAD must match re-rendered bytes and request fingerprint. */
+    /** Used only after an uncertain upload: HEAD must match the operation-bound fingerprint and S3 checksum. */
     @POST
     @Path("reconcile")
     @io.smallrye.common.annotation.Blocking
     public S3PrivateObjectStore.StoredObject reconcile(ExportUploadV1 request) {
         var document = render(request);
-        return storage.confirm(
-                request.key(), document.bytes(), document.mimeType(), request.filename(), request.fingerprint());
+        return storage.confirmExisting(request.key(), document.mimeType(), request.filename(), request.fingerprint());
     }
 
     private DocumentRenderService.Rendered render(ExportUploadV1 request) {
