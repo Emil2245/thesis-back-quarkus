@@ -1,6 +1,6 @@
 # Ruta de separación: Core + Documentos
 
-**Estado: plan 01 cerrado como factibilidad y contrato; planes 02–04 sin implementar.** Ejecutar los planes siguientes en orden, con un resultado comprobable por etapa. Son **dos servicios Quarkus en un build Gradle multiproyecto**, no dos repositorios: Core conserva PostgreSQL y Flyway; Documentos recibe datos autorizados y proyectados, genera archivos y los almacena en un bucket privado S3 emulado. No hay acceso a la base desde Documentos.
+**Estado: plan 01 cerrado como factibilidad y contrato; plan 02 en cierre de verificación local; planes 03–04 sin implementar.** Ejecutar los planes siguientes en orden, con un resultado comprobable por etapa. Son **dos servicios Quarkus en un build Gradle multiproyecto**, no dos repositorios: Core conserva PostgreSQL y Flyway; Documentos recibe datos autorizados y proyectados, genera archivos y los almacena en un bucket privado S3 emulado. No hay acceso a la base desde Documentos.
 
 | Orden | Plan | Resultado esperado |
 |---|---|---|
@@ -21,7 +21,7 @@
 
 1. **Decisión del plan 01 tomada:** ante la falta de prueba de navegador/EKS para URL S3 directa, se escogió un enlace de **Core** de un solo uso y **5 minutos**, que transmite el objeto S3 privado mediante proxy. El objeto se retiene **24 horas**. La [prueba local de S3 2.4.0](01-factibilidad-y-contratos.md#ejecución-acotada-con-floci-240-solo-s3-local) encontró que el modo por defecto permite GET anónimo; con S3+IAM activados juntos rechazó anonimato, firma y host alterados. No se probó aún el proxy, el pod ni el navegador desplegado.
 2. **Pendiente para plan 04:** resolver la garantía temporal del cronograma: actualmente se bloquea el presupuesto hasta terminar de generar bytes; liberar el bloqueo antes de renderizar y subir a S3 cambia esa garantía.
-3. **Pendiente para planes 02/03:** implementar y verificar idempotencia, auditoría existente, consumo atómico/reemisión del ticket, identidad entre servicios y desde pod, limpieza efectiva a las 24 horas, TLS y descarga desde navegador. No presentar estas garantías como ya verificadas.
+3. **Pendiente para plan 03:** implementar y verificar idempotencia del POST, consumo atómico/reemisión del ticket, identidad desde pod, limpieza efectiva a las 24 horas, TLS y descarga desde navegador. En plan 02 se probó la identidad Core→Documentos y la auditoría DOCX localmente; no extrapolarlas al despliegue.
 
 ## Fuentes que se deben releer antes de cada etapa
 

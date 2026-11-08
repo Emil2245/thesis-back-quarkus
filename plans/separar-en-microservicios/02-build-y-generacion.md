@@ -22,4 +22,20 @@
 
 No desplegar URLs S3 ni cambiar aún el frontend; no retirar cronograma de Core en esta etapa. Durante la transición, la ruta pública vigente debe seguir funcionando o contar con la migración compatible prevista en el plan 01.
 
+## Evidencia local de cierre
+
+- `./gradlew build -PexcludeKnownResiduals` terminó correctamente: Core 973 pruebas
+  (0 fallos, 1 omitida), Documentos 24 (0 fallos); incluye Spotless y builds Quarkus.
+- La comprobación opt-in de `RealDocumentosGetIT` pasó (1 prueba): Core bajo
+  `@QuarkusTest` con PostgreSQL aislado descargó presupuesto y APU en PDF/XLSX,
+  y especificaciones en DOCX desde la **aplicación Documentos empaquetada**,
+  autenticada con JWT de servicio efímero. Comprueba además el evento DOCX tras
+  recibir bytes. No son dos servicios desplegados, TLS, Pod Identity ni navegador.
+- `scripts/check-document-contract.sh` agotó 30 segundos en su intento anterior;
+  su resultado de ejecución local no está acreditado y no se reintentó. La
+  verificación independiente del slice de compatibilidad de DTO no estuvo
+  disponible por cuota. CI en vivo, build nativo y despliegue no se ejecutaron.
+- El PDF **del manual** permanece diferido a petición del usuario. No confundirlo
+  con los PDF de presupuesto/APU, cubiertos por la comprobación anterior.
+
 **Referencias:** [índice](README.md), [`settings.gradle.kts`](../../settings.gradle.kts), [`build.gradle.kts`](../../build.gradle.kts), [`ProyeccionDocumentoService`](../../core/src/main/java/ec/uce/propuestas/documento/exportacion/ProyeccionDocumentoService.java), [diseño canónico](../../../thesis-docs/plan/architecture/08-codebase-design.md).

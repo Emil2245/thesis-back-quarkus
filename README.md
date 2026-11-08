@@ -108,6 +108,21 @@ Remote errors fail closed without an export event; the local DOCX renderer is a
 test-only alternative, not a production fallback.
 This is not the public POST/S3 proxy or evidence of deployed TLS.
 
+To verify the five existing public GET formats against **both real applications**
+without using the repository's Compose volume, run:
+
+```bash
+STAGE02_REAL_DOCUMENTOS=true ./gradlew :documentos:quarkusBuild :core:test \
+  --tests 'ec.uce.propuestas.documento.RealDocumentosGetIT' :core:spotlessCheck
+```
+
+The opt-in test starts the packaged Documentos app on a loopback ephemeral port
+with a task-owned RSA service key and uses Core's isolated Testcontainers database
+and authenticated fixture. It checks budget/APU PDF and XLSX, technical DOCX,
+and the DOCX export audit; it stops the app and removes only its own temporary
+keys. Without `STAGE02_REAL_DOCUMENTOS=true`, the test is skipped. This does not
+validate TLS, browser download, S3, Pod Identity, native images or deployment.
+
 ## Correo
 
 Por defecto (`MAIL_MODE=log`) los correos no se envían: en dev/test el token se
