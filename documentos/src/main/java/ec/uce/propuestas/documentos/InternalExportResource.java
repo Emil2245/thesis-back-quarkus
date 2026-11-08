@@ -3,6 +3,7 @@ package ec.uce.propuestas.documentos;
 import ec.uce.propuestas.documentos.contract.DocumentProjectionV1;
 import ec.uce.propuestas.documentos.contract.ExportUploadV1;
 import ec.uce.propuestas.documentos.contract.SpecificationProjectionV1;
+import ec.uce.propuestas.documentos.contract.StoredObjectV1;
 import ec.uce.propuestas.documentos.render.SpecificationsDocxRenderer;
 import ec.uce.propuestas.documentos.storage.S3PrivateObjectStore;
 import jakarta.annotation.security.RolesAllowed;
@@ -32,19 +33,25 @@ public class InternalExportResource {
 
     @POST
     @io.smallrye.common.annotation.Blocking
-    public S3PrivateObjectStore.StoredObject upload(ExportUploadV1 request) {
+    public StoredObjectV1 upload(ExportUploadV1 request) {
         var document = render(request);
-        return storage.store(
-                request.key(), document.bytes(), document.mimeType(), request.filename(), request.fingerprint());
+        return asContract(storage.store(
+                request.key(), document.bytes(), document.mimeType(), request.filename(), request.fingerprint()));
     }
 
     /** Used only after an uncertain upload: HEAD must match the operation-bound fingerprint and S3 checksum. */
     @POST
     @Path("reconcile")
     @io.smallrye.common.annotation.Blocking
-    public S3PrivateObjectStore.StoredObject reconcile(ExportUploadV1 request) {
+    public StoredObjectV1 reconcile(ExportUploadV1 request) {
         var document = render(request);
-        return storage.confirmExisting(request.key(), document.mimeType(), request.filename(), request.fingerprint());
+        return asContract(
+                storage.confirmExisting(request.key(), document.mimeType(), request.filename(), request.fingerprint()));
+    }
+
+    private static StoredObjectV1 asContract(S3PrivateObjectStore.StoredObject stored) {
+        return new StoredObjectV1(
+                stored.key(), stored.size(), stored.checksumSha256(), stored.mimeType(), stored.filename());
     }
 
     private DocumentRenderService.Rendered render(ExportUploadV1 request) {

@@ -115,7 +115,10 @@ This is not the public POST/S3 proxy or evidence of deployed TLS.
 `ExportUploadV1` containing **one** versioned budget/APU or specification
 projection, a UUIDv7 `operationId`, its matching private `exports/<operationId>`
 key, a 64-character lowercase hex request fingerprint and a safe filename. The
-short-lived service JWT must contain the same `operationId` claim. Documentos renders and conditionally writes to its configured private
+short-lived service JWT must contain the same `operationId` claim. Core's new
+export transport requires HTTPS except for explicit loopback test endpoints;
+this code check is not a substitute for deployed internal TLS or NetworkPolicy.
+Documentos renders and conditionally writes to its configured private
 S3 bucket (`If-None-Match: *`), then confirms object length, SHA-256 checksum
 fingerprint, MIME and filename with `HeadObject` before returning internal metadata; it never
 returns a public S3 URL. On an uncertain write, Core may call

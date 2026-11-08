@@ -10,6 +10,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import ec.uce.propuestas.documentos.contract.ExportUploadV1;
+import ec.uce.propuestas.documentos.contract.StoredObjectV1;
 import ec.uce.propuestas.documentos.storage.S3PrivateObjectStore;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -40,6 +42,20 @@ class InternalExportResourceTest {
 
     @InjectMock
     S3PrivateObjectStore storage;
+
+    @Test
+    void exportBoundaryReturnsSharedContractRatherThanStorageImplementation() throws Exception {
+        assertEquals(
+                StoredObjectV1.class,
+                InternalExportResource.class
+                        .getMethod("upload", ExportUploadV1.class)
+                        .getReturnType());
+        assertEquals(
+                StoredObjectV1.class,
+                InternalExportResource.class
+                        .getMethod("reconcile", ExportUploadV1.class)
+                        .getReturnType());
+    }
 
     @Test
     void uploadsRenderedPdfAndReturnsOnlyConfirmedMetadata() {
