@@ -1,6 +1,6 @@
 # Ruta de separación: Core + Documentos
 
-**Estado: plan 01 cerrado como factibilidad y contrato; plan 02 en cierre de verificación local; planes 03–04 sin implementar.** Ejecutar los planes siguientes en orden, con un resultado comprobable por etapa. Son **dos servicios Quarkus en un build Gradle multiproyecto**, no dos repositorios: Core conserva PostgreSQL y Flyway; Documentos recibe datos autorizados y proyectados, genera archivos y los almacena en un bucket privado S3 emulado. No hay acceso a la base desde Documentos.
+**Estado: plan 01 cerrado como factibilidad y contrato; plan 02 cerrado con la limitación local de verificación aceptada; planes 03–04 sin implementar.** Ejecutar los planes siguientes en orden, con un resultado comprobable por etapa. Son **dos servicios Quarkus en un build Gradle multiproyecto**, no dos repositorios: Core conserva PostgreSQL y Flyway; Documentos recibe datos autorizados y proyectados, genera archivos y los almacena en un bucket privado S3 emulado. No hay acceso a la base desde Documentos.
 
 | Orden | Plan | Resultado esperado |
 |---|---|---|
