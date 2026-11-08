@@ -13,6 +13,7 @@ java {
 dependencies {
     implementation(project(":documentos-contract"))
     implementation(enforcedPlatform(libs.quarkus.platform.bom))
+    implementation(platform(libs.quarkus.amazon.services.bom))
     implementation(libs.quarkus.rest)
     implementation(libs.quarkus.rest.jackson)
     implementation(libs.quarkus.smallrye.health)
@@ -20,10 +21,13 @@ dependencies {
     implementation(libs.quarkus.hibernate.validator)
     implementation(libs.quarkus.config.yaml)
     implementation(libs.quarkus.arc)
+    implementation(libs.quarkus.amazon.s3)
+    implementation(libs.aws.sdk.url.connection.client)
     implementation(libs.poi.ooxml)
     implementation(libs.openpdf)
 
     testImplementation(libs.quarkus.junit5)
+    testImplementation(libs.quarkus.junit5.mockito)
     testImplementation(libs.quarkus.smallrye.jwt.build)
     testImplementation(libs.rest.assured)
     testImplementation(libs.jackson.databind)

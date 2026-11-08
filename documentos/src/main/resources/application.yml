@@ -6,6 +6,9 @@ quarkus:
     host: 0.0.0.0
     limits:
       max-body-size: 8M
+  s3:
+    devservices:
+      enabled: false
 
 # Set MP_JWT_VERIFY_PUBLICKEY_LOCATION to the dedicated Core service public key.
 # Do not configure an empty key location: without a key, auth fails closed and health remains available.
@@ -21,3 +24,11 @@ mp:
   quarkus:
     http:
       test-port: 0
+    s3:
+      aws:
+        region: us-east-1
+        credentials:
+          type: static
+          static-provider:
+            access-key-id: test-only
+            secret-access-key: test-only
