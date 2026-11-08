@@ -16,6 +16,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Optional;
+import java.util.UUID;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 /** Core-only service identity; never uses the user JWT signing key or propagates a user bearer token. */
@@ -28,16 +29,34 @@ public class CoreServiceJwt {
     Optional<String> userPublicKeyLocation;
 
     public String issueToken() {
+        return issueTokenInternal(null);
+    }
+
+    public String issueToken(UUID operationId) {
+        if (operationId == null || operationId.version() != 7 || operationId.variant() != 2) {
+            throw new IllegalArgumentException("Export operation must be UUIDv7");
+        }
+        return issueTokenInternal(operationId);
+    }
+
+    private String issueTokenInternal(UUID operationId) {
         var serviceLocation = signingKeyLocation
                 .filter(s -> !s.isBlank())
                 .orElseThrow(() -> new IllegalStateException("Dedicated Documentos signing key is not configured"));
         var userLocation = userPublicKeyLocation
                 .filter(s -> !s.isBlank())
                 .orElseThrow(() -> new IllegalStateException("User JWT verification key is not configured"));
-        return signedToken(readPrivateKey(serviceLocation), readPublicKey(userLocation), Instant.now());
+        return signedToken(readPrivateKey(serviceLocation), readPublicKey(userLocation), Instant.now(), operationId);
     }
 
     static String signedToken(PrivateKey serviceKey, PublicKey userKey, Instant now) {
+        return signedToken(serviceKey, userKey, now, null);
+    }
+
+    static String signedToken(PrivateKey serviceKey, PublicKey userKey, Instant now, UUID operationId) {
+        if (operationId != null && (operationId.version() != 7 || operationId.variant() != 2)) {
+            throw new IllegalArgumentException("Export operation must be UUIDv7");
+        }
         // Compare the actual RSA public components, not paths: copied key files must be rejected too.
         if (!(serviceKey instanceof RSAPrivateCrtKey service) || !(userKey instanceof RSAPublicKey user)) {
             throw new IllegalStateException("Cannot verify distinct RSA service and user keys");
@@ -47,13 +66,14 @@ public class CoreServiceJwt {
             throw new IllegalStateException("The Documentos signing key must differ from the user JWT key");
         }
         long issued = now.getEpochSecond();
-        return Jwt.upn("core-service")
+        var claims = Jwt.upn("core-service")
                 .issuer("core")
                 .audience("documentos")
                 .groups("CORE_SERVICE")
                 .issuedAt(issued)
-                .expiresAt(issued + 60)
-                .sign(serviceKey);
+                .expiresAt(issued + 60);
+        if (operationId != null) claims.claim("operationId", operationId.toString());
+        return claims.sign(serviceKey);
     }
 
     private static PrivateKey readPrivateKey(String location) {

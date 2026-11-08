@@ -13,6 +13,7 @@ import java.security.Signature;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class CoreServiceJwtTest {
@@ -38,6 +39,25 @@ class CoreServiceJwtTest {
         assertTrue(payload.path("exp").asLong() > payload.path("iat").asLong());
         assertTrue(verifies(parts, service.getPublic()));
         assertFalse(verifies(parts, user.getPublic()));
+    }
+
+    @Test
+    void signsExportTokenBoundToExactlyOneUuidV7Operation() throws Exception {
+        var generator = KeyPairGenerator.getInstance("RSA");
+        generator.initialize(2048);
+        var service = generator.generateKeyPair();
+        var user = generator.generateKeyPair();
+        UUID operation = UUID.fromString("01900000-0000-7000-8000-000000000001");
+        var token = CoreServiceJwt.signedToken(service.getPrivate(), user.getPublic(), Instant.now(), operation);
+        var parts = token.split("\\.");
+        var payload = new ObjectMapper()
+                .readTree(new String(Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8));
+        assertEquals(operation.toString(), payload.path("operationId").asText());
+        assertTrue(verifies(parts, service.getPublic()));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> CoreServiceJwt.signedToken(
+                        service.getPrivate(), user.getPublic(), Instant.now(), UUID.randomUUID()));
     }
 
     @Test
