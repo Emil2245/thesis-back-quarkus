@@ -2,6 +2,7 @@ package ec.uce.propuestas.documento.exportacion;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ec.uce.propuestas.documentos.contract.DocumentProjectionV1;
+import ec.uce.propuestas.documentos.contract.SpecificationProjectionV1;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -49,6 +50,14 @@ public final class DocumentosHttpClient {
     }
 
     public byte[] render(DocumentProjectionV1 projection) {
+        return send(projection, endpoint);
+    }
+
+    public byte[] renderSpecifications(SpecificationProjectionV1 projection) {
+        return send(projection, endpoint.resolve("/internal/v1/render/specifications"));
+    }
+
+    private byte[] send(Object projection, URI target) {
         Objects.requireNonNull(projection, "projection");
         byte[] payload;
         try {
@@ -59,7 +68,7 @@ public final class DocumentosHttpClient {
         if (payload.length > MAX_REQUEST_BYTES) throw new IllegalArgumentException("Document projection exceeds 8 MiB");
         String token = serviceToken.get();
         if (token == null || token.isBlank()) throw new IllegalStateException("Dedicated service token is unavailable");
-        var request = HttpRequest.newBuilder(endpoint)
+        var request = HttpRequest.newBuilder(target)
                 .timeout(timeout)
                 .header("Content-Type", "application/json")
                 .header("Authorization", "Bearer " + token)

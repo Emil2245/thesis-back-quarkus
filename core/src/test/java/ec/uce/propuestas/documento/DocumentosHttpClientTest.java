@@ -11,11 +11,14 @@ import com.sun.net.httpserver.HttpServer;
 import ec.uce.propuestas.documento.exportacion.DocumentoContratoMapper;
 import ec.uce.propuestas.documento.exportacion.DocumentosHttpClient;
 import ec.uce.propuestas.documentos.contract.DocumentProjectionV1;
+import ec.uce.propuestas.documentos.contract.SpecificationProjectionV1;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -53,6 +56,38 @@ class DocumentosHttpClientTest {
         server.start();
 
         assertArrayEquals(expected, client(Duration.ofSeconds(2)).render(request()));
+    }
+
+    @Test
+    void postsTechnicalDocxToDedicatedPathWithSameBoundsAndToken() throws Exception {
+        byte[] expected = new byte[] {'P', 'K', 3, 4};
+        server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
+        server.createContext("/internal/v1/render/specifications", exchange -> {
+            assertEquals("POST", exchange.getRequestMethod());
+            assertEquals(
+                    "Bearer dedicated-service-token",
+                    exchange.getRequestHeaders().getFirst("Authorization"));
+            var body = json.readTree(exchange.getRequestBody());
+            assertEquals(
+                    "A-1", body.path("especificaciones").get(0).path("codigo").asText());
+            assertFalse(body.has("proyectoInternoId"));
+            exchange.sendResponseHeaders(200, expected.length);
+            try (var out = exchange.getResponseBody()) {
+                out.write(expected);
+            }
+        });
+        server.start();
+        var projection = new SpecificationProjectionV1(
+                1,
+                UUID.fromString("01900000-0000-7000-8000-000000000001"),
+                "Proyecto",
+                (short) 2026,
+                "Título",
+                "Subtítulo",
+                "2026-11-07",
+                List.of(new SpecificationProjectionV1.Specification("A-1", "Losa", "u", "Texto técnico")));
+
+        assertArrayEquals(expected, client(Duration.ofSeconds(2)).renderSpecifications(projection));
     }
 
     @Test
