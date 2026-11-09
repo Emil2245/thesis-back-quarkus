@@ -212,6 +212,38 @@ public class ExportReservationService {
         }
     }
 
+    /** Reads immutable confirmed metadata for a same-key retry without rendering or creating a second object. */
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public ConfirmedMetadata confirmedMetadata(long userId, UUID operationId) {
+        if (userId <= 0 || !v7(operationId)) {
+            throw ProblemaException.noEncontrado("Exportación no disponible");
+        }
+        try (Connection db = dataSource.getConnection();
+                PreparedStatement query = db.prepareStatement("""
+                        SELECT estado, documento, objeto_sha256, objeto_bytes, objeto_mime, objeto_nombre
+                        FROM documento_exportacion WHERE usuario_id = ? AND operation_id = ?
+                        """)) {
+            query.setLong(1, userId);
+            query.setObject(2, operationId);
+            try (ResultSet row = query.executeQuery()) {
+                if (!row.next()) throw ProblemaException.noEncontrado("Exportación no disponible");
+                String state = row.getString(1);
+                String document = row.getString(2);
+                boolean confirmed = "especificaciones-tecnicas".equals(document)
+                        ? "AUDITADA".equals(state)
+                        : "SUBIDA".equals(state);
+                if (!confirmed) {
+                    throw ProblemaException.conflicto("exportacion-no-confirmada", "Exportación no confirmada");
+                }
+                return new ConfirmedMetadata(row.getString(3), row.getLong(4), row.getString(5), row.getString(6));
+            }
+        } catch (SQLException unavailable) {
+            throw new IllegalStateException("Export metadata lookup failed", unavailable);
+        }
+    }
+
+    public record ConfirmedMetadata(String sha256, long sizeBytes, String mediaType, String filename) {}
+
     private static long ownedBudget(Connection db, UUID budgetPublicId, long userId) throws SQLException {
         try (PreparedStatement query = db.prepareStatement("""
                 SELECT b.id FROM presupuesto b JOIN proyecto p ON p.id = b.proyecto_id

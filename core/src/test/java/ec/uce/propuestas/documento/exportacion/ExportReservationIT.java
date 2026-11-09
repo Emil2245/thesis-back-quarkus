@@ -96,6 +96,65 @@ class ExportReservationIT {
     }
 
     @Test
+    void confirmedMetadataIsAvailableForIdempotentTicketReissueOnlyToOwner() {
+        var operation = reservations.claim(userId, KEY, budgetPublicId, "presupuesto", BODY_HASH, REVISION_HASH);
+        assertEquals(
+                409,
+                assertThrows(
+                                ProblemaException.class,
+                                () -> reservations.confirmedMetadata(userId, operation.operationId()))
+                        .getResponse()
+                        .getStatus());
+        reservations.confirmUpload(
+                userId,
+                operation.operationId(),
+                operation.fence(),
+                operation.objectKey(),
+                OBJECT_SHA256,
+                123,
+                "application/pdf",
+                "budget.pdf");
+        var metadata = reservations.confirmedMetadata(userId, operation.operationId());
+        assertEquals(OBJECT_SHA256, metadata.sha256());
+        assertEquals(123, metadata.sizeBytes());
+        assertEquals("application/pdf", metadata.mediaType());
+        assertEquals("budget.pdf", metadata.filename());
+        assertEquals(
+                404,
+                assertThrows(
+                                ProblemaException.class,
+                                () -> reservations.confirmedMetadata(userId + 1, operation.operationId()))
+                        .getResponse()
+                        .getStatus());
+    }
+
+    @Test
+    void specificationMetadataRequiresAuditedState() {
+        var operation =
+                reservations.claim(userId, KEY, budgetPublicId, "especificaciones-tecnicas", BODY_HASH, REVISION_HASH);
+        reservations.confirmUpload(
+                userId,
+                operation.operationId(),
+                operation.fence(),
+                operation.objectKey(),
+                OBJECT_SHA256,
+                123,
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                "specification.docx");
+        assertEquals(
+                409,
+                assertThrows(
+                                ProblemaException.class,
+                                () -> reservations.confirmedMetadata(userId, operation.operationId()))
+                        .getResponse()
+                        .getStatus());
+        reservations.finalizeAudit(userId, operation.operationId(), operation.fence());
+        assertEquals(
+                "specification.docx",
+                reservations.confirmedMetadata(userId, operation.operationId()).filename());
+    }
+
+    @Test
     void expiredLeaseReclaimsTheSameObjectWithANewFence() throws SQLException {
         var first = reservations.claim(userId, KEY, budgetPublicId, "presupuesto", BODY_HASH, REVISION_HASH);
         try (Connection db = dataSource.getConnection();
