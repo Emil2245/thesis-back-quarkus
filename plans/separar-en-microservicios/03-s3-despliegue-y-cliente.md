@@ -4,6 +4,16 @@
 
 **Entrada:** [plan 02](02-build-y-generacion.md) comprobado y decisión de descarga del [plan 01](01-factibilidad-y-contratos.md). El código de despliegue está en `thesis-deploy`, no en este backend: cualquier cambio en ese repositorio requiere trabajar allí con su propio contexto y permisos.
 
+**Estado local (2026-11-09):** Core y Documentos implementan el POST para
+presupuesto, APUs y especificaciones, subida privada confirmada, ticket de un
+uso y proxy de Core; el frontend React usa POST/JSON y el enlace temporal, y
+Core permite `Idempotency-Key` en CORS para los orígenes configurados. Los GET
+existentes se conservan y el POST de cronograma sigue diferido. Pasaron 777
+pruebas del frontend y cuatro pruebas CORS, pero la suite completa de Core
+tiene dos fallos golden-master preexistentes (GM_19/GM_20). No hay prueba de
+navegador real, CronJob, identidad IAM separada, TLS/Ingress ni borrado físico
+tras 24 horas; las pruebas locales/FLoCI no sustituyen esos controles.
+
 ## Acciones de esta etapa
 
 1. Preparar en la infraestructura declarativa un **bucket exclusivo para documentos**, privado y distinto de `propuestas-backups`; definir permisos mínimos separados (`PutObject`/`HeadObject` para Documentos; `GetObject` para Core; borrado solo para la tarea de limpieza), cifrado si corresponde, retención/limpieza verificable e identidad de pod. Ninguno de los dos necesita publicar o firmar URL S3 para el navegador. No confundir vencimiento de URL con eliminación del objeto. Revisar límites IAM/KMS de la ejecución histórica con FLoCI 2.3.0 y verificar de nuevo el comportamiento de 2.4.0 en el despliegue; la [prueba local del plan 01](01-factibilidad-y-contratos.md) exige activar juntos `FLOCI_SERVICES_S3_ENFORCE_AUTH` y `FLOCI_SERVICES_IAM_ENFORCEMENT_ENABLED` para obtener rechazo anónimo y de host alterado, pero no prueba seguridad AWS real ni Pod Identity.
