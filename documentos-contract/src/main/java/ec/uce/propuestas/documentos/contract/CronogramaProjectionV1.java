@@ -2,6 +2,7 @@ package ec.uce.propuestas.documentos.contract;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 
 /** Value-only captured cronograma; Core calculates every number before crossing the service boundary. */
@@ -75,6 +76,33 @@ public record CronogramaProjectionV1(int schemaVersion, String format, String pa
         public Sheet {
             rows = List.copyOf(rows);
             chapters = List.copyOf(chapters);
+            if (periodCount < 1
+                    || totals == null
+                    || totals.partialPercentage().size() != periodCount
+                    || totals.accumulatedPercentage().size() != periodCount
+                    || totals.partialAmount().size() != periodCount
+                    || totals.accumulatedAmount().size() != periodCount) {
+                throw new IllegalArgumentException("Incomplete cronograma sheet totals");
+            }
+            for (SheetRow row : rows) {
+                if (row.percentByPeriod().size() != periodCount) {
+                    throw new IllegalArgumentException("Incomplete cronograma sheet periods");
+                }
+                var active = new HashSet<Integer>();
+                for (PeriodAmount amount : row.amountByPeriod()) {
+                    if (amount.period() < 1
+                            || amount.period() > periodCount
+                            || !active.add(amount.period())
+                            || row.percentByPeriod().get(amount.period() - 1) == null) {
+                        throw new IllegalArgumentException("Invalid cronograma sheet amount period");
+                    }
+                }
+                for (int period = 1; period <= periodCount; period++) {
+                    if ((row.percentByPeriod().get(period - 1) != null) != active.contains(period)) {
+                        throw new IllegalArgumentException("Cronograma sheet activity and amount differ");
+                    }
+                }
+            }
         }
     }
 
@@ -107,6 +135,18 @@ public record CronogramaProjectionV1(int schemaVersion, String format, String pa
             List<MspdiRow> rows) {
         public Mspdi {
             rows = List.copyOf(rows);
+            if (periodCount < 1) throw new IllegalArgumentException("Invalid MSPDI period count");
+            for (MspdiRow row : rows) {
+                if (row.activePeriods().size() != row.percentages().size()) {
+                    throw new IllegalArgumentException("Incomplete MSPDI activity percentages");
+                }
+                var active = new HashSet<Integer>();
+                for (int period : row.activePeriods()) {
+                    if (period < 1 || period > periodCount || !active.add(period)) {
+                        throw new IllegalArgumentException("Invalid MSPDI active period");
+                    }
+                }
+            }
         }
     }
 }
