@@ -151,6 +151,20 @@ capability before any private read, then returns the verified bytes with
 A failed S3 read never restores a ticket. This local route does not prove
 deployment IAM, ingress/APM ticket-path redaction, or physical cleanup yet.
 
+The authenticated `POST /api/v1/documentos/{presupuesto|apus|especificaciones-tecnicas}/{presupuestoId}/exportaciones`
+accepts JSON (`formato` plus only the relevant options) and a UUIDv7
+`Idempotency-Key`. A confirmed export returns JSON with `operationId`, a
+relative Core `downloadUrl`, expiration timestamps, filename, MIME, byte count,
+SHA-256, and capture warnings. Repeat the POST with the same key and unchanged
+request/revision to issue another one-use ticket without uploading again; a
+conflicting key returns 409. An uncertain upload is reconciled against the
+original object's HEAD metadata before confirmation. The POST body is capped
+at 8 MiB, and duplicate JSON members are rejected. Only specifications record
+the existing export audit event. These are local application behaviors, **not**
+evidence of real IAM/TLS, browser access, or 24-hour physical deletion. Existing
+byte GETs remain available during frontend migration; cronograma POST is
+reserved for plan 04.
+
 To verify the five existing public GET formats against **both real applications**
 without using the repository's Compose volume, run:
 
