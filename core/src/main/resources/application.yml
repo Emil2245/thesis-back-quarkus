@@ -17,7 +17,7 @@ quarkus:
       enabled: true
       origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:3000}
       methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
-      headers: accept,authorization,content-type
+      headers: accept,authorization,content-type,idempotency-key
 
   datasource:
     db-kind: postgresql

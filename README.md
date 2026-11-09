@@ -162,8 +162,12 @@ original object's HEAD metadata before confirmation. The POST body is capped
 at 8 MiB, and duplicate JSON members are rejected. Only specifications record
 the existing export audit event. These are local application behaviors, **not**
 evidence of real IAM/TLS, browser access, or 24-hour physical deletion. Existing
-byte GETs remain available during frontend migration; cronograma POST is
-reserved for plan 04.
+byte GETs remain available to transition callers; the React frontend now uses
+the POST locally. Cronograma POST is reserved for plan 04. For cross-origin
+browser requests, configure `CORS_ORIGINS` to the trusted frontend origin;
+Core's CORS preflight allows `Authorization`, `Content-Type`, and
+`Idempotency-Key` without allowing unconfigured origins. Local preflight tests
+do not prove the deployed ingress/TLS configuration.
 
 The cleanup worker is **not** scheduled in the ordinary Core service. To build
 its one-shot Quarkus entry point for a separate cleanup workload, select the
