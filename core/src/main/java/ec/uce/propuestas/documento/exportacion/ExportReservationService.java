@@ -1,6 +1,8 @@
 package ec.uce.propuestas.documento.exportacion;
 
 import ec.uce.propuestas.common.ProblemaException;
+import ec.uce.propuestas.usuario.audit.EventoLogActividad;
+import ec.uce.propuestas.usuario.audit.service.LogActividadService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -8,6 +10,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Map;
 import java.util.UUID;
 import javax.sql.DataSource;
 
@@ -16,6 +19,9 @@ import javax.sql.DataSource;
 public class ExportReservationService {
     @Inject
     DataSource dataSource;
+
+    @Inject
+    LogActividadService audit;
 
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public Reservation claim(
@@ -149,6 +155,60 @@ public class ExportReservationService {
             }
         } catch (SQLException unavailable) {
             throw new IllegalStateException("Export upload confirmation database operation failed", unavailable);
+        }
+    }
+
+    /** Emit the pre-existing specification event at most once, atomically with the durable marker. */
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public Reservation finalizeAudit(long userId, UUID operationId, long fence) {
+        if (userId <= 0 || !v7(operationId) || fence <= 0) {
+            throw ProblemaException.conflicto("exportacion-obsoleta", "Reserva inválida");
+        }
+        try (Connection db = dataSource.getConnection();
+                PreparedStatement query = db.prepareStatement("""
+                        SELECT id, fence, estado, documento, presupuesto_public_id, objeto_bytes
+                        FROM documento_exportacion
+                        WHERE operation_id = ? AND usuario_id = ? FOR UPDATE
+                        """)) {
+            query.setObject(1, operationId);
+            query.setLong(2, userId);
+            try (ResultSet rows = query.executeQuery()) {
+                if (!rows.next() || rows.getLong(2) != fence) {
+                    throw ProblemaException.conflicto(
+                            "exportacion-obsoleta", "La reserva ya no pertenece a esta ejecución");
+                }
+                String state = rows.getString(3);
+                if ("AUDITADA".equals(state)) return new Reservation(operationId, fence, state);
+                if (!"SUBIDA".equals(state)) {
+                    throw ProblemaException.conflicto("exportacion-no-confirmada", "La subida no está confirmada");
+                }
+                if (!"especificaciones-tecnicas".equals(rows.getString(4))) {
+                    return new Reservation(operationId, fence, state);
+                }
+                long rowId = rows.getLong(1);
+                UUID budget = (UUID) rows.getObject(5);
+                long bytes = rows.getLong(6);
+                audit.emitir(
+                        userId,
+                        EventoLogActividad.DOCUMENTO_EXPORTADO,
+                        "presupuesto",
+                        budget,
+                        Map.of("formato", "DOCX", "bytes", bytes, "stale", false));
+                try (PreparedStatement update = db.prepareStatement("""
+                        UPDATE documento_exportacion SET estado = 'AUDITADA', auditado_en = now(), updated_at = now()
+                        WHERE id = ? AND fence = ? AND estado = 'SUBIDA'
+                        """)) {
+                    update.setLong(1, rowId);
+                    update.setLong(2, fence);
+                    if (update.executeUpdate() != 1) {
+                        throw ProblemaException.conflicto(
+                                "exportacion-obsoleta", "La reserva cambió durante la auditoría");
+                    }
+                }
+                return new Reservation(operationId, fence, "AUDITADA");
+            }
+        } catch (SQLException unavailable) {
+            throw new IllegalStateException("Export audit transition database operation failed", unavailable);
         }
     }
 

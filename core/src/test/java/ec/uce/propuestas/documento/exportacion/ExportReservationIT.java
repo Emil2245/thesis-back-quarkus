@@ -62,6 +62,10 @@ class ExportReservationIT {
     @AfterEach
     void cleanup() throws SQLException {
         try (Connection db = dataSource.getConnection()) {
+            execute(
+                    db,
+                    "DELETE FROM log_actividad WHERE usuario_id = " + userId
+                            + " AND evento = 'documento.exportado' AND entidad_public_id = '" + budgetPublicId + "'");
             execute(db, "DELETE FROM documento_exportacion WHERE usuario_id = " + userId);
             execute(db, "DELETE FROM presupuesto WHERE id = " + budgetId);
             execute(db, "DELETE FROM proyecto WHERE id = " + projectId);
@@ -185,6 +189,114 @@ class ExportReservationIT {
         assertEquals(409, invalid.getResponse().getStatus());
         assertEquals("RESERVADA", storedState());
         assertEquals(1, countReservations());
+    }
+
+    @Test
+    void specificationAuditAndMarkerCommitOnceOnlyAfterConfirmedUpload() throws SQLException {
+        var reserved =
+                reservations.claim(userId, KEY, budgetPublicId, "especificaciones-tecnicas", BODY_HASH, REVISION_HASH);
+        assertEquals(
+                409,
+                assertThrows(
+                                ProblemaException.class,
+                                () -> reservations.finalizeAudit(userId, reserved.operationId(), reserved.fence()))
+                        .getResponse()
+                        .getStatus());
+        assertEquals("RESERVADA", storedState());
+        assertEquals(0, countAuditEvents());
+        reservations.confirmUpload(
+                userId,
+                reserved.operationId(),
+                reserved.fence(),
+                reserved.objectKey(),
+                OBJECT_SHA256,
+                123,
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                "technical.docx");
+        assertEquals(
+                "AUDITADA",
+                reservations
+                        .finalizeAudit(userId, reserved.operationId(), reserved.fence())
+                        .state());
+        assertEquals(
+                "AUDITADA",
+                reservations
+                        .finalizeAudit(userId, reserved.operationId(), reserved.fence())
+                        .state());
+        assertEquals("AUDITADA", storedState());
+        assertEquals(1, countAuditEvents());
+    }
+
+    @Test
+    void obsoleteFenceCannotAuditOrChangeConfirmedResult() throws SQLException {
+        var first =
+                reservations.claim(userId, KEY, budgetPublicId, "especificaciones-tecnicas", BODY_HASH, REVISION_HASH);
+        try (Connection db = dataSource.getConnection();
+                PreparedStatement expire = db.prepareStatement("UPDATE documento_exportacion"
+                        + " SET lease_until = now() - INTERVAL '1 second' WHERE operation_id = ?")) {
+            expire.setObject(1, first.operationId());
+            assertEquals(1, expire.executeUpdate());
+        }
+        var second =
+                reservations.claim(userId, KEY, budgetPublicId, "especificaciones-tecnicas", BODY_HASH, REVISION_HASH);
+        assertEquals(
+                409,
+                assertThrows(
+                                ProblemaException.class,
+                                () -> reservations.finalizeAudit(userId, first.operationId(), first.fence()))
+                        .getResponse()
+                        .getStatus());
+        assertEquals("RESERVADA", storedState());
+        assertEquals(0, countAuditEvents());
+        reservations.confirmUpload(
+                userId,
+                second.operationId(),
+                second.fence(),
+                second.objectKey(),
+                OBJECT_SHA256,
+                123,
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                "technical.docx");
+        assertEquals(
+                "AUDITADA",
+                reservations
+                        .finalizeAudit(userId, second.operationId(), second.fence())
+                        .state());
+        assertEquals(1, countAuditEvents());
+    }
+
+    @Test
+    void budgetExportHasNoNewAuditEvent() throws SQLException {
+        var reserved = reservations.claim(userId, KEY, budgetPublicId, "presupuesto", BODY_HASH, REVISION_HASH);
+        reservations.confirmUpload(
+                userId,
+                reserved.operationId(),
+                reserved.fence(),
+                reserved.objectKey(),
+                OBJECT_SHA256,
+                123,
+                "application/pdf",
+                "budget.pdf");
+        assertEquals(
+                "SUBIDA",
+                reservations
+                        .finalizeAudit(userId, reserved.operationId(), reserved.fence())
+                        .state());
+        assertEquals("SUBIDA", storedState());
+        assertEquals(0, countAuditEvents());
+    }
+
+    private int countAuditEvents() throws SQLException {
+        try (Connection db = dataSource.getConnection();
+                PreparedStatement query = db.prepareStatement("SELECT count(*) FROM log_actividad"
+                        + " WHERE usuario_id = ? AND evento = 'documento.exportado' AND entidad_public_id = ?")) {
+            query.setLong(1, userId);
+            query.setObject(2, budgetPublicId);
+            try (ResultSet rows = query.executeQuery()) {
+                rows.next();
+                return rows.getInt(1);
+            }
+        }
     }
 
     private String storedState() throws SQLException {
