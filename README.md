@@ -183,6 +183,18 @@ failure and has no public delete route. The scheduled workload must run with
 HTTP listening disabled and its own service account; neither a CronJob nor
 these IAM restrictions are deployed or verified by this repository. Local
 fenced-leasing and DeleteObject tests do not prove actual 24-hour deletion.
+To check SDK `DeleteObject` against the isolated task-owned FLoCI bucket, use:
+
+```bash
+RUN_STAGE03_FLOCI_S3_TEST=true \
+STAGE03_FLOCI_ENDPOINT=http://127.0.0.1:14568 \
+STAGE03_FLOCI_BUCKET=<task-owned-isolated-bucket> \
+./gradlew :core:test --tests '*PrivateObjectDeleterFlociIT'
+```
+
+The test creates a unique export key, deletes only that key, and confirms two
+subsequent HEAD requests return 404. It cannot establish IAM or deployed
+retention.
 
 To verify the five existing public GET formats against **both real applications**
 without using the repository's Compose volume, run:
