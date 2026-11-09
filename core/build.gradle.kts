@@ -42,6 +42,7 @@ dependencies {
     implementation(libs.jackson.databind.nullable)
 
     testImplementation(libs.quarkus.junit5)
+    testImplementation(libs.quarkus.junit5.mockito)
     testImplementation(libs.rest.assured)
     testImplementation(libs.jackson.databind)
     testImplementation(libs.jqwik)

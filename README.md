@@ -145,8 +145,11 @@ Core's private object reader is a separate, read-only S3 client. Configure
 `CORE_STORAGE_BUCKET` with the **same private bucket** only when the Core
 identity has `GetObject` permission; absent configuration fails closed. The
 reader bounds bytes to the confirmed size (at most 64 MiB) and verifies SHA-256.
-It does not expose a public GET or prove deployment IAM, ticket consumption
-through HTTP, or physical cleanup yet.
+`GET /api/v1/documentos/descargas/{ticket}` consumes a Core-issued one-use
+capability before any private read, then returns the verified bytes with
+`Cache-Control: no-store` and `Referrer-Policy: no-referrer` even on 404/500.
+A failed S3 read never restores a ticket. This local route does not prove
+deployment IAM, ingress/APM ticket-path redaction, or physical cleanup yet.
 
 To verify the five existing public GET formats against **both real applications**
 without using the repository's Compose volume, run:
