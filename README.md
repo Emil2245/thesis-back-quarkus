@@ -165,6 +165,25 @@ evidence of real IAM/TLS, browser access, or 24-hour physical deletion. Existing
 byte GETs remain available during frontend migration; cronograma POST is
 reserved for plan 04.
 
+The cleanup worker is **not** scheduled in the ordinary Core service. To build
+its one-shot Quarkus entry point for a separate cleanup workload, select the
+named main at build time:
+
+```bash
+./gradlew :core:quarkusBuild -Dquarkus.package.main-class=cleanup
+```
+
+Package this output as a **different artifact** from the ordinary Core image; the build output directory is shared
+and the last build replaces the previous entry point. In the cleanup workload
+only, configure `CLEANUP_STORAGE_BUCKET` with the private export bucket and
+provide a separate, prefix-scoped `s3:DeleteObject` identity. The regular Core
+identity must have only `s3:GetObject`; Documentos uses `PutObject`/`HeadObject`.
+The command processes at most 100 expired claims, exits with nonzero status on
+failure and has no public delete route. The scheduled workload must run with
+HTTP listening disabled and its own service account; neither a CronJob nor
+these IAM restrictions are deployed or verified by this repository. Local
+fenced-leasing and DeleteObject tests do not prove actual 24-hour deletion.
+
 To verify the five existing public GET formats against **both real applications**
 without using the repository's Compose volume, run:
 
