@@ -2,16 +2,13 @@
 
 **Objetivo:** migrar la exportación XLSX/PDF/MSPDI de cronograma sin debilitar silenciosamente preflight, avisos, exactitud del archivo ni auditoría; demostrar al final dos servicios backend funcionales.
 
-**Entrada:** [plan 03](03-s3-despliegue-y-cliente.md) cerrado. La ruta de cronograma puede permanecer **temporalmente en Core** durante las etapas anteriores; no debe considerarse migrada solo porque otros formatos ya usen S3.
+**Entrada:** [plan 03](03-s3-despliegue-y-cliente.md) verificado en el entorno local Core–Documentos–frontend/FLoCI. El usuario aceptó esa evidencia local por ahora; IAM, TLS, limpieza programada y pruebas de despliegue siguen pendientes, no aprobadas. La ruta de cronograma puede permanecer **temporalmente en Core** durante las etapas anteriores; no debe considerarse migrada solo porque otros formatos ya usen S3.
 
-## Decisión de producto/técnica antes de implementar
+## Garantía de consistencia elegida para esta etapa
 
-La descarga actual mantiene un bloqueo pesimista sobre presupuesto desde el preflight hasta que los bytes están generados dentro de una transacción. **No puede mantenerse la misma transacción durante una llamada HTTP, render remoto y subida S3 sin introducir otros riesgos.** Documentar y acordar una de estas garantías:
+La descarga GET actual mantiene un bloqueo pesimista sobre presupuesto desde el preflight hasta que los bytes están generados dentro de una transacción. **No puede mantenerse la misma transacción durante una llamada HTTP, render remoto y subida S3 sin introducir otros riesgos.** El usuario eligió **captura consistente**: Core valida y calcula preflight, advertencias y proyección completa bajo el bloqueo vigente; libera el bloqueo antes de llamar a Documentos. El archivo y la respuesta corresponden a esa captura aunque el presupuesto cambie después. No se promete revalidación tras la subida ni equivalencia con el bloqueo mantenido hasta generar los bytes.
 
-- **Instante de captura (propuesta):** Core valida, toma una proyección completa bajo la protección actual, libera el bloqueo y envía esos datos a Documentos. El archivo representa esa revisión aunque el presupuesto cambie después. Respuesta/advertencias deben corresponder a la misma captura.
-- **Revalidación antes de entregar:** además de capturar, Core compara la revisión/fingerprint tras la subida y define qué hace si hubo cambios (rechazo, regeneración acotada, limpieza del objeto). No afirmar que esto equivale automáticamente al bloqueo actual.
-
-Si la garantía no queda aprobada o demostrable, mantener cronograma en Core y reportar el bloqueo; no simular paridad.
+El GET de bytes y su preflight existentes se conservan durante la transición. El nuevo POST de cronograma devolverá un ticket de Core mediante el protocolo de la etapa 03, sin convertir silenciosamente el GET en JSON. Si la captura coherente no puede demostrarse en un formato, ese formato permanece en Core y se informa como pendiente.
 
 ## Acciones de esta etapa
 
