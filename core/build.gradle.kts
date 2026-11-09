@@ -13,7 +13,10 @@ java {
 dependencies {
     implementation(project(":documentos-contract"))
     implementation(enforcedPlatform(libs.quarkus.platform.bom))
+    implementation(platform(libs.quarkus.amazon.services.bom))
 
+    implementation(libs.quarkus.amazon.s3)
+    implementation(libs.aws.sdk.url.connection.client)
     implementation(libs.quarkus.hibernate.orm.panache)
     implementation(libs.quarkus.rest)
     implementation(libs.quarkus.rest.jackson)

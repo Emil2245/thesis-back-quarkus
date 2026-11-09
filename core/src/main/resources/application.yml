@@ -2,6 +2,11 @@ quarkus:
   application:
     name: propuestas-api
 
+  # Core only reads already confirmed private objects; it never writes them.
+  s3:
+    devservices:
+      enabled: false
+
   http:
     port: ${QUARKUS_HTTP_PORT:8080}
     auth:

@@ -22,6 +22,14 @@
         publickey:
           location: classpath:jwt/test-publicKey.pem
   quarkus:
+    s3:
+      aws:
+        region: us-east-1
+        credentials:
+          type: static
+          static-provider:
+            access-key-id: test-only
+            secret-access-key: test-only
     mailer:
       mock: true
       from: noreply@test.local

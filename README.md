@@ -141,6 +141,12 @@ STAGE03_FLOCI_BUCKET=<task-owned-isolated-bucket> \
 
 This check requires an explicitly isolated test bucket and does not establish
 production IAM, Pod Identity, TLS, object cleanup or public download behavior.
+Core's private object reader is a separate, read-only S3 client. Configure
+`CORE_STORAGE_BUCKET` with the **same private bucket** only when the Core
+identity has `GetObject` permission; absent configuration fails closed. The
+reader bounds bytes to the confirmed size (at most 64 MiB) and verifies SHA-256.
+It does not expose a public GET or prove deployment IAM, ticket consumption
+through HTTP, or physical cleanup yet.
 
 To verify the five existing public GET formats against **both real applications**
 without using the repository's Compose volume, run:
