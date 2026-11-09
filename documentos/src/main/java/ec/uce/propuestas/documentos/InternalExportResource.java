@@ -1,5 +1,6 @@
 package ec.uce.propuestas.documentos;
 
+import ec.uce.propuestas.documentos.contract.CronogramaProjectionV1;
 import ec.uce.propuestas.documentos.contract.DocumentProjectionV1;
 import ec.uce.propuestas.documentos.contract.ExportUploadV1;
 import ec.uce.propuestas.documentos.contract.SpecificationProjectionV1;
@@ -68,7 +69,10 @@ public class InternalExportResource {
                 || !request.fingerprint().matches("[0-9a-f]{64}")
                 || request.filename() == null
                 || !request.filename().matches("[A-Za-z0-9._-]{1,128}")
-                || (request.projection() == null) == (request.specification() == null)) {
+                || (request.projection() != null ? 1 : 0)
+                                + (request.specification() != null ? 1 : 0)
+                                + (request.cronograma() != null ? 1 : 0)
+                        != 1) {
             throw new BadRequestException("Invalid private export request");
         }
         UUID operationId;
@@ -78,6 +82,7 @@ public class InternalExportResource {
             throw new BadRequestException("Invalid private export operation ID");
         }
         if (operationId.version() != 7
+                || operationId.variant() != 2
                 || !operationId.toString().equals(request.operationId())
                 || !request.key().equals("exports/" + operationId)) {
             throw new BadRequestException("Invalid private export key");
@@ -90,6 +95,14 @@ public class InternalExportResource {
             String suffix = "." + projection.formato();
             if (!request.filename().endsWith(suffix)) {
                 throw new BadRequestException("Invalid export filename");
+            }
+            return DocumentRenderService.render(projection);
+        }
+        if (request.cronograma() != null) {
+            CronogramaProjectionV1 projection = request.cronograma();
+            String suffix = "." + ("mspdi".equals(projection.format()) ? "xml" : projection.format());
+            if (!request.filename().endsWith(suffix)) {
+                throw new BadRequestException("Invalid cronograma export filename");
             }
             return DocumentRenderService.render(projection);
         }

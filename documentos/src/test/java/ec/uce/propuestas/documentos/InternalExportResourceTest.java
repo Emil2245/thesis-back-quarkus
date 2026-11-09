@@ -40,8 +40,74 @@ class InternalExportResourceTest {
               "display":{"precision":2,"precisionPorcentaje":2},"firmantes":[],"capitulos":[],"apus":[]}}}
             """.formatted(FINGERPRINT);
 
+    private static final String CRONOGRAMA = """
+            {"schemaVersion":1,"format":"xlsx","sheet":{"projectCode":"P1","projectName":"Project",
+             "year":2025,"timeUnit":"SEMANA","periodCount":1,"startDate":"2025-01-01",
+             "institution":"Institution","subdirection":"Division","moneyPrecision":2,"percentagePrecision":4,
+             "rows":[{"item":"1.1","code":"R1","description":"Captured","unit":"u",
+              "quantity":"1.000000","unitPrice":"12.340000","totalPrice":"12.340000","weight":"100.0000",
+              "percentByPeriod":["100.0000"],"amountByPeriod":[{"period":1,"value":"12.340000"}]}],
+             "chapters":[],"totals":{"partialPercentage":["100.0000"],"accumulatedPercentage":["100.0000"],
+             "partialAmount":["12.340000"],"accumulatedAmount":["12.340000"]}}}
+            """;
+    private static final String CRONOGRAMA_UPLOAD = """
+            {"schemaVersion":1,"key":"%s","operationId":"%s","fingerprint":"%s",
+             "filename":"schedule.xlsx","cronograma":%s}
+            """.formatted(KEY, OPERATION_ID, FINGERPRINT, CRONOGRAMA);
+
     @InjectMock
     S3PrivateObjectStore storage;
+
+    @Test
+    void uploadsCapturedCronogramaAndReconcilesConfirmedPrivateMetadata() {
+        var confirmed = new S3PrivateObjectStore.StoredObject(
+                KEY,
+                123,
+                "checksum",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "schedule.xlsx");
+        when(storage.store(eq(KEY), any(byte[].class), eq(confirmed.mimeType()), eq("schedule.xlsx"), eq(FINGERPRINT)))
+                .thenReturn(confirmed);
+        when(storage.confirmExisting(eq(KEY), eq(confirmed.mimeType()), eq("schedule.xlsx"), eq(FINGERPRINT)))
+                .thenReturn(confirmed);
+        given().auth()
+                .oauth2(ServiceJwtTestProfile.exportToken(OPERATION_ID))
+                .contentType("application/json")
+                .body(CRONOGRAMA_UPLOAD)
+                .when()
+                .post(PATH)
+                .then()
+                .statusCode(200)
+                .body("key", equalTo(KEY))
+                .body("checksumSha256", equalTo("checksum"));
+        var bytes = ArgumentCaptor.forClass(byte[].class);
+        verify(storage).store(eq(KEY), bytes.capture(), eq(confirmed.mimeType()), eq("schedule.xlsx"), eq(FINGERPRINT));
+        assertEquals('P', bytes.getValue()[0]);
+        assertEquals('K', bytes.getValue()[1]);
+        given().auth()
+                .oauth2(ServiceJwtTestProfile.exportToken(OPERATION_ID))
+                .contentType("application/json")
+                .body(CRONOGRAMA_UPLOAD)
+                .when()
+                .post(PATH + "/reconcile")
+                .then()
+                .statusCode(200)
+                .body("key", equalTo(KEY));
+        verify(storage).confirmExisting(eq(KEY), eq(confirmed.mimeType()), eq("schedule.xlsx"), eq(FINGERPRINT));
+    }
+
+    @Test
+    void rejectsMultipleProjectionVariantsBeforeStorage() {
+        given().auth()
+                .oauth2(ServiceJwtTestProfile.exportToken(OPERATION_ID))
+                .contentType("application/json")
+                .body(PAYLOAD.replace("\"projection\":", "\"cronograma\":" + CRONOGRAMA + ",\"projection\":"))
+                .when()
+                .post(PATH)
+                .then()
+                .statusCode(400);
+        verifyNoInteractions(storage);
+    }
 
     @Test
     void exportBoundaryReturnsSharedContractRatherThanStorageImplementation() throws Exception {
@@ -158,6 +224,20 @@ class InternalExportResourceTest {
                 .post(PATH)
                 .then()
                 .statusCode(401);
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    void rejectsNonRfcUuidVariantEvenWithMatchingServiceClaimAndKey() {
+        String invalidVariant = "01900000-0000-7000-7000-000000000001";
+        given().auth()
+                .oauth2(ServiceJwtTestProfile.exportToken(invalidVariant))
+                .contentType("application/json")
+                .body(CRONOGRAMA_UPLOAD.replace(OPERATION_ID, invalidVariant))
+                .when()
+                .post(PATH)
+                .then()
+                .statusCode(400);
         verifyNoInteractions(storage);
     }
 
