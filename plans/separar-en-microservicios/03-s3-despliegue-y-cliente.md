@@ -10,9 +10,19 @@ uso y proxy de Core; el frontend React usa POST/JSON y el enlace temporal, y
 Core permite `Idempotency-Key` en CORS para los orígenes configurados. Los GET
 existentes se conservan y el POST de cronograma sigue diferido. Pasaron 777
 pruebas del frontend y cuatro pruebas CORS, pero la suite completa de Core
-tiene dos fallos golden-master preexistentes (GM_19/GM_20). No hay prueba de
-navegador real, CronJob, identidad IAM separada, TLS/Ingress ni borrado físico
-tras 24 horas; las pruebas locales/FLoCI no sustituyen esos controles.
+tiene dos fallos golden-master preexistentes (GM_19/GM_20), diferidos por el
+usuario. El repo `thesis-deploy` ofrece `compose.stage03-local.yaml`: se
+construyeron las tres imágenes desde los worktrees hermanos y arrancaron Core,
+Documentos, frontend, PostgreSQL, FLoCI 2.4.0 aislado y Mailpit local para
+activar una cuenta de prueba sin enviar correos. Core y Documentos respondieron
+saludables, el presupuesto de prueba pasó preflight, POST devolvió 200 y una
+descarga vía Core devolvió 200 (4289 bytes XLSX) y después 404 al reutilizar
+el ticket. Playwright con Chromium del sistema verificó login y descarga real
+desde el frontend (POST 200, ticket GET 200); cronograma conservó GET 200.
+`HeadObject` del objeto en el bucket exclusivo confirmó 4289 bytes; nginx no
+registró paths de tickets en su salida local. No hay CronJob, identidad IAM
+separada, TLS/Ingress Kubernetes ni prueba de borrado físico tras 24 horas;
+las pruebas locales/FLoCI no sustituyen esos controles.
 
 ## Acciones de esta etapa
 
