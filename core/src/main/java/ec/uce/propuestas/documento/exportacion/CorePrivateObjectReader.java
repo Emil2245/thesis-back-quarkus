@@ -84,7 +84,9 @@ public class CorePrivateObjectReader {
                 || ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet".equals(object.mediaType())
                         && object.filename().endsWith(".xlsx"))
                 || ("application/vnd.openxmlformats-officedocument.wordprocessingml.document".equals(object.mediaType())
-                        && object.filename().endsWith(".docx"));
+                        && object.filename().endsWith(".docx"))
+                || ("application/xml".equals(object.mediaType())
+                        && object.filename().endsWith(".xml"));
     }
 
     private static byte[] sha256(byte[] bytes) {

@@ -123,6 +123,94 @@ class PrivateDownloadResourceIT {
     }
 
     @Test
+    void confirmedCronogramaXmlTicketIsPublicAndOneUseWithXmlAccept() {
+        var cronograma = reservations.claim(
+                userId,
+                UUID.fromString("01900000-0000-7000-8000-000000000014"),
+                budgetPublicId,
+                "cronograma",
+                "c".repeat(64),
+                "d".repeat(64));
+        reservations.confirmUpload(
+                userId,
+                cronograma.operationId(),
+                cronograma.fence(),
+                cronograma.objectKey(),
+                "A".repeat(43) + "=",
+                BYTES.length,
+                "application/xml",
+                "schedule.xml");
+        reservations.finalizeCronogramaAudit(userId, cronograma.operationId(), cronograma.fence(), "MSPDI", false);
+        when(reader.read(any())).thenReturn(BYTES);
+        String path = "/api/v1/documentos/descargas/"
+                + tickets.issue(userId, cronograma.operationId()).token();
+        byte[] downloaded = given().accept("application/xml")
+                .when()
+                .get(path)
+                .then()
+                .statusCode(200)
+                .header("Content-Type", "application/xml")
+                .header("Content-Disposition", "attachment; filename=\"schedule.xml\"")
+                .header("Cache-Control", "no-store")
+                .header("Referrer-Policy", "no-referrer")
+                .header("X-Content-Type-Options", "nosniff")
+                .extract()
+                .asByteArray();
+        assertArrayEquals(BYTES, downloaded);
+        given().accept("application/xml").when().get(path).then().statusCode(404);
+        verify(reader, times(1)).read(any());
+    }
+
+    @Test
+    void existingXlsxAndDocxTicketsRemainDownloadable() {
+        String[][] formats = {
+            {
+                "01900000-0000-7000-8000-000000000015",
+                "presupuesto",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "budget.xlsx"
+            },
+            {
+                "01900000-0000-7000-8000-000000000016",
+                "especificaciones-tecnicas",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                "spec.docx"
+            }
+        };
+        when(reader.read(any())).thenReturn(BYTES);
+        for (String[] format : formats) {
+            var reservation = reservations.claim(
+                    userId, UUID.fromString(format[0]), budgetPublicId, format[1], "e".repeat(64), "f".repeat(64));
+            reservations.confirmUpload(
+                    userId,
+                    reservation.operationId(),
+                    reservation.fence(),
+                    reservation.objectKey(),
+                    "A".repeat(43) + "=",
+                    BYTES.length,
+                    format[2],
+                    format[3]);
+            if ("especificaciones-tecnicas".equals(format[1])) {
+                reservations.finalizeAudit(userId, reservation.operationId(), reservation.fence());
+            }
+            String path = "/api/v1/documentos/descargas/"
+                    + tickets.issue(userId, reservation.operationId()).token();
+            byte[] downloaded = given().accept(format[2])
+                    .when()
+                    .get(path)
+                    .then()
+                    .statusCode(200)
+                    .header("Content-Type", format[2])
+                    .header("Content-Disposition", "attachment; filename=\"" + format[3] + "\"")
+                    .extract()
+                    .asByteArray();
+            assertArrayEquals(BYTES, downloaded);
+            given().accept(format[2]).when().get(path).then().statusCode(404);
+        }
+        verify(reader, times(2)).read(any());
+    }
+
+    @Test
     void storageFailureDoesNotRestoreConsumedTicket() {
         when(reader.read(any())).thenThrow(new IllegalStateException("private-test-bucket secret"));
         String path = "/api/v1/documentos/descargas/"

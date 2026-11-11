@@ -82,6 +82,35 @@ class CorePrivateObjectReaderTest {
         assertEquals(1, calls.get());
     }
 
+    @Test
+    void acceptsOnlyMatchingSupportedMediaTypesAndExtensions() throws Exception {
+        var calls = new AtomicInteger();
+        serve(BYTES, calls);
+        var reader = new CorePrivateObjectReader(s3, "private-test");
+        String[][] supported = {
+            {"application/xml", "schedule.xml"},
+            {"application/pdf", "budget.pdf"},
+            {"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "budget.xlsx"},
+            {"application/vnd.openxmlformats-officedocument.wordprocessingml.document", "spec.docx"}
+        };
+        for (String[] format : supported) {
+            assertArrayEquals(BYTES, reader.read(formattedObject(format[0], format[1])));
+        }
+        int reads = calls.get();
+        assertThrows(
+                IllegalArgumentException.class, () -> reader.read(formattedObject("application/xml", "schedule.pdf")));
+        assertThrows(
+                IllegalArgumentException.class, () -> reader.read(formattedObject("application/pdf", "schedule.xml")));
+        assertThrows(IllegalArgumentException.class, () -> reader.read(formattedObject("text/xml", "schedule.xml")));
+        assertEquals(reads, calls.get());
+    }
+
+    private static DownloadTicketService.ConfirmedObject formattedObject(String mediaType, String filename)
+            throws Exception {
+        return new DownloadTicketService.ConfirmedObject(
+                "exports/01900000-0000-7000-8000-000000000001", checksum(BYTES), BYTES.length, mediaType, filename);
+    }
+
     private void serve(byte[] bytes, AtomicInteger calls) throws Exception {
         server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
         server.createContext("/private-test/exports/01900000-0000-7000-8000-000000000001", exchange -> {

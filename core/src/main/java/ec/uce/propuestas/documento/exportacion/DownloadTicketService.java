@@ -46,7 +46,7 @@ public class DownloadTicketService {
                 if (!rows.next()) throw ProblemaException.noEncontrado("Exportación no disponible");
                 String state = rows.getString(2);
                 String document = rows.getString(3);
-                boolean confirmed = "especificaciones-tecnicas".equals(document)
+                boolean confirmed = ("especificaciones-tecnicas".equals(document) || "cronograma".equals(document))
                         ? "AUDITADA".equals(state)
                         : "SUBIDA".equals(state);
                 OffsetDateTime uploaded = rows.getObject(4, OffsetDateTime.class);
@@ -93,8 +93,8 @@ public class DownloadTicketService {
                         WHERE t.exportacion_id = e.id AND t.token_sha256 = ?
                           AND t.consumed_at IS NULL AND t.expires_at > now()
                           AND e.uploaded_at + INTERVAL '24 hours' > now()
-                          AND ((e.documento = 'especificaciones-tecnicas' AND e.estado = 'AUDITADA')
-                            OR (e.documento <> 'especificaciones-tecnicas' AND e.estado = 'SUBIDA'))
+                          AND ((e.documento IN ('especificaciones-tecnicas', 'cronograma') AND e.estado = 'AUDITADA')
+                            OR (e.documento NOT IN ('especificaciones-tecnicas', 'cronograma') AND e.estado = 'SUBIDA'))
                         RETURNING e.operation_id, e.objeto_sha256, e.objeto_bytes, e.objeto_mime, e.objeto_nombre
                         """)) {
             consume.setString(1, digest(token));

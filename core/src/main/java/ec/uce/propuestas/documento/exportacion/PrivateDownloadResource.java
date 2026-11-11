@@ -29,7 +29,8 @@ public class PrivateDownloadResource {
         MediaType.APPLICATION_JSON,
         ArchivoGenerado.PDF_MEDIA_TYPE,
         ArchivoGenerado.XLSX_MEDIA_TYPE,
-        ArchivoGenerado.DOCX_MEDIA_TYPE
+        ArchivoGenerado.DOCX_MEDIA_TYPE,
+        ArchivoGenerado.MSPDI_MEDIA_TYPE
     })
     @Blocking
     public Response download(@PathParam("ticket") String token) {
