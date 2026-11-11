@@ -345,6 +345,56 @@ class ExportReservationIT {
         assertEquals(0, countAuditEvents());
     }
 
+    @Test
+    void cronogramaXmlIsAuditedOnceOnlyAfterConfirmation() throws SQLException {
+        var operation = reservations.claim(userId, KEY, budgetPublicId, "cronograma", BODY_HASH, REVISION_HASH);
+        assertThrows(
+                ProblemaException.class,
+                () -> reservations.finalizeCronogramaAudit(
+                        userId, operation.operationId(), operation.fence(), "MSPDI", true));
+        assertEquals(0, countAuditEvents());
+        reservations.confirmUpload(
+                userId,
+                operation.operationId(),
+                operation.fence(),
+                operation.objectKey(),
+                OBJECT_SHA256,
+                123,
+                "application/xml",
+                "schedule.xml");
+        assertEquals(
+                "AUDITADA",
+                reservations
+                        .finalizeCronogramaAudit(userId, operation.operationId(), operation.fence(), "MSPDI", true)
+                        .state());
+        assertEquals(
+                "AUDITADA",
+                reservations
+                        .finalizeCronogramaAudit(userId, operation.operationId(), operation.fence(), "MSPDI", true)
+                        .state());
+        assertEquals(1, countAuditEvents());
+        assertEquals(
+                "schedule.xml",
+                reservations.confirmedMetadata(userId, operation.operationId()).filename());
+    }
+
+    @Test
+    void xmlCannotConfirmBudget() throws SQLException {
+        var operation = reservations.claim(userId, KEY, budgetPublicId, "presupuesto", BODY_HASH, REVISION_HASH);
+        assertThrows(
+                ProblemaException.class,
+                () -> reservations.confirmUpload(
+                        userId,
+                        operation.operationId(),
+                        operation.fence(),
+                        operation.objectKey(),
+                        OBJECT_SHA256,
+                        123,
+                        "application/xml",
+                        "schedule.xml"));
+        assertEquals("RESERVADA", storedState());
+    }
+
     private int countAuditEvents() throws SQLException {
         try (Connection db = dataSource.getConnection();
                 PreparedStatement query = db.prepareStatement("SELECT count(*) FROM log_actividad"

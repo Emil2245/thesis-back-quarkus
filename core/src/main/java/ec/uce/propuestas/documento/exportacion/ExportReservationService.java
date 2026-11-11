@@ -36,6 +36,7 @@ public class ExportReservationService {
                 || !v7(budgetPublicId)
                 || !("presupuesto".equals(document)
                         || "apus".equals(document)
+                        || "cronograma".equals(document)
                         || "especificaciones-tecnicas".equals(document))
                 || !sha256(requestSha256)
                 || !sha256(revisionSha256)) {
@@ -118,7 +119,10 @@ public class ExportReservationService {
                                 && filename.endsWith(".docx")
                         : (mimeType.equals("application/pdf") && filename.endsWith(".pdf"))
                                 || (mimeType.equals("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-                                        && filename.endsWith(".xlsx"));
+                                        && filename.endsWith(".xlsx"))
+                                || ("cronograma".equals(document)
+                                        && mimeType.equals("application/xml")
+                                        && filename.endsWith(".xml"));
                 if (!validFormat) {
                     throw ProblemaException.conflicto("exportacion-no-confirmada", "Formato de objeto inválido");
                 }
@@ -212,6 +216,62 @@ public class ExportReservationService {
         }
     }
 
+    /** Atomically emit the existing cronograma event after confirmed upload, once per operation. */
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public Reservation finalizeCronogramaAudit(
+            long userId, UUID operationId, long fence, String format, boolean stale) {
+        if (userId <= 0
+                || !v7(operationId)
+                || fence <= 0
+                || !("XLSX".equals(format) || "PDF".equals(format) || "MSPDI".equals(format))) {
+            throw ProblemaException.conflicto("exportacion-obsoleta", "Reserva inválida");
+        }
+        try (Connection db = dataSource.getConnection();
+                PreparedStatement query = db.prepareStatement("""
+                        SELECT id, fence, estado, documento, presupuesto_public_id, objeto_bytes, objeto_mime
+                        FROM documento_exportacion WHERE operation_id = ? AND usuario_id = ? FOR UPDATE
+                        """)) {
+            query.setObject(1, operationId);
+            query.setLong(2, userId);
+            try (ResultSet rows = query.executeQuery()) {
+                if (!rows.next() || rows.getLong(2) != fence || !"cronograma".equals(rows.getString(4))) {
+                    throw ProblemaException.conflicto(
+                            "exportacion-obsoleta", "La reserva ya no pertenece a esta ejecución");
+                }
+                String mime = switch (format) {
+                    case "MSPDI" -> "application/xml";
+                    case "PDF" -> "application/pdf";
+                    default -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                };
+                String state = rows.getString(3);
+                if (!("SUBIDA".equals(state) || "AUDITADA".equals(state)) || !mime.equals(rows.getString(7))) {
+                    throw ProblemaException.conflicto("exportacion-no-confirmada", "La subida no está confirmada");
+                }
+                if ("AUDITADA".equals(state)) return new Reservation(operationId, fence, state);
+                audit.emitir(
+                        userId,
+                        EventoLogActividad.DOCUMENTO_EXPORTADO,
+                        "presupuesto",
+                        (UUID) rows.getObject(5),
+                        Map.of("formato", format, "bytes", rows.getLong(6), "stale", stale));
+                try (PreparedStatement update = db.prepareStatement("""
+                        UPDATE documento_exportacion SET estado = 'AUDITADA', auditado_en = now(), updated_at = now()
+                        WHERE id = ? AND fence = ? AND estado = 'SUBIDA'
+                        """)) {
+                    update.setLong(1, rows.getLong(1));
+                    update.setLong(2, fence);
+                    if (update.executeUpdate() != 1) {
+                        throw ProblemaException.conflicto(
+                                "exportacion-obsoleta", "La reserva cambió durante la auditoría");
+                    }
+                }
+                return new Reservation(operationId, fence, "AUDITADA");
+            }
+        } catch (SQLException unavailable) {
+            throw new IllegalStateException("Export audit transition database operation failed", unavailable);
+        }
+    }
+
     /** Reads immutable confirmed metadata for a same-key retry without rendering or creating a second object. */
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public ConfirmedMetadata confirmedMetadata(long userId, UUID operationId) {
@@ -229,7 +289,7 @@ public class ExportReservationService {
                 if (!row.next()) throw ProblemaException.noEncontrado("Exportación no disponible");
                 String state = row.getString(1);
                 String document = row.getString(2);
-                boolean confirmed = "especificaciones-tecnicas".equals(document)
+                boolean confirmed = ("especificaciones-tecnicas".equals(document) || "cronograma".equals(document))
                         ? "AUDITADA".equals(state)
                         : "SUBIDA".equals(state);
                 if (!confirmed) {
