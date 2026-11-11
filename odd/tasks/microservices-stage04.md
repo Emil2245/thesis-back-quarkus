@@ -14,7 +14,7 @@ T4 | S1-S2 | bounded transport writer, interrupted route writer plus inline seam
 T5 | S1-S2 | bounded writer plus parent incident/seam checks, risk 3 | done for frontend; test-origin 80949237a2ddefea27416becc9f10bb63f113ef9, response/mocks fb28b32a0d5735def982e49a0d3af816780e8522, hook/UI/docs 0395354f7ca51bd140f07e3401e38264001497b7. Live browser remains T6.
 T6 | S1-S2 | inline local smoke and passive evidence, risk none for documentation | done for authorized local scope; HTTP Core–Documentos–FLoCI evidence in thesis-deploy 71a8b1a4aea17475fa50f159d7e447562141ebaa and Orca browser evidence in 7f0e046e10a6f2ba493aeab3573320687ebf92fa. Playwright suite, multi-replica/failure/cleanup and deployed IAM/TLS remain explicitly unverified; GM_19/GM_20, contract script and manual PDF deferred.
 
-T7 | deferred follow-up | inline, risk none (build guard script) | done; `scripts/check-document-contract.sh` repaired with fixture test `scripts/test-check-document-contract.sh`. GM_19/GM_20, 24 h deletion, multi-replica and deployed IAM/TLS remain out of this small-items scope; manual PDF blocked (L16).
+T7 | deferred follow-up | inline, risk none (build guard script) | done in c6a9ee4; `scripts/check-document-contract.sh` repaired with fixture test `scripts/test-check-document-contract.sh`. GM_19/GM_20, 24 h deletion, multi-replica and deployed IAM/TLS remain out of this small-items scope; manual PDF blocked (L16).
 
 ## Log
 L1. User request verbatim: "el tema de deploy por ahora solo quiero que fucnoien en local, si esta fucnioanndo en flocci local ya esta sufieciente, puedes continuar con la sigueinte tarea".
