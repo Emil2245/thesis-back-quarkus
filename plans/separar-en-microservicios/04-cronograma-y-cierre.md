@@ -19,6 +19,17 @@ El GET de bytes y su preflight existentes se conservan durante la transición. E
 5. Ejecutar las verificaciones focales y de regresión aplicables de Core, Documentos y frontend, construir ambas imágenes y probar en FLoCI: descarga real desde navegador, múltiples réplicas, fallos de instancia, limpieza de objetos, tiempos y conexiones. Registrar resultados, omisiones y problemas sin cambiar golden masters para hacer pasar el plan.
 6. Reconciliar la documentación canónica de `thesis-docs`, manual de despliegue, contratos API y README de ambos servicios con el comportamiento final; separar explícitamente las afirmaciones verificadas en FLoCI de lo que sería una garantía de AWS real.
 
+## Estado de verificación local (11 de noviembre de 2026)
+
+La [evidencia local de etapa 04](../../../thesis-deploy/docs/evidencias/stage04-cronograma-local-2026-11.md)
+registra Core, Documentos y FLoCI en la composición aislada: preflight, POST,
+XLSX/PDF/MSPDI, advertencia stale, ticket 200 seguido de 404 y GET heredado
+funcionaron por HTTP. El frontend pasó 781 pruebas, typecheck, lint y build.
+**El criterio de descarga desde navegador permanece pendiente:** Playwright no
+encontró su ejecutable Chromium y no se intentó reemplazarlo ni instalarlo.
+Tampoco se probaron réplicas, fallos de instancia, limpieza física a las 24 h,
+IAM/TLS desplegados o la suite completa de Core (GM_19/GM_20 diferidos).
+
 ## Criterio de cierre
 
 - Dos microservicios backend Quarkus desplegables, **una** PostgreSQL solo de Core y un S3 privado para los archivos; Gradle multiproyecto no cuenta como separación por sí solo.
