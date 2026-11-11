@@ -9,9 +9,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import ec.uce.propuestas.documento.exportacion.RemoteExportUploadGateway;
+import ec.uce.propuestas.documentos.contract.ExportUploadV1;
+import ec.uce.propuestas.documentos.contract.StoredObjectV1;
 import ec.uce.propuestas.support.AuthSupport;
 import ec.uce.propuestas.usuario.auth.RecordingEnviadorCorreo;
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.response.Response;
 import jakarta.inject.Inject;
@@ -56,6 +64,9 @@ class CronogramaExportResourceIT {
 
     @Inject
     DataSource ds;
+
+    @InjectMock
+    RemoteExportUploadGateway uploads;
 
     @BeforeEach
     void reset() throws Exception {
@@ -262,6 +273,84 @@ class CronogramaExportResourceIT {
         String actividadId = actividadDeRubro(presupuestoId, "1.1");
         sembrarAvance(actividadId, "{\"1\":\"50.0000\",\"2\":\"50.0000\"}");
         return presupuestoId;
+    }
+
+    @Test
+    void postConfirmsCapturedFormatsAndReissuesOneUseTicketWithoutReupload() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "post-formats@ex.com");
+        String budgetId = armarEscenarioExportable(token);
+        String route = "/api/v1/documentos/cronograma/" + budgetId + "/exportaciones";
+        String checksum = "A".repeat(43) + "=";
+        when(uploads.upload(any(ExportUploadV1.class))).thenAnswer(inv -> {
+            ExportUploadV1 request = inv.getArgument(0);
+            var projection = request.cronograma();
+            assertNotNull(projection);
+            String format = projection.format();
+            String suffix = "mspdi".equals(format) ? ".xml" : "." + format;
+            assertTrue(request.filename().endsWith(suffix), request.filename());
+            assertEquals("pdf".equals(format) ? "a4" : null, projection.paper());
+            String mime = switch (format) {
+                case "pdf" -> "application/pdf";
+                case "mspdi" -> "application/xml";
+                default -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            };
+            return new StoredObjectV1(request.key(), 10, checksum, mime, request.filename());
+        });
+        for (int i = 1; i <= 3; i++) {
+            String format = new String[] {"xlsx", "pdf", "mspdi"}[i - 1];
+            String key = "018f0000-0000-7000-8000-00000000000" + i;
+            var first = given().header("Authorization", "Bearer " + token)
+                    .header("Idempotency-Key", key)
+                    .contentType("application/json")
+                    .body("{\"formato\":\"" + format + "\"}")
+                    .post(route);
+            assertEquals(200, first.statusCode(), first.asString());
+            assertTrue(first.jsonPath().getString("downloadUrl").startsWith("/api/v1/documentos/descargas/"));
+            assertEquals(checksum, first.jsonPath().getString("sha256"));
+            var replay = given().header("Authorization", "Bearer " + token)
+                    .header("Idempotency-Key", key)
+                    .contentType("application/json")
+                    .body("{\"formato\":\"" + format + "\"}")
+                    .post(route);
+            assertEquals(200, replay.statusCode(), replay.asString());
+            assertTrue(!first.jsonPath()
+                    .getString("downloadUrl")
+                    .equals(replay.jsonPath().getString("downloadUrl")));
+        }
+        verify(uploads, times(3)).upload(any(ExportUploadV1.class));
+    }
+
+    @Test
+    void postRespetaOwnershipBloqueosYGetExistente() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "post-owner@ex.com");
+        String intruso = AuthSupport.registrarConToken(mailbox, "post-other@ex.com");
+        String presupuestoId = armarEscenarioExportable(token);
+        String url = "/api/v1/documentos/cronograma/" + presupuestoId;
+        String key = "018f0000-0000-7000-8000-000000000001";
+        given().header("Authorization", "Bearer " + intruso)
+                .header("Idempotency-Key", key)
+                .contentType("application/json")
+                .body("{\"formato\":\"xlsx\"}")
+                .post(url + "/exportaciones")
+                .then()
+                .statusCode(404)
+                .body("codigo", equalTo("no-encontrado"));
+        sembrarAvance(actividadDeRubro(presupuestoId, "1.1"), "{}");
+        given().header("Authorization", "Bearer " + token)
+                .header("Idempotency-Key", key)
+                .contentType("application/json")
+                .body("{\"formato\":\"xlsx\"}")
+                .post(url + "/exportaciones")
+                .then()
+                .statusCode(409)
+                .body("codigo", equalTo("export-bloqueado"))
+                .body("bloqueos.size()", org.hamcrest.Matchers.greaterThan(0));
+        given().header("Authorization", "Bearer " + token)
+                .get(url + "?formato=xlsx")
+                .then()
+                .statusCode(409)
+                .body("codigo", equalTo("export-bloqueado"));
+        assertEquals(0L, contarDocumentoExportado("XLSX"));
     }
 
     /** EXP-02 — MediaBox real, no inferido del header ni del nombre del archivo. */
