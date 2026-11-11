@@ -124,7 +124,10 @@ public final class DocumentosExportClient {
                 || !request.fingerprint().matches("[0-9a-f]{64}")
                 || request.filename() == null
                 || !request.filename().matches("[A-Za-z0-9._-]{1,128}")
-                || (request.projection() == null) == (request.specification() == null)) {
+                || (request.projection() == null ? 0 : 1)
+                                + (request.specification() == null ? 0 : 1)
+                                + (request.cronograma() == null ? 0 : 1)
+                        != 1) {
             throw new IllegalArgumentException("Invalid private export request");
         }
         UUID operation;
@@ -141,7 +144,15 @@ public final class DocumentosExportClient {
                         .endsWith(
                                 request.projection() != null
                                         ? "." + request.projection().formato()
-                                        : ".docx")) {
+                                        : request.specification() != null
+                                                ? ".docx"
+                                                : "mspdi"
+                                                                .equals(request.cronograma()
+                                                                        .format())
+                                                        ? ".xml"
+                                                        : "."
+                                                                + request.cronograma()
+                                                                        .format())) {
             throw new IllegalArgumentException("Invalid private export identity");
         }
         return operation;
@@ -150,6 +161,13 @@ public final class DocumentosExportClient {
     private static String expectedMime(ExportUploadV1 request) {
         if (request.specification() != null) {
             return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        }
+        if (request.cronograma() != null) {
+            return switch (request.cronograma().format()) {
+                case "mspdi" -> "application/xml";
+                case "pdf" -> "application/pdf";
+                default -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            };
         }
         return "pdf".equals(request.projection().formato())
                 ? "application/pdf"

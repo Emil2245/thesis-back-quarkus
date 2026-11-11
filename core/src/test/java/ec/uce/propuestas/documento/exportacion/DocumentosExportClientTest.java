@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpServer;
+import ec.uce.propuestas.documentos.contract.CronogramaProjectionV1;
 import ec.uce.propuestas.documentos.contract.ExportUploadV1;
 import ec.uce.propuestas.documentos.contract.SpecificationProjectionV1;
 import java.net.InetAddress;
@@ -127,6 +128,66 @@ class DocumentosExportClientTest {
                         Duration.ofSeconds(2)));
         new DocumentosExportClient(
                 URI.create("https://documentos.internal"), json, id -> "service-token", Duration.ofSeconds(2));
+    }
+
+    @Test
+    void cronogramaFormatsBindFilenameAndReturnedMime() throws Exception {
+        server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
+        server.createContext("/internal/v1/export", exchange -> {
+            var body = json.readTree(exchange.getRequestBody());
+            String format = body.path("cronograma").path("format").asText();
+            String mime = switch (format) {
+                case "mspdi" -> "application/xml";
+                case "pdf" -> "application/pdf";
+                default -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            };
+            respond(
+                    exchange,
+                    200,
+                    "{\"key\":\"exports/" + OPERATION + "\",\"size\":123,\"checksumSha256\":\"" + CHECKSUM
+                            + "\",\"mimeType\":\"" + mime + "\",\"filename\":\""
+                            + body.path("filename").asText() + "\"}");
+        });
+        server.start();
+        for (String format : List.of("xlsx", "pdf", "mspdi")) {
+            var projection = cronograma(format);
+            String filename = "schedule." + (format.equals("mspdi") ? "xml" : format);
+            var request = new ExportUploadV1(
+                    1, "exports/" + OPERATION, OPERATION.toString(), FINGERPRINT, filename, null, null, projection);
+            assertEquals(filename, client().upload(request).filename());
+            var wrong = new ExportUploadV1(
+                    1, request.key(), request.operationId(), FINGERPRINT, "wrong.docx", null, null, projection);
+            assertThrows(IllegalArgumentException.class, () -> client().upload(wrong));
+            var ambiguous = new ExportUploadV1(
+                    1,
+                    request.key(),
+                    request.operationId(),
+                    FINGERPRINT,
+                    filename,
+                    null,
+                    request().specification(),
+                    projection);
+            assertThrows(IllegalArgumentException.class, () -> client().upload(ambiguous));
+        }
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> client().upload(new ExportUploadV1(
+                        1, "exports/" + OPERATION, OPERATION.toString(), FINGERPRINT, "none.pdf", null, null, null)));
+    }
+
+    private static CronogramaProjectionV1 cronograma(String format) {
+        if (format.equals("mspdi"))
+            return new CronogramaProjectionV1(
+                    1,
+                    format,
+                    null,
+                    null,
+                    new CronogramaProjectionV1.Mspdi(
+                            "id", "code", "project", 2026, "month", 1, "2026-01-01", List.of()));
+        var totals = new CronogramaProjectionV1.Totals(List.of("0"), List.of("0"), List.of("0"), List.of("0"));
+        var sheet = new CronogramaProjectionV1.Sheet(
+                "code", "project", 2026, "month", 1, "2026-01-01", "i", "s", 2, 2, List.of(), List.of(), totals);
+        return new CronogramaProjectionV1(1, format, format.equals("pdf") ? "a4" : null, sheet, null);
     }
 
     private DocumentosExportClient client() {
