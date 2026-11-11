@@ -7,11 +7,14 @@ if ! grep -Fq "Project ':documentos-contract'" <<<"$model"; then
   printf 'Missing pure Gradle contracts module :documentos-contract\n' >&2
   exit 1
 fi
-if ! grep -Fq 'project :documentos-contract' <<<"$model"; then
+# Dependency-tree edges only ("+--- project ':x'" or "\--- project :x"); the
+# "Project locations" section also prints "project ':x' - /x" and must not count.
+depends_on() { grep -Eq -- "--- project '?:$1'?( |\$)" <<<"$model"; }
+if ! depends_on documentos-contract; then
   printf 'Documentos must use the versioned contract module\n' >&2
   exit 1
 fi
-if grep -Fq 'project :core' <<<"$model"; then
+if depends_on core; then
   printf 'Documentos must never depend on Core\n' >&2
   exit 1
 fi

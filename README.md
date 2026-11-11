@@ -76,6 +76,7 @@ the same commit set. Do not divergently re-decide things here.
 ./gradlew :documentos:test
 ./gradlew test -PexcludeKnownResiduals
 bash scripts/check-document-contract.sh
+bash scripts/test-check-document-contract.sh   # fixtures for the guard itself
 
 # Core native image (container build; ~10 min)
 ./gradlew :core:build -Dquarkus.native.enabled=true -Dquarkus.native.container-build=true
