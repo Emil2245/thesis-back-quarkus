@@ -25,10 +25,12 @@ La [evidencia local de etapa 04](../../../thesis-deploy/docs/evidencias/stage04-
 registra Core, Documentos y FLoCI en la composición aislada: preflight, POST,
 XLSX/PDF/MSPDI, advertencia stale, ticket 200 seguido de 404 y GET heredado
 funcionaron por HTTP. El frontend pasó 781 pruebas, typecheck, lint y build.
-**El criterio de descarga desde navegador permanece pendiente:** Playwright no
-encontró su ejecutable Chromium y no se intentó reemplazarlo ni instalarlo.
-Tampoco se probaron réplicas, fallos de instancia, limpieza física a las 24 h,
-IAM/TLS desplegados o la suite completa de Core (GM_19/GM_20 diferidos).
+El usuario solicitó una prueba desde el navegador integrado de Orca: allí
+se observaron tres POST 200, tres GET de ticket 200 y descargas XLSX, PDF A3
+y MSPDI XML. Playwright sigue sin ejecutarse por falta de su Chromium; no se
+instaló ni reintentó. Tampoco se probaron réplicas, fallos de instancia,
+limpieza física a las 24 h, IAM/TLS desplegados o la suite completa de Core
+(GM_19/GM_20 diferidos).
 
 ## Criterio de cierre
 
