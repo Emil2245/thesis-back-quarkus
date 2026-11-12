@@ -36,7 +36,7 @@ class ExportCorsIT {
                 .header("Access-Control-Request-Method", "GET")
                 .header("Access-Control-Request-Headers", "authorization,content-type")
                 .when()
-                .options("/api/v1/documentos/presupuesto/01900000-0000-7000-8000-000000000099")
+                .options("/api/v1/documentos/presupuesto/01900000-0000-7000-8000-000000000099/preflight")
                 .then()
                 .statusCode(200)
                 .header("Access-Control-Allow-Origin", equalTo("http://localhost:5173"))

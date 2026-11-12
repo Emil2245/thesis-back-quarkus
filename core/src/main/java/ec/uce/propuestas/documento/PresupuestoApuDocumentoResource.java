@@ -17,19 +17,13 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.UriInfo;
 
-/** Preflights comunes y descarga de la versión seleccionada del presupuesto. */
+/** Preflights de presupuesto y APUs; la descarga usa {@code POST …/exportaciones} (etapa 05). */
 @Path("/documentos")
 @Produces(MediaType.APPLICATION_JSON)
 @RolesAllowed({"USUARIO", "SUPER_ADMIN"})
 public class PresupuestoApuDocumentoResource {
     @Inject
     PreflightDocumentoService preflight;
-
-    @Inject
-    PresupuestoDescargaService descarga;
-
-    @Inject
-    ApuDescargaService apuDescarga;
 
     @Inject
     SecurityIdentity identity;
@@ -47,52 +41,6 @@ public class PresupuestoApuDocumentoResource {
     @Path("/apus/{id}/preflight")
     public PreflightDocumento apus(@PathParam("id") String id, @Context UriInfo uri) {
         return evaluar(id, "apus", uri);
-    }
-
-    @GET
-    @Path("/presupuesto/{id}")
-    @Produces({ArchivoGenerado.XLSX_MEDIA_TYPE, ArchivoGenerado.PDF_MEDIA_TYPE, MediaType.APPLICATION_JSON})
-    @io.smallrye.common.annotation.Blocking
-    public jakarta.ws.rs.core.Response descargar(@PathParam("id") String id, @Context UriInfo uri) {
-        var uuid = UuidV7.parse(id);
-        var opciones = OpcionesDocumento.parsear("presupuesto", uri.getQueryParameters());
-        Long caller = usuarios.findByEmail(identity.getPrincipal().getName())
-                .orElseThrow(() -> ProblemaException.noEncontrado("Usuario autenticado no encontrado"))
-                .id;
-        var resultado = descarga.generar(uuid, caller, opciones);
-        if (!resultado.preflight().exportable()) {
-            return jakarta.ws.rs.core.Response.status(409)
-                    .type(MediaType.APPLICATION_JSON)
-                    .entity(resultado.preflight())
-                    .build();
-        }
-        var archivo = resultado.archivo();
-        return jakarta.ws.rs.core.Response.ok(archivo.bytes(), archivo.mediaType())
-                .header("Content-Disposition", "attachment; filename=\"" + archivo.nombreArchivo() + "\"")
-                .build();
-    }
-
-    @GET
-    @Path("/apus/{id}")
-    @Produces({ArchivoGenerado.XLSX_MEDIA_TYPE, ArchivoGenerado.PDF_MEDIA_TYPE, MediaType.APPLICATION_JSON})
-    @io.smallrye.common.annotation.Blocking
-    public jakarta.ws.rs.core.Response descargarApus(@PathParam("id") String id, @Context UriInfo uri) {
-        var uuid = UuidV7.parse(id);
-        var opciones = OpcionesDocumento.parsear("apus", uri.getQueryParameters());
-        Long caller = usuarios.findByEmail(identity.getPrincipal().getName())
-                .orElseThrow(() -> ProblemaException.noEncontrado("Usuario autenticado no encontrado"))
-                .id;
-        var resultado = apuDescarga.generar(uuid, caller, opciones);
-        if (!resultado.preflight().exportable()) {
-            return jakarta.ws.rs.core.Response.status(409)
-                    .type(MediaType.APPLICATION_JSON)
-                    .entity(resultado.preflight())
-                    .build();
-        }
-        var archivo = resultado.archivo();
-        return jakarta.ws.rs.core.Response.ok(archivo.bytes(), archivo.mediaType())
-                .header("Content-Disposition", "attachment; filename=\"" + archivo.nombreArchivo() + "\"")
-                .build();
     }
 
     private PreflightDocumento evaluar(String id, String documento, UriInfo uri) {

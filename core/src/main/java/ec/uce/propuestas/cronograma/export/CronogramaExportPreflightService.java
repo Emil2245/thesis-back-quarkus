@@ -298,8 +298,8 @@ public class CronogramaExportPreflightService {
     }
 
     /**
-     * Cálculo puro de stale: no abre tx; lo usa
-     * {@link CronogramaDescargaService} desde dentro de su propia tx. Se
+     * Cálculo puro de stale: no abre tx; lo usa la captura del cronograma
+     * ({@link CronogramaCaptureService}) desde dentro de su propia tx. Se
      * conserva público porque la regla del canon es la misma que aplica el
      * preflight (Plan 031 §Preflight / §Warning stale).
      */

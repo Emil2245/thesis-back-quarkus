@@ -36,7 +36,7 @@ class ExportPostFlowIT {
 
     @Test
     void confirmedBudgetReissuesOneUseTicketWithoutReuploadAndRejectsChangedRequest() throws Exception {
-        var f = PresupuestoExportResourceIT.fixture(ds, mailbox, true);
+        var f = PresupuestoExportFixture.fixture(ds, mailbox, true);
         when(uploads.upload(any(ExportUploadV1.class))).thenAnswer(inv -> stored(inv.getArgument(0)));
         String path = f.path() + "/exportaciones";
         Response first = post(f.token(), path, KEY, "{\"formato\":\"pdf\"}");
@@ -69,7 +69,7 @@ class ExportPostFlowIT {
 
     @Test
     void uncertainUploadMustReconcileBeforeTicket() throws Exception {
-        var f = PresupuestoExportResourceIT.fixture(ds, mailbox, true);
+        var f = PresupuestoExportFixture.fixture(ds, mailbox, true);
         when(uploads.upload(any(ExportUploadV1.class))).thenThrow(new UploadUncertainException("lost response"));
         when(uploads.reconcile(any(ExportUploadV1.class))).thenAnswer(inv -> stored(inv.getArgument(0)));
         Response recovered = post(f.token(), f.path() + "/exportaciones", KEY, "{\"formato\":\"pdf\"}");
@@ -81,7 +81,7 @@ class ExportPostFlowIT {
 
     @Test
     void apuXlsxExportsWithMatchingPrivateMetadata() throws Exception {
-        var f = PresupuestoExportResourceIT.fixture(ds, mailbox, true);
+        var f = PresupuestoExportFixture.fixture(ds, mailbox, true);
         when(uploads.upload(any(ExportUploadV1.class))).thenAnswer(inv -> {
             ExportUploadV1 request = inv.getArgument(0);
             assertEquals("apus", request.projection().documento());
@@ -104,9 +104,9 @@ class ExportPostFlowIT {
 
     @Test
     void specificationReissuesTicketAfterAuditWithoutRerender() throws Exception {
-        var f = PresupuestoExportResourceIT.fixture(ds, mailbox, true);
+        var f = PresupuestoExportFixture.fixture(ds, mailbox, true);
         try (var db = ds.getConnection()) {
-            PresupuestoExportResourceIT.sql(
+            PresupuestoExportFixture.sql(
                     db,
                     "UPDATE apu SET especificacion_tecnica = 'Technical details' WHERE presupuesto_id = ?",
                     f.budget());
@@ -138,13 +138,13 @@ class ExportPostFlowIT {
 
     @Test
     void blockedAndForeignBudgetsNeverUploadOrIssueTickets() throws Exception {
-        var blocked = PresupuestoExportResourceIT.fixture(ds, mailbox, false, false);
+        var blocked = PresupuestoExportFixture.fixture(ds, mailbox, false, false);
         Response preflight = post(blocked.token(), blocked.path() + "/exportaciones", KEY, "{\"formato\":\"pdf\"}");
         assertEquals(409, preflight.statusCode(), preflight.asString());
         assertEquals("no-store", preflight.header("Cache-Control"));
         assertNotNull(preflight.jsonPath().getList("bloqueos"));
         assertNull(preflight.jsonPath().getString("downloadUrl"));
-        var owned = PresupuestoExportResourceIT.fixture(ds, mailbox, true);
+        var owned = PresupuestoExportFixture.fixture(ds, mailbox, true);
         String otherToken = AuthSupport.registrarConToken(mailbox, "post-foreign-" + System.nanoTime() + "@test.ec");
         Response foreign = post(otherToken, owned.path() + "/exportaciones", KEY, "{\"formato\":\"pdf\"}");
         assertEquals(404, foreign.statusCode(), foreign.asString());
@@ -154,7 +154,7 @@ class ExportPostFlowIT {
 
     @Test
     void failedReconciliationNeverIssuesATicket() throws Exception {
-        var f = PresupuestoExportResourceIT.fixture(ds, mailbox, true);
+        var f = PresupuestoExportFixture.fixture(ds, mailbox, true);
         when(uploads.upload(any(ExportUploadV1.class))).thenThrow(new UploadUncertainException("lost response"));
         when(uploads.reconcile(any(ExportUploadV1.class))).thenThrow(new UploadUncertainException("head unavailable"));
         Response failed = post(f.token(), f.path() + "/exportaciones", KEY, "{\"formato\":\"pdf\"}");

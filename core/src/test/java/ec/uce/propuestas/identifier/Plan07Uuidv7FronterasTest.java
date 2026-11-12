@@ -460,8 +460,11 @@ class Plan07Uuidv7FronterasTest {
         insertarPresupuesto(proyectoId);
 
         given().header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .header("Idempotency-Key", "01900000-0000-7000-8000-0000000007a1")
+                .body("{\"formato\":\"docx\"}")
                 .when()
-                .get("/api/v1/documentos/especificaciones-tecnicas/" + UUID_NO_V7)
+                .post("/api/v1/documentos/especificaciones-tecnicas/" + UUID_NO_V7 + "/exportaciones")
                 .then()
                 .statusCode(400)
                 .body("codigo", equalTo("validacion"));
@@ -472,8 +475,11 @@ class Plan07Uuidv7FronterasTest {
         String token = AuthSupport.registrarConToken(mailbox, "p07-doc-inex@ex.com");
 
         given().header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .header("Idempotency-Key", "01900000-0000-7000-8000-0000000007a2")
+                .body("{\"formato\":\"docx\"}")
                 .when()
-                .get("/api/v1/documentos/especificaciones-tecnicas/" + UUID_INEXISTENTE + "?formato=docx")
+                .post("/api/v1/documentos/especificaciones-tecnicas/" + UUID_INEXISTENTE + "/exportaciones")
                 .then()
                 .statusCode(404)
                 .body("codigo", equalTo("no-encontrado"));

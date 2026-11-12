@@ -210,9 +210,8 @@ public class CronogramaProyeccionExportService {
         }
 
         // Identidad determinista del proyecto: el publicId se deriva al
-        // CalendarUID/UID del Project MSPDI dentro del writer (positive int
-        // derivado del UUIDv7, módulo Integer.MAX_VALUE / 2 — ver
-        // CronogramaMspdiWriter#uidDeterminista).
+        // CalendarUID/UID del Project MSPDI dentro del renderer de Documentos
+        // (positive int derivado del UUIDv7, módulo Integer.MAX_VALUE / 2).
         return new MspdiCronograma.ProyeccionMspdi(
                 proyecto.publicId,
                 proyecto.codigo == null ? "" : proyecto.codigo,

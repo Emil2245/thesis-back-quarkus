@@ -36,8 +36,6 @@ dependencies {
     implementation(libs.quarkus.mailer)
     implementation(libs.quarkus.elytron.security.common)
 
-    implementation(libs.poi.ooxml)
-    implementation(libs.openpdf)
     implementation(libs.commons.csv)
     implementation(libs.jackson.databind.nullable)
 
@@ -46,8 +44,6 @@ dependencies {
     testImplementation(libs.rest.assured)
     testImplementation(libs.jackson.databind)
     testImplementation(libs.jqwik)
-    // Plan 031 (P-37) - PDFBox 3 API for parse-back of the PDF writer.
-    testImplementation(libs.pdfbox)
 }
 
 // CVE-2026-75595: Quarkus 3.40.x pins netty-handler 4.1.138.

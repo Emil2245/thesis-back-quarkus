@@ -8,10 +8,12 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import ec.uce.propuestas.documento.exportacion.RemoteExportUploadGateway;
@@ -45,11 +47,12 @@ import org.junit.jupiter.api.Test;
  * <p>Contrato:
  * <ul>
  *   <li>{@code GET /documentos/cronograma/{presupuestoId}/preflight?formato=...}</li>
- *   <li>{@code GET /documentos/cronograma/{presupuestoId}?formato=...} → attachment</li>
+ *   <li>{@code POST /documentos/cronograma/{presupuestoId}/exportaciones} → ticket de un solo uso
+ *       (etapa 05: el GET de bytes se retiró; Documentos renderiza y sube a S3 privado, aquí simulado
+ *       en {@link RemoteExportUploadGateway}).</li>
  *   <li>400 para UUID malformado/no-v7 o formato inválido.</li>
  *   <li>404 para presupuesto ajeno o inexistente.</li>
- *   <li>409 con código {@code export-bloqueado} para descarga bloqueada.</li>
- *   <li>Headers: {@code X-Cronograma-Desactualizado: true|false}.</li>
+ *   <li>409 con código {@code export-bloqueado} para exportación bloqueada, sin subida ni ticket.</li>
  * </ul>
  */
 @QuarkusTest
@@ -275,6 +278,47 @@ class CronogramaExportResourceIT {
         return presupuestoId;
     }
 
+    private static final java.util.concurrent.atomic.AtomicLong CLAVES =
+            new java.util.concurrent.atomic.AtomicLong(0x5000);
+
+    private static String nuevaClave() {
+        return String.format("018f0000-0000-7000-8000-%012x", CLAVES.incrementAndGet());
+    }
+
+    private Response exportar(String token, String presupuestoId, String body) {
+        return given().header("Authorization", "Bearer " + token)
+                .header("Idempotency-Key", nuevaClave())
+                .contentType("application/json")
+                .body(body)
+                .post("/api/v1/documentos/cronograma/" + presupuestoId + "/exportaciones");
+    }
+
+    /** Documentos/S3 accept every upload; returns the requests Core sent across the boundary. */
+    private java.util.List<ExportUploadV1> aceptarSubidas() {
+        var enviadas = new java.util.concurrent.CopyOnWriteArrayList<ExportUploadV1>();
+        when(uploads.upload(any(ExportUploadV1.class))).thenAnswer(inv -> {
+            ExportUploadV1 request = inv.getArgument(0);
+            enviadas.add(request);
+            String mime = switch (request.cronograma().format()) {
+                case "pdf" -> "application/pdf";
+                case "mspdi" -> "application/xml";
+                default -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            };
+            return new StoredObjectV1(request.key(), 10, "A".repeat(43) + "=", mime, request.filename());
+        });
+        return enviadas;
+    }
+
+    /** A blocked export answers JSON only: no upload, no ticket, no file signature. */
+    private static void sinArchivo(Response r) {
+        assertTrue(r.getHeader("Content-Type").startsWith("application/json"), r.getHeader("Content-Type"));
+        String body = r.asString();
+        assertNull(r.jsonPath().getString("downloadUrl"));
+        assertFalse(body.startsWith("PK"), "no debe filtrarse un XLSX (firma ZIP)");
+        assertFalse(body.startsWith("<?xml"), "no debe filtrarse un XML del MSPDI");
+        assertFalse(body.startsWith("%PDF"), "no debe filtrarse un PDF");
+    }
+
     @Test
     void postConfirmsCapturedFormatsAndReissuesOneUseTicketWithoutReupload() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "post-formats@ex.com");
@@ -321,7 +365,7 @@ class CronogramaExportResourceIT {
     }
 
     @Test
-    void postRespetaOwnershipBloqueosYGetExistente() throws Exception {
+    void postRespetaOwnershipYBloqueosSinGetDeBytes() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "post-owner@ex.com");
         String intruso = AuthSupport.registrarConToken(mailbox, "post-other@ex.com");
         String presupuestoId = armarEscenarioExportable(token);
@@ -348,82 +392,86 @@ class CronogramaExportResourceIT {
         given().header("Authorization", "Bearer " + token)
                 .get(url + "?formato=xlsx")
                 .then()
-                .statusCode(409)
-                .body("codigo", equalTo("export-bloqueado"));
+                .statusCode(404);
         assertEquals(0L, contarDocumentoExportado("XLSX"));
+        verifyNoInteractions(uploads);
     }
 
-    /** EXP-02 — MediaBox real, no inferido del header ni del nombre del archivo. */
+    /**
+     * EXP-02 — el papel A4 por defecto o A3 viaja en la proyección capturada. La MediaBox del PDF
+     * (842x595 / 1191x842, sin rotación) la verifica el renderer de Documentos desde este campo.
+     */
     @Test
     void papel_pdf_a4_default_y_a3_horizontal() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "exp02-papel@ex.com");
         String presupuestoId = armarEscenarioExportable(token);
-        for (String opcion : new String[] {"", "&papel=a4", "&papel=a3"}) {
+        var enviadas = aceptarSubidas();
+        String[][] casos = {{"", "a4"}, {"&papel=a4", "a4"}, {"&papel=a3", "a3"}};
+        for (String[] caso : casos) {
             given().header("Authorization", "Bearer " + token)
-                    .get("/api/v1/documentos/cronograma/" + presupuestoId + "/preflight?formato=pdf" + opcion)
+                    .get("/api/v1/documentos/cronograma/" + presupuestoId + "/preflight?formato=pdf" + caso[0])
                     .then()
                     .statusCode(200)
                     .body("exportable", equalTo(true));
-            Response r = given().header("Authorization", "Bearer " + token)
-                    .get("/api/v1/documentos/cronograma/" + presupuestoId + "?formato=pdf" + opcion);
-            assertEquals(200, r.statusCode());
-            try (var pdf = org.apache.pdfbox.Loader.loadPDF(r.asByteArray())) {
-                for (var pagina : pdf.getPages()) {
-                    assertEquals(
-                            opcion.endsWith("a3") ? 1191f : 842f,
-                            pagina.getMediaBox().getWidth());
-                    assertEquals(
-                            opcion.endsWith("a3") ? 842f : 595f,
-                            pagina.getMediaBox().getHeight());
-                    assertEquals(0, pagina.getRotation());
-                }
-            }
+            String papel = caso[0].isEmpty() ? "" : ",\"papel\":\"" + caso[1] + "\"";
+            Response r = exportar(token, presupuestoId, "{\"formato\":\"pdf\"" + papel + "}");
+            assertEquals(200, r.statusCode(), r.asString());
+            assertEquals(caso[1], enviadas.getLast().cronograma().paper());
+            assertEquals("pdf", enviadas.getLast().cronograma().format());
         }
     }
 
-    /** Opciones ajenas o malformadas fallan antes de generar documentos. */
+    /** Opciones ajenas o malformadas fallan antes de capturar o subir documentos. */
     @Test
     void papel_invalido_y_combinaciones_devuelven_400() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "exp02-invalid@ex.com");
         String presupuestoId = armarEscenarioExportable(token);
-        for (String consulta : new String[] {
-            "formato=pdf&papel=",
-            "formato=pdf&papel=letter",
-            "formato=pdf&papel=A3",
-            "formato=pdf&papel=%20a3",
-            "formato=xlsx&papel=a4",
-            "formato=mspdi&papel=a3"
-        }) {
-            for (String ruta : new String[] {"", "/preflight"}) {
-                Response r = given().header("Authorization", "Bearer " + token)
-                        .get("/api/v1/documentos/cronograma/" + presupuestoId + ruta + "?" + consulta);
-                assertEquals(400, r.statusCode(), consulta + ruta);
-                assertEquals("validacion", r.jsonPath().getString("codigo"));
-                assertEquals(null, r.getHeader("Content-Disposition"));
-            }
+        String[][] casos = {
+            {"formato=pdf&papel=", "{\"formato\":\"pdf\",\"papel\":\"\"}"},
+            {"formato=pdf&papel=letter", "{\"formato\":\"pdf\",\"papel\":\"letter\"}"},
+            {"formato=pdf&papel=A3", "{\"formato\":\"pdf\",\"papel\":\"A3\"}"},
+            {"formato=pdf&papel=%20a3", "{\"formato\":\"pdf\",\"papel\":\" a3\"}"},
+            {"formato=xlsx&papel=a4", "{\"formato\":\"xlsx\",\"papel\":\"a4\"}"},
+            {"formato=mspdi&papel=a3", "{\"formato\":\"mspdi\",\"papel\":\"a3\"}"}
+        };
+        for (String[] caso : casos) {
+            Response preflight = given().header("Authorization", "Bearer " + token)
+                    .get("/api/v1/documentos/cronograma/" + presupuestoId + "/preflight?" + caso[0]);
+            assertEquals(400, preflight.statusCode(), caso[0]);
+            assertEquals("validacion", preflight.jsonPath().getString("codigo"));
+            Response post = exportar(token, presupuestoId, caso[1]);
+            assertEquals(400, post.statusCode(), caso[1]);
+            assertEquals("validacion", post.jsonPath().getString("codigo"));
+            assertNull(post.jsonPath().getString("downloadUrl"));
         }
         assertEquals(0L, contarDocumentoExportado("PDF"));
+        verifyNoInteractions(uploads);
     }
 
-    /** A3 conserva UUID estricto, ownership y bloqueo sin attachment. */
+    /** A3 conserva UUID estricto, ownership y bloqueo sin subida ni ticket. */
     @Test
     void papel_a3_conserva_gates() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "exp02-owner@ex.com");
         String intruso = AuthSupport.registrarConToken(mailbox, "exp02-other@ex.com");
         String presupuestoId = armarEscenarioExportable(token);
-        for (String ruta : new String[] {"", "/preflight"}) {
-            given().header("Authorization", "Bearer " + intruso)
-                    .get("/api/v1/documentos/cronograma/" + presupuestoId + ruta + "?formato=pdf&papel=a3")
+        String a3 = "{\"formato\":\"pdf\",\"papel\":\"a3\"}";
+        given().header("Authorization", "Bearer " + intruso)
+                .get("/api/v1/documentos/cronograma/" + presupuestoId + "/preflight?formato=pdf&papel=a3")
+                .then()
+                .statusCode(404)
+                .body("codigo", equalTo("no-encontrado"));
+        Response ajeno = exportar(intruso, presupuestoId, a3);
+        assertEquals(404, ajeno.statusCode(), ajeno.asString());
+        assertEquals("no-encontrado", ajeno.jsonPath().getString("codigo"));
+        for (String id : new String[] {"incorrecto", UUID_NO_V7}) {
+            given().header("Authorization", "Bearer " + token)
+                    .get("/api/v1/documentos/cronograma/" + id + "/preflight?formato=pdf&papel=a3")
                     .then()
-                    .statusCode(404)
-                    .body("codigo", equalTo("no-encontrado"));
-            for (String id : new String[] {"incorrecto", UUID_NO_V7}) {
-                given().header("Authorization", "Bearer " + token)
-                        .get("/api/v1/documentos/cronograma/" + id + ruta + "?formato=pdf&papel=a3")
-                        .then()
-                        .statusCode(400)
-                        .body("codigo", equalTo("validacion"));
-            }
+                    .statusCode(400)
+                    .body("codigo", equalTo("validacion"));
+            Response malformado = exportar(token, id, a3);
+            assertEquals(400, malformado.statusCode(), id);
+            assertEquals("validacion", malformado.jsonPath().getString("codigo"));
         }
         sembrarAvance(actividadDeRubro(presupuestoId, "1.1"), "{}");
         given().header("Authorization", "Bearer " + token)
@@ -431,13 +479,12 @@ class CronogramaExportResourceIT {
                 .then()
                 .statusCode(200)
                 .body("exportable", equalTo(false));
-        Response r = given().header("Authorization", "Bearer " + token)
-                .get("/api/v1/documentos/cronograma/" + presupuestoId + "?formato=pdf&papel=a3");
+        Response r = exportar(token, presupuestoId, a3);
         assertEquals(409, r.statusCode());
         assertEquals("export-bloqueado", r.jsonPath().getString("codigo"));
-        assertEquals(null, r.getHeader("Content-Disposition"));
-        assertFalse(r.asString().startsWith("%PDF"));
+        sinArchivo(r);
         assertEquals(0L, contarDocumentoExportado("PDF"));
+        verifyNoInteractions(uploads);
     }
 
     // ──────────────────────────────────────────────────────────────────────
@@ -531,68 +578,30 @@ class CronogramaExportResourceIT {
     // Descarga
     // ──────────────────────────────────────────────────────────────────────
 
-    /** TC_P37_53 — descarga XLSX: 200 + media type + attachment + filename + header stale. */
+    /** TC_P37_53/54/55 — XLSX, PDF y MSPDI: 200 con ticket, media type y nombre propios, y D-13 por formato. */
     @Test
-    void TC_P37_53_descarga_xlsx_200_con_media_type_y_filename() throws Exception {
-        String token = AuthSupport.registrarConToken(mailbox, "p31-dl-x@ex.com");
+    void TC_P37_53_55_exportacion_por_formato_media_type_filename_y_auditoria() throws Exception {
+        String token = AuthSupport.registrarConToken(mailbox, "p31-dl@ex.com");
         String presupuestoId = armarEscenarioExportable(token);
-
-        Response r = given().header("Authorization", "Bearer " + token)
-                .when()
-                .get("/api/v1/documentos/cronograma/" + presupuestoId + "?formato=xlsx");
-
-        assertEquals(200, r.statusCode(), "descarga XLSX debe ser 200");
-        String ct = r.getHeader("Content-Type");
-        assertNotNull(ct);
-        assertTrue(
-                ct.startsWith("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
-                "Content-Type XLSX canónico: " + ct);
-        String disp = r.getHeader("Content-Disposition");
-        assertTrue(disp != null && disp.contains("attachment"));
-        assertTrue(disp.toLowerCase().endsWith(".xlsx\""), "filename .xlsx: " + disp);
-        assertTrue(r.body().asByteArray().length > 100);
-        assertEquals(1L, contarDocumentoExportado("XLSX"));
+        aceptarSubidas();
+        String[][] casos = {
+            {"xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ".xlsx", "XLSX"},
+            {"pdf", "application/pdf", ".pdf", "PDF"},
+            {"mspdi", "application/xml", ".xml", "MSPDI"}
+        };
+        for (String[] caso : casos) {
+            Response r = exportar(token, presupuestoId, "{\"formato\":\"" + caso[0] + "\"}");
+            assertEquals(200, r.statusCode(), caso[0] + " " + r.asString());
+            assertEquals(caso[1], r.jsonPath().getString("mediaType"));
+            assertTrue(r.jsonPath().getString("filename").toLowerCase().endsWith(caso[2]), caso[0]);
+            assertTrue(r.jsonPath().getString("downloadUrl").startsWith("/api/v1/documentos/descargas/"));
+            assertEquals(1L, contarDocumentoExportado(caso[3]), caso[0]);
+        }
     }
 
-    /** TC_P37_54 — descarga PDF: 200 + media type PDF. */
+    /** TC_P37_56 — owner-to-404: cronograma ajeno responde 404 en preflight y exportación. */
     @Test
-    void TC_P37_54_descarga_pdf_200_con_media_type_pdf() throws Exception {
-        String token = AuthSupport.registrarConToken(mailbox, "p31-dl-p@ex.com");
-        String presupuestoId = armarEscenarioExportable(token);
-
-        Response r = given().header("Authorization", "Bearer " + token)
-                .when()
-                .get("/api/v1/documentos/cronograma/" + presupuestoId + "?formato=pdf");
-
-        assertEquals(200, r.statusCode(), "descarga PDF debe ser 200");
-        String ct = r.getHeader("Content-Type");
-        assertTrue(ct != null && ct.startsWith("application/pdf"), "Content-Type PDF: " + ct);
-        String disp = r.getHeader("Content-Disposition");
-        assertTrue(disp.toLowerCase().endsWith(".pdf\""));
-        assertEquals(1L, contarDocumentoExportado("PDF"));
-    }
-
-    /** TC_P37_55 — descarga MSPDI: 200 + application/xml. */
-    @Test
-    void TC_P37_55_descarga_mspdi_200_con_media_type_xml() throws Exception {
-        String token = AuthSupport.registrarConToken(mailbox, "p31-dl-m@ex.com");
-        String proyectoId = crearProyecto(token, "P31-MSPDI");
-        fijarFechaInicio(proyectoId, LocalDate.parse("2026-01-01"));
-        String presupuestoId = armarEscenarioExportable(token);
-
-        Response r = given().header("Authorization", "Bearer " + token)
-                .when()
-                .get("/api/v1/documentos/cronograma/" + presupuestoId + "?formato=mspdi");
-        assertEquals(200, r.statusCode());
-        String ct = r.getHeader("Content-Type");
-        assertTrue(ct != null && ct.startsWith("application/xml"), "Content-Type MSPDI XML: " + ct);
-        assertTrue(r.getHeader("Content-Disposition").toLowerCase().endsWith(".xml\""));
-        assertEquals(1L, contarDocumentoExportado("MSPDI"));
-    }
-
-    /** TC_P37_56 — owner-to-404: cronograma ajeno responde 404. */
-    @Test
-    void TC_P37_56_presupuesto_ajeno_devuelve_404_en_preflight_y_descarga() throws Exception {
+    void TC_P37_56_presupuesto_ajeno_devuelve_404_en_preflight_y_exportacion() throws Exception {
         String titular = AuthSupport.registrarConToken(mailbox, "p31-own-t@ex.com");
         String intruso = AuthSupport.registrarConToken(mailbox, "p31-own-i@ex.com");
         String presupuestoId = armarEscenarioExportable(titular);
@@ -603,15 +612,13 @@ class CronogramaExportResourceIT {
                 .then()
                 .statusCode(404)
                 .body("codigo", equalTo("no-encontrado"));
-        given().header("Authorization", "Bearer " + intruso)
-                .when()
-                .get("/api/v1/documentos/cronograma/" + presupuestoId + "?formato=xlsx")
-                .then()
-                .statusCode(404)
-                .body("codigo", equalTo("no-encontrado"));
+        Response r = exportar(intruso, presupuestoId, "{\"formato\":\"xlsx\"}");
+        assertEquals(404, r.statusCode(), r.asString());
+        assertEquals("no-encontrado", r.jsonPath().getString("codigo"));
+        verifyNoInteractions(uploads);
     }
 
-    /** TC_P37_57 — UUID malformado/no-v7 → 400 validacion. */
+    /** TC_P37_57 — UUID malformado/no-v7 o formato inválido → 400 validacion. */
     @Test
     void TC_P37_57_uuid_malformado_y_formato_invalido_devuelven_400() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p31-uuid@ex.com");
@@ -621,29 +628,24 @@ class CronogramaExportResourceIT {
                 .then()
                 .statusCode(400)
                 .body("codigo", equalTo("validacion"));
-        given().header("Authorization", "Bearer " + token)
-                .when()
-                .get("/api/v1/documentos/cronograma/" + UUID_NO_V7 + "?formato=xlsx")
-                .then()
-                .statusCode(400)
-                .body("codigo", equalTo("validacion"));
+        Response noV7 = exportar(token, UUID_NO_V7, "{\"formato\":\"xlsx\"}");
+        assertEquals(400, noV7.statusCode(), noV7.asString());
+        assertEquals("validacion", noV7.jsonPath().getString("codigo"));
         given().header("Authorization", "Bearer " + token)
                 .when()
                 .get("/api/v1/documentos/cronograma/0192f6c4-7c8a-7000-8000-000000000000/preflight?formato=bogus")
                 .then()
                 .statusCode(400)
                 .body("codigo", equalTo("validacion"));
-        given().header("Authorization", "Bearer " + token)
-                .when()
-                .get("/api/v1/documentos/cronograma/0192f6c4-7c8a-7000-8000-000000000000?formato=bogus")
-                .then()
-                .statusCode(400)
-                .body("codigo", equalTo("validacion"));
+        Response bogus = exportar(token, "0192f6c4-7c8a-7000-8000-000000000000", "{\"formato\":\"bogus\"}");
+        assertEquals(400, bogus.statusCode(), bogus.asString());
+        assertEquals("validacion", bogus.jsonPath().getString("codigo"));
+        verifyNoInteractions(uploads);
     }
 
-    /** TC_P37_58 — descarga bloqueada → 409 export-bloqueado, header stale presente. */
+    /** TC_P37_58 — exportación de un borrador → 409 export-bloqueado sin subida ni ticket. */
     @Test
-    void TC_P37_58_descarga_bloqueada_devuelve_409_export_bloqueado() throws Exception {
+    void TC_P37_58_exportacion_bloqueada_devuelve_409_export_bloqueado() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p31-blq@ex.com");
         String proyectoId = crearProyecto(token, "P31-BLQ");
         String presupuestoId = vigenteDeProyecto(proyectoId);
@@ -655,29 +657,27 @@ class CronogramaExportResourceIT {
         // Plan 021: se vacía el mapa por defecto para forzar el borrador.
         sembrarAvance(actividadDeRubro(presupuestoId, "1.1"), "{}");
 
-        given().header("Authorization", "Bearer " + token)
-                .when()
-                .get("/api/v1/documentos/cronograma/" + presupuestoId + "?formato=xlsx")
-                .then()
-                .statusCode(409)
-                .body("codigo", equalTo("export-bloqueado"));
+        Response r = exportar(token, presupuestoId, "{\"formato\":\"xlsx\"}");
+        assertEquals(409, r.statusCode(), r.asString());
+        assertEquals("export-bloqueado", r.jsonPath().getString("codigo"));
+        sinArchivo(r);
+        verifyNoInteractions(uploads);
     }
 
-    /** TC_P37_59 — header stale presente en descargas (true|false). */
+    /**
+     * TC_P37_59 — el estado stale viaja en {@code warnings} de la respuesta (el header
+     * {@code X-Cronograma-Desactualizado} era exclusivo del GET de bytes retirado).
+     */
     @Test
-    void TC_P37_59_header_stale_true_o_false_segun_caso() throws Exception {
+    void TC_P37_59_estado_stale_viaja_en_warnings() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p31-stl-h@ex.com");
-        String proyectoId = crearProyecto(token, "P31-STL-H");
-        fijarFechaInicio(proyectoId, LocalDate.parse("2026-01-01"));
         String presupuestoId = armarEscenarioExportable(token);
+        aceptarSubidas();
 
-        Response r = given().header("Authorization", "Bearer " + token)
-                .when()
-                .get("/api/v1/documentos/cronograma/" + presupuestoId + "?formato=xlsx");
-        assertEquals(200, r.statusCode());
-        String stale = r.getHeader("X-Cronograma-Desactualizado");
-        assertNotNull(stale, "header X-Cronograma-Desactualizado obligatorio");
-        assertTrue(stale.equals("true") || stale.equals("false"));
+        Response r = exportar(token, presupuestoId, "{\"formato\":\"xlsx\"}");
+        assertEquals(200, r.statusCode(), r.asString());
+        assertNotNull(r.jsonPath().getList("warnings"), "warnings obligatorio");
+        assertEquals(null, r.getHeader("X-Cronograma-Desactualizado"));
     }
 
     // ──────────────────────────────────────────────────────────────────────
@@ -721,12 +721,11 @@ class CronogramaExportResourceIT {
     }
 
     /**
-     * TC_P37_61 — descarga bloqueada por P-32 devuelve 409
-     * {@code export-bloqueado} SIN bytes del archivo (Content-Type JSON;
-     * ningún PDF/XLSX/MSPDI filtrado al cliente).
+     * TC_P37_61 — exportación bloqueada por P-32 devuelve 409 {@code export-bloqueado} JSON, sin subida a
+     * Documentos ni bytes del archivo.
      */
     @Test
-    void TC_P37_61_descarga_bloqueada_por_p32_devuelve_409_sin_bytes() throws Exception {
+    void TC_P37_61_exportacion_bloqueada_por_p32_devuelve_409_sin_bytes() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p31-p32-dl@ex.com");
         String proyectoId = crearProyecto(token, "P31-P32-DL");
         fijarFechaInicio(proyectoId, LocalDate.parse("2026-01-01"));
@@ -746,22 +745,12 @@ class CronogramaExportResourceIT {
             ps.executeUpdate();
         }
 
-        Response r = given().header("Authorization", "Bearer " + token)
-                .when()
-                .get("/api/v1/documentos/cronograma/" + presupuestoId + "?formato=xlsx");
-
+        Response r = exportar(token, presupuestoId, "{\"formato\":\"xlsx\"}");
         assertEquals(409, r.statusCode(), "P-32 debe producir 409 export-bloqueado");
-        String ct = r.getHeader("Content-Type");
-        assertTrue(
-                ct != null && ct.startsWith("application/json"),
-                "Content-Type debe ser JSON (sin bytes del archivo). Recibido: " + ct);
-        String stale = r.getHeader("X-Cronograma-Desactualizado");
-        assertTrue(
-                stale == null || stale.equals("true") || stale.equals("false"),
-                "header X-Cronograma-Desactualizado debe ser true|false si está presente");
-        String body = r.body().asString();
-        assertTrue(body.contains("export-bloqueado"), "body debe declarar export-bloqueado");
-        assertFalse(body.startsWith("PK"), "no debe filtrarse un XLSX (firma ZIP)");
+        assertTrue(r.asString().contains("export-bloqueado"), "body debe declarar export-bloqueado");
+        assertTrue(r.jsonPath().getList("bloqueos.codigo").contains("presupuesto-pu-cero"));
+        sinArchivo(r);
+        verifyNoInteractions(uploads);
     }
 
     // ──────────────────────────────────────────────────────────────────────
@@ -786,14 +775,12 @@ class CronogramaExportResourceIT {
         crearCronograma(token, presupuestoId, "SEMANA", 4);
         String actividadId = actividadDeRubro(presupuestoId, "1.1");
         sembrarAvance(actividadId, "{\"1\":\"50.0000\",\"2\":\"50.0000\"}");
+        var enviadas = aceptarSubidas();
 
         // (a) MSPDI bloqueado por mspdi-fecha-inicio-requerida.
-        given().header("Authorization", "Bearer " + token)
-                .when()
-                .get("/api/v1/documentos/cronograma/" + presupuestoId + "?formato=mspdi")
-                .then()
-                .statusCode(409)
-                .body("codigo", equalTo("export-bloqueado"));
+        Response mspdi = exportar(token, presupuestoId, "{\"formato\":\"mspdi\"}");
+        assertEquals(409, mspdi.statusCode(), mspdi.asString());
+        assertEquals("export-bloqueado", mspdi.jsonPath().getString("codigo"));
         given().header("Authorization", "Bearer " + token)
                 .when()
                 .get("/api/v1/documentos/cronograma/" + presupuestoId + "/preflight?formato=mspdi")
@@ -803,41 +790,33 @@ class CronogramaExportResourceIT {
                 .body("bloqueos.codigo", hasItem("mspdi-fecha-inicio-requerida"));
 
         // (b) XLSX y PDF no se bloquean por esa causa.
-        given().header("Authorization", "Bearer " + token)
-                .when()
-                .get("/api/v1/documentos/cronograma/" + presupuestoId + "?formato=xlsx")
-                .then()
-                .statusCode(200);
-        given().header("Authorization", "Bearer " + token)
-                .when()
-                .get("/api/v1/documentos/cronograma/" + presupuestoId + "?formato=pdf")
-                .then()
-                .statusCode(200);
+        assertEquals(
+                200, exportar(token, presupuestoId, "{\"formato\":\"xlsx\"}").statusCode());
+        assertEquals(
+                200, exportar(token, presupuestoId, "{\"formato\":\"pdf\"}").statusCode());
+        assertEquals(
+                java.util.List.of("xlsx", "pdf"),
+                enviadas.stream().map(e -> e.cronograma().format()).toList());
     }
 
     // ───────────────────────────────────────────────────────────────────
     /**
-     * TC_P37_12 — TOCTOU/concurrencia del endpoint de exportacion contra el
-     * lock pesimista del presupuesto. Comprueba el invariante del canon
-     * Plan 031 §TOCTOU: una mutacion concurrente durante la generacion debe
-     * producir UN snapshot coherente (200 parseable) o UN bloqueo canonico
-     * (409 export-bloqueado), NUNCA contenido mixto entre dos versiones.
+     * TC_P37_12 — TOCTOU/concurrencia de la captura contra el lock pesimista
+     * del presupuesto (etapa 04, «captura consistente»): una mutación
+     * concurrente debe producir UNA proyección coherente subida (200 con
+     * ticket) o UN bloqueo canónico (409 export-bloqueado sin subida), NUNCA
+     * contenido mixto ni bytes. La subida a Documentos ocurre fuera del lock.
      *
-     * <p>El test (a) elimina la siembra de proyecto que ya hace
-     * {@link #armarEscenarioExportable(String)}, (b) reutiliza UNA sola
-     * conexion/prepared statement de polling (no una por iteracion), (c)
-     * garantiza rollback + reset de autocommit en cualquier path de fallo para
-     * no colgar el {@code TRUNCATE} del siguiente {@code @BeforeEach}, y (d)
-     * acepta tanto 409 como 200 con XLSX parseable coherente (mutacion puede
-     * quedar dentro o fuera del snapshot).</p>
+     * <p>Reutiliza UNA conexión/prepared statement de polling y garantiza
+     * rollback + reset de autocommit en cualquier path de fallo para no
+     * colgar el {@code TRUNCATE} del siguiente {@code @BeforeEach}.</p>
      */
     @Test
-    void TC_P37_12_toctou_lock_presupuesto_serializa_y_emite_snapshot_coherente() throws Exception {
+    void TC_P37_12_toctou_lock_presupuesto_serializa_y_captura_coherente() throws Exception {
         String token = AuthSupport.registrarConToken(mailbox, "p31-toctou@ex.com");
-        // armarEscenarioExportable ya crea proyecto + fechaInicio; cualquier
-        // siembra extra quedaba sin uso y agregaba una fila colgada.
         String presupuestoId = armarEscenarioExportable(token);
         Long presupuestoInterno = internalId("presupuesto", presupuestoId);
+        var enviadas = aceptarSubidas();
 
         ExecutorService pool = Executors.newSingleThreadExecutor();
         Connection holder = null;
@@ -845,9 +824,7 @@ class CronogramaExportResourceIT {
         PreparedStatement pollerPs = null;
         boolean committed = false;
         try {
-            // (1) Tomar el lock pesimista del presupuesto en una conexion
-            //     dedicada, con autocommit=false para mantener la transaccion
-            //     explicita durante toda la prueba.
+            // (1) Tomar el lock pesimista del presupuesto en una conexión dedicada.
             holder = ds.getConnection();
             holder.setAutoCommit(false);
             try (PreparedStatement lock =
@@ -858,15 +835,10 @@ class CronogramaExportResourceIT {
                 }
             }
 
-            // (2) Disparar la descarga concurrente — debe quedar esperando el lock.
-            Future<Response> download = pool.submit(() -> given().header("Authorization", "Bearer " + token)
-                    .when()
-                    .get("/api/v1/documentos/cronograma/" + presupuestoId + "?formato=xlsx"));
+            // (2) Disparar la exportación concurrente — la captura debe quedar esperando el lock.
+            Future<Response> exportacion = pool.submit(() -> exportar(token, presupuestoId, "{\"formato\":\"xlsx\"}"));
 
-            // (3) Esperar a que aparezca el waiter con el patron canonico
-            //     alineado con VistasCronogramaResourceIT / ActividadProgramarResourceIT.
-            //     UNA conexion y UN prepared statement, reutilizados en cada
-            //     iteracion (antes se abrian/cerraban por ciclo).
+            // (3) Esperar a que aparezca el waiter (una conexión y un statement reutilizados).
             poller = ds.getConnection();
             pollerPs = poller.prepareStatement("SELECT COUNT(*) FROM pg_stat_activity "
                     + "WHERE wait_event_type = 'Lock' "
@@ -885,10 +857,10 @@ class CronogramaExportResourceIT {
             }
             if (!detected) {
                 throw new AssertionError("TOCTOU: ningun waiter detecto lock sobre presupuesto en 10s; "
-                        + "el endpoint no esta serializando via lock pesimista");
+                        + "la captura no esta serializando via lock pesimista");
             }
 
-            // (4) Hacer la mutacion incompatible (PU=0) bajo el lock.
+            // (4) Hacer la mutación incompatible (PU=0) bajo el lock.
             try (PreparedStatement ps =
                     holder.prepareStatement("UPDATE rubro SET precio_unitario = 0, precio_total = 0 "
                             + "WHERE item = '1.1' AND capitulo_id IN "
@@ -899,40 +871,18 @@ class CronogramaExportResourceIT {
             holder.commit();
             committed = true;
 
-            // (5) La descarga debe producir 409 export-bloqueado (snapshot vio
-            //     PU=0) o, si la mutacion quedo fuera del snapshot por
-            //     reordenamiento, un XLSX parseable coherente. Nunca contenido
-            //     mixto ni bytes filtrados en 4xx.
-            Response r = download.get(15, TimeUnit.SECONDS);
-            int status = r.statusCode();
-            if (status == 409) {
-                String ct = r.getHeader("Content-Type");
-                assertTrue(
-                        ct != null && ct.startsWith("application/json"), "Content-Type debe ser JSON; recibido: " + ct);
-                String body = r.body().asString();
-                assertTrue(
-                        body.contains("export-bloqueado"), "body debe declarar codigo export-bloqueado; body=" + body);
-                assertFalse(body.startsWith("PK"), "TOCTOU: no debe filtrarse un XLSX (firma ZIP)");
-                assertFalse(body.startsWith("<?xml"), "TOCTOU: no debe filtrarse un XML del MSPDI");
-                assertFalse(body.startsWith("%PDF"), "TOCTOU: no debe filtrarse un PDF");
+            // (5) 409 sin subida (la captura vio PU=0) o 200 con una proyección coherente.
+            Response r = exportacion.get(15, TimeUnit.SECONDS);
+            if (r.statusCode() == 409) {
+                assertEquals("export-bloqueado", r.jsonPath().getString("codigo"), r.asString());
+                sinArchivo(r);
+                assertTrue(enviadas.isEmpty(), "TOCTOU: un bloqueo nunca sube a Documentos");
             } else {
-                assertEquals(200, status, "alternativa coherente: 200 con snapshot valido");
-                byte[] bytes = r.body().asByteArray();
-                assertTrue(bytes.length > 4, "XLSX coherente debe contener bytes; len=" + bytes.length);
-                assertTrue(
-                        bytes[0] == 'P' && bytes[1] == 'K',
-                        "XLSX parseable debe tener firma ZIP; primeros bytes="
-                                + (bytes.length >= 4
-                                        ? new String(bytes, 0, 4, java.nio.charset.StandardCharsets.ISO_8859_1)
-                                        : "<short>"));
+                assertEquals(200, r.statusCode(), "alternativa coherente: 200 con proyección valida");
+                assertEquals(1, enviadas.size());
+                assertTrue(r.jsonPath().getString("downloadUrl").startsWith("/api/v1/documentos/descargas/"));
             }
-            String stale = r.getHeader("X-Cronograma-Desactualizado");
-            assertTrue(
-                    stale == null || stale.equals("true") || stale.equals("false"),
-                    "header X-Cronograma-Desactualizado debe ser true|false si esta presente; recibido=" + stale);
         } catch (Throwable t) {
-            // Garantizar rollback + reset autocommit + release del lock antes de
-            // propagar el fallo. Si commit ya ocurrio, rollback es no-op seguro.
             if (holder != null && !committed) {
                 try {
                     holder.rollback();
@@ -979,8 +929,9 @@ class CronogramaExportResourceIT {
     }
 
     /**
-     * Plan 023-A — con doce rubros en un capitulo, el cronograma (GET) y el XLSX
+     * Plan 023-A — con doce rubros en un capitulo, el cronograma (GET) y la hoja capturada para el XLSX
      * deben listarlos en orden natural 1.1, 1.2, ..., 1.10, 1.11, 1.12 (no 1.1, 1.10, 1.11, 1.12, 1.2...).
+     * El orden de filas del archivo lo fija esta proyección; Documentos solo la escribe.
      */
     @Test
     void TC_P23_A_cronograma_y_xlsx_ordenan_naturalmente_doce_rubros() throws Exception {
@@ -1009,25 +960,12 @@ class CronogramaExportResourceIT {
                 .path("actividades.item");
         assertEquals(esperado, items, "GET cronograma fuera de orden natural");
 
-        byte[] xlsx = given().header("Authorization", "Bearer " + token)
-                .when()
-                .get("/api/v1/documentos/cronograma/" + presupuestoId + "?formato=xlsx")
-                .then()
-                .statusCode(200)
-                .extract()
-                .asByteArray();
-        java.util.List<String> enXlsx = new java.util.ArrayList<>();
-        try (org.apache.poi.ss.usermodel.Workbook wb =
-                org.apache.poi.ss.usermodel.WorkbookFactory.create(new java.io.ByteArrayInputStream(xlsx))) {
-            for (org.apache.poi.ss.usermodel.Row row : wb.getSheetAt(0)) {
-                for (org.apache.poi.ss.usermodel.Cell c : row) {
-                    if (c.getCellType() == org.apache.poi.ss.usermodel.CellType.STRING
-                            && c.getStringCellValue().matches("1\\.\\d+")) {
-                        enXlsx.add(c.getStringCellValue());
-                    }
-                }
-            }
-        }
-        assertEquals(esperado, enXlsx, "XLSX fuera de orden natural");
+        var enviadas = aceptarSubidas();
+        Response r = exportar(token, presupuestoId, "{\"formato\":\"xlsx\"}");
+        assertEquals(200, r.statusCode(), r.asString());
+        java.util.List<String> enHoja = enviadas.getFirst().cronograma().sheet().rows().stream()
+                .map(row -> row.item())
+                .toList();
+        assertEquals(esperado, enHoja, "Hoja XLSX capturada fuera de orden natural");
     }
 }

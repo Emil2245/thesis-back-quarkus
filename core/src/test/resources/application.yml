@@ -9,8 +9,6 @@
 # nativas: `quarkus.hibernate-orm.statistics.enabled`.
 
 "%test":
-  documentos:
-    test-local-render: true
   smallrye:
     jwt:
       sign:

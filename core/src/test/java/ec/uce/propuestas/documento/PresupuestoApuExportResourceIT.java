@@ -118,11 +118,6 @@ class PresupuestoApuExportResourceIT {
                     .get(path.replace(budget, "01900000-0000-7000-8000-000000000000") + "?formato=pdf")
                     .then()
                     .statusCode(404);
-            given().auth()
-                    .oauth2(token)
-                    .get(path.replace("/preflight", "") + "?formato=pdf")
-                    .then()
-                    .statusCode(409);
             String otherEmail = "other-" + System.nanoTime() + "@test.ec";
             String other = AuthSupport.registrarConToken(mailbox, otherEmail);
             String absent = given().auth()

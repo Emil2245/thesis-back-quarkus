@@ -30,9 +30,9 @@ import java.util.UUID;
  * </ul>
  *
  * <p>Esta clase es inmutable y se serializa con Jackson 2.x; el módulo la
- * construye exclusivamente desde
- * {@link ec.uce.propuestas.cronograma.export.CronogramaDescargaService} y la
- * entrega al resource REST para que la respuesta NO se reconstruya a partir de
+ * construye desde el snapshot capturado por
+ * {@link ec.uce.propuestas.documento.CronogramaExportPostResource} y la
+ * entrega como respuesta REST para que la respuesta NO se reconstruya a partir de
  * entidades gestionadas (regla TOCTOU).</p>
  */
 @JsonInclude(JsonInclude.Include.ALWAYS)

@@ -5,6 +5,8 @@ import static io.restassured.http.ContentType.JSON;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,6 +15,9 @@ import ec.uce.propuestas.apu.dto.ApuPatchRequest;
 import ec.uce.propuestas.apu.entity.Apu;
 import ec.uce.propuestas.apu.repository.ApuRepository;
 import ec.uce.propuestas.apu.service.ApuCrudService;
+import ec.uce.propuestas.documento.exportacion.RemoteExportUploadGateway;
+import ec.uce.propuestas.documentos.contract.ExportUploadV1;
+import ec.uce.propuestas.documentos.contract.StoredObjectV1;
 import ec.uce.propuestas.insumo.dto.CopiarBaseRequest;
 import ec.uce.propuestas.insumo.dto.InsumoCrearRequest;
 import ec.uce.propuestas.insumo.dto.InsumoEditarRequest;
@@ -43,6 +48,7 @@ import ec.uce.propuestas.usuario.auth.dto.LoginRequest;
 import ec.uce.propuestas.usuario.auth.dto.PasswordCambiarRequest;
 import ec.uce.propuestas.usuario.auth.dto.RegistroRequest;
 import ec.uce.propuestas.usuario.auth.dto.RestablecerPasswordRequest;
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -118,6 +124,9 @@ class LogActividadCoberturaD13CompletaTest {
 
     @Inject
     LogActividadRepository logRepository;
+
+    @InjectMock
+    RemoteExportUploadGateway uploads;
 
     @BeforeEach
     @AfterEach
@@ -325,14 +334,28 @@ class LogActividadCoberturaD13CompletaTest {
                 .then()
                 .statusCode(200);
 
-        byte[] documento = given().header("Authorization", "Bearer " + token)
+        // Stage 05: documento.exportado is produced by the POST export flow (the
+        // legacy byte GET was retired). Documentos/S3 is mocked at the upload seam.
+        when(uploads.upload(any(ExportUploadV1.class))).thenAnswer(inv -> {
+            ExportUploadV1 request = inv.getArgument(0);
+            return new StoredObjectV1(
+                    request.key(),
+                    10,
+                    "A".repeat(43) + "=",
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    request.filename());
+        });
+        String descarga = given().contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .header("Idempotency-Key", "01900000-0000-7000-8000-000000000d13")
+                .body(Map.of("formato", "docx"))
                 .when()
-                .get("/api/v1/documentos/especificaciones-tecnicas/" + versionNueva)
+                .post("/api/v1/documentos/especificaciones-tecnicas/" + versionNueva + "/exportaciones")
                 .then()
                 .statusCode(200)
                 .extract()
-                .asByteArray();
-        assertFalse(documento.length == 0);
+                .path("downloadUrl");
+        assertNotNull(descarga);
     }
 
     private Contexto crearContexto(String email) {
