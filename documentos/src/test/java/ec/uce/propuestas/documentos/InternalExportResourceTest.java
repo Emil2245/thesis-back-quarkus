@@ -262,4 +262,180 @@ class InternalExportResourceTest {
                 .statusCode(400);
         verifyNoInteractions(storage);
     }
+
+    // Ported in stage 05 from the retired /internal/v1/render and /render/specifications tests:
+    // the same service-identity, contract and rendering guarantees now apply to the export upload.
+
+    private static final String APU_RENDER = """
+            "apuRender":[{"id":"01900000-0000-7000-8000-000000000001",
+            "codigo":"A-1","etiquetaCodigo":"A-1","descripcion":"APU de prueba","unidad":"m³",
+            "bloques":[],"pie":{"subtotales":[],"porcentajeIndirecto":0,"costoDirecto":1,
+            "costoIndirecto":0,"costoTotal":1,"valorOfertado":1}}]""";
+    private static final String SPECIFICATION = """
+            {"schemaVersion":1,"presupuestoId":"01900000-0000-7000-8000-000000000001",
+            "nombreProyecto":"Proyecto","anio":2026,"titulo1":"Título","titulo2":"Subtítulo",
+            "fechaExportacion":"2026-11-07","especificaciones":[{"codigo":"A-1",
+            "descripcion":"Losa","unidad":"u","especificacionTecnica":"Texto técnico"}]}
+            """;
+
+    private static String apuUpload(String formato) {
+        String opciones = "pdf".equals(formato) ? "{}" : "{\"layout\":\"pestanas\"}";
+        return PAYLOAD.replace("\"budget.pdf\"", "\"apus." + formato + "\"")
+                .replace(
+                        "\"documento\":\"presupuesto\",\"formato\":\"pdf\",\"opciones\":{}",
+                        "\"documento\":\"apus\",\"formato\":\"" + formato + "\",\"opciones\":" + opciones)
+                .replace("\"apus\":[]}}}", "\"apus\":[]," + APU_RENDER + "}}}");
+    }
+
+    private static String specificationUpload(String specification) {
+        return """
+                {"schemaVersion":1,"key":"%s","operationId":"%s","fingerprint":"%s",
+                 "filename":"especificaciones.docx","specification":%s}
+                """.formatted(KEY, OPERATION_ID, FINGERPRINT, specification);
+    }
+
+    private byte[] uploadedBytes(String body, String mimeType, String filename) {
+        when(storage.store(eq(KEY), any(byte[].class), eq(mimeType), eq(filename), eq(FINGERPRINT)))
+                .thenReturn(new S3PrivateObjectStore.StoredObject(KEY, 1, "checksum", mimeType, filename));
+        given().auth()
+                .oauth2(ServiceJwtTestProfile.exportToken(OPERATION_ID))
+                .contentType("application/json")
+                .body(body)
+                .when()
+                .post(PATH)
+                .then()
+                .statusCode(200);
+        var bytes = ArgumentCaptor.forClass(byte[].class);
+        verify(storage).store(eq(KEY), bytes.capture(), eq(mimeType), eq(filename), eq(FINGERPRINT));
+        return bytes.getValue();
+    }
+
+    private static void assertMagic(byte[] bytes, String magic) {
+        assertEquals(magic, new String(bytes, 0, magic.length(), StandardCharsets.US_ASCII));
+    }
+
+    private void rejected(String token, String body, int status) {
+        given().auth()
+                .oauth2(token)
+                .contentType("application/json")
+                .body(body)
+                .when()
+                .post(PATH)
+                .then()
+                .statusCode(status);
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    void uploadsRenderedApuWorkbook() {
+        assertMagic(
+                uploadedBytes(
+                        apuUpload("xlsx"),
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        "apus.xlsx"),
+                "PK");
+    }
+
+    @Test
+    void uploadsRenderedApuPdf() {
+        assertMagic(uploadedBytes(apuUpload("pdf"), "application/pdf", "apus.pdf"), "%PDF");
+    }
+
+    @Test
+    void uploadsRenderedBudgetWorkbook() {
+        String body = PAYLOAD.replace("\"formato\":\"pdf\"", "\"formato\":\"xlsx\"")
+                .replace("\"budget.pdf\"", "\"budget.xlsx\"");
+        assertMagic(
+                uploadedBytes(body, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "budget.xlsx"),
+                "PK");
+    }
+
+    @Test
+    void uploadsRenderedTechnicalSpecificationsDocx() {
+        assertMagic(
+                uploadedBytes(
+                        specificationUpload(SPECIFICATION),
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        "especificaciones.docx"),
+                "PK");
+    }
+
+    @Test
+    void rejectsInvalidTechnicalSpecificationBeforeStorage() {
+        String token = ServiceJwtTestProfile.exportToken(OPERATION_ID);
+        rejected(token, specificationUpload(SPECIFICATION.replace("\"schemaVersion\":1", "\"schemaVersion\":2")), 400);
+        rejected(token, specificationUpload(SPECIFICATION.replace("Texto técnico", "   ")), 400);
+    }
+
+    @Test
+    void rejectsWrongIssuer() {
+        rejected(
+                ServiceJwtTestProfile.exportToken(
+                        "user", "documentos", Set.of("CORE_SERVICE"), 30, false, OPERATION_ID),
+                PAYLOAD,
+                401);
+    }
+
+    @Test
+    void rejectsWrongAudience() {
+        rejected(
+                ServiceJwtTestProfile.exportToken(
+                        "core", "otro-servicio", Set.of("CORE_SERVICE"), 30, false, OPERATION_ID),
+                PAYLOAD,
+                401);
+    }
+
+    @Test
+    void rejectsExpiredToken() {
+        rejected(
+                ServiceJwtTestProfile.exportToken(
+                        "core", "documentos", Set.of("CORE_SERVICE"), -120, false, OPERATION_ID),
+                PAYLOAD,
+                401);
+    }
+
+    @Test
+    void rejectsLongLivedServiceToken() {
+        rejected(
+                ServiceJwtTestProfile.exportToken(
+                        "core", "documentos", Set.of("CORE_SERVICE"), 120, false, OPERATION_ID),
+                PAYLOAD,
+                401);
+    }
+
+    @Test
+    void rejectsTokenSignedWithAnotherKey() {
+        rejected(
+                ServiceJwtTestProfile.exportToken("core", "documentos", Set.of("CORE_SERVICE"), 30, true, OPERATION_ID),
+                PAYLOAD,
+                401);
+    }
+
+    @Test
+    void rejectsUnsupportedProjectionVersionAndFormat() {
+        String token = ServiceJwtTestProfile.exportToken(OPERATION_ID);
+        rejected(
+                token,
+                PAYLOAD.replace("\"projection\":{\"schemaVersion\":1", "\"projection\":{\"schemaVersion\":2"),
+                400);
+        rejected(
+                token,
+                PAYLOAD.replace("\"formato\":\"pdf\"", "\"formato\":\"exe\"").replace("budget.pdf", "budget.exe"),
+                400);
+    }
+
+    @Test
+    void rejectsOversizedUploadBeforeRendering() {
+        // Let the server reject Content-Length before the client streams an oversized body.
+        given().auth()
+                .oauth2(ServiceJwtTestProfile.exportToken(OPERATION_ID))
+                .header("Expect", "100-continue")
+                .contentType("application/json")
+                .body(PAYLOAD + " ".repeat(8 * 1024 * 1024))
+                .when()
+                .post(PATH)
+                .then()
+                .statusCode(413);
+        verifyNoInteractions(storage);
+    }
 }

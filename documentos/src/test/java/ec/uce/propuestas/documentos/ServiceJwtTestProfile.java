@@ -51,13 +51,19 @@ public class ServiceJwtTestProfile implements QuarkusTestProfile {
     }
 
     static String exportToken(String operationId) {
+        return exportToken("core", "documentos", Set.of("CORE_SERVICE"), 30, false, operationId);
+    }
+
+    static String exportToken(
+            String issuer, String audience, Set<String> roles, long seconds, boolean userKey, String operationId) {
+        PrivateKey key = userKey ? USER_KEY.getPrivate() : CORE_KEY.getPrivate();
         return Jwt.upn("core-service")
-                .issuer("core")
-                .audience("documentos")
-                .groups(Set.of("CORE_SERVICE"))
+                .issuer(issuer)
+                .audience(audience)
+                .groups(roles)
                 .claim("operationId", operationId)
-                .expiresAt(Instant.now().plusSeconds(30).getEpochSecond())
-                .sign(CORE_KEY.getPrivate());
+                .expiresAt(Instant.now().plusSeconds(seconds).getEpochSecond())
+                .sign(key);
     }
 
     private static KeyPair generateKey() {
