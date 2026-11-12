@@ -1,5 +1,7 @@
 # Plan 07 — Uniformar UUIDv7 en las APIs actuales
 
+> **Retirado en etapa 05 (2026-11):** los GET de bytes `GET /documentos/{presupuesto|apus|cronograma|especificaciones-tecnicas}/{id}`, sus servicios de descarga y los *writers* XLSX/PDF/MSPDI de Core ya no existen; la descarga es `POST …/exportaciones` + ticket de Core. Este documento conserva el estado histórico; ver [etapa 05](../../../plans/separar-en-microservicios/05-retiro-descargas-legadas.md).
+
 > **Estado:** **DONE (2026-08-30).**
 > Implementación y verificación dirigida completadas. No se cambió DDL, PK/FK ni motor.
 > La suite completa, Bruno y el cierre transversal permanecen en el Plan 08.

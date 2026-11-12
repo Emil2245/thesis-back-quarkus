@@ -1,5 +1,7 @@
 # 039 — Instrumentación D-13: presupuesto, cronograma, documento
 
+> **Retirado en etapa 05 (2026-11):** los GET de bytes `GET /documentos/{presupuesto|apus|cronograma|especificaciones-tecnicas}/{id}`, sus servicios de descarga y los *writers* XLSX/PDF/MSPDI de Core ya no existen; la descarga es `POST …/exportaciones` + ticket de Core. La emisión de `documento.exportado` que aquí se atribuye a los métodos públicos de descarga y a `CronogramaDescargaService.generar(...)` la hace ahora `ExportReservationService.finalizeAudit`/`finalizeCronogramaAudit` del POST. Este documento conserva el estado histórico; ver [etapa 05](../separar-en-microservicios/05-retiro-descargas-legadas.md).
+
 **Estado:** DONE (2026-09-08) · I-11 · tercera ola de emisores D-13.
 
 > Cubre los eventos `presupuesto.version_creada`,

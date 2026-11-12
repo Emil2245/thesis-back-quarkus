@@ -226,6 +226,8 @@ Pre-requisito = Plan 015 DONE.
 
 **Plan 039 (DONE, 2026-09-08) — Instrumentación D-13 de presupuesto, cronograma y documento:** `VersionadoService` emite `presupuesto.version_creada` y `presupuesto.version_activada` dentro del lock pesimista, omitiendo reintentos idempotentes. `CronogramaService` y `VistasCronogramaService` emiten `cronograma.editado` con los seis valores cerrados (`configurar`, cuatro operaciones `programar.*`, `revisar`), sin emitir revisiones no-op. Las descargas XLSX/PDF/MSPDI y ET DOCX emiten `documento.exportado` solo después de materializar bytes; preflight, 409 y errores no emiten. Para satisfacer el emisor `MANDATORY` sin moverlo a los lanes de exportación, los métodos públicos de descarga abren la transacción exterior y `CronogramaDescargaService.generar(...)` conserva `REQUIRED`, uniéndose a la misma transacción: lock, writer, auditoría y commit permanecen en una única frontera TOCTOU. **Evidencia medida:** focales HTTP 96/96; `presupuesto.*` + `cronograma.*` + `documento.*` + `motor.*` 339 = 336 pass + GM-19/GM-20 aceptados + GM-24 skipped; suite completa 738 = 735 pass + baseline aceptado; Spotless/build/diff PASS. Sin migraciones ni cambios en `motor/`, `recalculo/` o `cronograma/export/**`; sin commit. Siguiente plan autorizado: 040.
 
+**Etapa 05 de microservicios (2026-11) — descargas legadas retiradas:** los GET de bytes `GET /documentos/{presupuesto|apus|cronograma|especificaciones-tecnicas}/{id}`, sus servicios de descarga (incluido `CronogramaDescargaService`), los *gateways* de render y los *writers* XLSX/PDF/MSPDI de Core ya no existen; Core no renderiza documentos ni depende de POI/OpenPDF. La única descarga es `POST /documentos/{documento}/{id}/exportaciones` (captura en Core → render y subida privada en Documentos → ticket de Core). `documento.exportado` lo emite `ExportReservationService.finalizeAudit`/`finalizeCronogramaAudit`; la frontera TOCTOU del cronograma es la captura consistente de la etapa 04. Lo descrito arriba para Plan 039 sobre los métodos de descarga es histórico. Ver [`plans/separar-en-microservicios/05-retiro-descargas-legadas.md`](plans/separar-en-microservicios/05-retiro-descargas-legadas.md).
+
 **Regla de modificación del Motor (Plan 014, 2026-08-28):**
 - **`Motor.calcularApu()` y `internal/CalculadorFila.java`:** el guard "do
   not touch" se levanta **de forma acotada y solo para Plan 014**, para
@@ -266,12 +268,14 @@ siguiendo el patrón de `plans/006`. Cada cambio debe:
 ## Verification commands (memorize)
 
 ```bash
-./gradlew build -x test                                    # sanity build
-./gradlew test                                             # full suite (~2 min cold)
-./gradlew test --tests 'ec.uce.propuestas.motor.*'         # motor only
-./gradlew test --tests 'ec.uce.propuestas.usuario.*'       # auth only
-./gradlew --console=plain quarkusDev                       # live reload
-./gradlew build -Dquarkus.native.enabled=true -Dquarkus.native.container-build=true   # native (~10 min)
+./gradlew build -x test -PexcludeKnownResiduals            # both apps, no tests
+./gradlew test -PexcludeKnownResiduals                     # both suites
+./gradlew :core:test --tests 'ec.uce.propuestas.motor.*'   # motor only
+./gradlew :core:test --tests 'ec.uce.propuestas.usuario.*' # auth only
+./gradlew :documentos:test                                # independent service
+./gradlew --console=plain :core:quarkusDev                 # Core live reload
+./gradlew --console=plain :documentos:quarkusDev           # Documentos
+./gradlew :core:build -Dquarkus.native.enabled=true -Dquarkus.native.container-build=true
 ```
 
 Expected motor test count (post-Plan 015, 2026-09-01): **45 tests totales**
@@ -287,7 +291,7 @@ counts from the XML results instead of predicting them:
 
 ```bash
 grep -ho 'tests="[0-9]*"\|failures="[0-9]*"\|errors="[0-9]*"\|skipped="[0-9]*"' \
-  build/test-results/test/TEST-*.xml
+  core/build/test-results/test/TEST-*.xml documentos/build/test-results/test/TEST-*.xml
 ```
 
 ## Repo conventions
@@ -313,9 +317,11 @@ grep -ho 'tests="[0-9]*"\|failures="[0-9]*"\|errors="[0-9]*"\|skipped="[0-9]*"' 
   fails under `hibernate-orm.database.generation: validate`.
 - **Migrations**: `V{NNN}__{snake}.sql`. Never edit an applied migration;
   add a new one.
-- **Secrets**: dev keys ship in `src/main/resources/META-INF/resources/`
-  as `publicKey.pem` and `privateKey.pem`. Never commit prod keys.
-  `.env.example` documents all env vars.
+- **Secrets**: Core development keys are local under `.secrets/jwt/`; test
+  fixtures are under `core/src/test/resources/jwt/`. Ignored legacy keys in
+  `src/main/resources/META-INF/resources/` are not part of either module and
+  must not be moved or committed. Never commit production keys. `.env.example`
+  documents the relevant environment variables.
 
 ## Working with plans
 

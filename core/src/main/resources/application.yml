@@ -1,0 +1,155 @@
+quarkus:
+  application:
+    name: propuestas-api
+
+  # Core only reads already confirmed private objects; it never writes them.
+  s3:
+    devservices:
+      enabled: false
+
+  http:
+    port: ${QUARKUS_HTTP_PORT:8080}
+    auth:
+      # Lazy auth: permite que los fallos de seguridad (401/403) pasen por los
+      # ExceptionMapper de JAX-RS y devuelvan el payload contract (ErrorPayload).
+      proactive: false
+    cors:
+      enabled: true
+      origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:3000}
+      methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
+      headers: accept,authorization,content-type,idempotency-key
+
+  datasource:
+    db-kind: postgresql
+    jdbc:
+      telemetry: true
+    username: ${DB_USER:propuestas}
+    password: ${DB_PASSWORD:propuestas}
+    # jdbc.url is NOT set here so Dev Services activates in %test.
+    # %dev and %prod override it below.
+
+  hibernate-orm:
+    schema-management:
+      strategy: validate
+    log:
+      sql: false
+
+  flyway:
+    migrate-at-start: true
+    baseline-on-migrate: true
+    locations: db/migration
+
+  smallrye-jwt:
+    enabled: true
+
+  swagger-ui:
+    always-include: true
+
+  smallrye-openapi:
+    path: /q/openapi
+
+  otel:
+    sdk:
+      disabled: ${OTEL_SDK_DISABLED:false}
+    exporter:
+      otlp:
+        endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}
+    resource:
+      attributes: service.namespace=propuestas
+
+  micrometer:
+    export:
+      prometheus:
+        path: /q/metrics
+
+  log:
+    console:
+      json:
+        enabled: false
+
+# SmallRye JWT Build — key signing config (MP config keys, not quarkus-prefixed)
+smallrye:
+  jwt:
+    sign:
+      key:
+        location: ${JWT_PRIVATE_KEY_LOCATION:file:/etc/propuestas/jwt/privateKey.pem}
+    new-token:
+      issuer: ${JWT_ISSUER:https://propuestas-api.local}
+      lifespan: 3600           # 60 min access token — D-02
+
+# MicroProfile JWT verification config
+mp:
+  jwt:
+    verify:
+      publickey:
+        location: ${JWT_PUBLIC_KEY_LOCATION:file:/etc/propuestas/jwt/publicKey.pem}
+      issuer: ${JWT_ISSUER:https://propuestas-api.local}
+
+# App-level auth knobs (business rules from D-01, D-02, D-11)
+app:
+  frontend:
+    # Base para los enlaces de los correos (verificación, reset, invitación).
+    base-url: ${APP_FRONTEND_BASE_URL:http://localhost:5173}
+  mail:
+    # log (default; no envía) | smtp (requiere QUARKUS_MAILER_*).
+    mode: ${MAIL_MODE:log}
+  privacidad:
+    version: ${APP_PRIVACIDAD_VERSION:2026-10}
+  auth:
+    verificacion-ttl: PT24H
+    reset-ttl: PT24H
+    invitacion-ttl: PT72H
+    refresh-ttl-recordado: P30D
+    refresh-ttl-sesion: PT12H     # generous session upper bound; client discards on close
+    reenvio-cooldown: PT60S
+  display:
+    # Plan 014 T3 — display global (decimales de dinero / porcentaje). Override por env.
+    precision: ${DISPLAY_PRECISION:2}
+    precision-porcentaje: ${DISPLAY_PRECISION_PORCENTAJE:4}
+
+"%dev":
+  smallrye:
+    jwt:
+      sign:
+        key:
+          location: ${JWT_PRIVATE_KEY_LOCATION:file:.secrets/jwt/privateKey.pem}
+  mp:
+    jwt:
+      verify:
+        publickey:
+          location: ${JWT_PUBLIC_KEY_LOCATION:file:.secrets/jwt/publicKey.pem}
+  quarkus:
+    otel:
+      sdk:
+        disabled: ${OTEL_SDK_DISABLED:true}
+    datasource:
+      jdbc:
+        url: ${DB_URL:jdbc:postgresql://localhost:5432/propuestas}
+    hibernate-orm:
+      log:
+        sql: true
+    log:
+      category:
+        "ec.uce.propuestas":
+          level: DEBUG
+
+"%prod":
+  quarkus:
+    log:
+      console:
+        json:
+          enabled: true
+    management:
+      enabled: true
+      port: 9000
+      host: 0.0.0.0
+    shutdown:
+      timeout: 20s
+    http:
+      host: 0.0.0.0
+    datasource:
+      jdbc:
+        url: ${DB_URL:jdbc:postgresql://localhost:5432/propuestas}
+    hibernate-orm:
+      log:
+        sql: false

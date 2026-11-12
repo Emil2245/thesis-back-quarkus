@@ -1,0 +1,759 @@
+{
+  "schemaVersion" : 1,
+  "documento" : "apus",
+  "formato" : "xlsx",
+  "opciones" : {
+    "layout" : "pestanas"
+  },
+  "snapshot" : {
+    "presupuestoId" : "01900000-0000-7000-8000-000000000030",
+    "version" : 7,
+    "vigente" : false,
+    "notas" : "",
+    "total" : 100.000000,
+    "proyecto" : {
+      "id" : "01900000-0000-7000-8000-000000000031",
+      "nombre" : "Proyecto histórico ñ",
+      "codigo" : "PROY",
+      "descripcion" : "",
+      "anio" : 2025,
+      "fechaInicio" : null,
+      "plazoEjecucion" : null,
+      "plazoUnidad" : null,
+      "estado" : "",
+      "direccionInstitucional" : "Dirección institucional",
+      "subdireccionInstitucional" : "Subdirección"
+    },
+    "parametros" : {
+      "porcentajeHerramientaMenor" : 0.0500,
+      "porcentajeIndirecto" : 0.1800,
+      "ciIndividualHabilitado" : false,
+      "iva" : 0,
+      "moneda" : "USD",
+      "mostrarSeccionesVacias" : true,
+      "sufijosSeccionActivos" : true,
+      "mostrarSubtotalesSeccion" : true,
+      "mostrarSubtotalesPie" : true,
+      "mostrarNombreProyectoHeader" : false,
+      "enumerarApus" : false,
+      "mensajeFooter" : "Este precio no incluye IVA",
+      "modoCodigoRubro" : "ITEM"
+    },
+    "display" : {
+      "precision" : 2,
+      "precisionPorcentaje" : 4
+    },
+    "firmantes" : [ {
+      "id" : "01900000-0000-7000-8000-000000000051",
+      "nombre" : "Ana Dos",
+      "cargo" : "Revisora",
+      "rol" : "APROBADO",
+      "orden" : 2
+    }, {
+      "id" : "01900000-0000-7000-8000-000000000052",
+      "nombre" : "Beto Uno",
+      "cargo" : "Aprobador",
+      "rol" : "APROBADO",
+      "orden" : 1
+    }, {
+      "id" : "01900000-0000-7000-8000-000000000053",
+      "nombre" : "Carla",
+      "cargo" : "Responsable",
+      "rol" : "CONSOLIDADO",
+      "orden" : 1
+    } ],
+    "capitulos" : [ {
+      "id" : "01900000-0000-7000-8000-000000000011",
+      "item" : "1",
+      "descripcion" : "Capítulo",
+      "orden" : 1,
+      "total" : 100.000000,
+      "hijos" : [ ],
+      "rubros" : [ {
+        "id" : "01900000-0000-7000-8000-000000000301",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.1",
+        "codigo" : "APU20",
+        "descripcion" : "Descripción del APU 20",
+        "unidad" : "m2",
+        "cantidad" : 2.5,
+        "precioUnitario" : 19.30,
+        "precioTotal" : 48.250
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000302",
+        "apuId" : "01900000-0000-7000-8000-000000000021",
+        "item" : "1.2",
+        "codigo" : "APU21",
+        "descripcion" : "Descripción del APU 21",
+        "unidad" : "m2",
+        "cantidad" : 2.5,
+        "precioUnitario" : 18.96,
+        "precioTotal" : 47.400
+      } ]
+    } ],
+    "apus" : [ {
+      "id" : "01900000-0000-7000-8000-000000000020",
+      "codigo" : "APU20",
+      "descripcion" : "Descripción del APU 20",
+      "unidad" : "m2",
+      "especificacionTecnica" : "",
+      "porcentajeIndirecto" : null,
+      "costoDirecto" : 16.358125,
+      "costoIndirecto" : 2.944463,
+      "costoTotal" : 19.302588,
+      "calculado" : {
+        "codigo" : "APU20",
+        "filas" : [ {
+          "seccion" : "EQUIPO",
+          "esHerramientaMenor" : true,
+          "cantidad" : 5.00,
+          "rendimiento" : null,
+          "precioUnitarioEfectivo" : null,
+          "costoHora" : null,
+          "costoFila" : 0.28987500
+        }, {
+          "seccion" : "EQUIPO",
+          "esHerramientaMenor" : false,
+          "cantidad" : 1,
+          "rendimiento" : 0.33,
+          "precioUnitarioEfectivo" : 15.00,
+          "costoHora" : 15.000000,
+          "costoFila" : 4.9500
+        }, {
+          "seccion" : "MANO_OBRA",
+          "esHerramientaMenor" : false,
+          "cantidad" : 1,
+          "rendimiento" : 0.33,
+          "precioUnitarioEfectivo" : 4.75,
+          "costoHora" : 4.750000,
+          "costoFila" : 1.5675
+        }, {
+          "seccion" : "MANO_OBRA",
+          "esHerramientaMenor" : false,
+          "cantidad" : 2,
+          "rendimiento" : 0.5,
+          "precioUnitarioEfectivo" : 4.23,
+          "costoHora" : 8.460000,
+          "costoFila" : 4.230
+        }, {
+          "seccion" : "MATERIAL",
+          "esHerramientaMenor" : false,
+          "cantidad" : 3.5,
+          "rendimiento" : null,
+          "precioUnitarioEfectivo" : 1.2345,
+          "costoHora" : null,
+          "costoFila" : 4.32075
+        }, {
+          "seccion" : "TRANSPORTE",
+          "esHerramientaMenor" : false,
+          "cantidad" : 0.5,
+          "rendimiento" : null,
+          "precioUnitarioEfectivo" : 2.00,
+          "costoHora" : null,
+          "costoFila" : 1.000
+        } ],
+        "subtotalM" : 5.23987500,
+        "subtotalN" : 5.7975,
+        "subtotalO" : 4.32075,
+        "subtotalP" : 1.000,
+        "costoHm" : 0.28987500,
+        "costoDirecto" : 16.35812500,
+        "costoIndirecto" : 2.944462500000,
+        "costoTotal" : 19.302587500000
+      },
+      "secciones" : [ {
+        "tipo" : "EQUIPO",
+        "orden" : 0,
+        "subtotal" : 5.239875,
+        "detalles" : [ {
+          "id" : "01900000-0000-7000-8000-000000003000",
+          "orden" : 1,
+          "herramientaMenor" : true,
+          "descripcion" : "Herramienta Menor 5.00%MO",
+          "unidad" : null,
+          "cantidad" : 5.00,
+          "rendimiento" : null,
+          "tarifaJornal" : null,
+          "precioUnitarioTarifa" : null,
+          "precioEfectivo" : null,
+          "costoHora" : 0.000000,
+          "costo" : 0.289875,
+          "insumo" : null
+        }, {
+          "id" : "01900000-0000-7000-8000-000000003001",
+          "orden" : 2,
+          "herramientaMenor" : false,
+          "descripcion" : "Equipo certificador",
+          "unidad" : "h",
+          "cantidad" : 1,
+          "rendimiento" : 0.33,
+          "tarifaJornal" : null,
+          "precioUnitarioTarifa" : null,
+          "precioEfectivo" : 15.00,
+          "costoHora" : 15.000000,
+          "costo" : 4.950000,
+          "insumo" : null
+        } ]
+      }, {
+        "tipo" : "MANO_OBRA",
+        "orden" : 1,
+        "subtotal" : 5.797500,
+        "detalles" : [ {
+          "id" : "01900000-0000-7000-8000-000000003002",
+          "orden" : 1,
+          "herramientaMenor" : false,
+          "descripcion" : "Maestro eléctrico",
+          "unidad" : "h",
+          "cantidad" : 1,
+          "rendimiento" : 0.33,
+          "tarifaJornal" : null,
+          "precioUnitarioTarifa" : null,
+          "precioEfectivo" : 4.75,
+          "costoHora" : 4.750000,
+          "costo" : 1.567500,
+          "insumo" : null
+        }, {
+          "id" : "01900000-0000-7000-8000-000000003003",
+          "orden" : 2,
+          "herramientaMenor" : false,
+          "descripcion" : "Ayudante",
+          "unidad" : "h",
+          "cantidad" : 2,
+          "rendimiento" : 0.5,
+          "tarifaJornal" : null,
+          "precioUnitarioTarifa" : null,
+          "precioEfectivo" : 4.23,
+          "costoHora" : 8.460000,
+          "costo" : 4.230000,
+          "insumo" : null
+        } ]
+      }, {
+        "tipo" : "MATERIAL",
+        "orden" : 2,
+        "subtotal" : 4.320750,
+        "detalles" : [ {
+          "id" : "01900000-0000-7000-8000-000000003004",
+          "orden" : 1,
+          "herramientaMenor" : false,
+          "descripcion" : "Cable",
+          "unidad" : "u",
+          "cantidad" : 3.5,
+          "rendimiento" : null,
+          "tarifaJornal" : null,
+          "precioUnitarioTarifa" : null,
+          "precioEfectivo" : 1.2345,
+          "costoHora" : null,
+          "costo" : 4.320750,
+          "insumo" : null
+        } ]
+      }, {
+        "tipo" : "TRANSPORTE",
+        "orden" : 3,
+        "subtotal" : 1.000000,
+        "detalles" : [ {
+          "id" : "01900000-0000-7000-8000-000000003005",
+          "orden" : 1,
+          "herramientaMenor" : false,
+          "descripcion" : "Flete",
+          "unidad" : "u",
+          "cantidad" : 0.5,
+          "rendimiento" : null,
+          "tarifaJornal" : null,
+          "precioUnitarioTarifa" : null,
+          "precioEfectivo" : 2.00,
+          "costoHora" : null,
+          "costo" : 1.000000,
+          "insumo" : null
+        } ]
+      } ]
+    }, {
+      "id" : "01900000-0000-7000-8000-000000000021",
+      "codigo" : "APU21",
+      "descripcion" : "Descripción del APU 21",
+      "unidad" : "m2",
+      "especificacionTecnica" : "",
+      "porcentajeIndirecto" : null,
+      "costoDirecto" : 16.068250,
+      "costoIndirecto" : 2.892285,
+      "costoTotal" : 18.960535,
+      "calculado" : {
+        "codigo" : "APU21",
+        "filas" : [ {
+          "seccion" : "EQUIPO",
+          "esHerramientaMenor" : false,
+          "cantidad" : 1,
+          "rendimiento" : 0.33,
+          "precioUnitarioEfectivo" : 15.00,
+          "costoHora" : 15.000000,
+          "costoFila" : 4.9500
+        }, {
+          "seccion" : "MANO_OBRA",
+          "esHerramientaMenor" : false,
+          "cantidad" : 1,
+          "rendimiento" : 0.33,
+          "precioUnitarioEfectivo" : 4.75,
+          "costoHora" : 4.750000,
+          "costoFila" : 1.5675
+        }, {
+          "seccion" : "MANO_OBRA",
+          "esHerramientaMenor" : false,
+          "cantidad" : 2,
+          "rendimiento" : 0.5,
+          "precioUnitarioEfectivo" : 4.23,
+          "costoHora" : 8.460000,
+          "costoFila" : 4.230
+        }, {
+          "seccion" : "MATERIAL",
+          "esHerramientaMenor" : false,
+          "cantidad" : 3.5,
+          "rendimiento" : null,
+          "precioUnitarioEfectivo" : 1.2345,
+          "costoHora" : null,
+          "costoFila" : 4.32075
+        }, {
+          "seccion" : "TRANSPORTE",
+          "esHerramientaMenor" : false,
+          "cantidad" : 0.5,
+          "rendimiento" : null,
+          "precioUnitarioEfectivo" : 2.00,
+          "costoHora" : null,
+          "costoFila" : 1.000
+        } ],
+        "subtotalM" : 4.9500,
+        "subtotalN" : 5.7975,
+        "subtotalO" : 4.32075,
+        "subtotalP" : 1.000,
+        "costoHm" : 0,
+        "costoDirecto" : 16.06825,
+        "costoIndirecto" : 2.892285000,
+        "costoTotal" : 18.960535000
+      },
+      "secciones" : [ {
+        "tipo" : "EQUIPO",
+        "orden" : 0,
+        "subtotal" : 4.950000,
+        "detalles" : [ {
+          "id" : "01900000-0000-7000-8000-000000003100",
+          "orden" : 1,
+          "herramientaMenor" : false,
+          "descripcion" : "Equipo certificador",
+          "unidad" : "h",
+          "cantidad" : 1,
+          "rendimiento" : 0.33,
+          "tarifaJornal" : null,
+          "precioUnitarioTarifa" : null,
+          "precioEfectivo" : 15.00,
+          "costoHora" : 15.000000,
+          "costo" : 4.950000,
+          "insumo" : null
+        } ]
+      }, {
+        "tipo" : "MANO_OBRA",
+        "orden" : 1,
+        "subtotal" : 5.797500,
+        "detalles" : [ {
+          "id" : "01900000-0000-7000-8000-000000003101",
+          "orden" : 1,
+          "herramientaMenor" : false,
+          "descripcion" : "Maestro eléctrico",
+          "unidad" : "h",
+          "cantidad" : 1,
+          "rendimiento" : 0.33,
+          "tarifaJornal" : null,
+          "precioUnitarioTarifa" : null,
+          "precioEfectivo" : 4.75,
+          "costoHora" : 4.750000,
+          "costo" : 1.567500,
+          "insumo" : null
+        }, {
+          "id" : "01900000-0000-7000-8000-000000003102",
+          "orden" : 2,
+          "herramientaMenor" : false,
+          "descripcion" : "Ayudante",
+          "unidad" : "h",
+          "cantidad" : 2,
+          "rendimiento" : 0.5,
+          "tarifaJornal" : null,
+          "precioUnitarioTarifa" : null,
+          "precioEfectivo" : 4.23,
+          "costoHora" : 8.460000,
+          "costo" : 4.230000,
+          "insumo" : null
+        } ]
+      }, {
+        "tipo" : "MATERIAL",
+        "orden" : 2,
+        "subtotal" : 4.320750,
+        "detalles" : [ {
+          "id" : "01900000-0000-7000-8000-000000003103",
+          "orden" : 1,
+          "herramientaMenor" : false,
+          "descripcion" : "Cable",
+          "unidad" : "u",
+          "cantidad" : 3.5,
+          "rendimiento" : null,
+          "tarifaJornal" : null,
+          "precioUnitarioTarifa" : null,
+          "precioEfectivo" : 1.2345,
+          "costoHora" : null,
+          "costo" : 4.320750,
+          "insumo" : null
+        } ]
+      }, {
+        "tipo" : "TRANSPORTE",
+        "orden" : 3,
+        "subtotal" : 1.000000,
+        "detalles" : [ {
+          "id" : "01900000-0000-7000-8000-000000003104",
+          "orden" : 1,
+          "herramientaMenor" : false,
+          "descripcion" : "Flete",
+          "unidad" : "u",
+          "cantidad" : 0.5,
+          "rendimiento" : null,
+          "tarifaJornal" : null,
+          "precioUnitarioTarifa" : null,
+          "precioEfectivo" : 2.00,
+          "costoHora" : null,
+          "costo" : 1.000000,
+          "insumo" : null
+        } ]
+      } ]
+    } ],
+    "apuRender" : [ {
+      "id" : "01900000-0000-7000-8000-000000000020",
+      "codigo" : "APU20",
+      "etiquetaCodigo" : "APU20",
+      "descripcion" : "Descripción del APU 20",
+      "unidad" : "m2",
+      "nombreProyectoHeader" : null,
+      "bloques" : [ {
+        "tipo" : "EQUIPO",
+        "etiqueta" : "EQUIPOS (M)",
+        "ordenCapturado" : 0,
+        "filas" : [ {
+          "detalle" : {
+            "id" : "01900000-0000-7000-8000-000000003000",
+            "orden" : 1,
+            "herramientaMenor" : true,
+            "descripcion" : "Herramienta Menor 5.00%MO",
+            "unidad" : null,
+            "cantidad" : 5.00,
+            "rendimiento" : null,
+            "tarifaJornal" : null,
+            "precioUnitarioTarifa" : null,
+            "precioEfectivo" : null,
+            "costoHora" : 0.000000,
+            "costo" : 0.289875,
+            "insumo" : null
+          },
+          "descripcion" : "Herramienta Menor 5.00%MO",
+          "porcentajeHerramientaMenor" : 0.0500,
+          "costo" : 0.289875,
+          "costoHora" : 0.000000
+        }, {
+          "detalle" : {
+            "id" : "01900000-0000-7000-8000-000000003001",
+            "orden" : 2,
+            "herramientaMenor" : false,
+            "descripcion" : "Equipo certificador",
+            "unidad" : "h",
+            "cantidad" : 1,
+            "rendimiento" : 0.33,
+            "tarifaJornal" : null,
+            "precioUnitarioTarifa" : null,
+            "precioEfectivo" : 15.00,
+            "costoHora" : 15.000000,
+            "costo" : 4.950000,
+            "insumo" : null
+          },
+          "descripcion" : "Equipo certificador",
+          "porcentajeHerramientaMenor" : null,
+          "costo" : 4.950000,
+          "costoHora" : 15.000000
+        } ],
+        "subtotal" : 5.239875,
+        "mostrarSubtotal" : true
+      }, {
+        "tipo" : "MANO_OBRA",
+        "etiqueta" : "MANO DE OBRA (N)",
+        "ordenCapturado" : 1,
+        "filas" : [ {
+          "detalle" : {
+            "id" : "01900000-0000-7000-8000-000000003002",
+            "orden" : 1,
+            "herramientaMenor" : false,
+            "descripcion" : "Maestro eléctrico",
+            "unidad" : "h",
+            "cantidad" : 1,
+            "rendimiento" : 0.33,
+            "tarifaJornal" : null,
+            "precioUnitarioTarifa" : null,
+            "precioEfectivo" : 4.75,
+            "costoHora" : 4.750000,
+            "costo" : 1.567500,
+            "insumo" : null
+          },
+          "descripcion" : "Maestro eléctrico",
+          "porcentajeHerramientaMenor" : null,
+          "costo" : 1.567500,
+          "costoHora" : 4.750000
+        }, {
+          "detalle" : {
+            "id" : "01900000-0000-7000-8000-000000003003",
+            "orden" : 2,
+            "herramientaMenor" : false,
+            "descripcion" : "Ayudante",
+            "unidad" : "h",
+            "cantidad" : 2,
+            "rendimiento" : 0.5,
+            "tarifaJornal" : null,
+            "precioUnitarioTarifa" : null,
+            "precioEfectivo" : 4.23,
+            "costoHora" : 8.460000,
+            "costo" : 4.230000,
+            "insumo" : null
+          },
+          "descripcion" : "Ayudante",
+          "porcentajeHerramientaMenor" : null,
+          "costo" : 4.230000,
+          "costoHora" : 8.460000
+        } ],
+        "subtotal" : 5.797500,
+        "mostrarSubtotal" : true
+      }, {
+        "tipo" : "MATERIAL",
+        "etiqueta" : "MATERIALES (O)",
+        "ordenCapturado" : 2,
+        "filas" : [ {
+          "detalle" : {
+            "id" : "01900000-0000-7000-8000-000000003004",
+            "orden" : 1,
+            "herramientaMenor" : false,
+            "descripcion" : "Cable",
+            "unidad" : "u",
+            "cantidad" : 3.5,
+            "rendimiento" : null,
+            "tarifaJornal" : null,
+            "precioUnitarioTarifa" : null,
+            "precioEfectivo" : 1.2345,
+            "costoHora" : null,
+            "costo" : 4.320750,
+            "insumo" : null
+          },
+          "descripcion" : "Cable",
+          "porcentajeHerramientaMenor" : null,
+          "costo" : 4.320750,
+          "costoHora" : null
+        } ],
+        "subtotal" : 4.320750,
+        "mostrarSubtotal" : true
+      }, {
+        "tipo" : "TRANSPORTE",
+        "etiqueta" : "TRANSPORTE (P)",
+        "ordenCapturado" : 3,
+        "filas" : [ {
+          "detalle" : {
+            "id" : "01900000-0000-7000-8000-000000003005",
+            "orden" : 1,
+            "herramientaMenor" : false,
+            "descripcion" : "Flete",
+            "unidad" : "u",
+            "cantidad" : 0.5,
+            "rendimiento" : null,
+            "tarifaJornal" : null,
+            "precioUnitarioTarifa" : null,
+            "precioEfectivo" : 2.00,
+            "costoHora" : null,
+            "costo" : 1.000000,
+            "insumo" : null
+          },
+          "descripcion" : "Flete",
+          "porcentajeHerramientaMenor" : null,
+          "costo" : 1.000000,
+          "costoHora" : null
+        } ],
+        "subtotal" : 1.000000,
+        "mostrarSubtotal" : true
+      } ],
+      "pie" : {
+        "subtotales" : [ {
+          "tipo" : "EQUIPO",
+          "valor" : 5.239875
+        }, {
+          "tipo" : "MANO_OBRA",
+          "valor" : 5.797500
+        }, {
+          "tipo" : "MATERIAL",
+          "valor" : 4.320750
+        }, {
+          "tipo" : "TRANSPORTE",
+          "valor" : 1.000000
+        } ],
+        "porcentajeIndirecto" : 0.1800,
+        "costoDirecto" : 16.358125,
+        "costoIndirecto" : 2.944463,
+        "costoTotal" : 19.302588,
+        "valorOfertado" : 19.302588,
+        "mensaje" : "Este precio no incluye IVA"
+      }
+    }, {
+      "id" : "01900000-0000-7000-8000-000000000021",
+      "codigo" : "APU21",
+      "etiquetaCodigo" : "APU21",
+      "descripcion" : "Descripción del APU 21",
+      "unidad" : "m2",
+      "nombreProyectoHeader" : null,
+      "bloques" : [ {
+        "tipo" : "EQUIPO",
+        "etiqueta" : "EQUIPOS (M)",
+        "ordenCapturado" : 0,
+        "filas" : [ {
+          "detalle" : {
+            "id" : "01900000-0000-7000-8000-000000003100",
+            "orden" : 1,
+            "herramientaMenor" : false,
+            "descripcion" : "Equipo certificador",
+            "unidad" : "h",
+            "cantidad" : 1,
+            "rendimiento" : 0.33,
+            "tarifaJornal" : null,
+            "precioUnitarioTarifa" : null,
+            "precioEfectivo" : 15.00,
+            "costoHora" : 15.000000,
+            "costo" : 4.950000,
+            "insumo" : null
+          },
+          "descripcion" : "Equipo certificador",
+          "porcentajeHerramientaMenor" : null,
+          "costo" : 4.950000,
+          "costoHora" : 15.000000
+        } ],
+        "subtotal" : 4.950000,
+        "mostrarSubtotal" : true
+      }, {
+        "tipo" : "MANO_OBRA",
+        "etiqueta" : "MANO DE OBRA (N)",
+        "ordenCapturado" : 1,
+        "filas" : [ {
+          "detalle" : {
+            "id" : "01900000-0000-7000-8000-000000003101",
+            "orden" : 1,
+            "herramientaMenor" : false,
+            "descripcion" : "Maestro eléctrico",
+            "unidad" : "h",
+            "cantidad" : 1,
+            "rendimiento" : 0.33,
+            "tarifaJornal" : null,
+            "precioUnitarioTarifa" : null,
+            "precioEfectivo" : 4.75,
+            "costoHora" : 4.750000,
+            "costo" : 1.567500,
+            "insumo" : null
+          },
+          "descripcion" : "Maestro eléctrico",
+          "porcentajeHerramientaMenor" : null,
+          "costo" : 1.567500,
+          "costoHora" : 4.750000
+        }, {
+          "detalle" : {
+            "id" : "01900000-0000-7000-8000-000000003102",
+            "orden" : 2,
+            "herramientaMenor" : false,
+            "descripcion" : "Ayudante",
+            "unidad" : "h",
+            "cantidad" : 2,
+            "rendimiento" : 0.5,
+            "tarifaJornal" : null,
+            "precioUnitarioTarifa" : null,
+            "precioEfectivo" : 4.23,
+            "costoHora" : 8.460000,
+            "costo" : 4.230000,
+            "insumo" : null
+          },
+          "descripcion" : "Ayudante",
+          "porcentajeHerramientaMenor" : null,
+          "costo" : 4.230000,
+          "costoHora" : 8.460000
+        } ],
+        "subtotal" : 5.797500,
+        "mostrarSubtotal" : true
+      }, {
+        "tipo" : "MATERIAL",
+        "etiqueta" : "MATERIALES (O)",
+        "ordenCapturado" : 2,
+        "filas" : [ {
+          "detalle" : {
+            "id" : "01900000-0000-7000-8000-000000003103",
+            "orden" : 1,
+            "herramientaMenor" : false,
+            "descripcion" : "Cable",
+            "unidad" : "u",
+            "cantidad" : 3.5,
+            "rendimiento" : null,
+            "tarifaJornal" : null,
+            "precioUnitarioTarifa" : null,
+            "precioEfectivo" : 1.2345,
+            "costoHora" : null,
+            "costo" : 4.320750,
+            "insumo" : null
+          },
+          "descripcion" : "Cable",
+          "porcentajeHerramientaMenor" : null,
+          "costo" : 4.320750,
+          "costoHora" : null
+        } ],
+        "subtotal" : 4.320750,
+        "mostrarSubtotal" : true
+      }, {
+        "tipo" : "TRANSPORTE",
+        "etiqueta" : "TRANSPORTE (P)",
+        "ordenCapturado" : 3,
+        "filas" : [ {
+          "detalle" : {
+            "id" : "01900000-0000-7000-8000-000000003104",
+            "orden" : 1,
+            "herramientaMenor" : false,
+            "descripcion" : "Flete",
+            "unidad" : "u",
+            "cantidad" : 0.5,
+            "rendimiento" : null,
+            "tarifaJornal" : null,
+            "precioUnitarioTarifa" : null,
+            "precioEfectivo" : 2.00,
+            "costoHora" : null,
+            "costo" : 1.000000,
+            "insumo" : null
+          },
+          "descripcion" : "Flete",
+          "porcentajeHerramientaMenor" : null,
+          "costo" : 1.000000,
+          "costoHora" : null
+        } ],
+        "subtotal" : 1.000000,
+        "mostrarSubtotal" : true
+      } ],
+      "pie" : {
+        "subtotales" : [ {
+          "tipo" : "EQUIPO",
+          "valor" : 4.950000
+        }, {
+          "tipo" : "MANO_OBRA",
+          "valor" : 5.797500
+        }, {
+          "tipo" : "MATERIAL",
+          "valor" : 4.320750
+        }, {
+          "tipo" : "TRANSPORTE",
+          "valor" : 1.000000
+        } ],
+        "porcentajeIndirecto" : 0.1800,
+        "costoDirecto" : 16.068250,
+        "costoIndirecto" : 2.892285,
+        "costoTotal" : 18.960535,
+        "valorOfertado" : 18.960535,
+        "mensaje" : "Este precio no incluye IVA"
+      }
+    } ]
+  }
+}

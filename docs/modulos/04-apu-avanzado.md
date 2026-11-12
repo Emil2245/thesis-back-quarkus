@@ -1,5 +1,7 @@
 # Plan 04 — Módulo `apu-avanzado` (P-23…P-27, P-45, P-46 + decisiones N04) — I-06
 
+> **Retirado en etapa 05 (2026-11):** los GET de bytes `GET /documentos/{presupuesto|apus|cronograma|especificaciones-tecnicas}/{id}`, sus servicios de descarga y los *writers* XLSX/PDF/MSPDI de Core ya no existen; la descarga es `POST …/exportaciones` + ticket de Core. Este documento conserva el estado histórico; ver [etapa 05](../../plans/separar-en-microservicios/05-retiro-descargas-legadas.md).
+
 > **Estado actual (reconciliado 2026-08-28 tras entrevista N04 temporal):**
 > este documento **ya no describe trabajo activo**. Su contenido original
 > queda aquí **solo como historial de decisiones**; las instrucciones activas

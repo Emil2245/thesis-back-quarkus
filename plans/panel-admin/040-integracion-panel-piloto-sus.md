@@ -1,5 +1,7 @@
 # 040 — Integración del panel y piloto SUS
 
+> **Retirado en etapa 05 (2026-11):** los GET de bytes `GET /documentos/{presupuesto|apus|cronograma|especificaciones-tecnicas}/{id}`, sus servicios de descarga y los *writers* XLSX/PDF/MSPDI de Core ya no existen; la descarga es `POST …/exportaciones` + ticket de Core. Este documento conserva el estado histórico; ver [etapa 05](../separar-en-microservicios/05-retiro-descargas-legadas.md).
+
 **Estado:** DONE técnico / piloto SUS 1–2 pendiente · I-11 · 2026-09-09.
 
 > Cierra I-11 con una sola colección Bruno `12-admin/`, regresiones

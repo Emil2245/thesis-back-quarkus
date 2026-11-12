@@ -1,5 +1,7 @@
 # Revisión inicial: riesgos de escalado del backend
 
+> **Retirado en etapa 05 (2026-11):** los GET de bytes `GET /documentos/{presupuesto|apus|cronograma|especificaciones-tecnicas}/{id}`, sus servicios de descarga y los *writers* XLSX/PDF/MSPDI de Core ya no existen; la descarga es `POST …/exportaciones` + ticket de Core. Este documento conserva el estado histórico; ver [etapa 05](../../plans/separar-en-microservicios/05-retiro-descargas-legadas.md).
+
 **Resultado: seis riesgos estáticos; ninguno medido ni corregido.** Las
 prioridades son provisionales y no equivalen a optimizaciones necesarias.
 Solo una investigación posterior puede promover candidatos a prioridad alta.

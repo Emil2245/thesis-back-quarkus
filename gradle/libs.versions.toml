@@ -11,6 +11,7 @@ spotless = "8.10.4"
 [libraries]
 # Platform BOM
 quarkus-platform-bom = { module = "io.quarkus.platform:quarkus-bom", version.ref = "quarkus" }
+quarkus-amazon-services-bom = { module = "io.quarkus.platform:quarkus-amazon-services-bom", version.ref = "quarkus" }
 
 # Framework (BOM-managed, no version here)
 quarkus-hibernate-orm-panache = { module = "io.quarkus:quarkus-hibernate-orm-panache" }
@@ -30,6 +31,8 @@ quarkus-jdbc-postgresql = { module = "io.quarkus:quarkus-jdbc-postgresql" }
 quarkus-config-yaml = { module = "io.quarkus:quarkus-config-yaml" }
 quarkus-mailer = { module = "io.quarkus:quarkus-mailer" }
 quarkus-arc = { module = "io.quarkus:quarkus-arc" }
+quarkus-amazon-s3 = { module = "io.quarkiverse.amazonservices:quarkus-amazon-s3" }
+aws-sdk-url-connection-client = { module = "software.amazon.awssdk:url-connection-client" }
 quarkus-elytron-security-common = { module = "io.quarkus:quarkus-elytron-security-common" }
 
 # App libraries (pinned versions)
@@ -41,6 +44,7 @@ jackson-databind-nullable = { module = "org.openapitools:jackson-databind-nullab
 
 # Test
 quarkus-junit5 = { module = "io.quarkus:quarkus-junit5" }
+quarkus-junit5-mockito = { module = "io.quarkus:quarkus-junit5-mockito" }
 rest-assured = { module = "io.rest-assured:rest-assured" }
 jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind" }
 jqwik = { module = "net.jqwik:jqwik", version.ref = "jqwik" }

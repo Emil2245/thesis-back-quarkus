@@ -1,5 +1,7 @@
 # 01 — Cerrar formatos, contrato común y compatibilidad de cronograma
 
+> **Retirado en etapa 05 (2026-11):** los GET de bytes `GET /documentos/{presupuesto|apus|cronograma|especificaciones-tecnicas}/{id}`, sus servicios de descarga y los *writers* XLSX/PDF/MSPDI de Core ya no existen; la descarga es `POST …/exportaciones` + ticket de Core. Este documento conserva el estado histórico; ver [etapa 05](../../../plans/separar-en-microservicios/05-retiro-descargas-legadas.md).
+
 **Estado: CERRADO en su alcance (EXP-01–05), sin commit.** Contrato, preflight,
 captura inmutable consistente y A3 verificados independientemente; EXP-05 es
 cierre documental estructural, no suite global verde. Presupuesto plan02 cerrado;

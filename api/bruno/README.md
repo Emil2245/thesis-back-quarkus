@@ -18,9 +18,9 @@ de los titulares sembrados por V004).
 | [`06-proyecto`](06-proyecto/) | I-03 | `proyecto` | activa | Plan 009 + Plan 07 — flujo CRUD de proyectos |
 | [`07-insumo`](07-insumo/) | I-04 | `insumo` | activa | Plan 009 — CRUD + bases + CSV |
 | [`08-apu`](08-apu/) | I-05 | `apu` | activa | Plan 011 — CRUD + filas M/N/O/P + HM |
-| [`09-i02-i06`](09-i02-i06/) | I-06 + Plan 005 | `apu`/`insumo`/`plantilla`/`documento`/`presupuesto` | activa | Plan 08 + búsqueda FTS, lote de plantillas y owner-scope (42 requests) |
+| [`09-i02-i06`](09-i02-i06/) | I-06 + Plan 005 | `apu`/`insumo`/`plantilla`/`documento`/`presupuesto` | activa | Plan 08 + búsqueda FTS, lote de plantillas y owner-scope (41 requests; `TC-09-07c` DOCX por GET retirado en la etapa 05) |
 | **`10-presupuesto`** | **I-07 + Plan 005** | **`presupuesto`** | **activa · verificada (Plan 025 + Plan 005: 27/27 requests, 91/91 tests)** | Esta carpeta: P-28/P-29/P-30/P-31/P-32 + APU manual completo |
-| [`11-cronograma`](11-cronograma/) | I-10 | `cronograma` | activa (Plan 031 — export XLSX/PDF/MSPDI, P-37) | Esta carpeta: preflight + descarga por formato + UUIDv7 + owner-to-404 |
+| [`11-cronograma`](11-cronograma/) | I-10 | `cronograma` | activa (Plan 031 — preflight P-37) | Esta carpeta: preflight + UUIDv7 + owner-to-404 (18 requests). Las descargas `TC-31-05/06/07` por GET de bytes se retiraron en la etapa 05; la descarga va por `POST …/exportaciones` + ticket y requiere Documentos + S3 |
 
 > **Nota sobre los archivos legacy 01–05:** no se borran para conservar
 > auditoría; los planes I-06+I-07 (`06-proyecto/`, `07-insumo/`, `08-apu/`,
@@ -203,7 +203,7 @@ compartido) y se capturan en runtime por los helpers:
 - [`plans/README.md`](../../plans/README.md) — estado por plan.
 ## `12-admin/` — Plan 040
 
-Colección autocontenida de 16 requests en seis grupos: helpers `TC-12-00a..00e`, P-38, P-39, P-40, P-41 y P-42. Ejecutar secuencialmente con `( cd api/bruno && bru run 12-admin/ --env dev )` contra PostgreSQL 18 limpio + fast-jar y Flyway aplicado. Medición 2026-09-09: 16/16 requests y 27/27 tests JS, 0 fallos/errores/skips; reporter assertions 0/0 porque usa `tests {}` JS. Usa `auth: inherit` en `folder.bru` y el environment compartido `environments/dev.bru`, sin comentarios.
+Colección autocontenida de 16 requests en seis grupos: helpers `TC-12-00a..00e`, P-38, P-39, P-40, P-41 y P-42. Ejecutar secuencialmente con `( cd api/bruno && bru run 12-admin/ --env dev )` contra PostgreSQL 18 limpio + fast-jar y Flyway aplicado. Medición 2026-09-09: 16/16 requests y 27/27 tests JS, 0 fallos/errores/skips; reporter assertions 0/0 porque usa `tests {}` JS. Desde la etapa 05 (2026-11) `TC-12-P42-01` produce `documento.exportado` con `POST /documentos/especificaciones-tecnicas/{id}/exportaciones` (Idempotency-Key UUIDv7) en lugar del GET de bytes retirado; necesita Core + Documentos + S3 (FLoCI local). Ese cambio no se ha ejecutado contra un stack vivo. Usa `auth: inherit` en `folder.bru` y el environment compartido `environments/dev.bru`, sin comentarios.
 
 Variables runtime: `p38UsuarioId`, `p39BaseId`, `p40ProyectoId`, `p40PresupuestoId`, `p40ApuId`, `p41ProyectoNuevoId` y `p41ProyectoViejoId`. Los helpers de login usan las variables seeded `u1*`/`u2*`; `adminEmail`, `adminPassword` y `admin_access_token` deben ser suministradas externamente. Los IDs `p38*`, `p39*` y `p42*` se asignan con `bru.setVar` durante la ejecución y no necesitan declararse previamente en `dev.bru`.
 

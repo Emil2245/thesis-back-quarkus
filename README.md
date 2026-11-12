@@ -1,5 +1,12 @@
 # propuestas-api
 
+**Plan 03 en ejecución:** Gradle multiproyecto con `:core` (API y PostgreSQL/Flyway),
+`:documentos` (servicio independiente sin base) y `:documentos-contract`
+(biblioteca de proyecciones tipadas, no un tercer servicio). Los GET públicos
+siguen funcionando. La nueva ruta interna de subida privada es una pieza aislada:
+el POST público, el ticket de Core, la limpieza a 24 horas y el despliegue aún no
+están implementados ni verificados.
+
 Quarkus backend for the SERCOP propuestas técnico-económicas platform —
 a cloud-native web application that automates APU calculation, budget
 consolidation, and execution-schedule generation for Ecuadorian public
@@ -36,7 +43,7 @@ the same commit set. Do not divergently re-decide things here.
 ## Stack
 
 - Java 25 (toolchain) · Gradle 9.8.2 (wrapper) · Quarkus 3.40.1
-- Panache ORM (Hibernate) · PostgreSQL 16
+- Core: Panache ORM (Hibernate) · PostgreSQL 18; Documentos: sin PostgreSQL
 - Flyway migrations
 - SmallRye JWT (bcrypt via Elytron)
 - SmallRye OpenAPI · Swagger UI at `/q/swagger-ui`
@@ -51,23 +58,158 @@ the same commit set. Do not divergently re-decide things here.
 ## Running locally
 
 ```bash
-# Dev mode with live reload (spins Postgres via Dev Services if Docker is up)
-./gradlew --console=plain quarkusDev
+# Core with live reload (Postgres via Dev Services when Docker is available)
+./gradlew --console=plain :core:quarkusDev
 
-# Full build (no tests)
+# Documentos (independent port 8081; no PostgreSQL datasource)
+# Configure MP_JWT_VERIFY_PUBLICKEY_LOCATION in Documentos with the dedicated
+# service public key; Core uses DOCUMENTOS_SERVICE_SIGNING_KEY_LOCATION for its
+# matching PKCS#8 private key. Core rejects reuse of its user JWT RSA key,
+# even if the same key material is copied to a different path.
+./gradlew --console=plain :documentos:quarkusDev
+
+# Root tasks aggregate both applications; no tests in this command
 ./gradlew build -x test
 
-# Test suite — current state (HEAD ac84c945): 763 tests = 760 pass +
-# 2 accepted residual failures (GM-19, GM-20 — workbook-rounding
-# residuals documented in Plan 014/Plan 02; no se reabre el motor) +
-# 1 skipped (GM-24 @Disabled by upstream EMELNORTE fixture) + 0
-# errors. ./gradlew build -x test PASS; ./gradlew build fails only
-# on those accepted residuals.
-./gradlew test
+# Focused suites; legacy Core GETs stay in Core during migration
+./gradlew :core:test -PexcludeKnownResiduals
+./gradlew :documentos:test
+./gradlew test -PexcludeKnownResiduals
+bash scripts/check-document-contract.sh
+bash scripts/test-check-document-contract.sh   # fixtures for the guard itself
 
-# Native image (container build; ~10 min)
-./gradlew build -Dquarkus.native.enabled=true -Dquarkus.native.container-build=true
+# Core native image (container build; ~10 min)
+./gradlew :core:build -Dquarkus.native.enabled=true -Dquarkus.native.container-build=true
 ```
+
+## Internal document boundary
+
+Documentos accepts only the signed Core service JWT and versioned projections
+from `:documentos-contract` (`DocumentProjectionV1`, `SpecificationProjectionV1`,
+`CronogramaProjectionV1`). Core populates `snapshot.apuRender` with ordered rows
+and reconciled printable amounts before transport; Documentos must not pair
+motor rows or recompute prices. Core's transport limits serialized requests to
+8 MiB and responses to 64 MiB (`DocumentosLimites`); Documentos rejects bodies
+over 8 MiB. Configure `DOCUMENTOS_BASE_URL` (no default),
+`DOCUMENTOS_SERVICE_SIGNING_KEY_LOCATION` (a dedicated RSA key) and
+`DOCUMENTOS_TIMEOUT` (default `PT20S`); a missing URL, key or remote response
+fails closed. Documentos embeds Liberation Sans for PDF output.
+
+**Retired in stage 05 (2026-11):** the stage 02 synchronous byte path — public
+`GET /documentos/{presupuesto|apus|cronograma|especificaciones-tecnicas}/{id}`,
+Core's render gateways, `DocumentosHttpClient`, the Core XLSX/PDF/MSPDI writers
+and their POI/OpenPDF dependencies, and Documentos' synchronous internal render
+routes. Core no longer renders documents; every download goes through the
+private upload and one-use ticket below. See
+[`plans/separar-en-microservicios/05-retiro-descargas-legadas.md`](plans/separar-en-microservicios/05-retiro-descargas-legadas.md).
+
+## Internal private upload (stage 03)
+
+`POST /internal/v1/export` accepts only the short-lived Core service JWT and an
+`ExportUploadV1` containing **one** versioned budget/APU or specification
+projection, a UUIDv7 `operationId`, its matching private `exports/<operationId>`
+key, a 64-character lowercase hex request fingerprint and a safe filename. The
+short-lived service JWT must contain the same `operationId` claim. Core's new
+export transport requires HTTPS except for explicit loopback test endpoints;
+this code check is not a substitute for deployed internal TLS or NetworkPolicy.
+Documentos renders and conditionally writes to its configured private
+S3 bucket (`If-None-Match: *`), then confirms object length, SHA-256 checksum
+fingerprint, MIME and filename with `HeadObject` before returning internal metadata; it never
+returns a public S3 URL. On an uncertain write, Core may call
+`POST /internal/v1/export/reconcile` with the same immutable projection and key:
+Documentos validates the request and confirms the existing S3 object's
+fingerprint, S3-side SHA-256 checksum and size against the checksum/size
+metadata written with the original Put, plus MIME and filename, without
+another Put. Rendering the same PDF at another time is not byte-deterministic, so
+recovery must not compare newly rendered bytes with the original object. A 412
+conflict is not interpreted as success. Set `DOCUMENTOS_STORAGE_BUCKET` and configure the S3
+region/identity for deployment; no implicit bucket or DevServices container is
+created. SDK credentials in tests are fake and the local FLoCI check is opt-in:
+
+```bash
+RUN_STAGE03_FLOCI_S3_TEST=true \
+STAGE03_FLOCI_ENDPOINT=http://127.0.0.1:14568 \
+STAGE03_FLOCI_BUCKET=<task-owned-isolated-bucket> \
+./gradlew :documentos:test --tests '*S3PrivateObjectStoreFlociIT'
+```
+
+This check requires an explicitly isolated test bucket and does not establish
+production IAM, Pod Identity, TLS, object cleanup or public download behavior.
+Core's private object reader is a separate, read-only S3 client. Configure
+`CORE_STORAGE_BUCKET` with the **same private bucket** only when the Core
+identity has `GetObject` permission; absent configuration fails closed. The
+reader bounds bytes to the confirmed size (at most 64 MiB) and verifies SHA-256.
+`GET /api/v1/documentos/descargas/{ticket}` consumes a Core-issued one-use
+capability before any private read, then returns the verified bytes with
+`Cache-Control: no-store` and `Referrer-Policy: no-referrer` even on 404/500.
+A failed S3 read never restores a ticket. This local route does not prove
+deployment IAM, ingress/APM ticket-path redaction, or physical cleanup yet.
+
+The authenticated `POST /api/v1/documentos/{presupuesto|apus|especificaciones-tecnicas}/{presupuestoId}/exportaciones`
+accepts JSON (`formato` plus only the relevant options) and a UUIDv7
+`Idempotency-Key`. A confirmed export returns JSON with `operationId`, a
+relative Core `downloadUrl`, expiration timestamps, filename, MIME, byte count,
+SHA-256, and capture warnings. Repeat the POST with the same key and unchanged
+request/revision to issue another one-use ticket without uploading again; a
+conflicting key returns 409. An uncertain upload is reconciled against the
+original object's HEAD metadata before confirmation. The POST body is capped
+at 8 MiB, and duplicate JSON members are rejected. Only specifications (and cronograma) record
+the export audit event. These are local application behaviors, **not**
+evidence of real IAM/TLS, browser access, or 24-hour physical deletion. The legacy
+byte GETs were retired in stage 05; the React frontend uses only the POST.
+Cronograma has its own `POST /api/v1/documentos/cronograma/{presupuestoId}/exportaciones`
+(stage 04, XLSX/PDF A4·A3/MSPDI XML), which records `documento.exportado` and
+returns stale-schedule notices in `warnings`. For cross-origin
+browser requests, configure `CORS_ORIGINS` to the trusted frontend origin;
+Core's CORS preflight allows `Authorization`, `Content-Type`, and
+`Idempotency-Key` without allowing unconfigured origins. Local preflight tests
+do not prove the deployed ingress/TLS configuration.
+
+The cleanup worker is **not** scheduled in the ordinary Core service. To build
+its one-shot Quarkus entry point for a separate cleanup workload, select the
+named main at build time:
+
+```bash
+./gradlew :core:quarkusBuild -Dquarkus.package.main-class=cleanup
+```
+
+Package this output as a **different artifact** from the ordinary Core image; the build output directory is shared
+and the last build replaces the previous entry point. In the cleanup workload
+only, configure `CLEANUP_STORAGE_BUCKET` with the private export bucket and
+provide a separate, prefix-scoped `s3:DeleteObject` identity. The regular Core
+identity must have only `s3:GetObject`; Documentos uses `PutObject`/`HeadObject`.
+The command processes at most 100 expired claims, exits with nonzero status on
+failure and has no public delete route. The scheduled workload must run with
+HTTP listening disabled and its own service account; neither a CronJob nor
+these IAM restrictions are deployed or verified by this repository. Local
+fenced-leasing and DeleteObject tests do not prove actual 24-hour deletion.
+To check SDK `DeleteObject` against the isolated task-owned FLoCI bucket, use:
+
+```bash
+RUN_STAGE03_FLOCI_S3_TEST=true \
+STAGE03_FLOCI_ENDPOINT=http://127.0.0.1:14568 \
+STAGE03_FLOCI_BUCKET=<task-owned-isolated-bucket> \
+./gradlew :core:test --tests '*PrivateObjectDeleterFlociIT'
+```
+
+The test creates a unique export key, deletes only that key, and confirms two
+subsequent HEAD requests return 404. It cannot establish IAM or deployed
+retention.
+
+To verify the five existing public GET formats against **both real applications**
+without using the repository's Compose volume, run:
+
+```bash
+STAGE02_REAL_DOCUMENTOS=true ./gradlew :documentos:quarkusBuild :core:test \
+  --tests 'ec.uce.propuestas.documento.RealDocumentosGetIT' :core:spotlessCheck
+```
+
+The opt-in test starts the packaged Documentos app on a loopback ephemeral port
+with a task-owned RSA service key and uses Core's isolated Testcontainers database
+and authenticated fixture. It checks budget/APU PDF and XLSX, technical DOCX,
+and the DOCX export audit; it stops the app and removes only its own temporary
+keys. Without `STAGE02_REAL_DOCUMENTOS=true`, the test is skipped. This does not
+validate TLS, browser download, S3, Pod Identity, native images or deployment.
 
 ## Correo
 
@@ -112,7 +254,8 @@ Environment variables (see `.env.example`):
 Imagen OCI multi-stage (Gradle + Java 25 en el build, runtime UBI9 OpenJDK 25 (x86-64-v2; UBI10 exige x86-64-v3 y el clúster de laboratorio no lo soporta), usuario 185):
 
 ```bash
-podman build -f src/main/docker/Dockerfile -t propuestas-api:dev .
+podman build -f core/src/main/docker/Dockerfile -t propuestas-api:dev .
+podman build -fdocumentos/src/main/docker/Dockerfile -t propuestas-documentos:dev .
 scripts/gen-jwt-keys.sh /tmp/jwt && chmod 644 /tmp/jwt/*   # solo para pruebas locales
 podman run --rm --network host --read-only --tmpfs /tmp \
   -v /tmp/jwt:/etc/propuestas/jwt:ro,Z \
@@ -131,47 +274,35 @@ Puertos: `8080` (API, `/api/v1`) y `9000` (gestion: `/q/health/{live,ready,start
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | Endpoint OTLP gRPC (default `http://localhost:4317`) |
 | `OTEL_SDK_DISABLED` | `true`/`false` (default `false` en prod) |
 
-CI (`.github/workflows/ci.yml`): en cada push/PR ejecuta `./gradlew build` (spotless + tests),
-construye la imagen y la escanea con Trivy (solo reporte). La imagen no se publica desde este repo.
+CI (`.github/workflows/ci.yml`): en cada push/PR ejecuta `./gradlew build -PexcludeKnownResiduals` (Spotless + tests de ambas aplicaciones), construye las dos imágenes y las escanea con Trivy (solo reporte). Las imágenes no se publican desde este repo.
 
 ---
 
 ## Repo layout
 
 ```
-src/main/java/ec/uce/propuestas/
+build.gradle.kts                  # Root aggregate build/check/test/Spotless
+core/build.gradle.kts             # Existing API, PostgreSQL, Flyway and domain
+core/src/main/java/ec/uce/propuestas/
 ├── common/        # RestApplication, ErrorPayload, GlobalExceptionMapper
-├── usuario/       # Usuario, Rol, RefreshToken, TokenUsuario, TipoToken
-│   └── auth/      # AuthResource, PerfilResource, AuthService, TokenService,
-│       ├── dto/   #   PasswordService, PasswordPolicy, EnviadorCorreo port
-│       └── mail/  #   LogEnviadorCorreo (dev/prod fallback)
-└── motor/         # Pure Java calc engine (no framework)
-    └── internal/  #   CalculadorFila, Consolidador (package-private)
-
-src/main/resources/
+├── usuario/       # Auth, JWT, audit and roles
+├── documento/     # Existing GET adapters (kept during transition)
+└── motor/         # Pure Java calculation engine
+core/src/main/resources/
 ├── application.yml
-├── db/migration/         # V001..V012 Flyway migrations
-└── META-INF/               # (las claves JWT ya no viven en resources)
-
-src/test/java/ec/uce/propuestas/
-├── usuario/auth/  # AuthResourceIT (@QuarkusTest), PasswordPolicyTest,
-│                  # RecordingEnviadorCorreo (test alt)
-└── motor/         # MotorApuTest, MotorConsolidacionTest,
-                   # MotorPropiedadesTest, Fixtures helper
-
-src/test/resources/
-├── META-INF/beans.xml           # CDI alternatives for tests
-└── motor/fixtures/              # JSON + CSV golden-master fixtures
-                                 # (copied from thesis-docs/_artifacts/)
-
-plans/                           # Implementation plans (executable playbooks)
+└── db/migration/   # Only Core owns schema migrations
+core/src/test/     # Existing resource and domain test suites
+documentos/build.gradle.kts       # Separate Quarkus app, no DB/Flyway
+documentos/src/main/resources/application.yml  # Port 8081
+documentos/src/test/            # Separate startup and contract tests
+plans/                           # Implementation plans
 ```
 
 ---
 
-## Iteration status (functional code cut `ac84c945`)
+## Historical iteration snapshot (functional code cut `ac84c945`)
 
-**Current technical status** (backend `ac84c945`):
+**Historical technical status** (backend `ac84c945`; not a test result of the current multiproject branch):
 
 - **I-01 … I-11 — DONE técnico.** Bootstrap, auth, motor, APU núcleo y
   avanzado, presupuesto (P-28…P-32), cronograma (P-33…P-36),
@@ -222,7 +353,7 @@ plans/                           # Implementation plans (executable playbooks)
 
 - **"How does X in the domain work?"** → `../thesis-docs/plan/domain/`
 - **"How does the API expose Y?"** → `../thesis-docs/plan/architecture/07-api-contract.md`
-- **"What migration adds table Z?"** → `src/main/resources/db/migration/`
+- **"What migration adds table Z?"** → `core/src/main/resources/db/migration/`
 - **"What plan produced this file?"** → `plans/<NNN>-*.md`
 - **"How do I run tests locally?"** → `./gradlew test`
 

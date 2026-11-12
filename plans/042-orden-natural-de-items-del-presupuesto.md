@@ -1,5 +1,7 @@
 # Plan 042: Los capítulos y rubros se ordenan como texto, así que "1.12" sale antes que "1.2"
 
+> **Retirado en etapa 05 (2026-11):** los GET de bytes `GET /documentos/{presupuesto|apus|cronograma|especificaciones-tecnicas}/{id}`, sus servicios de descarga y los *writers* XLSX/PDF/MSPDI de Core ya no existen; la descarga es `POST …/exportaciones` + ticket de Core. Este documento conserva el estado histórico; ver [etapa 05](separar-en-microservicios/05-retiro-descargas-legadas.md).
+
 > **Instrucciones para quien ejecute**: sigue este plan paso a paso. Corre cada
 > comando de verificación y confirma el resultado esperado antes de avanzar al
 > siguiente paso. Si ocurre algo listado en "Condiciones STOP", detente y

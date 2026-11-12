@@ -1,5 +1,7 @@
 # 032 — Sincronizar contrato e inventario del panel Super-Admin
 
+> **Retirado en etapa 05 (2026-11):** los GET de bytes `GET /documentos/{presupuesto|apus|cronograma|especificaciones-tecnicas}/{id}`, sus servicios de descarga y los *writers* XLSX/PDF/MSPDI de Core ya no existen; la descarga es `POST …/exportaciones` + ticket de Core. Este documento conserva el estado histórico; ver [etapa 05](../separar-en-microservicios/05-retiro-descargas-legadas.md).
+
 **Estado:** **DONE (2026-09-07)** · I-11 · gate documental previo a P-38…P-42.
 
 > **Adenda firmada (post-firma 2026-09-07):** este plan mantiene su

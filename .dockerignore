@@ -1,11 +1,13 @@
-build/
-.gradle/
+**/build/
+**/.gradle/
 .quarkus/
 .git/
 .env
 .secrets/
 **/*.pem
 src/test/
+core/src/test/
+documentos/src/test/
 database/
 odd/
 plans/
