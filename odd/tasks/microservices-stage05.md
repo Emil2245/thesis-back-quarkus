@@ -20,8 +20,9 @@ S3. Delivery: "Solo commits locales (Recomendado)".
 T1 | S1 | delegated writer (fork) | done in fae4ecb — moved nested types out of Core writers (`CronogramaPdfWriter.Papel`, `CronogramaXlsxWriter.{Fila,FilaHoja,CapituloHoja,ProyeccionXlsx}`, `CronogramaMspdiWriter.{ProyeccionMspdi,RubroMspdi}`, `ArchivoGenerado` media types, `DocumentosHttpClient` size limits) into neutral types; behavior-preserving, existing tests green.
 T2 | S1-S2 | delegated writer | pending — Core: RED test that legacy GETs 404; remove legacy resources methods, services, render gateways, writers, fonts, deps; delete legacy-only tests; adapt mixed tests (CronogramaExportResourceIT, PresupuestoApuExportResourceIT, LogActividadCoberturaD13CompletaTest, Plan07Uuidv7FronterasTest); port 3 evidence ITs.
 T3 | S1 | delegated writer | pending — Documentos: remove InternalRenderResource/InternalSpecificationsResource and tests if no caller remains.
-T4 | S1 | delegated writer | pending — Frontend dead code (useExportar legacy functions, `descargar`, Blob rehydration, MSW legacy handler, tests, comments).
-T5 | S1 | delegated writer | pending — Docs: 07-api-contract, plans (039, separar-en-microservicios), backend docs/README/CLAUDE.md, Bruno, thesis-deploy k6.
+T4 | S1 | delegated writer (writer trigger: 11 frontend files) | done; thesis-front-react 58ac778: legacy Blob download helpers, GET-409 branch, MSW legacy handlers and tests removed; RED hook-exposes-no-legacy test then GREEN; full Vitest 102 files/763 tests, typecheck, oxlint, guard:adr9, build, Prettier, diff check PASS (Node v24.13.1).
+T5a | S1 | delegated writer | pending — thesis-docs canonical contract/design/quality docs + thesis-deploy k6 (parallel with T2, disjoint repos).
+T5b | S1 | delegated writer | pending — backend docs, plans, README/CLAUDE.md, Bruno (after T2/T3).
 T6 | S1 | inline | pending — verification: full backend + frontend suites, build, contract script, local stack smoke if available.
 
 ## Log
