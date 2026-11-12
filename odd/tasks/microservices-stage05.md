@@ -1,0 +1,29 @@
+# Microservices stage 05 — retire legacy byte-download endpoints
+State: active on feat/microservices-stage05 (backend, frontend, thesis-docs), branched from stage04.
+Scope: remove legacy GET byte downloads and the code only they use; keep preflight GETs, POST exportaciones, ticket GET and Documentos `/internal/v1/exports`.
+Delivery: local work-unit commits only, no push/PR (user decision). TDD: strict (global CLAUDE.md); runners `./gradlew` (backend) and project Vitest (frontend).
+
+## Specs
+S1. "ok esta bien entonces sontinua con la etapa 5 para quitar codiog deprecado."
+S2. Evidence ITs backing CHK: "Portarlas (Recomendado)" — keep the same value assertions through the new flow or Documentos renderers.
+S3. Delivery: "Solo commits locales (Recomendado)".
+
+## Acceptance
+- `GET /documentos/{presupuesto|apus|cronograma|especificaciones-tecnicas}/{id}` return 404 (no byte route); preflights, POST exportaciones, ticket GET unchanged and green.
+- Core main has no POI/OpenPDF writers; `poi-ooxml`/`openpdf` dropped from Core main deps; Documentos dead `/internal/v1/render` and specifications endpoints removed.
+- D-13 `documento.exportado` still produced (by POST flow) and covered by tests.
+- Frontend has no Blob download path; tests/typecheck/lint/build green.
+- Canonical contract (`thesis-docs/plan/architecture/07-api-contract.md`), plans, Bruno, README/CLAUDE.md updated; thesis-deploy k6 moved to POST+ticket.
+- Full suites run; GM-19/GM-20 accepted residuals reported, not hidden.
+
+## Tasks
+T1 | S1 | delegated writer (fork) | done in fae4ecb — moved nested types out of Core writers (`CronogramaPdfWriter.Papel`, `CronogramaXlsxWriter.{Fila,FilaHoja,CapituloHoja,ProyeccionXlsx}`, `CronogramaMspdiWriter.{ProyeccionMspdi,RubroMspdi}`, `ArchivoGenerado` media types, `DocumentosHttpClient` size limits) into neutral types; behavior-preserving, existing tests green.
+T2 | S1-S2 | delegated writer | pending — Core: RED test that legacy GETs 404; remove legacy resources methods, services, render gateways, writers, fonts, deps; delete legacy-only tests; adapt mixed tests (CronogramaExportResourceIT, PresupuestoApuExportResourceIT, LogActividadCoberturaD13CompletaTest, Plan07Uuidv7FronterasTest); port 3 evidence ITs.
+T3 | S1 | delegated writer | pending — Documentos: remove InternalRenderResource/InternalSpecificationsResource and tests if no caller remains.
+T4 | S1 | delegated writer | pending — Frontend dead code (useExportar legacy functions, `descargar`, Blob rehydration, MSW legacy handler, tests, comments).
+T5 | S1 | delegated writer | pending — Docs: 07-api-contract, plans (039, separar-en-microservicios), backend docs/README/CLAUDE.md, Bruno, thesis-deploy k6.
+T6 | S1 | inline | pending — verification: full backend + frontend suites, build, contract script, local stack smoke if available.
+
+## Log
+L1. Mapping (read-only explorer): new POST flow uses `RemoteExportUploadGateway`/`DocumentosExportClient`; both render gateways serve only legacy GETs. Only legacy cronograma GET still renders bytes inside Core. No writer is called by the new flow, reservation, audit or Documentos reconcile. `commons-csv` stays (CSV insumo import). D-13 `documento.exportado` already emitted by `ExportReservationService.finalizeAudit`/`finalizeCronogramaAudit`. Visible change: legacy filenames and `X-Cronograma-Desactualizado` header disappear.
+L2. T1 done in fae4ecb, pure refactor (no RED: behavior-preserving, safety net = existing tests). New top-level types: `cronograma/export/PapelCronograma` (was `CronogramaPdfWriter.Papel`), `HojaCronograma.{Fila,FilaHoja,CapituloHoja,ProyeccionXlsx}` (was nested in `CronogramaXlsxWriter`), `MspdiCronograma.{RubroMspdi,ProyeccionMspdi}` (was nested in `CronogramaMspdiWriter`), `documento/exportacion/DocumentoMediaTypes` (PrivateDownloadResource now uses it; `ArchivoGenerado` constants delegate), `documento/exportacion/DocumentosLimites` (new-flow parsers/fingerprint/export client use it; `DocumentosHttpClient` constants delegate). Writers still compile against the moved types; user-facing validation messages unchanged. Checks: `:core:spotlessApply` then `:core:spotlessCheck :core:compileTestJava` PASS; `./gradlew :core:test -PexcludeKnownResiduals -Dquarkus.http.test-port=0 --tests '*Cronograma*' --tests '*Export*' --tests '*PrivateDownload*' --tests '*Fingerprint*'` → 38 classes, 217 tests, 0 failures/errors/skips (XML). Full suite deferred to T6.
