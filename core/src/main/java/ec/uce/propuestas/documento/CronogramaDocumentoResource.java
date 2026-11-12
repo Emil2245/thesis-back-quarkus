@@ -6,8 +6,8 @@ import ec.uce.propuestas.cronograma.dto.BloqueoExportDetalle;
 import ec.uce.propuestas.cronograma.dto.CronogramaExportPreflightResponse;
 import ec.uce.propuestas.cronograma.export.CronogramaDescargaService;
 import ec.uce.propuestas.cronograma.export.CronogramaExportPreflightService;
-import ec.uce.propuestas.cronograma.export.CronogramaPdfWriter.Papel;
 import ec.uce.propuestas.cronograma.export.FormatoExportacion;
+import ec.uce.propuestas.cronograma.export.PapelCronograma;
 import ec.uce.propuestas.usuario.UsuarioRepository;
 import ec.uce.propuestas.usuario.audit.EventoLogActividad;
 import ec.uce.propuestas.usuario.audit.service.LogActividadService;
@@ -90,18 +90,18 @@ public class CronogramaDocumentoResource {
     @jakarta.ws.rs.core.Context
     jakarta.ws.rs.core.UriInfo uriInfo;
 
-    private Papel parsearPapel(String papel, FormatoExportacion formato) {
+    private PapelCronograma parsearPapel(String papel, FormatoExportacion formato) {
         // RESTEasy convierte el valor vacío a null; distinguirlo de la ausencia.
         boolean presente = uriInfo.getQueryParameters().containsKey("papel");
         if (!presente) {
-            return Papel.A4;
+            return PapelCronograma.A4;
         }
         if (formato != FormatoExportacion.PDF
                 || uriInfo.getQueryParameters().get("papel").size() != 1
                 || !("a4".equals(papel) || "a3".equals(papel))) {
             throw ProblemaException.validacion("Papel no soportado: solo PDF permite papel=a4 | a3");
         }
-        return papel.equals("a3") ? Papel.A3 : Papel.A4;
+        return papel.equals("a3") ? PapelCronograma.A3 : PapelCronograma.A4;
     }
 
     /**
@@ -148,7 +148,7 @@ public class CronogramaDocumentoResource {
             @QueryParam("papel") String papel) {
         UUID publicId = UuidV7.parse(presupuestoId);
         FormatoExportacion f = parsearFormato(formato);
-        Papel opcionPapel = parsearPapel(papel, f);
+        PapelCronograma opcionPapel = parsearPapel(papel, f);
         Long callerUsuarioId = usuarioId();
 
         CronogramaDescargaService.ResultadoDescarga gen;

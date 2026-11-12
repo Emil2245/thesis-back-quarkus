@@ -40,7 +40,7 @@ class CronogramaCaptureServiceTest {
         var snapshot = snapshot(new BigDecimal("12.340000"), new BigDecimal("100.0000"));
         when(preflight.cargarSnapshot(BUDGET, 1L)).thenReturn(snapshot);
         when(preflight.esStale(snapshot)).thenReturn(false, false, true);
-        var sheet = new CronogramaXlsxWriter.ProyeccionXlsx(
+        var sheet = new HojaCronograma.ProyeccionXlsx(
                 "P1", "Project", 2025, "SEMANA", 1, LocalDate.of(2025, 1, 1), List.of());
         when(projections.construirProyeccionCompleta(snapshot))
                 .thenReturn(ec.uce.propuestas.cronograma.dto.ProyeccionExportacion.de(sheet));

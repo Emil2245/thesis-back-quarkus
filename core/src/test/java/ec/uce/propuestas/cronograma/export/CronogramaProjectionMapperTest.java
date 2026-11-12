@@ -18,8 +18,8 @@ class CronogramaProjectionMapperTest {
         var amounts = new LinkedHashMap<Integer, BigDecimal>();
         amounts.put(3, new BigDecimal("0.000000"));
         amounts.put(1, new BigDecimal("12.340000"));
-        var row = new CronogramaXlsxWriter.FilaHoja(
-                new CronogramaXlsxWriter.Fila(
+        var row = new HojaCronograma.FilaHoja(
+                new HojaCronograma.Fila(
                         "1.1",
                         "R1",
                         "Captured",
@@ -30,7 +30,7 @@ class CronogramaProjectionMapperTest {
                         new BigDecimal("100.0000")),
                 Arrays.asList(new BigDecimal("0.0000"), null, new BigDecimal("50.0000")),
                 amounts);
-        var hoja = new CronogramaXlsxWriter.ProyeccionXlsx(
+        var hoja = new HojaCronograma.ProyeccionXlsx(
                 "P1",
                 "Project",
                 2025,
@@ -38,7 +38,7 @@ class CronogramaProjectionMapperTest {
                 3,
                 LocalDate.of(2025, 1, 1),
                 List.of(row),
-                List.of(new CronogramaXlsxWriter.CapituloHoja("1", "Chapter", new BigDecimal("12.340000"), 0)),
+                List.of(new HojaCronograma.CapituloHoja("1", "Chapter", new BigDecimal("12.340000"), 0)),
                 "Institution",
                 "Division",
                 6,
@@ -60,7 +60,7 @@ class CronogramaProjectionMapperTest {
     void mspdiCaptureRetainsPublicUidAndActivePeriodsWithoutRecalculation() {
         UUID project = UUID.fromString("019a0000-0000-7000-8000-000000000001");
         UUID rubro = UUID.fromString("019a0000-0000-7000-8000-000000000002");
-        var row = new CronogramaMspdiWriter.RubroMspdi(
+        var row = new MspdiCronograma.RubroMspdi(
                 rubro,
                 "1.1",
                 "R1",
@@ -72,7 +72,7 @@ class CronogramaProjectionMapperTest {
                 new BigDecimal("100.0000"),
                 List.of(2, 1),
                 List.of(new BigDecimal("0.0000"), new BigDecimal("100.0000")));
-        var source = new CronogramaMspdiWriter.ProyeccionMspdi(
+        var source = new MspdiCronograma.ProyeccionMspdi(
                 project, "P1", "Project", 2025, "SEMANA", 2, LocalDate.of(2025, 1, 1), List.of(row));
 
         var captured = CronogramaProjectionMapper.fromMspdi(source);

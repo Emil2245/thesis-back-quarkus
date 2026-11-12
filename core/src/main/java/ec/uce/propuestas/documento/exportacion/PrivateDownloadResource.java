@@ -1,7 +1,6 @@
 package ec.uce.propuestas.documento.exportacion;
 
 import ec.uce.propuestas.common.GlobalExceptionMapper;
-import ec.uce.propuestas.documento.ArchivoGenerado;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
@@ -27,10 +26,10 @@ public class PrivateDownloadResource {
     @Produces({
         MediaType.APPLICATION_OCTET_STREAM,
         MediaType.APPLICATION_JSON,
-        ArchivoGenerado.PDF_MEDIA_TYPE,
-        ArchivoGenerado.XLSX_MEDIA_TYPE,
-        ArchivoGenerado.DOCX_MEDIA_TYPE,
-        ArchivoGenerado.MSPDI_MEDIA_TYPE
+        DocumentoMediaTypes.PDF,
+        DocumentoMediaTypes.XLSX,
+        DocumentoMediaTypes.DOCX,
+        DocumentoMediaTypes.MSPDI
     })
     @Blocking
     public Response download(@PathParam("ticket") String token) {

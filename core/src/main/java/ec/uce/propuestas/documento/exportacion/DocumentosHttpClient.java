@@ -15,8 +15,8 @@ import java.util.function.Supplier;
 
 /** Bounded internal transport: no entity, user bearer token or database session crosses this call. */
 public final class DocumentosHttpClient {
-    public static final int MAX_REQUEST_BYTES = 8 * 1024 * 1024;
-    public static final int MAX_RESPONSE_BYTES = 64 * 1024 * 1024;
+    public static final int MAX_REQUEST_BYTES = DocumentosLimites.MAX_REQUEST_BYTES;
+    public static final int MAX_RESPONSE_BYTES = DocumentosLimites.MAX_RESPONSE_BYTES;
 
     private final URI endpoint;
     private final ObjectMapper json;

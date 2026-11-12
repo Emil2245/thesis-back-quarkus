@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ec.uce.propuestas.common.ProblemaException;
-import ec.uce.propuestas.cronograma.export.CronogramaPdfWriter.Papel;
+import ec.uce.propuestas.cronograma.export.PapelCronograma;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 
@@ -19,8 +19,10 @@ class CronogramaExportRequestParserTest {
 
     @Test
     void paperDefaultsOnlyForPdf() {
-        assertEquals(Papel.A4, parse("{\"formato\":\"pdf\"}").paper());
-        assertEquals(Papel.A3, parse("{\"formato\":\"pdf\",\"papel\":\"a3\"}").paper());
+        assertEquals(PapelCronograma.A4, parse("{\"formato\":\"pdf\"}").paper());
+        assertEquals(
+                PapelCronograma.A3,
+                parse("{\"formato\":\"pdf\",\"papel\":\"a3\"}").paper());
         assertNull(parse("{\"formato\":\"xlsx\"}").paper());
         assertNull(parse("{\"formato\":\"mspdi\"}").paper());
     }

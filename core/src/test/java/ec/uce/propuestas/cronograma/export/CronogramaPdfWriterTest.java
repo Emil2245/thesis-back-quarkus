@@ -6,9 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ec.uce.propuestas.cronograma.dto.ProyeccionExportacion;
-import ec.uce.propuestas.cronograma.export.CronogramaXlsxWriter.Fila;
-import ec.uce.propuestas.cronograma.export.CronogramaXlsxWriter.FilaHoja;
-import ec.uce.propuestas.cronograma.export.CronogramaXlsxWriter.ProyeccionXlsx;
+import ec.uce.propuestas.cronograma.export.HojaCronograma.Fila;
+import ec.uce.propuestas.cronograma.export.HojaCronograma.FilaHoja;
+import ec.uce.propuestas.cronograma.export.HojaCronograma.ProyeccionXlsx;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -213,8 +213,8 @@ class CronogramaPdfWriterTest {
                 }
             }
         }
-        for (var paper : CronogramaPdfWriter.Papel.values()) {
-            byte[] bytes = paper == CronogramaPdfWriter.Papel.A4
+        for (var paper : PapelCronograma.values()) {
+            byte[] bytes = paper == PapelCronograma.A4
                     ? CronogramaPdfWriter.renderizar(projection)
                     : CronogramaPdfWriter.renderizar(projection, paper);
             String filename = "cronograma-52-" + paper + ".pdf";
@@ -270,8 +270,8 @@ class CronogramaPdfWriterTest {
                         .append('\n');
                 for (var page : doc.getPages()) {
                     var box = page.getMediaBox();
-                    assertEquals(paper == CronogramaPdfWriter.Papel.A4 ? 842f : 1191f, box.getWidth(), 0.5f);
-                    assertEquals(paper == CronogramaPdfWriter.Papel.A4 ? 595f : 842f, box.getHeight(), 0.5f);
+                    assertEquals(paper == PapelCronograma.A4 ? 842f : 1191f, box.getWidth(), 0.5f);
+                    assertEquals(paper == PapelCronograma.A4 ? 595f : 842f, box.getHeight(), 0.5f);
                     manifest.append("pageSize=")
                             .append(box.getWidth())
                             .append('x')

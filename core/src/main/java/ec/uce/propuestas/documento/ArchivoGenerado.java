@@ -1,5 +1,7 @@
 package ec.uce.propuestas.documento;
 
+import ec.uce.propuestas.documento.exportacion.DocumentoMediaTypes;
+
 /**
  * Bytes de un documento generado por el módulo {@code documento}
  * (08-codebase-design.md §4), más los metadatos mínimos que el resource
@@ -12,15 +14,14 @@ package ec.uce.propuestas.documento;
 public record ArchivoGenerado(byte[] bytes, String nombreArchivo, String mediaType) {
 
     /** Media type oficial para archivos Word modernos (.docx, ECMA-376 / OOXML). */
-    public static final String DOCX_MEDIA_TYPE =
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    public static final String DOCX_MEDIA_TYPE = DocumentoMediaTypes.DOCX;
 
     /** Plan 031 (P-37) — media type oficial para XLSX (OOXML spreadsheet). */
-    public static final String XLSX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    public static final String XLSX_MEDIA_TYPE = DocumentoMediaTypes.XLSX;
 
     /** Plan 031 (P-37) — media type oficial para PDF. */
-    public static final String PDF_MEDIA_TYPE = "application/pdf";
+    public static final String PDF_MEDIA_TYPE = DocumentoMediaTypes.PDF;
 
     /** Plan 031 (P-37) — media type para el XML MSPDI (Lane C). */
-    public static final String MSPDI_MEDIA_TYPE = "application/xml";
+    public static final String MSPDI_MEDIA_TYPE = DocumentoMediaTypes.MSPDI;
 }

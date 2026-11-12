@@ -3,10 +3,10 @@ package ec.uce.propuestas.cronograma.export;
 import static org.junit.jupiter.api.Assertions.*;
 
 import ec.uce.propuestas.cronograma.dto.ProyeccionExportacion;
-import ec.uce.propuestas.cronograma.export.CronogramaXlsxWriter.CapituloHoja;
-import ec.uce.propuestas.cronograma.export.CronogramaXlsxWriter.Fila;
-import ec.uce.propuestas.cronograma.export.CronogramaXlsxWriter.FilaHoja;
-import ec.uce.propuestas.cronograma.export.CronogramaXlsxWriter.ProyeccionXlsx;
+import ec.uce.propuestas.cronograma.export.HojaCronograma.CapituloHoja;
+import ec.uce.propuestas.cronograma.export.HojaCronograma.Fila;
+import ec.uce.propuestas.cronograma.export.HojaCronograma.FilaHoja;
+import ec.uce.propuestas.cronograma.export.HojaCronograma.ProyeccionXlsx;
 import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;

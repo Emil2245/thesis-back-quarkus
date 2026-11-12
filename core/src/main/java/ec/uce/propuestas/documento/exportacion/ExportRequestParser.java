@@ -18,7 +18,7 @@ public final class ExportRequestParser {
     public static Parsed parse(String document, byte[] rawBody, ObjectMapper mapper) {
         if (rawBody == null
                 || rawBody.length == 0
-                || rawBody.length > DocumentosHttpClient.MAX_REQUEST_BYTES
+                || rawBody.length > DocumentosLimites.MAX_REQUEST_BYTES
                 || mapper == null) {
             throw ProblemaException.validacion("Solicitud de exportación inválida");
         }

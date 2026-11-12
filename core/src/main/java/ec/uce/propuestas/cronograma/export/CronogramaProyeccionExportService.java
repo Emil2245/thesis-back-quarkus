@@ -65,7 +65,7 @@ public class CronogramaProyeccionExportService {
      * celda vacía.
      */
     @Transactional
-    public CronogramaXlsxWriter.ProyeccionXlsx construirProyeccionHoja(
+    public HojaCronograma.ProyeccionXlsx construirProyeccionHoja(
             CronogramaExportPreflightService.SnapshotCompleto snap) {
         Cronograma cronograma = snap.cronograma();
         Presupuesto presupuesto = snap.presupuesto();
@@ -81,7 +81,7 @@ public class CronogramaProyeccionExportService {
             rubroPorId.put(r.id, r);
         }
 
-        List<CronogramaXlsxWriter.FilaHoja> filas = new ArrayList<>();
+        List<HojaCronograma.FilaHoja> filas = new ArrayList<>();
         List<Actividad> actividades = actividadRepository.listarPorCronograma(cronograma.id);
         // Reutilizamos el árbol de Plan 030 — el cierre por actividad + el
         // cálculo monetario es exactamente el mismo.
@@ -123,12 +123,12 @@ public class CronogramaProyeccionExportService {
                 else raices.add(nodo);
             }
         }
-        List<CronogramaXlsxWriter.CapituloHoja> capitulosHoja = new ArrayList<>();
+        List<HojaCronograma.CapituloHoja> capitulosHoja = new ArrayList<>();
         for (NodoCap r : raices) {
             r.recolectar(filas, capitulosHoja, actPorRubro, n);
         }
 
-        return new CronogramaXlsxWriter.ProyeccionXlsx(
+        return new HojaCronograma.ProyeccionXlsx(
                 proyecto.codigo == null ? "" : proyecto.codigo,
                 proyecto.nombreProyecto == null ? "" : proyecto.nombreProyecto,
                 proyecto.anio == null ? 0 : proyecto.anio.intValue(),
@@ -148,7 +148,7 @@ public class CronogramaProyeccionExportService {
      * pre-computados ({@code ProyeccionExportacion}). Única entrada que deben
      * consumir los writers XLSX y PDF. La fórmula de Suma parcial / Suma
      * acumulado vive exclusivamente en
-     * {@link ProyeccionExportacion#de(CronogramaXlsxWriter.ProyeccionXlsx)};
+     * {@link ProyeccionExportacion#de(HojaCronograma.ProyeccionXlsx)};
      * este método solo delega para no duplicar la regla canónica.
      */
     @Transactional
@@ -158,7 +158,7 @@ public class CronogramaProyeccionExportService {
 
     /** Proyección MSPDI: misma lectura pero expone los rubros en orden presupuestario. */
     @Transactional
-    public CronogramaMspdiWriter.ProyeccionMspdi construirProyeccionMspdi(
+    public MspdiCronograma.ProyeccionMspdi construirProyeccionMspdi(
             CronogramaExportPreflightService.SnapshotCompleto snap) {
         Cronograma cronograma = snap.cronograma();
         Presupuesto presupuesto = snap.presupuesto();
@@ -179,7 +179,7 @@ public class CronogramaProyeccionExportService {
             rubroPorId.put(r.id, r);
         }
 
-        List<CronogramaMspdiWriter.RubroMspdi> rubrosMspdi = new ArrayList<>();
+        List<MspdiCronograma.RubroMspdi> rubrosMspdi = new ArrayList<>();
         List<Actividad> actividades = actividadRepository.listarPorCronograma(cronograma.id);
         for (Actividad act : actividades) {
             Rubro rubro = rubroPorId.get(act.rubroId);
@@ -195,7 +195,7 @@ public class CronogramaProyeccionExportService {
                     porcentajes.add(new BigDecimal(v).setScale(4));
                 }
             }
-            rubrosMspdi.add(new CronogramaMspdiWriter.RubroMspdi(
+            rubrosMspdi.add(new MspdiCronograma.RubroMspdi(
                     rubro.publicId,
                     rubro.item == null ? "" : rubro.item,
                     rubro.codigo == null ? "" : rubro.codigo,
@@ -213,7 +213,7 @@ public class CronogramaProyeccionExportService {
         // CalendarUID/UID del Project MSPDI dentro del writer (positive int
         // derivado del UUIDv7, módulo Integer.MAX_VALUE / 2 — ver
         // CronogramaMspdiWriter#uidDeterminista).
-        return new CronogramaMspdiWriter.ProyeccionMspdi(
+        return new MspdiCronograma.ProyeccionMspdi(
                 proyecto.publicId,
                 proyecto.codigo == null ? "" : proyecto.codigo,
                 proyecto.nombreProyecto == null ? "" : proyecto.nombreProyecto,
@@ -243,12 +243,12 @@ public class CronogramaProyeccionExportService {
         }
 
         void recolectar(
-                List<CronogramaXlsxWriter.FilaHoja> out,
-                List<CronogramaXlsxWriter.CapituloHoja> capitulos,
+                List<HojaCronograma.FilaHoja> out,
+                List<HojaCronograma.CapituloHoja> capitulos,
                 Map<Long, ActividadCerrada> actPorRubro,
                 int n) {
             // El capítulo se imprime justo antes de su primer rubro (índice actual de filas).
-            capitulos.add(new CronogramaXlsxWriter.CapituloHoja(
+            capitulos.add(new HojaCronograma.CapituloHoja(
                     cap.item == null ? "" : cap.item,
                     cap.descripcion == null ? "" : cap.descripcion,
                     cap.total == null ? BigDecimal.ZERO : cap.total.setScale(6, RoundingMode.HALF_UP),
@@ -272,8 +272,8 @@ public class CronogramaProyeccionExportService {
                 // List.copyOf rechaza nulls; la proyección requiere permitir celdas
                 // vacías (clave inactiva) en porcentajesPorPeriodo.
                 List<BigDecimal> pctInmutable = java.util.Collections.unmodifiableList(new ArrayList<>(pctPeriodos));
-                out.add(new CronogramaXlsxWriter.FilaHoja(
-                        new CronogramaXlsxWriter.Fila(
+                out.add(new HojaCronograma.FilaHoja(
+                        new HojaCronograma.Fila(
                                 r.item == null ? "" : r.item,
                                 r.codigo == null ? "" : r.codigo,
                                 r.descripcion == null ? "" : r.descripcion,

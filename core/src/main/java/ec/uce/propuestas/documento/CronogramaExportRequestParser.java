@@ -4,9 +4,9 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ec.uce.propuestas.common.ProblemaException;
-import ec.uce.propuestas.cronograma.export.CronogramaPdfWriter.Papel;
 import ec.uce.propuestas.cronograma.export.FormatoExportacion;
-import ec.uce.propuestas.documento.exportacion.DocumentosHttpClient;
+import ec.uce.propuestas.cronograma.export.PapelCronograma;
+import ec.uce.propuestas.documento.exportacion.DocumentosLimites;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
@@ -18,7 +18,7 @@ public final class CronogramaExportRequestParser {
     private CronogramaExportRequestParser() {}
 
     public static Parsed parse(byte[] raw, ObjectMapper mapper) {
-        if (raw == null || raw.length == 0 || raw.length > DocumentosHttpClient.MAX_REQUEST_BYTES || mapper == null) {
+        if (raw == null || raw.length == 0 || raw.length > DocumentosLimites.MAX_REQUEST_BYTES || mapper == null) {
             throw ProblemaException.validacion("Solicitud de exportación inválida");
         }
         JsonNode body;
@@ -52,9 +52,11 @@ public final class CronogramaExportRequestParser {
         }
         return new Parsed(
                 format,
-                format == FormatoExportacion.PDF ? ("a3".equals(paper) ? Papel.A3 : Papel.A4) : null,
+                format == FormatoExportacion.PDF
+                        ? ("a3".equals(paper) ? PapelCronograma.A3 : PapelCronograma.A4)
+                        : null,
                 Collections.unmodifiableMap(fields));
     }
 
-    public record Parsed(FormatoExportacion format, Papel paper, Map<String, String> requestFields) {}
+    public record Parsed(FormatoExportacion format, PapelCronograma paper, Map<String, String> requestFields) {}
 }

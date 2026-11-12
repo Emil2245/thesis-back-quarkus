@@ -66,7 +66,7 @@ public final class ExportFingerprint {
 
         @Override
         public void write(int value) throws IOException {
-            if (written >= DocumentosHttpClient.MAX_REQUEST_BYTES)
+            if (written >= DocumentosLimites.MAX_REQUEST_BYTES)
                 throw new IOException("Export projection exceeds 8 MiB");
             digest.update((byte) value);
             written++;
@@ -75,7 +75,7 @@ public final class ExportFingerprint {
         @Override
         public void write(byte[] value, int offset, int length) throws IOException {
             java.util.Objects.checkFromIndexSize(offset, length, value.length);
-            if (length > DocumentosHttpClient.MAX_REQUEST_BYTES - written) {
+            if (length > DocumentosLimites.MAX_REQUEST_BYTES - written) {
                 throw new IOException("Export projection exceeds 8 MiB");
             }
             digest.update(value, offset, length);

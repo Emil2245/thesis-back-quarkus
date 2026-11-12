@@ -64,7 +64,7 @@ public final class CronogramaProjectionMapper {
                 null);
     }
 
-    public static CronogramaProjectionV1 fromMspdi(CronogramaMspdiWriter.ProyeccionMspdi source) {
+    public static CronogramaProjectionV1 fromMspdi(MspdiCronograma.ProyeccionMspdi source) {
         var rows = source.rubros().stream()
                 .map(r -> new CronogramaProjectionV1.MspdiRow(
                         r.rubroId().toString(),

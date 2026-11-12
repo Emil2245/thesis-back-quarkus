@@ -1,9 +1,10 @@
 package ec.uce.propuestas.cronograma.export;
 
+import ec.uce.propuestas.cronograma.export.MspdiCronograma.ProyeccionMspdi;
+import ec.uce.propuestas.cronograma.export.MspdiCronograma.RubroMspdi;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -80,29 +81,6 @@ public final class CronogramaMspdiWriter {
     public static final String PROP_OFICIAL_XSD = "mspdi.official.xsd";
 
     private CronogramaMspdiWriter() {}
-
-    public record RubroMspdi(
-            UUID rubroId,
-            String item,
-            String codigo,
-            String descripcion,
-            String unidad,
-            BigDecimal cantidad,
-            BigDecimal precioUnitario,
-            BigDecimal precioTotal,
-            BigDecimal pesoPonderado,
-            List<Integer> periodosActivos,
-            List<BigDecimal> porcentajesPorPeriodo) {}
-
-    public record ProyeccionMspdi(
-            UUID proyectoUid,
-            String proyectoCodigo,
-            String proyectoNombre,
-            int anio,
-            String unidadTiempo,
-            int numeroPeriodos,
-            LocalDate fechaInicio,
-            List<RubroMspdi> rubros) {}
 
     /** Renderiza el MSPDI XML conforme al XSD oficial Project 2007. */
     public static byte[] renderizar(ProyeccionMspdi p) {

@@ -58,7 +58,7 @@ public final class DocumentosExportClient {
         } catch (IOException invalid) {
             throw new IllegalArgumentException("Invalid private export projection", invalid);
         }
-        if (payload.length > DocumentosHttpClient.MAX_REQUEST_BYTES) {
+        if (payload.length > DocumentosLimites.MAX_REQUEST_BYTES) {
             throw new IllegalArgumentException("Document projection exceeds 8 MiB");
         }
         String token = serviceToken.apply(operation);
@@ -96,7 +96,7 @@ public final class DocumentosExportClient {
             if (object == null
                     || !request.key().equals(object.key())
                     || object.size() <= 0
-                    || object.size() > DocumentosHttpClient.MAX_RESPONSE_BYTES
+                    || object.size() > DocumentosLimites.MAX_RESPONSE_BYTES
                     || object.checksumSha256() == null
                     || !object.checksumSha256().matches("[A-Za-z0-9+/]{43}=")
                     || !request.filename().equals(object.filename())

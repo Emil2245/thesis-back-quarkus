@@ -1,6 +1,6 @@
 package ec.uce.propuestas.cronograma.dto;
 
-import ec.uce.propuestas.cronograma.export.CronogramaXlsxWriter;
+import ec.uce.propuestas.cronograma.export.HojaCronograma;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -19,14 +19,14 @@ import java.util.List;
  * records ya son superficialmente inmutables; las listas se copian para
  * evitar aliasing).</p>
  *
- * <p>Estructura: envuelve un {@link CronogramaXlsxWriter.ProyeccionXlsx} (que
+ * <p>Estructura: envuelve un {@link HojaCronograma.ProyeccionXlsx} (que
  * carga la matriz fila × período) y suma por columna los valores que ya trae
  * la proyección. El writer sólo escribe — no recalcula. Esto cumple el
  * invariante del canon: <em>writers must consume ProyeccionExportacion
  * values only</em>.</p>
  */
 public record ProyeccionExportacion(
-        CronogramaXlsxWriter.ProyeccionXlsx hoja,
+        HojaCronograma.ProyeccionXlsx hoja,
         List<BigDecimal> parcialPorcentaje,
         List<BigDecimal> acumuladoPorcentaje,
         List<BigDecimal> parcialMonto,
@@ -46,11 +46,11 @@ public record ProyeccionExportacion(
 
     /**
      * Factory para tests y callers que aún producen una
-     * {@link CronogramaXlsxWriter.ProyeccionXlsx} aislada y necesitan el
+     * {@link HojaCronograma.ProyeccionXlsx} aislada y necesitan el
      * envoltorio canónico. Centraliza la fórmula Σ parcial / Σ acumulado
      * para que la implementación del cálculo viva en UN único lugar.
      */
-    public static ProyeccionExportacion de(CronogramaXlsxWriter.ProyeccionXlsx hoja) {
+    public static ProyeccionExportacion de(HojaCronograma.ProyeccionXlsx hoja) {
         int n = hoja.numeroPeriodos();
         java.math.BigDecimal[] parcialPct = new java.math.BigDecimal[n];
         java.math.BigDecimal[] parcialMonto = new java.math.BigDecimal[n];
@@ -58,7 +58,7 @@ public record ProyeccionExportacion(
             parcialPct[i] = java.math.BigDecimal.ZERO.setScale(4);
             parcialMonto[i] = java.math.BigDecimal.ZERO.setScale(6);
         }
-        for (CronogramaXlsxWriter.FilaHoja fh : hoja.filas()) {
+        for (HojaCronograma.FilaHoja fh : hoja.filas()) {
             for (int i = 0; i < n; i++) {
                 if (i < fh.porcentajesPorPeriodo().size()
                         && fh.porcentajesPorPeriodo().get(i) != null) {

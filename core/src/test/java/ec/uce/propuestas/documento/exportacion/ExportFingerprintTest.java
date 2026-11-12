@@ -45,6 +45,6 @@ class ExportFingerprintTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> ExportFingerprint.hash(
-                        json, Map.of("oversized", "x".repeat(DocumentosHttpClient.MAX_REQUEST_BYTES))));
+                        json, Map.of("oversized", "x".repeat(DocumentosLimites.MAX_REQUEST_BYTES))));
     }
 }

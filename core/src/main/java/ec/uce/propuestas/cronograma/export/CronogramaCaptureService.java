@@ -28,7 +28,7 @@ public class CronogramaCaptureService {
             ResultadoBloqueos preflight, boolean stale, CronogramaProjectionV1 projection, String revisionHash) {}
 
     @Transactional
-    public Capture capture(UUID budgetId, Long ownerId, FormatoExportacion format, CronogramaPdfWriter.Papel paper) {
+    public Capture capture(UUID budgetId, Long ownerId, FormatoExportacion format, PapelCronograma paper) {
         if (format == null
                 || (format == FormatoExportacion.PDF && paper == null)
                 || (format != FormatoExportacion.PDF && paper != null)) {

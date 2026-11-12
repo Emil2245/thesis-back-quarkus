@@ -75,7 +75,7 @@ class ExportRequestParserTest {
                                 () -> ExportRequestParser.parse(
                                         "presupuesto",
                                         "x"
-                                                .repeat(DocumentosHttpClient.MAX_REQUEST_BYTES + 1)
+                                                .repeat(DocumentosLimites.MAX_REQUEST_BYTES + 1)
                                                 .getBytes(StandardCharsets.UTF_8),
                                         json))
                         .getResponse()

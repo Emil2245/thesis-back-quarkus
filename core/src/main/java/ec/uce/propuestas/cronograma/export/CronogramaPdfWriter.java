@@ -46,12 +46,6 @@ public final class CronogramaPdfWriter {
         "Item", "Código", "Descripción", "Unidad", "Cant.", "P.Unit.", "P.Total", "Peso"
     };
 
-    /** Opción documental local: no modifica el modelo ni los gates del cronograma. */
-    public enum Papel {
-        A4,
-        A3
-    }
-
     private CronogramaPdfWriter() {}
 
     /**
@@ -61,16 +55,16 @@ public final class CronogramaPdfWriter {
      * vez por JVM (cache estatica del {@link BaseFont}).
      */
     public static byte[] renderizar(ProyeccionExportacion proyeccion) {
-        return renderizar(proyeccion, Papel.A4);
+        return renderizar(proyeccion, PapelCronograma.A4);
     }
 
-    public static byte[] renderizar(ProyeccionExportacion proyeccion, Papel papel) {
+    public static byte[] renderizar(ProyeccionExportacion proyeccion, PapelCronograma papel) {
         java.util.Objects.requireNonNull(papel, "papel es obligatorio");
-        CronogramaXlsxWriter.ProyeccionXlsx p = proyeccion.hoja();
+        HojaCronograma.ProyeccionXlsx p = proyeccion.hoja();
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             // A4 landscape: 842 x 595 pt. PageSize.A4.rotate() no aplica
             // swap en OpenPDF 2.0.3 — creamos el rectángulo explícitamente.
-            Rectangle pagina = papel == Papel.A3 ? new Rectangle(1191, 842) : new Rectangle(842, 595);
+            Rectangle pagina = papel == PapelCronograma.A3 ? new Rectangle(1191, 842) : new Rectangle(842, 595);
             Document doc = new Document(pagina, 18, 18, 28, 24);
             PdfWriter writer = PdfWriter.getInstance(doc, baos);
             writer.setPageEvent(new FooterEvent());
@@ -178,7 +172,7 @@ public final class CronogramaPdfWriter {
                 int siguienteCapitulo = 0;
                 var capitulos = p.capitulos();
                 for (int filaIdx = 0; filaIdx < p.filas().size(); filaIdx++) {
-                    CronogramaXlsxWriter.FilaHoja fh = p.filas().get(filaIdx);
+                    HojaCronograma.FilaHoja fh = p.filas().get(filaIdx);
                     // Capítulos: agrupación sin datos de actividad (CHK-22), solo item/descripción/total.
                     while (siguienteCapitulo < capitulos.size()
                             && capitulos.get(siguienteCapitulo).antesDeFila() <= filaIdx) {

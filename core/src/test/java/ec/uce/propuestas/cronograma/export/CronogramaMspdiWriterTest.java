@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import ec.uce.propuestas.cronograma.export.CronogramaMspdiWriter.ProyeccionMspdi;
+import ec.uce.propuestas.cronograma.export.MspdiCronograma.ProyeccionMspdi;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -360,7 +360,7 @@ class CronogramaMspdiWriterTest {
                 4,
                 LocalDate.parse("2026-01-01"),
                 List.of(
-                        new CronogramaMspdiWriter.RubroMspdi(
+                        new MspdiCronograma.RubroMspdi(
                                 UUID.randomUUID(),
                                 "1.1",
                                 "R1",
@@ -372,7 +372,7 @@ class CronogramaMspdiWriterTest {
                                 new BigDecimal("50.0000"),
                                 List.of(1, 2),
                                 List.of(new BigDecimal("50.0000"), new BigDecimal("50.0000"))),
-                        new CronogramaMspdiWriter.RubroMspdi(
+                        new MspdiCronograma.RubroMspdi(
                                 UUID.randomUUID(),
                                 "1.2",
                                 "R2",
