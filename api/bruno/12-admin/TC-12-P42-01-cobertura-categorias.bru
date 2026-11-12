@@ -36,8 +36,14 @@ script:pre-request {
   if (cron.status !== 201 || !cron.data.id) throw new Error("cronograma P42 no creado");
   const config = await send("configuración P42", { method: "PUT", url: `${base}/cronogramas/${cron.data.id}/configuracion`, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, data: JSON.stringify({ unidadTiempo: "MES", numeroPeriodos: 3, confirmarPerdida: true }) });
   if (config.status !== 200) throw new Error("configuración P42 no emitió evento");
-  const doc = await send("DOCX P42", { method: "GET", url: `${base}/documentos/especificaciones-tecnicas/${copy.data.presupuestoId}?formato=docx`, headers: { Authorization: `Bearer ${token}` }, data: undefined });
-  if (doc.status !== 200) throw new Error("DOCX P42 no exportado");
+  // Etapa 05: el GET de bytes se retiró; `documento.exportado` lo emite el
+  // POST de exportación tras la subida privada. Requiere Core + Documentos +
+  // S3 (FLoCI local); sin Documentos el POST falla y este caso no aplica.
+  const hex = (n) => Array.from({ length: n }, () => Math.floor(Math.random() * 16).toString(16)).join("");
+  const ms = Date.now().toString(16).padStart(12, "0");
+  const idempotencyKey = `${ms.slice(0, 8)}-${ms.slice(8)}-7${hex(3)}-${"89ab"[Math.floor(Math.random() * 4)]}${hex(3)}-${hex(12)}`;
+  const doc = await send("DOCX P42", { method: "POST", url: `${base}/documentos/especificaciones-tecnicas/${copy.data.presupuestoId}/exportaciones`, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", "Idempotency-Key": idempotencyKey }, data: JSON.stringify({ formato: "docx" }) });
+  if (doc.status !== 200 || !doc.data.downloadUrl) throw new Error("DOCX P42 no exportado");
 }
 
 tests {
