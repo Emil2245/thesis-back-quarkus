@@ -128,6 +128,62 @@ class ExportReservationIT {
                         .getStatus());
     }
 
+    /**
+     * Etapa 05: las garantías de nombre seguro del retirado {@code CronogramaExportFilenameTest}
+     * (sin path traversal, separadores, inyección de cabecera, nombres vacíos o sin límite, y
+     * extensión coherente con el formato) se aplican ahora en la confirmación de la subida, que
+     * alimenta el {@code Content-Disposition} del ticket.
+     */
+    @Test
+    void confirmRejectsUnsafeOrMismatchedFilenamesAndKeepsTheReservation() throws SQLException {
+        var operation = reservations.claim(userId, KEY, budgetPublicId, "cronograma", BODY_HASH, REVISION_HASH);
+        String[][] rechazados = {
+            {"application/pdf", "../etc/passwd.pdf"},
+            {"application/pdf", "a/b.pdf"},
+            {"application/pdf", "a\\b.pdf"},
+            {"application/pdf", "x\"\r\nSet-Cookie: a.pdf"},
+            {"application/pdf", "con espacio.pdf"},
+            {"application/pdf", ""},
+            {"application/pdf", "a".repeat(125) + ".pdf"},
+            {"application/pdf", null},
+            {"application/pdf", "cronograma.xml"},
+            {"application/xml", "cronograma.pdf"},
+            {"application/vnd.openxmlformats-officedocument.wordprocessingml.document", "cronograma.docx"}
+        };
+        for (String[] caso : rechazados) {
+            var rejected = assertThrows(
+                    ProblemaException.class,
+                    () -> reservations.confirmUpload(
+                            userId,
+                            operation.operationId(),
+                            operation.fence(),
+                            operation.objectKey(),
+                            OBJECT_SHA256,
+                            123,
+                            caso[0],
+                            caso[1]),
+                    String.valueOf(caso[1]));
+            assertEquals(409, rejected.getResponse().getStatus(), String.valueOf(caso[1]));
+            assertEquals(
+                    "exportacion-no-confirmada",
+                    ((ec.uce.propuestas.common.ErrorPayload)
+                                    rejected.getResponse().getEntity())
+                            .codigo(),
+                    String.valueOf(caso[1]));
+        }
+        var confirmed = reservations.confirmUpload(
+                userId,
+                operation.operationId(),
+                operation.fence(),
+                operation.objectKey(),
+                OBJECT_SHA256,
+                123,
+                "application/xml",
+                "cronograma-" + budgetPublicId + ".xml");
+        assertEquals("SUBIDA", confirmed.state());
+        assertEquals(1, countReservations());
+    }
+
     @Test
     void specificationMetadataRequiresAuditedState() {
         var operation =

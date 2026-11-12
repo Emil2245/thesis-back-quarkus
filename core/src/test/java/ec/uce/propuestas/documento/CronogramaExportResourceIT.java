@@ -593,7 +593,13 @@ class CronogramaExportResourceIT {
             Response r = exportar(token, presupuestoId, "{\"formato\":\"" + caso[0] + "\"}");
             assertEquals(200, r.statusCode(), caso[0] + " " + r.asString());
             assertEquals(caso[1], r.jsonPath().getString("mediaType"));
-            assertTrue(r.jsonPath().getString("filename").toLowerCase().endsWith(caso[2]), caso[0]);
+            // Etapa 05: reemplaza el retirado CronogramaExportFilenameTest. El nombre ya no deriva
+            // de texto del proyecto: solo el UUIDv7 público y la extensión del formato (MSPDI→.xml),
+            // así que no puede llevar BIGINT internos, separadores de ruta ni caracteres de cabecera.
+            String filename = r.jsonPath().getString("filename");
+            assertEquals("cronograma-" + presupuestoId + caso[2], filename, caso[0]);
+            assertTrue(filename.matches("[A-Za-z0-9._-]{1,128}"), filename);
+            assertFalse(filename.contains(".."), filename);
             assertTrue(r.jsonPath().getString("downloadUrl").startsWith("/api/v1/documentos/descargas/"));
             assertEquals(1L, contarDocumentoExportado(caso[3]), caso[0]);
         }
