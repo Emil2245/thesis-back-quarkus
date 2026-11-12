@@ -1,0 +1,142 @@
+{
+  "schemaVersion" : 1,
+  "documento" : "presupuesto",
+  "formato" : "pdf",
+  "opciones" : {
+    "orientacion" : "vertical"
+  },
+  "snapshot" : {
+    "presupuestoId" : "01900000-0000-7000-8000-000000000030",
+    "version" : 7,
+    "vigente" : false,
+    "notas" : "=SUM(A1:A2) +@ ñ m² m³",
+    "total" : 4321.987654,
+    "proyecto" : {
+      "id" : "01900000-0000-7000-8000-000000000031",
+      "nombre" : "Proyecto histórico ñ",
+      "codigo" : "PROY",
+      "descripcion" : "",
+      "anio" : 2025,
+      "fechaInicio" : null,
+      "plazoEjecucion" : null,
+      "plazoUnidad" : null,
+      "estado" : "",
+      "direccionInstitucional" : "Dirección institucional",
+      "subdireccionInstitucional" : "Subdirección"
+    },
+    "parametros" : {
+      "porcentajeHerramientaMenor" : 0,
+      "porcentajeIndirecto" : 0,
+      "ciIndividualHabilitado" : false,
+      "iva" : 0,
+      "moneda" : "USD",
+      "mostrarSeccionesVacias" : false,
+      "sufijosSeccionActivos" : false,
+      "mostrarSubtotalesSeccion" : false,
+      "mostrarSubtotalesPie" : false,
+      "mostrarNombreProyectoHeader" : true,
+      "enumerarApus" : true,
+      "mensajeFooter" : "=SUM(A1:A2) +@ ñ m² m³",
+      "modoCodigoRubro" : ""
+    },
+    "display" : {
+      "precision" : 2,
+      "precisionPorcentaje" : 4
+    },
+    "firmantes" : [ {
+      "id" : "01900000-0000-7000-8000-000000000041",
+      "nombre" : "Técnico ñ",
+      "cargo" : "Ingeniero",
+      "rol" : "TECNICO",
+      "orden" : 2
+    }, {
+      "id" : "01900000-0000-7000-8000-000000000040",
+      "nombre" : "Legal ñ",
+      "cargo" : "Director",
+      "rol" : "LEGAL",
+      "orden" : 1
+    } ],
+    "capitulos" : [ {
+      "id" : "01900000-0000-7000-8000-000000000011",
+      "item" : "1",
+      "descripcion" : "Capítulo raíz",
+      "orden" : 1,
+      "total" : 888.888888,
+      "hijos" : [ {
+        "id" : "01900000-0000-7000-8000-000000000012",
+        "item" : "1.1",
+        "descripcion" : "Subcapítulo",
+        "orden" : 1,
+        "total" : 777.777777,
+        "hijos" : [ ],
+        "rubros" : [ {
+          "id" : "01900000-0000-7000-8000-000000000004",
+          "apuId" : "01900000-0000-7000-8000-000000000020",
+          "item" : "1.1.1",
+          "codigo" : "-HIJO",
+          "descripcion" : "Hijo",
+          "unidad" : "m²",
+          "cantidad" : 123.123456789012345678901234567890,
+          "precioUnitario" : 12.345678,
+          "precioTotal" : 98.765432
+        } ]
+      } ],
+      "rubros" : [ {
+        "id" : "01900000-0000-7000-8000-000000000003",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.10",
+        "codigo" : "DÉCIMO",
+        "descripcion" : "Descripción décima",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000002",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.2",
+        "codigo" : "+SEGUNDO",
+        "descripcion" : "=SUM(A1:A2) +@ ñ m² m³",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000001",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.2",
+        "codigo" : "@PRIMERO",
+        "descripcion" : "Primero ñ m² m³",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      } ]
+    } ],
+    "apus" : [ {
+      "id" : "01900000-0000-7000-8000-000000000020",
+      "codigo" : "APU",
+      "descripcion" : "No usar CT",
+      "unidad" : "m²",
+      "especificacionTecnica" : "",
+      "porcentajeIndirecto" : 0,
+      "costoDirecto" : 0,
+      "costoIndirecto" : 0,
+      "costoTotal" : 888888.888888,
+      "calculado" : {
+        "codigo" : "APU",
+        "filas" : [ ],
+        "subtotalM" : 0,
+        "subtotalN" : 0,
+        "subtotalO" : 0,
+        "subtotalP" : 0,
+        "costoHm" : 0,
+        "costoDirecto" : 0,
+        "costoIndirecto" : 0,
+        "costoTotal" : 999999.999999
+      },
+      "secciones" : [ ]
+    } ],
+    "apuRender" : [ ]
+  }
+}

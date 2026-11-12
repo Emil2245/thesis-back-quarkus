@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Plan 031 (P-37) — Perfil XSD mínimo del subconjunto MSPDI que el writer
+  emite (Lane C). NO es el XSD oficial de Microsoft; sólo cubre los elementos
+  y atributos que produce el writer.
+
+  El XSD canónico (239895 bytes, SHA-256 pinned) sigue siendo propiedad de
+  Microsoft y NO se distribuye; en su lugar validamos contra este perfil
+  estricto, que cumple las reglas Project 2007 (namespace, tipos y
+  cardinalidad) sobre los nodos efectivamente emitidos.
+
+  El test focal TC_P37_47_mspdi_valida_xsd_oficial (cuando se ejecuta con
+  -Dmspdi.official.xsd=<ruta>) valida además contra el XSD oficial bajado
+  de https://schemas.microsoft.com/project/2007/mspdi_pj12.xsd (SHA-256
+  a3e9138f0f02df06d7b1254be6190c2dd48fdcf6a2445ab79a6abab765a8c7b4).
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://schemas.microsoft.com/project/2007"
+           xmlns="http://schemas.microsoft.com/project/2007"
+           elementFormDefault="qualified">
+
+  <xs:simpleType name="GuidType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="DurationType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="PT0H0M0S"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="TaskTypeType">
+    <xs:restriction base="xs:unsignedInt">
+      <xs:minInclusive value="0"/>
+      <xs:maxInclusive value="3"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="TimeUnitType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="d"/>
+      <xs:enumeration value="h"/>
+      <xs:enumeration value="m"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="DateTimeType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(Z|[+-][0-9]{2}:[0-9]{2})?"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="NonZeroDecimal">
+    <xs:restriction base="xs:decimal">
+      <xs:minInclusive value="0.000001"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="UidField">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="100"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="ExtendedFieldId">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="100"/>
+      <xs:pattern value="[A-Za-z0-9_]+"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Project raíz (subset restrictivo del XSD oficial) -->
+  <xs:element name="Project">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="SaveVersion" type="xs:integer"/>
+        <xs:element name="UID" type="xs:string" minOccurs="0"/>
+        <xs:element name="Name" type="xs:string" minOccurs="0"/>
+        <xs:element name="Title" type="xs:string" minOccurs="0"/>
+        <xs:element name="Subject" type="xs:string" minOccurs="0"/>
+        <xs:element name="Company" type="xs:string" minOccurs="0"/>
+        <xs:element name="Manager" type="xs:string" minOccurs="0"/>
+        <xs:element name="Author" type="xs:string" minOccurs="0"/>
+        <xs:element name="CreationDate" type="DateTimeType" minOccurs="0"/>
+        <xs:element name="Revision" type="xs:integer" minOccurs="0"/>
+        <xs:element name="LastSaved" type="DateTimeType" minOccurs="0"/>
+        <xs:element name="ScheduleFromStart" type="xs:boolean" minOccurs="0"/>
+        <xs:element name="StartDate" type="DateTimeType" minOccurs="0"/>
+        <xs:element name="FinishDate" type="DateTimeType" minOccurs="0"/>
+        <xs:element name="CurrencyCode" type="xs:string" minOccurs="0"/>
+        <xs:element name="CurrencySymbolPosition" type="xs:integer" minOccurs="0"/>
+        <xs:element name="CalendarUID" type="xs:integer" minOccurs="0"/>
+        <xs:element name="DefaultStartTime" type="xs:string" minOccurs="0"/>
+        <xs:element name="DefaultFinishTime" type="xs:string" minOccurs="0"/>
+        <xs:element name="MinutesPerDay" type="xs:integer" minOccurs="0"/>
+        <xs:element name="MinutesPerWeek" type="xs:integer" minOccurs="0"/>
+        <xs:element name="DaysPerMonth" type="xs:integer" minOccurs="0"/>
+        <xs:element name="DefaultTaskType" type="xs:integer" minOccurs="0"/>
+        <xs:element name="DefaultFixedCostAccrual" type="xs:integer" minOccurs="0"/>
+        <xs:element name="DefaultStandardRate" type="xs:string" minOccurs="0"/>
+        <xs:element name="DefaultOvertimeRate" type="xs:string" minOccurs="0"/>
+        <xs:element name="DurationFormat" type="xs:integer" minOccurs="0"/>
+        <xs:element name="WorkFormat" type="xs:integer" minOccurs="0"/>
+        <xs:element name="HonorConstraints" type="xs:boolean" minOccurs="0"/>
+        <xs:element name="EarnedValueMethod" type="xs:integer" minOccurs="0"/>
+        <xs:element name="InsertedProjectsLikeSummary" type="xs:boolean" minOccurs="0"/>
+        <xs:element name="MultipleCriticalPaths" type="xs:boolean" minOccurs="0"/>
+        <xs:element name="NewTasksEffortDriven" type="xs:boolean" minOccurs="0"/>
+        <xs:element name="NewTasksEstimated" type="xs:boolean" minOccurs="0"/>
+        <xs:element name="SplitsInProgressTasks" type="xs:boolean" minOccurs="0"/>
+        <xs:element name="SpreadActualCost" type="xs:boolean" minOccurs="0"/>
+        <xs:element name="SpreadPercentComplete" type="xs:boolean" minOccurs="0"/>
+        <xs:element name="WeekStartDay" type="xs:integer" minOccurs="0"/>
+        <xs:element name="AutoAddNewResourcesAndTasks" type="xs:boolean" minOccurs="0"/>
+        <xs:element name="CurrentDate" type="DateTimeType" minOccurs="0"/>
+        <xs:element name="Calendars" type="CalendarsBlock" minOccurs="0"/>
+        <xs:element name="Tasks" type="TasksBlock"/>
+        <xs:element name="Resources" type="ResourcesBlock" minOccurs="0"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Calendars -->
+  <xs:complexType name="CalendarsBlock">
+    <xs:sequence>
+      <xs:element name="Calendar" minOccurs="0" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="UID" type="xs:integer"/>
+            <xs:element name="Name" type="xs:string" minOccurs="0"/>
+            <xs:element name="IsBaseCalendar" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="BaseCalendarUID" type="xs:integer" minOccurs="0"/>
+            <xs:element name="WeekDays" minOccurs="0">
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:element name="WeekDay" minOccurs="0" maxOccurs="unbounded">
+                    <xs:complexType>
+                      <xs:sequence>
+                        <xs:element name="DayType" type="xs:integer"/>
+                        <xs:element name="DayWorking" type="xs:boolean" minOccurs="0"/>
+                        <xs:element name="WorkingTimes" minOccurs="0">
+                          <xs:complexType>
+                            <xs:sequence>
+                              <xs:element name="WorkingTime" minOccurs="0" maxOccurs="unbounded">
+                                <xs:complexType>
+                                  <xs:sequence>
+                                    <xs:element name="FromTime" type="xs:string" minOccurs="0"/>
+                                    <xs:element name="ToTime" type="xs:string" minOccurs="0"/>
+                                  </xs:sequence>
+                                </xs:complexType>
+                              </xs:element>
+                            </xs:sequence>
+                          </xs:complexType>
+                        </xs:element>
+                      </xs:sequence>
+                    </xs:complexType>
+                  </xs:element>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Bloque Tasks -->
+  <xs:complexType name="TasksBlock">
+    <xs:sequence>
+      <xs:element name="Task" type="TaskType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- TaskType: subset restrictivo alineado con el orden del XSD oficial -->
+  <xs:complexType name="TaskType">
+    <xs:sequence>
+      <xs:element name="UID" type="xs:integer"/>
+      <xs:element name="ID" type="xs:integer" minOccurs="0"/>
+      <xs:element name="Name" type="xs:string" minOccurs="0"/>
+      <xs:element name="Type" type="xs:integer" minOccurs="0"/>
+      <xs:element name="IsNull" type="xs:boolean" minOccurs="0"/>
+      <xs:element name="CreateDate" type="DateTimeType" minOccurs="0"/>
+      <xs:element name="WBS" type="xs:string" minOccurs="0"/>
+      <xs:element name="OutlineNumber" type="xs:string" minOccurs="0"/>
+      <xs:element name="OutlineLevel" type="xs:integer" minOccurs="0"/>
+      <xs:element name="Priority" type="xs:integer" minOccurs="0"/>
+      <xs:element name="Start" type="DateTimeType" minOccurs="0"/>
+      <xs:element name="Finish" type="DateTimeType" minOccurs="0"/>
+      <xs:element name="Duration" type="xs:string" minOccurs="0"/>
+      <xs:element name="DurationFormat" type="xs:integer" minOccurs="0"/>
+      <xs:element name="Work" type="xs:string" minOccurs="0"/>
+      <xs:element name="FixedCost" type="xs:string" minOccurs="0"/>
+      <xs:element name="FixedCostAccrual" type="xs:integer" minOccurs="0"/>
+      <xs:element name="PercentComplete" type="xs:integer" minOccurs="0"/>
+      <xs:element name="PercentWorkComplete" type="xs:integer" minOccurs="0"/>
+      <xs:element name="Cost" type="xs:string" minOccurs="0"/>
+      <xs:element name="OvertimeCost" type="xs:string" minOccurs="0"/>
+      <xs:element name="OvertimeWork" type="xs:string" minOccurs="0"/>
+      <xs:element name="ActualStart" type="DateTimeType" minOccurs="0"/>
+      <xs:element name="ActualFinish" type="DateTimeType" minOccurs="0"/>
+      <xs:element name="ActualDuration" type="xs:string" minOccurs="0"/>
+      <xs:element name="ActualCost" type="xs:string" minOccurs="0"/>
+      <xs:element name="ActualOvertimeCost" type="xs:string" minOccurs="0"/>
+      <xs:element name="ActualWork" type="xs:string" minOccurs="0"/>
+      <xs:element name="ActualOvertimeWork" type="xs:string" minOccurs="0"/>
+      <xs:element name="RegularWork" type="xs:string" minOccurs="0"/>
+      <xs:element name="ACWP" type="xs:string" minOccurs="0"/>
+      <xs:element name="CV" type="xs:string" minOccurs="0"/>
+      <xs:element name="ConstraintType" type="xs:integer" minOccurs="0"/>
+      <xs:element name="CalendarUID" type="xs:integer" minOccurs="0"/>
+      <xs:element name="IgnoreResourceCalendar" type="xs:boolean" minOccurs="0"/>
+      <xs:element name="Notes" type="xs:string" minOccurs="0"/>
+      <xs:element name="EarnedValueMethod" type="xs:integer" minOccurs="0"/>
+      <xs:element name="PredecessorLink" type="PredecessorLinkType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="ExtendedAttribute" type="ExtendedAttributeType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="PredecessorLinkType">
+    <xs:sequence>
+      <xs:element name="PredecessorUID" type="xs:integer"/>
+      <xs:element name="Type" type="xs:integer" minOccurs="0"/>
+      <xs:element name="CrossProject" type="xs:boolean" minOccurs="0"/>
+      <xs:element name="LinkLag" type="xs:integer" minOccurs="0"/>
+      <xs:element name="LagFormat" type="xs:integer" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="ExtendedAttributeType">
+    <xs:sequence>
+      <xs:element name="FieldID" type="xs:string" minOccurs="0"/>
+      <xs:element name="Value" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Resources (vacío: no emitimos recursos humanos) -->
+  <xs:complexType name="ResourcesBlock">
+    <xs:sequence>
+      <xs:element name="Resource" minOccurs="0" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="UID" type="xs:integer"/>
+            <xs:element name="ID" type="xs:integer"/>
+            <xs:element name="Name" type="xs:string"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+</xs:schema>

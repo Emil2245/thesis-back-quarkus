@@ -1,0 +1,749 @@
+{
+  "schemaVersion" : 1,
+  "documento" : "apus",
+  "formato" : "xlsx",
+  "opciones" : {
+    "layout" : "pestanas"
+  },
+  "snapshot" : {
+    "presupuestoId" : "01900000-0000-7000-8000-000000000030",
+    "version" : 7,
+    "vigente" : false,
+    "notas" : "=SUM(A1:A2) +@ ñ m² m³",
+    "total" : 4321.987654,
+    "proyecto" : {
+      "id" : "01900000-0000-7000-8000-000000000031",
+      "nombre" : "Proyecto histórico ñ",
+      "codigo" : "PROY",
+      "descripcion" : "",
+      "anio" : 2025,
+      "fechaInicio" : null,
+      "plazoEjecucion" : null,
+      "plazoUnidad" : null,
+      "estado" : "",
+      "direccionInstitucional" : "Dirección institucional",
+      "subdireccionInstitucional" : "Subdirección"
+    },
+    "parametros" : {
+      "porcentajeHerramientaMenor" : 0.07300,
+      "porcentajeIndirecto" : 0.1800,
+      "ciIndividualHabilitado" : true,
+      "iva" : 0,
+      "moneda" : "USD",
+      "mostrarSeccionesVacias" : true,
+      "sufijosSeccionActivos" : true,
+      "mostrarSubtotalesSeccion" : true,
+      "mostrarSubtotalesPie" : true,
+      "mostrarNombreProyectoHeader" : true,
+      "enumerarApus" : true,
+      "mensajeFooter" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+      "modoCodigoRubro" : "ITEM"
+    },
+    "display" : {
+      "precision" : 6,
+      "precisionPorcentaje" : 4
+    },
+    "firmantes" : [ {
+      "id" : "01900000-0000-7000-8000-000000000041",
+      "nombre" : "Técnico ñ",
+      "cargo" : "Ingeniero",
+      "rol" : "TECNICO",
+      "orden" : 2
+    }, {
+      "id" : "01900000-0000-7000-8000-000000000040",
+      "nombre" : "Legal ñ",
+      "cargo" : "Director",
+      "rol" : "LEGAL",
+      "orden" : 1
+    } ],
+    "capitulos" : [ {
+      "id" : "01900000-0000-7000-8000-000000000011",
+      "item" : "1",
+      "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+      "orden" : 1,
+      "total" : 4321.987654,
+      "hijos" : [ {
+        "id" : "01900000-0000-7000-8000-000000000012",
+        "item" : "1.2",
+        "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+        "orden" : 1,
+        "total" : 4321.987654,
+        "hijos" : [ ],
+        "rubros" : [ {
+          "id" : "01900000-0000-7000-8000-000000000002",
+          "apuId" : "01900000-0000-7000-8000-000000000020",
+          "item" : "1.2.1",
+          "codigo" : "NOT THE APU CODE",
+          "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+          "unidad" : "u",
+          "cantidad" : 1,
+          "precioUnitario" : 1.23,
+          "precioTotal" : 1.23
+        }, {
+          "id" : "01900000-0000-7000-8000-000000000003",
+          "apuId" : "01900000-0000-7000-8000-000000000021",
+          "item" : "1.2.2",
+          "codigo" : "NOT THE APU CODE",
+          "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+          "unidad" : "u",
+          "cantidad" : 1,
+          "precioUnitario" : 1.23,
+          "precioTotal" : 1.23
+        } ]
+      } ],
+      "rubros" : [ {
+        "id" : "01900000-0000-7000-8000-000000000001",
+        "apuId" : "01900000-0000-7000-8000-000000000021",
+        "item" : "1.1",
+        "codigo" : "NOT THE APU CODE",
+        "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+        "unidad" : "u",
+        "cantidad" : 1,
+        "precioUnitario" : 1.23,
+        "precioTotal" : 1.23
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000004",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.3",
+        "codigo" : "NOT THE APU CODE",
+        "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+        "unidad" : "u",
+        "cantidad" : 1,
+        "precioUnitario" : 1.23,
+        "precioTotal" : 1.23
+      } ]
+    } ],
+    "apus" : [ {
+      "id" : "01900000-0000-7000-8000-000000000020",
+      "codigo" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+      "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+      "unidad" : "m²",
+      "especificacionTecnica" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+      "porcentajeIndirecto" : null,
+      "costoDirecto" : 33.123456789,
+      "costoIndirecto" : 4.987654321,
+      "costoTotal" : 123.123456789012345678901234567890,
+      "calculado" : {
+        "codigo" : "APU",
+        "filas" : [ ],
+        "subtotalM" : 0,
+        "subtotalN" : 0,
+        "subtotalO" : 0,
+        "subtotalP" : 0,
+        "costoHm" : 0,
+        "costoDirecto" : 0,
+        "costoIndirecto" : 0,
+        "costoTotal" : 999999.999999
+      },
+      "secciones" : [ {
+        "tipo" : "MATERIAL",
+        "orden" : 0,
+        "subtotal" : 22.000000,
+        "detalles" : [ {
+          "id" : "01900000-0000-7000-8000-000000000034",
+          "orden" : 1,
+          "herramientaMenor" : false,
+          "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+          "unidad" : "u",
+          "cantidad" : 2.000001,
+          "rendimiento" : 0.000123456,
+          "tarifaJornal" : 7.00,
+          "precioUnitarioTarifa" : 8.00,
+          "precioEfectivo" : 9.000000001,
+          "costoHora" : 10.000000002,
+          "costo" : 12.000000003,
+          "insumo" : null
+        } ]
+      }, {
+        "tipo" : "EQUIPO",
+        "orden" : 99,
+        "subtotal" : 11.123456789,
+        "detalles" : [ {
+          "id" : "01900000-0000-7000-8000-000000000033",
+          "orden" : 2,
+          "herramientaMenor" : true,
+          "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+          "unidad" : "u",
+          "cantidad" : 2.000001,
+          "rendimiento" : 0.000123456,
+          "tarifaJornal" : 7.00,
+          "precioUnitarioTarifa" : 8.00,
+          "precioEfectivo" : 9.000000001,
+          "costoHora" : 10.000000002,
+          "costo" : 12.000000003,
+          "insumo" : null
+        }, {
+          "id" : "01900000-0000-7000-8000-000000000032",
+          "orden" : 1,
+          "herramientaMenor" : false,
+          "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+          "unidad" : "u",
+          "cantidad" : 2.000001,
+          "rendimiento" : 0.000123456,
+          "tarifaJornal" : 7.00,
+          "precioUnitarioTarifa" : 8.00,
+          "precioEfectivo" : 9.000000001,
+          "costoHora" : 10.000000002,
+          "costo" : 12.000000003,
+          "insumo" : null
+        }, {
+          "id" : "01900000-0000-7000-8000-000000000031",
+          "orden" : 1,
+          "herramientaMenor" : false,
+          "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+          "unidad" : "u",
+          "cantidad" : 2.000001,
+          "rendimiento" : 0.000123456,
+          "tarifaJornal" : 7.00,
+          "precioUnitarioTarifa" : 8.00,
+          "precioEfectivo" : 9.000000001,
+          "costoHora" : 10.000000002,
+          "costo" : 12.000000003,
+          "insumo" : null
+        } ]
+      } ]
+    }, {
+      "id" : "01900000-0000-7000-8000-000000000021",
+      "codigo" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+      "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+      "unidad" : "m²",
+      "especificacionTecnica" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+      "porcentajeIndirecto" : null,
+      "costoDirecto" : 33.123456789,
+      "costoIndirecto" : 4.987654321,
+      "costoTotal" : 123.123456789012345678901234567890,
+      "calculado" : {
+        "codigo" : "APU",
+        "filas" : [ ],
+        "subtotalM" : 0,
+        "subtotalN" : 0,
+        "subtotalO" : 0,
+        "subtotalP" : 0,
+        "costoHm" : 0,
+        "costoDirecto" : 0,
+        "costoIndirecto" : 0,
+        "costoTotal" : 999999.999999
+      },
+      "secciones" : [ {
+        "tipo" : "MATERIAL",
+        "orden" : 0,
+        "subtotal" : 22.000000,
+        "detalles" : [ {
+          "id" : "01900000-0000-7000-8000-000000000034",
+          "orden" : 1,
+          "herramientaMenor" : false,
+          "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+          "unidad" : "u",
+          "cantidad" : 2.000001,
+          "rendimiento" : 0.000123456,
+          "tarifaJornal" : 7.00,
+          "precioUnitarioTarifa" : 8.00,
+          "precioEfectivo" : 9.000000001,
+          "costoHora" : 10.000000002,
+          "costo" : 12.000000003,
+          "insumo" : null
+        } ]
+      }, {
+        "tipo" : "EQUIPO",
+        "orden" : 99,
+        "subtotal" : 11.123456789,
+        "detalles" : [ {
+          "id" : "01900000-0000-7000-8000-000000000033",
+          "orden" : 2,
+          "herramientaMenor" : true,
+          "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+          "unidad" : "u",
+          "cantidad" : 2.000001,
+          "rendimiento" : 0.000123456,
+          "tarifaJornal" : 7.00,
+          "precioUnitarioTarifa" : 8.00,
+          "precioEfectivo" : 9.000000001,
+          "costoHora" : 10.000000002,
+          "costo" : 12.000000003,
+          "insumo" : null
+        }, {
+          "id" : "01900000-0000-7000-8000-000000000032",
+          "orden" : 1,
+          "herramientaMenor" : false,
+          "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+          "unidad" : "u",
+          "cantidad" : 2.000001,
+          "rendimiento" : 0.000123456,
+          "tarifaJornal" : 7.00,
+          "precioUnitarioTarifa" : 8.00,
+          "precioEfectivo" : 9.000000001,
+          "costoHora" : 10.000000002,
+          "costo" : 12.000000003,
+          "insumo" : null
+        }, {
+          "id" : "01900000-0000-7000-8000-000000000031",
+          "orden" : 1,
+          "herramientaMenor" : false,
+          "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+          "unidad" : "u",
+          "cantidad" : 2.000001,
+          "rendimiento" : 0.000123456,
+          "tarifaJornal" : 7.00,
+          "precioUnitarioTarifa" : 8.00,
+          "precioEfectivo" : 9.000000001,
+          "costoHora" : 10.000000002,
+          "costo" : 12.000000003,
+          "insumo" : null
+        } ]
+      } ]
+    }, {
+      "id" : "01900000-0000-7000-8000-000000000020",
+      "codigo" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+      "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+      "unidad" : "m²",
+      "especificacionTecnica" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+      "porcentajeIndirecto" : null,
+      "costoDirecto" : 33.123456789,
+      "costoIndirecto" : 4.987654321,
+      "costoTotal" : 123.123456789012345678901234567890,
+      "calculado" : {
+        "codigo" : "APU",
+        "filas" : [ ],
+        "subtotalM" : 0,
+        "subtotalN" : 0,
+        "subtotalO" : 0,
+        "subtotalP" : 0,
+        "costoHm" : 0,
+        "costoDirecto" : 0,
+        "costoIndirecto" : 0,
+        "costoTotal" : 999999.999999
+      },
+      "secciones" : [ {
+        "tipo" : "MATERIAL",
+        "orden" : 0,
+        "subtotal" : 22.000000,
+        "detalles" : [ {
+          "id" : "01900000-0000-7000-8000-000000000034",
+          "orden" : 1,
+          "herramientaMenor" : false,
+          "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+          "unidad" : "u",
+          "cantidad" : 2.000001,
+          "rendimiento" : 0.000123456,
+          "tarifaJornal" : 7.00,
+          "precioUnitarioTarifa" : 8.00,
+          "precioEfectivo" : 9.000000001,
+          "costoHora" : 10.000000002,
+          "costo" : 12.000000003,
+          "insumo" : null
+        } ]
+      }, {
+        "tipo" : "EQUIPO",
+        "orden" : 99,
+        "subtotal" : 11.123456789,
+        "detalles" : [ {
+          "id" : "01900000-0000-7000-8000-000000000033",
+          "orden" : 2,
+          "herramientaMenor" : true,
+          "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+          "unidad" : "u",
+          "cantidad" : 2.000001,
+          "rendimiento" : 0.000123456,
+          "tarifaJornal" : 7.00,
+          "precioUnitarioTarifa" : 8.00,
+          "precioEfectivo" : 9.000000001,
+          "costoHora" : 10.000000002,
+          "costo" : 12.000000003,
+          "insumo" : null
+        }, {
+          "id" : "01900000-0000-7000-8000-000000000032",
+          "orden" : 1,
+          "herramientaMenor" : false,
+          "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+          "unidad" : "u",
+          "cantidad" : 2.000001,
+          "rendimiento" : 0.000123456,
+          "tarifaJornal" : 7.00,
+          "precioUnitarioTarifa" : 8.00,
+          "precioEfectivo" : 9.000000001,
+          "costoHora" : 10.000000002,
+          "costo" : 12.000000003,
+          "insumo" : null
+        }, {
+          "id" : "01900000-0000-7000-8000-000000000031",
+          "orden" : 1,
+          "herramientaMenor" : false,
+          "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+          "unidad" : "u",
+          "cantidad" : 2.000001,
+          "rendimiento" : 0.000123456,
+          "tarifaJornal" : 7.00,
+          "precioUnitarioTarifa" : 8.00,
+          "precioEfectivo" : 9.000000001,
+          "costoHora" : 10.000000002,
+          "costo" : 12.000000003,
+          "insumo" : null
+        } ]
+      } ]
+    }, {
+      "id" : "01900000-0000-7000-8000-000000000099",
+      "codigo" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+      "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+      "unidad" : "m²",
+      "especificacionTecnica" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+      "porcentajeIndirecto" : null,
+      "costoDirecto" : 33.123456789,
+      "costoIndirecto" : 4.987654321,
+      "costoTotal" : 123.123456789012345678901234567890,
+      "calculado" : {
+        "codigo" : "APU",
+        "filas" : [ ],
+        "subtotalM" : 0,
+        "subtotalN" : 0,
+        "subtotalO" : 0,
+        "subtotalP" : 0,
+        "costoHm" : 0,
+        "costoDirecto" : 0,
+        "costoIndirecto" : 0,
+        "costoTotal" : 999999.999999
+      },
+      "secciones" : [ {
+        "tipo" : "MATERIAL",
+        "orden" : 0,
+        "subtotal" : 22.000000,
+        "detalles" : [ {
+          "id" : "01900000-0000-7000-8000-000000000034",
+          "orden" : 1,
+          "herramientaMenor" : false,
+          "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+          "unidad" : "u",
+          "cantidad" : 2.000001,
+          "rendimiento" : 0.000123456,
+          "tarifaJornal" : 7.00,
+          "precioUnitarioTarifa" : 8.00,
+          "precioEfectivo" : 9.000000001,
+          "costoHora" : 10.000000002,
+          "costo" : 12.000000003,
+          "insumo" : null
+        } ]
+      }, {
+        "tipo" : "EQUIPO",
+        "orden" : 99,
+        "subtotal" : 11.123456789,
+        "detalles" : [ {
+          "id" : "01900000-0000-7000-8000-000000000033",
+          "orden" : 2,
+          "herramientaMenor" : true,
+          "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+          "unidad" : "u",
+          "cantidad" : 2.000001,
+          "rendimiento" : 0.000123456,
+          "tarifaJornal" : 7.00,
+          "precioUnitarioTarifa" : 8.00,
+          "precioEfectivo" : 9.000000001,
+          "costoHora" : 10.000000002,
+          "costo" : 12.000000003,
+          "insumo" : null
+        }, {
+          "id" : "01900000-0000-7000-8000-000000000032",
+          "orden" : 1,
+          "herramientaMenor" : false,
+          "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+          "unidad" : "u",
+          "cantidad" : 2.000001,
+          "rendimiento" : 0.000123456,
+          "tarifaJornal" : 7.00,
+          "precioUnitarioTarifa" : 8.00,
+          "precioEfectivo" : 9.000000001,
+          "costoHora" : 10.000000002,
+          "costo" : 12.000000003,
+          "insumo" : null
+        }, {
+          "id" : "01900000-0000-7000-8000-000000000031",
+          "orden" : 1,
+          "herramientaMenor" : false,
+          "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+          "unidad" : "u",
+          "cantidad" : 2.000001,
+          "rendimiento" : 0.000123456,
+          "tarifaJornal" : 7.00,
+          "precioUnitarioTarifa" : 8.00,
+          "precioEfectivo" : 9.000000001,
+          "costoHora" : 10.000000002,
+          "costo" : 12.000000003,
+          "insumo" : null
+        } ]
+      } ]
+    } ],
+    "apuRender" : [ {
+      "id" : "01900000-0000-7000-8000-000000000021",
+      "codigo" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+      "etiquetaCodigo" : "1 =<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+      "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+      "unidad" : "m²",
+      "nombreProyectoHeader" : "Proyecto histórico ñ",
+      "bloques" : [ {
+        "tipo" : "EQUIPO",
+        "etiqueta" : "EQUIPOS (M)",
+        "ordenCapturado" : 99,
+        "filas" : [ {
+          "detalle" : {
+            "id" : "01900000-0000-7000-8000-000000000031",
+            "orden" : 1,
+            "herramientaMenor" : false,
+            "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+            "unidad" : "u",
+            "cantidad" : 2.000001,
+            "rendimiento" : 0.000123456,
+            "tarifaJornal" : 7.00,
+            "precioUnitarioTarifa" : 8.00,
+            "precioEfectivo" : 9.000000001,
+            "costoHora" : 10.000000002,
+            "costo" : 12.000000003,
+            "insumo" : null
+          },
+          "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+          "porcentajeHerramientaMenor" : null,
+          "costo" : 12.000000003,
+          "costoHora" : 10.000000002
+        }, {
+          "detalle" : {
+            "id" : "01900000-0000-7000-8000-000000000032",
+            "orden" : 1,
+            "herramientaMenor" : false,
+            "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+            "unidad" : "u",
+            "cantidad" : 2.000001,
+            "rendimiento" : 0.000123456,
+            "tarifaJornal" : 7.00,
+            "precioUnitarioTarifa" : 8.00,
+            "precioEfectivo" : 9.000000001,
+            "costoHora" : 10.000000002,
+            "costo" : 12.000000003,
+            "insumo" : null
+          },
+          "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+          "porcentajeHerramientaMenor" : null,
+          "costo" : 12.000000003,
+          "costoHora" : 10.000000002
+        }, {
+          "detalle" : {
+            "id" : "01900000-0000-7000-8000-000000000033",
+            "orden" : 2,
+            "herramientaMenor" : true,
+            "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+            "unidad" : "u",
+            "cantidad" : 2.000001,
+            "rendimiento" : 0.000123456,
+            "tarifaJornal" : 7.00,
+            "precioUnitarioTarifa" : 8.00,
+            "precioEfectivo" : 9.000000001,
+            "costoHora" : 10.000000002,
+            "costo" : 12.000000003,
+            "insumo" : null
+          },
+          "descripcion" : "Herramienta Menor 7.300%MO",
+          "porcentajeHerramientaMenor" : 0.07300,
+          "costo" : 12.000000003,
+          "costoHora" : 10.000000002
+        } ],
+        "subtotal" : 11.123456789,
+        "mostrarSubtotal" : true
+      }, {
+        "tipo" : "MANO_OBRA",
+        "etiqueta" : "MANO DE OBRA (N)",
+        "ordenCapturado" : null,
+        "filas" : [ ],
+        "subtotal" : 0,
+        "mostrarSubtotal" : true
+      }, {
+        "tipo" : "MATERIAL",
+        "etiqueta" : "MATERIALES (O)",
+        "ordenCapturado" : 0,
+        "filas" : [ {
+          "detalle" : {
+            "id" : "01900000-0000-7000-8000-000000000034",
+            "orden" : 1,
+            "herramientaMenor" : false,
+            "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+            "unidad" : "u",
+            "cantidad" : 2.000001,
+            "rendimiento" : 0.000123456,
+            "tarifaJornal" : 7.00,
+            "precioUnitarioTarifa" : 8.00,
+            "precioEfectivo" : 9.000000001,
+            "costoHora" : 10.000000002,
+            "costo" : 12.000000003,
+            "insumo" : null
+          },
+          "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+          "porcentajeHerramientaMenor" : null,
+          "costo" : 12.000000003,
+          "costoHora" : 10.000000002
+        } ],
+        "subtotal" : 22.000000,
+        "mostrarSubtotal" : true
+      }, {
+        "tipo" : "TRANSPORTE",
+        "etiqueta" : "TRANSPORTE (P)",
+        "ordenCapturado" : null,
+        "filas" : [ ],
+        "subtotal" : 0,
+        "mostrarSubtotal" : true
+      } ],
+      "pie" : {
+        "subtotales" : [ {
+          "tipo" : "EQUIPO",
+          "valor" : 11.123456789
+        }, {
+          "tipo" : "MANO_OBRA",
+          "valor" : 0
+        }, {
+          "tipo" : "MATERIAL",
+          "valor" : 22.000000
+        }, {
+          "tipo" : "TRANSPORTE",
+          "valor" : 0
+        } ],
+        "porcentajeIndirecto" : 0.1800,
+        "costoDirecto" : 33.123456789,
+        "costoIndirecto" : 4.987654321,
+        "costoTotal" : 123.123456789012345678901234567890,
+        "valorOfertado" : 123.123456789012345678901234567890,
+        "mensaje" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n"
+      }
+    }, {
+      "id" : "01900000-0000-7000-8000-000000000020",
+      "codigo" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+      "etiquetaCodigo" : "2 =<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+      "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+      "unidad" : "m²",
+      "nombreProyectoHeader" : "Proyecto histórico ñ",
+      "bloques" : [ {
+        "tipo" : "EQUIPO",
+        "etiqueta" : "EQUIPOS (M)",
+        "ordenCapturado" : 99,
+        "filas" : [ {
+          "detalle" : {
+            "id" : "01900000-0000-7000-8000-000000000031",
+            "orden" : 1,
+            "herramientaMenor" : false,
+            "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+            "unidad" : "u",
+            "cantidad" : 2.000001,
+            "rendimiento" : 0.000123456,
+            "tarifaJornal" : 7.00,
+            "precioUnitarioTarifa" : 8.00,
+            "precioEfectivo" : 9.000000001,
+            "costoHora" : 10.000000002,
+            "costo" : 12.000000003,
+            "insumo" : null
+          },
+          "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+          "porcentajeHerramientaMenor" : null,
+          "costo" : 12.000000003,
+          "costoHora" : 10.000000002
+        }, {
+          "detalle" : {
+            "id" : "01900000-0000-7000-8000-000000000032",
+            "orden" : 1,
+            "herramientaMenor" : false,
+            "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+            "unidad" : "u",
+            "cantidad" : 2.000001,
+            "rendimiento" : 0.000123456,
+            "tarifaJornal" : 7.00,
+            "precioUnitarioTarifa" : 8.00,
+            "precioEfectivo" : 9.000000001,
+            "costoHora" : 10.000000002,
+            "costo" : 12.000000003,
+            "insumo" : null
+          },
+          "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+          "porcentajeHerramientaMenor" : null,
+          "costo" : 12.000000003,
+          "costoHora" : 10.000000002
+        }, {
+          "detalle" : {
+            "id" : "01900000-0000-7000-8000-000000000033",
+            "orden" : 2,
+            "herramientaMenor" : true,
+            "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+            "unidad" : "u",
+            "cantidad" : 2.000001,
+            "rendimiento" : 0.000123456,
+            "tarifaJornal" : 7.00,
+            "precioUnitarioTarifa" : 8.00,
+            "precioEfectivo" : 9.000000001,
+            "costoHora" : 10.000000002,
+            "costo" : 12.000000003,
+            "insumo" : null
+          },
+          "descripcion" : "Herramienta Menor 7.300%MO",
+          "porcentajeHerramientaMenor" : 0.07300,
+          "costo" : 12.000000003,
+          "costoHora" : 10.000000002
+        } ],
+        "subtotal" : 11.123456789,
+        "mostrarSubtotal" : true
+      }, {
+        "tipo" : "MANO_OBRA",
+        "etiqueta" : "MANO DE OBRA (N)",
+        "ordenCapturado" : null,
+        "filas" : [ ],
+        "subtotal" : 0,
+        "mostrarSubtotal" : true
+      }, {
+        "tipo" : "MATERIAL",
+        "etiqueta" : "MATERIALES (O)",
+        "ordenCapturado" : 0,
+        "filas" : [ {
+          "detalle" : {
+            "id" : "01900000-0000-7000-8000-000000000034",
+            "orden" : 1,
+            "herramientaMenor" : false,
+            "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+            "unidad" : "u",
+            "cantidad" : 2.000001,
+            "rendimiento" : 0.000123456,
+            "tarifaJornal" : 7.00,
+            "precioUnitarioTarifa" : 8.00,
+            "precioEfectivo" : 9.000000001,
+            "costoHora" : 10.000000002,
+            "costo" : 12.000000003,
+            "insumo" : null
+          },
+          "descripcion" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n",
+          "porcentajeHerramientaMenor" : null,
+          "costo" : 12.000000003,
+          "costoHora" : 10.000000002
+        } ],
+        "subtotal" : 22.000000,
+        "mostrarSubtotal" : true
+      }, {
+        "tipo" : "TRANSPORTE",
+        "etiqueta" : "TRANSPORTE (P)",
+        "ordenCapturado" : null,
+        "filas" : [ ],
+        "subtotal" : 0,
+        "mostrarSubtotal" : true
+      } ],
+      "pie" : {
+        "subtotales" : [ {
+          "tipo" : "EQUIPO",
+          "valor" : 11.123456789
+        }, {
+          "tipo" : "MANO_OBRA",
+          "valor" : 0
+        }, {
+          "tipo" : "MATERIAL",
+          "valor" : 22.000000
+        }, {
+          "tipo" : "TRANSPORTE",
+          "valor" : 0
+        } ],
+        "porcentajeIndirecto" : 0.1800,
+        "costoDirecto" : 33.123456789,
+        "costoIndirecto" : 4.987654321,
+        "costoTotal" : 123.123456789012345678901234567890,
+        "valorOfertado" : 123.123456789012345678901234567890,
+        "mensaje" : "=<script> ñ 😃 []:*?/\\ @SUM(A1)\n"
+      }
+    } ]
+  }
+}

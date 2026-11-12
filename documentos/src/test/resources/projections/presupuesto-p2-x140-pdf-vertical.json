@@ -1,0 +1,1542 @@
+{
+  "schemaVersion" : 1,
+  "documento" : "presupuesto",
+  "formato" : "pdf",
+  "opciones" : {
+    "orientacion" : "vertical"
+  },
+  "snapshot" : {
+    "presupuestoId" : "01900000-0000-7000-8000-000000000030",
+    "version" : 7,
+    "vigente" : false,
+    "notas" : "=SUM(A1:A2) +@ ñ m² m³",
+    "total" : 4321.987654,
+    "proyecto" : {
+      "id" : "01900000-0000-7000-8000-000000000031",
+      "nombre" : "Proyecto histórico ñ",
+      "codigo" : "PROY",
+      "descripcion" : "",
+      "anio" : 2025,
+      "fechaInicio" : null,
+      "plazoEjecucion" : null,
+      "plazoUnidad" : null,
+      "estado" : "",
+      "direccionInstitucional" : "Dirección institucional",
+      "subdireccionInstitucional" : "Subdirección"
+    },
+    "parametros" : {
+      "porcentajeHerramientaMenor" : 0,
+      "porcentajeIndirecto" : 0,
+      "ciIndividualHabilitado" : false,
+      "iva" : 0,
+      "moneda" : "USD",
+      "mostrarSeccionesVacias" : false,
+      "sufijosSeccionActivos" : false,
+      "mostrarSubtotalesSeccion" : false,
+      "mostrarSubtotalesPie" : false,
+      "mostrarNombreProyectoHeader" : true,
+      "enumerarApus" : true,
+      "mensajeFooter" : "=SUM(A1:A2) +@ ñ m² m³",
+      "modoCodigoRubro" : ""
+    },
+    "display" : {
+      "precision" : 2,
+      "precisionPorcentaje" : 4
+    },
+    "firmantes" : [ {
+      "id" : "01900000-0000-7000-8000-000000000041",
+      "nombre" : "Técnico ñ",
+      "cargo" : "Ingeniero",
+      "rol" : "TECNICO",
+      "orden" : 2
+    }, {
+      "id" : "01900000-0000-7000-8000-000000000040",
+      "nombre" : "Legal ñ",
+      "cargo" : "Director",
+      "rol" : "LEGAL",
+      "orden" : 1
+    } ],
+    "capitulos" : [ {
+      "id" : "01900000-0000-7000-8000-000000000011",
+      "item" : "1",
+      "descripcion" : "Capítulo raíz",
+      "orden" : 1,
+      "total" : 888.888888,
+      "hijos" : [ {
+        "id" : "01900000-0000-7000-8000-000000000012",
+        "item" : "1.1",
+        "descripcion" : "Subcapítulo",
+        "orden" : 1,
+        "total" : 777.777777,
+        "hijos" : [ ],
+        "rubros" : [ {
+          "id" : "01900000-0000-7000-8000-000000000004",
+          "apuId" : "01900000-0000-7000-8000-000000000020",
+          "item" : "1.1.1",
+          "codigo" : "-HIJO",
+          "descripcion" : "Hijo",
+          "unidad" : "m²",
+          "cantidad" : 123.123456789012345678901234567890,
+          "precioUnitario" : 12.345678,
+          "precioTotal" : 98.765432
+        } ]
+      } ],
+      "rubros" : [ {
+        "id" : "01900000-0000-7000-8000-000000000003",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.10",
+        "codigo" : "DÉCIMO",
+        "descripcion" : "Descripción décima",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000002",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.2",
+        "codigo" : "+SEGUNDO",
+        "descripcion" : "=SUM(A1:A2) +@ ñ m² m³",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000001",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.2",
+        "codigo" : "@PRIMERO",
+        "descripcion" : "Primero ñ m² m³",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000100",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.20",
+        "codigo" : "LARGO0",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN0",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000101",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.21",
+        "codigo" : "LARGO1",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN1",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000102",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.22",
+        "codigo" : "LARGO2",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN2",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000103",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.23",
+        "codigo" : "LARGO3",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN3",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000104",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.24",
+        "codigo" : "LARGO4",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN4",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000105",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.25",
+        "codigo" : "LARGO5",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN5",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000106",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.26",
+        "codigo" : "LARGO6",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN6",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000107",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.27",
+        "codigo" : "LARGO7",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN7",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000108",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.28",
+        "codigo" : "LARGO8",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN8",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000109",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.29",
+        "codigo" : "LARGO9",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN9",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000110",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.30",
+        "codigo" : "LARGO10",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN10",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000111",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.31",
+        "codigo" : "LARGO11",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN11",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000112",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.32",
+        "codigo" : "LARGO12",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN12",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000113",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.33",
+        "codigo" : "LARGO13",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN13",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000114",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.34",
+        "codigo" : "LARGO14",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN14",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000115",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.35",
+        "codigo" : "LARGO15",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN15",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000116",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.36",
+        "codigo" : "LARGO16",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN16",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000117",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.37",
+        "codigo" : "LARGO17",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN17",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000118",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.38",
+        "codigo" : "LARGO18",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN18",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000119",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.39",
+        "codigo" : "LARGO19",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN19",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000120",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.40",
+        "codigo" : "LARGO20",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN20",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000121",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.41",
+        "codigo" : "LARGO21",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN21",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000122",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.42",
+        "codigo" : "LARGO22",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN22",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000123",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.43",
+        "codigo" : "LARGO23",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN23",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000124",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.44",
+        "codigo" : "LARGO24",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN24",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000125",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.45",
+        "codigo" : "LARGO25",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN25",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000126",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.46",
+        "codigo" : "LARGO26",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN26",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000127",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.47",
+        "codigo" : "LARGO27",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN27",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000128",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.48",
+        "codigo" : "LARGO28",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN28",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000129",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.49",
+        "codigo" : "LARGO29",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN29",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000130",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.50",
+        "codigo" : "LARGO30",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN30",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000131",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.51",
+        "codigo" : "LARGO31",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN31",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000132",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.52",
+        "codigo" : "LARGO32",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN32",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000133",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.53",
+        "codigo" : "LARGO33",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN33",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000134",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.54",
+        "codigo" : "LARGO34",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN34",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000135",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.55",
+        "codigo" : "LARGO35",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN35",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000136",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.56",
+        "codigo" : "LARGO36",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN36",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000137",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.57",
+        "codigo" : "LARGO37",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN37",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000138",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.58",
+        "codigo" : "LARGO38",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN38",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000139",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.59",
+        "codigo" : "LARGO39",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN39",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000140",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.60",
+        "codigo" : "LARGO40",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN40",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000141",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.61",
+        "codigo" : "LARGO41",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN41",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000142",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.62",
+        "codigo" : "LARGO42",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN42",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000143",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.63",
+        "codigo" : "LARGO43",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN43",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000144",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.64",
+        "codigo" : "LARGO44",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN44",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000145",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.65",
+        "codigo" : "LARGO45",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN45",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000146",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.66",
+        "codigo" : "LARGO46",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN46",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000147",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.67",
+        "codigo" : "LARGO47",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN47",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000148",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.68",
+        "codigo" : "LARGO48",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN48",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000149",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.69",
+        "codigo" : "LARGO49",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN49",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000150",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.70",
+        "codigo" : "LARGO50",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN50",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000151",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.71",
+        "codigo" : "LARGO51",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN51",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000152",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.72",
+        "codigo" : "LARGO52",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN52",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000153",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.73",
+        "codigo" : "LARGO53",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN53",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000154",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.74",
+        "codigo" : "LARGO54",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN54",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000155",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.75",
+        "codigo" : "LARGO55",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN55",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000156",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.76",
+        "codigo" : "LARGO56",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN56",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000157",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.77",
+        "codigo" : "LARGO57",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN57",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000158",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.78",
+        "codigo" : "LARGO58",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN58",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000159",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.79",
+        "codigo" : "LARGO59",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN59",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000160",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.80",
+        "codigo" : "LARGO60",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN60",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000161",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.81",
+        "codigo" : "LARGO61",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN61",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000162",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.82",
+        "codigo" : "LARGO62",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN62",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000163",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.83",
+        "codigo" : "LARGO63",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN63",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000164",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.84",
+        "codigo" : "LARGO64",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN64",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000165",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.85",
+        "codigo" : "LARGO65",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN65",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000166",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.86",
+        "codigo" : "LARGO66",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN66",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000167",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.87",
+        "codigo" : "LARGO67",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN67",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000168",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.88",
+        "codigo" : "LARGO68",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN68",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000169",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.89",
+        "codigo" : "LARGO69",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN69",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000170",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.90",
+        "codigo" : "LARGO70",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN70",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000171",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.91",
+        "codigo" : "LARGO71",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN71",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000172",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.92",
+        "codigo" : "LARGO72",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN72",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000173",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.93",
+        "codigo" : "LARGO73",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN73",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000174",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.94",
+        "codigo" : "LARGO74",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN74",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000175",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.95",
+        "codigo" : "LARGO75",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN75",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000176",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.96",
+        "codigo" : "LARGO76",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN76",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000177",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.97",
+        "codigo" : "LARGO77",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN77",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000178",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.98",
+        "codigo" : "LARGO78",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN78",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000179",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.99",
+        "codigo" : "LARGO79",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN79",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000180",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.100",
+        "codigo" : "LARGO80",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN80",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000181",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.101",
+        "codigo" : "LARGO81",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN81",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000182",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.102",
+        "codigo" : "LARGO82",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN82",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000183",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.103",
+        "codigo" : "LARGO83",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN83",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000184",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.104",
+        "codigo" : "LARGO84",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN84",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000185",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.105",
+        "codigo" : "LARGO85",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN85",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000186",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.106",
+        "codigo" : "LARGO86",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN86",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000187",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.107",
+        "codigo" : "LARGO87",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN87",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000188",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.108",
+        "codigo" : "LARGO88",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN88",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000189",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.109",
+        "codigo" : "LARGO89",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN89",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000190",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.110",
+        "codigo" : "LARGO90",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN90",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000191",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.111",
+        "codigo" : "LARGO91",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN91",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000192",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.112",
+        "codigo" : "LARGO92",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN92",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000193",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.113",
+        "codigo" : "LARGO93",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN93",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000194",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.114",
+        "codigo" : "LARGO94",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN94",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000195",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.115",
+        "codigo" : "LARGO95",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN95",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000196",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.116",
+        "codigo" : "LARGO96",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN96",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000197",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.117",
+        "codigo" : "LARGO97",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN97",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000198",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.118",
+        "codigo" : "LARGO98",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN98",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000199",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.119",
+        "codigo" : "LARGO99",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN99",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000200",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.120",
+        "codigo" : "LARGO100",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN100",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000201",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.121",
+        "codigo" : "LARGO101",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN101",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000202",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.122",
+        "codigo" : "LARGO102",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN102",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000203",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.123",
+        "codigo" : "LARGO103",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN103",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000204",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.124",
+        "codigo" : "LARGO104",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN104",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000205",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.125",
+        "codigo" : "LARGO105",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN105",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000206",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.126",
+        "codigo" : "LARGO106",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN106",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000207",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.127",
+        "codigo" : "LARGO107",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN107",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000208",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.128",
+        "codigo" : "LARGO108",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN108",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000209",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.129",
+        "codigo" : "LARGO109",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN109",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000210",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.130",
+        "codigo" : "LARGO110",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN110",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000211",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.131",
+        "codigo" : "LARGO111",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN111",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000212",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.132",
+        "codigo" : "LARGO112",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN112",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000213",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.133",
+        "codigo" : "LARGO113",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN113",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000214",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.134",
+        "codigo" : "LARGO114",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN114",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000215",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.135",
+        "codigo" : "LARGO115",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN115",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000216",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.136",
+        "codigo" : "LARGO116",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN116",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000217",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.137",
+        "codigo" : "LARGO117",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN117",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000218",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.138",
+        "codigo" : "LARGO118",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN118",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000219",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.139",
+        "codigo" : "LARGO119",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN119",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000220",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.140",
+        "codigo" : "LARGO120",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN120",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000221",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.141",
+        "codigo" : "LARGO121",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN121",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000222",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.142",
+        "codigo" : "LARGO122",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN122",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000223",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.143",
+        "codigo" : "LARGO123",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN123",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000224",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.144",
+        "codigo" : "LARGO124",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN124",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000225",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.145",
+        "codigo" : "LARGO125",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN125",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000226",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.146",
+        "codigo" : "LARGO126",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN126",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000227",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.147",
+        "codigo" : "LARGO127",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN127",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000228",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.148",
+        "codigo" : "LARGO128",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN128",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000229",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.149",
+        "codigo" : "LARGO129",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN129",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000230",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.150",
+        "codigo" : "LARGO130",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN130",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000231",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.151",
+        "codigo" : "LARGO131",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN131",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000232",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.152",
+        "codigo" : "LARGO132",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN132",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000233",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.153",
+        "codigo" : "LARGO133",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN133",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000234",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.154",
+        "codigo" : "LARGO134",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN134",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000235",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.155",
+        "codigo" : "LARGO135",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN135",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000236",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.156",
+        "codigo" : "LARGO136",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN136",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000237",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.157",
+        "codigo" : "LARGO137",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN137",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000238",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.158",
+        "codigo" : "LARGO138",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN138",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      }, {
+        "id" : "01900000-0000-7000-8000-000000000239",
+        "apuId" : "01900000-0000-7000-8000-000000000020",
+        "item" : "1.159",
+        "codigo" : "LARGO139",
+        "descripcion" : "Continuación ñ m² m³ descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura descripción extensa segura FIN139",
+        "unidad" : "m²",
+        "cantidad" : 123.123456789012345678901234567890,
+        "precioUnitario" : 12.345678,
+        "precioTotal" : 98.765432
+      } ]
+    } ],
+    "apus" : [ {
+      "id" : "01900000-0000-7000-8000-000000000020",
+      "codigo" : "APU",
+      "descripcion" : "No usar CT",
+      "unidad" : "m²",
+      "especificacionTecnica" : "",
+      "porcentajeIndirecto" : 0,
+      "costoDirecto" : 0,
+      "costoIndirecto" : 0,
+      "costoTotal" : 888888.888888,
+      "calculado" : {
+        "codigo" : "APU",
+        "filas" : [ ],
+        "subtotalM" : 0,
+        "subtotalN" : 0,
+        "subtotalO" : 0,
+        "subtotalP" : 0,
+        "costoHm" : 0,
+        "costoDirecto" : 0,
+        "costoIndirecto" : 0,
+        "costoTotal" : 999999.999999
+      },
+      "secciones" : [ ]
+    } ],
+    "apuRender" : [ ]
+  }
+}

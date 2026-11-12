@@ -31,6 +31,7 @@ dependencies {
     testImplementation(libs.quarkus.smallrye.jwt.build)
     testImplementation(libs.rest.assured)
     testImplementation(libs.jackson.databind)
+    testImplementation(libs.pdfbox) // PDF parse-back in renderer format tests ported from Core (stage 05)
 }
 
 configurations.configureEach {
