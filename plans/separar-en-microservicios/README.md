@@ -1,6 +1,6 @@
 # Ruta de separación: Core + Documentos
 
-**Estado: plan 01 cerrado como factibilidad y contrato; plan 02 cerrado con la limitación local de verificación aceptada; planes 03–04 sin implementar.** Ejecutar los planes siguientes en orden, con un resultado comprobable por etapa. Son **dos servicios Quarkus en un build Gradle multiproyecto**, no dos repositorios: Core conserva PostgreSQL y Flyway; Documentos recibe datos autorizados y proyectados, genera archivos y los almacena en un bucket privado S3 emulado. No hay acceso a la base desde Documentos.
+**Estado: plan 01 cerrado como factibilidad y contrato; plan 02 cerrado con la limitación local de verificación aceptada; planes 03–04 verificados en local (FLoCI), sin prueba de producción; plan 05 (retiro de los GET de bytes) implementado en local.** Ejecutar los planes siguientes en orden, con un resultado comprobable por etapa. Son **dos servicios Quarkus en un build Gradle multiproyecto**, no dos repositorios: Core conserva PostgreSQL y Flyway; Documentos recibe datos autorizados y proyectados, genera archivos y los almacena en un bucket privado S3 emulado. No hay acceso a la base desde Documentos.
 
 | Orden | Plan | Resultado esperado |
 |---|---|---|
@@ -8,6 +8,7 @@
 | 2 | [Separación Gradle y generación](02-build-y-generacion.md) | Dos aplicaciones construibles; primeras exportaciones con capturas de Core, sin SQL en Documentos. |
 | 3 | [S3, despliegue y cliente](03-s3-despliegue-y-cliente.md) | Archivos privados en S3, ruta de descarga comprobada, frontend adaptado y dos imágenes/despliegues. |
 | 4 | [Cronograma y cierre](04-cronograma-y-cierre.md) | Exportación de cronograma migrada sin pérdida silenciosa de sus garantías; pruebas finales y documentación actualizada. |
+| 5 | [Retiro de descargas legadas](05-retiro-descargas-legadas.md) | Sin GET de bytes ni *writers* en Core; solo POST + ticket. Registro: [`odd/tasks/microservices-stage05.md`](../../odd/tasks/microservices-stage05.md). |
 
 ## Decisiones ya tomadas
 
@@ -15,7 +16,7 @@
 - Documentos **no consulta la base**: recibe un contrato interno versionado con proyecciones inmutables, renderiza y usa S3. Puede tener varias réplicas sin convertirse en un tercer servicio.
 - Traefik enruta las peticiones; Kubernetes ofrece descubrimiento y réplicas. No se agrega Consul solo para estos dos servicios.
 - El bucket de respaldo existente **no se reutiliza** para archivos de usuarios.
-- Los contratos HTTP públicos y el frontend pueden refactorizarse manteniendo la funcionalidad; el nuevo POST/JSON y la URL temporal de Core quedaron documentados como **objetivo no implementado** en `thesis-docs/plan/architecture/07-api-contract.md`. Los GET de bytes actuales se conservan durante la transición.
+- Los contratos HTTP públicos y el frontend pueden refactorizarse manteniendo la funcionalidad; el POST/JSON y el enlace temporal de Core están implementados (etapas 03–04) y documentados en `thesis-docs/plan/architecture/07-api-contract.md`. Los GET de bytes se conservaron durante la transición y se retiraron en la etapa 05 (2026-11).
 
 ## Condiciones abiertas, no asumidas
 
@@ -27,7 +28,7 @@
 
 - [Análisis de módulos y tablas](../../../separacion_microservicios.md): alternativa inicial de renderer HTTP, sin S3.
 - [Análisis de autonomía documental](../../../arquitectura_documentos_cloud_native.md): compara SQL directo, descartado **para esta ruta** porque se decidió no conceder acceso a la base a Documentos. Contiene la auditoría real por tipo de documento.
-- [Fuentes del manual FLoCI](../../../thesis-docs/manual-despliegue-floci/README.md): la ejecución integral histórica es 2.3.0; la fuente `.tex` incluye la prueba S3 local 2.4.0, pero el PDF versionado sigue pendiente por decisión del usuario. El despliegue documentado aún tiene una sola API y el único bucket configurado es de respaldos. El código de despliegue vive en el repositorio `thesis-deploy`, que no está incluido aquí.
+- [Fuentes del manual FLoCI](../../../thesis-docs/manual-despliegue-floci/README.md): la ejecución integral histórica es 2.3.0; la fuente `.tex` incluye la prueba S3 local 2.4.0 y el PDF versionado se regeneró el 2026-11-11 (XeLaTeX del sistema; `thesis-docs` 73988f5). El despliegue documentado aún tiene una sola API y el único bucket configurado es de respaldos. El código de despliegue vive en el repositorio `thesis-deploy`, que no está incluido aquí.
 - [Contrato canónico API](../../../thesis-docs/plan/architecture/07-api-contract.md), [diseño de módulos](../../../thesis-docs/plan/architecture/08-codebase-design.md), [calidad](../../../thesis-docs/plan/quality/02-catalogo-pruebas.md) y planes [026–031](../031-exportacion-cronograma.md) de cronograma. Si el contrato vigente contradice una propuesta de estos planes, detenerse y acordar la actualización en `thesis-docs`; no convertir estos planes en nueva fuente normativa.
 
 **Alcance de la etapa 01:** documentación y prueba aislada S3 ya realizadas; los dos buckets de prueba creados en contenedores propios no son infraestructura de la aplicación. No se crean módulos, despliegues, rutas públicas ni tests de aplicación en esta etapa. La implementación y verificación funcional pertenecen a los planes 02–04.

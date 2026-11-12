@@ -1,5 +1,7 @@
 # 01 — Factibilidad FLoCI y contrato entre servicios
 
+> **Retirado en etapa 05 (2026-11):** los GET de bytes `GET /documentos/{presupuesto|apus|cronograma|especificaciones-tecnicas}/{id}`, sus servicios de descarga y los *writers* XLSX/PDF/MSPDI de Core ya no existen; la descarga es `POST …/exportaciones` + ticket de Core. Este documento conserva el estado histórico; ver [etapa 05](05-retiro-descargas-legadas.md).
+
 **Objetivo:** cerrar primero las decisiones que podrían invalidar el flujo Cliente → Core → Documentos → S3 → Cliente, sin modificar todavía los servicios de producción.
 
 ## Acciones de esta etapa

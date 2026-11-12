@@ -1,5 +1,7 @@
 # 02 — Build Gradle y generación documental separada
 
+> **Retirado en etapa 05 (2026-11):** los GET de bytes `GET /documentos/{presupuesto|apus|cronograma|especificaciones-tecnicas}/{id}`, sus servicios de descarga y los *writers* XLSX/PDF/MSPDI de Core ya no existen; la descarga es `POST …/exportaciones` + ticket de Core. Este documento conserva el estado histórico; ver [etapa 05](05-retiro-descargas-legadas.md).
+
 **Objetivo:** obtener dos aplicaciones Quarkus construibles de forma independiente dentro de `thesis-back-quarkus/`, conservando la funcionalidad documental que puede migrarse sin redefinir todavía la garantía temporal del cronograma.
 
 **Entrada:** contrato y resultado de factibilidad del [plan 01](01-factibilidad-y-contratos.md), reconciliados con `thesis-docs`.

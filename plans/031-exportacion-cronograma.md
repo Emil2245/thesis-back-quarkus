@@ -1,5 +1,7 @@
 # 031 — Exportación del Cronograma
 
+> **Retirado en etapa 05 (2026-11):** los GET de bytes `GET /documentos/{presupuesto|apus|cronograma|especificaciones-tecnicas}/{id}`, sus servicios de descarga y los *writers* XLSX/PDF/MSPDI de Core ya no existen; la descarga es `POST …/exportaciones` + ticket de Core. Este documento conserva el estado histórico; ver [etapa 05](separar-en-microservicios/05-retiro-descargas-legadas.md).
+
 **Estado:** **DONE 07-09-2026** — implementación aplicada y verificada bajo
 suite completa; `motor/`, V001–V008 y `recalculo/` intactos; `git diff --check`,
 `./gradlew spotlessCheck` y `./gradlew build -x test` en PASS; suite completa

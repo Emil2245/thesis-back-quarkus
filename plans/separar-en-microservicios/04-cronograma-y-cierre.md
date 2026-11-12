@@ -8,7 +8,7 @@
 
 La descarga GET actual mantiene un bloqueo pesimista sobre presupuesto desde el preflight hasta que los bytes están generados dentro de una transacción. **No puede mantenerse la misma transacción durante una llamada HTTP, render remoto y subida S3 sin introducir otros riesgos.** El usuario eligió **captura consistente**: Core valida y calcula preflight, advertencias y proyección completa bajo el bloqueo vigente; libera el bloqueo antes de llamar a Documentos. El archivo y la respuesta corresponden a esa captura aunque el presupuesto cambie después. No se promete revalidación tras la subida ni equivalencia con el bloqueo mantenido hasta generar los bytes.
 
-El GET de bytes y su preflight existentes se conservan durante la transición. El nuevo POST de cronograma devolverá un ticket de Core mediante el protocolo de la etapa 03, sin convertir silenciosamente el GET en JSON. Si la captura coherente no puede demostrarse en un formato, ese formato permanece en Core y se informa como pendiente.
+El GET de bytes y su preflight existentes se conservan durante la transición (el GET se retiró después, en la [etapa 05](05-retiro-descargas-legadas.md); el preflight sigue). El nuevo POST de cronograma devolverá un ticket de Core mediante el protocolo de la etapa 03, sin convertir silenciosamente el GET en JSON. Si la captura coherente no puede demostrarse en un formato, ese formato permanece en Core y se informa como pendiente.
 
 ## Acciones de esta etapa
 
@@ -38,4 +38,4 @@ limpieza física a las 24 h, IAM/TLS desplegados o la suite completa de Core
 - Todas las exportaciones acordadas pasan por la frontera Core → Documentos, con autorización, precisión, formatos, auditoría y garantía de cronograma decidida y comprobada. Si alguna queda fuera, registrarla como pendiente y no afirmar migración completa.
 - Tests, evidencia de despliegue, descarga desde navegador y documentación actualizados. No se crea un tercer servicio para remediar una prueba fallida sin una nueva decisión.
 
-**Referencias:** [índice](README.md), [plan 031 previo](../031-exportacion-cronograma.md), [`CronogramaDescargaService`](../../src/main/java/ec/uce/propuestas/cronograma/export/CronogramaDescargaService.java), [`CronogramaDocumentoResource`](../../src/main/java/ec/uce/propuestas/documento/CronogramaDocumentoResource.java), [contrato canónico](../../../thesis-docs/plan/architecture/07-api-contract.md).
+**Referencias:** [índice](README.md), [plan 031 previo](../031-exportacion-cronograma.md), `CronogramaDescargaService` (retirado en la etapa 05), [`CronogramaDocumentoResource`](../../src/main/java/ec/uce/propuestas/documento/CronogramaDocumentoResource.java), [contrato canónico](../../../thesis-docs/plan/architecture/07-api-contract.md).

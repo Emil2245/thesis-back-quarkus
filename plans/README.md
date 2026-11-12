@@ -655,6 +655,15 @@ planning sessions triage findings)*
 
 ---
 
+## Ruta `separar-en-microservicios/` — Core + Documentos (2026-10 → 2026-11)
+
+Índice propio: [`separar-en-microservicios/README.md`](separar-en-microservicios/README.md).
+Etapas 01–02 cerradas; 03–04 verificadas solo en local (FLoCI); **05 — retiro de
+los GET de bytes y de los *writers* de Core** implementado en local
+([registro](separar-en-microservicios/05-retiro-descargas-legadas.md),
+[tareas](../odd/tasks/microservices-stage05.md)). La nota «monólito, no
+microservicios» de 008 es histórica.
+
 ## Tanda `fix/downloads` — 041–042 (2026-09-16)
 
 Dos defectos detectados desde el frontend, investigados hasta su causa en este

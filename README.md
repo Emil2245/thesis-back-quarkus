@@ -82,35 +82,28 @@ bash scripts/test-check-document-contract.sh   # fixtures for the guard itself
 ./gradlew :core:build -Dquarkus.native.enabled=true -Dquarkus.native.container-build=true
 ```
 
-## Internal document boundary (stage 02)
+## Internal document boundary
 
-`/internal/v1/render` accepts only the signed Core service JWT and a
-`DocumentProjectionV1` from `:documentos-contract`. Core's HTTP transport
-limits serialized requests to 8 MiB, responses to 64 MiB, and requires a
-bounded request timeout; Documentos rejects bodies over 8 MiB. For APU exports,
-Core populates `snapshot.apuRender` with ordered rows and reconciled printable
-amounts before transport; Documentos must not pair motor rows or recompute
-prices. Budget payloads may omit this APU-only view; that does not alter their
-service-JWT checks. The internal endpoint now returns binary budget/APU
-XLSX or PDF from the DTO with the format's media type. Core's budget/APU GET services now send the completed capture to Documentos
-with `DOCUMENTOS_BASE_URL` (no default) and `DOCUMENTOS_SERVICE_SIGNING_KEY_LOCATION`
-(a dedicated RSA key); `DOCUMENTOS_TIMEOUT` defaults to `PT20S`. A missing URL,
-key, or remote response fails closed; production never falls back to Core's
-writers. The Core test suite retains legacy writer output using a test-only
-CDI alternative; `RemotePublicGetIT` disables it and checks public GET routing
-against an isolated HTTP stub, but does not prove a two-app runtime. Documentos
-embeds the same tracked Liberation Sans font as Core for PDF output.
-The specifications DOCX renderer accepts a separate technical-only immutable
-projection; `/internal/v1/render/specifications` requires the Core service JWT and
-returns DOCX bytes. The public DOCX GET captures ownership, effective titles
-and ordered technical content in a separate read-only transaction, renders via
-the authenticated Documentos transport outside that transaction, and records
-`documento.exportado` in a short separate transaction only after bytes arrive.
-Remote errors fail closed without an export event; the local DOCX renderer is a
-test-only alternative, not a production fallback.
-This is not the public POST/S3 proxy or evidence of deployed TLS.
+Documentos accepts only the signed Core service JWT and versioned projections
+from `:documentos-contract` (`DocumentProjectionV1`, `SpecificationProjectionV1`,
+`CronogramaProjectionV1`). Core populates `snapshot.apuRender` with ordered rows
+and reconciled printable amounts before transport; Documentos must not pair
+motor rows or recompute prices. Core's transport limits serialized requests to
+8 MiB and responses to 64 MiB (`DocumentosLimites`); Documentos rejects bodies
+over 8 MiB. Configure `DOCUMENTOS_BASE_URL` (no default),
+`DOCUMENTOS_SERVICE_SIGNING_KEY_LOCATION` (a dedicated RSA key) and
+`DOCUMENTOS_TIMEOUT` (default `PT20S`); a missing URL, key or remote response
+fails closed. Documentos embeds Liberation Sans for PDF output.
 
-## Internal private upload (stage 03, partial)
+**Retired in stage 05 (2026-11):** the stage 02 synchronous byte path — public
+`GET /documentos/{presupuesto|apus|cronograma|especificaciones-tecnicas}/{id}`,
+Core's render gateways, `DocumentosHttpClient`, the Core XLSX/PDF/MSPDI writers
+and their POI/OpenPDF dependencies, and Documentos' synchronous internal render
+routes. Core no longer renders documents; every download goes through the
+private upload and one-use ticket below. See
+[`plans/separar-en-microservicios/05-retiro-descargas-legadas.md`](plans/separar-en-microservicios/05-retiro-descargas-legadas.md).
+
+## Internal private upload (stage 03)
 
 `POST /internal/v1/export` accepts only the short-lived Core service JWT and an
 `ExportUploadV1` containing **one** versioned budget/APU or specification
@@ -160,11 +153,13 @@ SHA-256, and capture warnings. Repeat the POST with the same key and unchanged
 request/revision to issue another one-use ticket without uploading again; a
 conflicting key returns 409. An uncertain upload is reconciled against the
 original object's HEAD metadata before confirmation. The POST body is capped
-at 8 MiB, and duplicate JSON members are rejected. Only specifications record
-the existing export audit event. These are local application behaviors, **not**
-evidence of real IAM/TLS, browser access, or 24-hour physical deletion. Existing
-byte GETs remain available to transition callers; the React frontend now uses
-the POST locally. Cronograma POST is reserved for plan 04. For cross-origin
+at 8 MiB, and duplicate JSON members are rejected. Only specifications (and cronograma) record
+the export audit event. These are local application behaviors, **not**
+evidence of real IAM/TLS, browser access, or 24-hour physical deletion. The legacy
+byte GETs were retired in stage 05; the React frontend uses only the POST.
+Cronograma has its own `POST /api/v1/documentos/cronograma/{presupuestoId}/exportaciones`
+(stage 04, XLSX/PDF A4·A3/MSPDI XML), which records `documento.exportado` and
+returns stale-schedule notices in `warnings`. For cross-origin
 browser requests, configure `CORS_ORIGINS` to the trusted frontend origin;
 Core's CORS preflight allows `Authorization`, `Content-Type`, and
 `Idempotency-Key` without allowing unconfigured origins. Local preflight tests

@@ -1,5 +1,7 @@
 # 03 — S3 emulado, despliegue y descarga desde el cliente
 
+> **Retirado en etapa 05 (2026-11):** los GET de bytes `GET /documentos/{presupuesto|apus|cronograma|especificaciones-tecnicas}/{id}`, sus servicios de descarga y los *writers* XLSX/PDF/MSPDI de Core ya no existen; la descarga es `POST …/exportaciones` + ticket de Core. Este documento conserva el estado histórico; ver [etapa 05](05-retiro-descargas-legadas.md).
+
 **Objetivo:** integrar las primeras exportaciones con un bucket S3 privado en FLoCI, desplegar ambos servicios y permitir que el frontend descargue el archivo por el mecanismo validado en el plan 01.
 
 **Entrada:** [plan 02](02-build-y-generacion.md) comprobado y decisión de descarga del [plan 01](01-factibilidad-y-contratos.md). El código de despliegue está en `thesis-deploy`, no en este backend: cualquier cambio en ese repositorio requiere trabajar allí con su propio contexto y permisos.

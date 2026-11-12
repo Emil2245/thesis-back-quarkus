@@ -1,5 +1,7 @@
 # 038 — Instrumentación D-13: identidad y catálogos
 
+> **Retirado en etapa 05 (2026-11):** los GET de bytes `GET /documentos/{presupuesto|apus|cronograma|especificaciones-tecnicas}/{id}`, sus servicios de descarga y los *writers* XLSX/PDF/MSPDI de Core ya no existen; la descarga es `POST …/exportaciones` + ticket de Core. Este documento conserva el estado histórico; ver [etapa 05](../separar-en-microservicios/05-retiro-descargas-legadas.md).
+
 **Estado:** DONE (2026-09-08) · I-11 · segunda ola de emisores D-13.
 
 > Cubre los eventos D-13 de los módulos de **identidad** y
