@@ -26,4 +26,20 @@
 
 ## Sigue pendiente (no forma parte de esta etapa)
 
-Borrado físico a las 24 horas, réplicas y fallos, IAM/TLS/Ingress desplegados, suite Playwright y los residuales aceptados GM-19/GM-20. Los capítulos de la tesis que citan los GET retirados no se reescribieron; ver el registro.
+Estado al 2026-11-11: la etapa queda cerrada en local por decisión del usuario; estos puntos quedan documentados, no programados.
+
+Decisiones del usuario:
+
+1. Textos de la tesis que todavía citan los GET retirados (sin modificar, se tratan como registro de lo evaluado en su momento): `thesis-docs/tesis/apendices/anexo-6-documentos.tex:5`, `tesis/capitulos/05-resultados/03-conformidad.tex:57`, `tesis/figuras/capturas/README.md:245`, `tesis/_insumos/estado-real-software.md:240`.
+2. Push, PR y merge: las ramas `feat/microservices-stage05` de backend, frontend, thesis-docs y thesis-deploy solo tienen commits locales.
+
+Verificaciones no ejecutadas:
+
+3. k6: `thesis-deploy` ya usa POST + `Idempotency-Key` + ticket, pero k6 no está instalado y la prueba de carga no se corrió.
+4. Bruno y Playwright: colecciones/suites actualizadas, sin ejecución en vivo.
+5. Especificaciones técnicas DOCX: en la prueba de humo local respondió 400 de negocio (el APU de prueba no tiene ET); el camino solo está cubierto por tests automáticos. Falta probarlo con un APU que tenga ET.
+
+Heredado de etapas anteriores:
+
+6. GM-19 y GM-20: residuales aceptados (Plan 014), sin diagnóstico de causa.
+7. Borrado físico de objetos S3 a las 24 horas, pruebas con varias réplicas y fallos, IAM/TLS/Ingress reales y despliegue en AWS/producción (requiere autorización explícita).
