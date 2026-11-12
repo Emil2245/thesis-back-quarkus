@@ -8,6 +8,7 @@ import ec.uce.propuestas.apu.dto.*;
 import ec.uce.propuestas.apu.entity.*;
 import ec.uce.propuestas.apu.service.*;
 import ec.uce.propuestas.documento.exportacion.*;
+import ec.uce.propuestas.documentos.contract.DocumentProjectionV1;
 import ec.uce.propuestas.motor.*;
 import ec.uce.propuestas.support.AuthSupport;
 import ec.uce.propuestas.usuario.auth.RecordingEnviadorCorreo;
@@ -15,15 +16,10 @@ import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
-import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
 import java.nio.file.*;
 import java.util.*;
 import javax.sql.DataSource;
-import org.apache.pdfbox.Loader;
-import org.apache.pdfbox.text.PDFTextStripper;
-import org.apache.poi.ss.usermodel.CellType;
-import org.apache.poi.xssf.usermodel.*;
 import org.hibernate.SessionFactory;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -47,9 +43,6 @@ class ApuCalculoPersistidoEvidenceIT {
 
     @Inject
     CapturaDocumentoService captura;
-
-    @Inject
-    ApuDescargaService descarga;
 
     @Inject
     EntityManager em;
@@ -309,13 +302,16 @@ class ApuCalculoPersistidoEvidenceIT {
         stats.setStatisticsEnabled(true);
         var manifest = new StringBuilder("budget=" + budget + " version=1 project=" + project + " apus=" + count
                 + " returnedStoredCapturedComparisons=" + comparisons + "\n");
+        // Stage 05: Core no longer renders. The evidence stops at the immutable
+        // projection Core sends to Documentos; its rendered OOXML/PDF cells are
+        // asserted by the Documentos renderer tests from this same contract.
         for (String format : List.of("pestanas", "apilado", "pdf")) {
             var options = new OpcionesDocumento(
                     format.equals("pdf") ? "pdf" : "xlsx", format.equals("pdf") ? Map.of() : Map.of("layout", format));
             QuarkusTransaction.requiringNew().run(em::clear);
             stats.clear();
             long start = System.nanoTime();
-            var output = descarga.generar(budget, owner, options);
+            var captured = captura.capturar(budget, owner, "apus", options);
             long elapsed = System.nanoTime() - start;
             long queries = stats.getPrepareStatementCount();
             manifest.append(format)
@@ -325,18 +321,17 @@ class ApuCalculoPersistidoEvidenceIT {
                     .append(elapsed)
                     .append('\n');
             Files.writeString(OUTPUT.resolve("manifest-" + count + ".txt"), manifest);
-            assertNotNull(output.archivo(), output.preflight().toString());
+            assertTrue(captured.preflight().exportable(), captured.preflight().toString());
             // Observed fresh fixture includes an existing cronograma, unlike historical seed evidence.
-            assertEquals(17, queries, "Observed fixed service SQL with cronograma present");
+            assertEquals(17, queries, "Observed fixed capture SQL with cronograma present");
             assertNull(
                     queryCounts
                             .computeIfAbsent(format, ignored -> new HashMap<>())
                             .put(count, queries),
                     "One sample per fixture size");
-            byte[] bytes = output.archivo().bytes();
-            Files.write(OUTPUT.resolve(count + "-" + format + (format.equals("pdf") ? ".pdf" : ".xlsx")), bytes);
-            if (format.equals("pdf")) pdf(bytes, document);
-            else xlsx(bytes, document, format.equals("apilado"));
+            var contract = DocumentoContratoMapper.proyectar(captured, "apus", options);
+            Files.writeString(OUTPUT.resolve(count + "-" + format + "-projection.txt"), contract.toString());
+            contract(contract, document);
         }
         manifest.append("totalExactComparisons=").append(comparisons).append('\n');
         Files.writeString(OUTPUT.resolve("manifest-" + count + ".txt"), manifest);
@@ -373,73 +368,48 @@ class ApuCalculoPersistidoEvidenceIT {
         return cells;
     }
 
-    private void xlsx(byte[] bytes, ApuDocumentoProyeccion.Documento document, boolean stacked) throws Exception {
-        try (var wb = new XSSFWorkbook(new ByteArrayInputStream(bytes))) {
-            assertEquals(stacked ? 1 : document.apus().size(), wb.getNumberOfSheets());
-            for (int i = 0; i < wb.getNumberOfSheets(); i++) {
-                var actual = new ArrayList<NumberCell>();
-                for (var row : wb.getSheetAt(i))
-                    for (var cell : row) {
-                        assertNotEquals(CellType.FORMULA, cell.getCellType());
-                        if (cell.getCellType() == CellType.NUMERIC)
-                            actual.add(new NumberCell(
-                                    cell.getColumnIndex(),
-                                    new BigDecimal(((XSSFCell) cell).getCTCell().getV())));
-                    }
-                var expected = stacked
-                        ? document.apus().stream()
-                                .flatMap(a -> expected(a).stream())
-                                .toList()
-                        : expected(document.apus().get(i));
-                assertEquals(expected.size(), actual.size(), "Numeric multiplicity");
-                for (int n = 0; n < expected.size(); n++) {
-                    assertEquals(expected.get(n).column(), actual.get(n).column());
-                    exact(expected.get(n).value(), actual.get(n).value(), "OOXML sheet=" + i + " ordinal=" + n);
-                }
+    /** Every number the APU renderers print, in print order, survives the service boundary unchanged. */
+    private void contract(DocumentProjectionV1 contract, ApuDocumentoProyeccion.Documento document) {
+        var views = contract.snapshot().apuRender();
+        assertEquals(
+                document.apus().stream()
+                        .map(ApuDocumentoProyeccion.Analisis::id)
+                        .toList(),
+                views.stream().map(DocumentProjectionV1.ApuView::id).toList());
+        for (int i = 0; i < views.size(); i++) {
+            var expected = expected(document.apus().get(i));
+            var actual = expected(views.get(i));
+            assertEquals(expected.size(), actual.size(), "Numeric multiplicity");
+            for (int n = 0; n < expected.size(); n++) {
+                assertEquals(expected.get(n).column(), actual.get(n).column());
+                exact(expected.get(n).value(), actual.get(n).value(), "projection apu=" + i + " ordinal=" + n);
             }
         }
     }
 
-    private static void pdf(byte[] bytes, ApuDocumentoProyeccion.Documento document) throws Exception {
-        try (var pdf = Loader.loadPDF(bytes)) {
-            var texts = new LinkedHashMap<UUID, StringBuilder>();
-            var stripper = new PDFTextStripper();
-            for (int i = 1; i <= pdf.getNumberOfPages(); i++) {
-                stripper.setStartPage(i);
-                stripper.setEndPage(i);
-                String text = stripper.getText(pdf);
-                UUID id = document.apus().stream()
-                        .map(ApuDocumentoProyeccion.Analisis::id)
-                        .filter(uuid -> text.contains("APU " + uuid))
-                        .findFirst()
-                        .orElseThrow();
-                texts.computeIfAbsent(id, ignored -> new StringBuilder()).append(text);
-            }
-            assertEquals(
-                    document.apus().stream()
-                            .map(ApuDocumentoProyeccion.Analisis::id)
-                            .toList(),
-                    new ArrayList<>(texts.keySet()));
-            for (var a : document.apus()) {
-                var values = List.of(
-                        a.pie().costoDirecto(),
-                        a.pie().costoIndirecto(),
-                        a.pie().costoTotal(),
-                        a.pie().valorOfertado());
-                var labels = List.of("Costo directo", "Costo indirecto", "Costo total", "Valor ofertado");
-                for (int i = 0; i < labels.size(); i++) {
-                    String label = labels.get(i);
-                    String money = values.get(i)
-                            .setScale(document.display().precision(), java.math.RoundingMode.HALF_UP)
-                            .toPlainString();
-                    assertTrue(
-                            texts.get(a.id())
-                                    .toString()
-                                    .lines()
-                                    .anyMatch(line -> line.startsWith(label) && line.endsWith(money)),
-                            a.id() + " labeled stored footer " + label + " " + money);
+    private static List<NumberCell> expected(DocumentProjectionV1.ApuView a) {
+        var cells = new ArrayList<NumberCell>();
+        for (var b : a.bloques()) {
+            boolean hourly = b.tipo() == DocumentProjectionV1.SeccionTipo.EQUIPO
+                    || b.tipo() == DocumentProjectionV1.SeccionTipo.MANO_OBRA;
+            for (var row : b.filas()) {
+                var d = row.detalle();
+                number(cells, hourly ? 1 : 2, d.cantidad());
+                number(cells, hourly ? 2 : 3, d.precioEfectivo());
+                if (hourly) {
+                    number(cells, 3, d.costoHora());
+                    number(cells, 4, d.rendimiento());
                 }
+                number(cells, 5, d.costo());
             }
+            if (b.mostrarSubtotal()) number(cells, 5, b.subtotal());
         }
+        for (var s : a.pie().subtotales()) number(cells, 5, s.valor());
+        number(cells, 5, a.pie().costoDirecto());
+        number(cells, 4, a.pie().porcentajeIndirecto());
+        number(cells, 5, a.pie().costoIndirecto());
+        number(cells, 5, a.pie().costoTotal());
+        number(cells, 5, a.pie().valorOfertado());
+        return cells;
     }
 }
