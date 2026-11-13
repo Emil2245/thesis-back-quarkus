@@ -1,5 +1,7 @@
 # Plan 03 — Módulo `apu` (P-19…P-21, P-22) — I-05 núcleo
 
+> **Nota (limpieza de documentación, 2026-11):** los documentos que este archivo cita por nombre (`docs/modulos/README.md`, `estado-actual.md`, `planes-para-estar-al-dia/`, `plans/015-…`, `docs/00-ESTADO-ACTUAL.md`) se retiraron; su contenido sigue en el historial git. Los hitos vigentes están en `CLAUDE.md` y `plans/README.md`.
+
 - Playbook auto-conductor. Implementa `docs/modulos/README.md`. No crea
   migraciones (las tablas `apu`, `apu_seccion`, `apu_detalle` ya viven en
   `V001__baseline.sql` §2.10; V004 ya siembra 3 escenarios con APUs).
@@ -11,13 +13,13 @@
   - **DONE 2026-08-28** (Plan 03) — PATCH `orden: JsonNullable<Integer>`
     (MOVE atómico), HM order-only, `GET /calculo` ordenado por `orden`
     ascendente, precisión natural `BigDecimal`. Ver
-    [`planes-para-estar-al-dia/03-contrato-apu-actual.md`](planes-para-estar-al-dia/03-contrato-apu-actual.md).
+    `planes-para-estar-al-dia/03-contrato-apu-actual.md`.
   - **DONE 2026-08-30** (Plan 07) — `presupuestoId`, `apuId`,
     `detalleId`, `plantillaId`, `ApuDetalleResponse.insumoId` ya operan
     con UUIDv7 público en path y JSON.
-  - I-06 (P-23 %CI, **P-24 descuento WITHDRAWN — Plan 015 (2026-09-01); sólo sobreviven FORMA 1 (mutación de insumos PROYECTO, MO exenta) y FORMA 2 (edición atómica) — ver [`../../plans/015-retirar-descuento-apu.md`](../../plans/015-retirar-descuento-apu.md)**, P-26 plantillas, P-27 desglose + ET)
+  - I-06 (P-23 %CI, **P-24 descuento WITHDRAWN — Plan 015 (2026-09-01); sólo sobreviven FORMA 1 (mutación de insumos PROYECTO, MO exenta) y FORMA 2 (edición atómica) — ver `../../plans/015-retirar-descuento-apu.md`**, P-26 plantillas, P-27 desglose + ET)
     se cubre en
-    [`planes-para-estar-al-dia/04-plantillas-apu.md`](planes-para-estar-al-dia/04-plantillas-apu.md)
+    `planes-para-estar-al-dia/04-plantillas-apu.md`
     y los planes 04–07 vigentes.
 - Pendiente del motor: GM-21/GM-24 detalles — sin relación con este módulo.
 
@@ -42,9 +44,9 @@ En alcance (endpoints implementados en esta iteración):
 | `PATCH /apus/{apuId}/detalles/{detalleId}` | P-21/P-22 + Plan 03 (`orden`) | `validacion` (incluye `orden` fuera de `[1,count]` o null explícito) · `no-encontrado` · `fila-protegida` (HM acepta solo `orden`; otros campos siguen 409) |
 | `DELETE /apus/{apuId}/detalles/{detalleId}` | P-21 | `no-encontrado` · `fila-protegida` |
 
-Fuera de alcance (I-06 — [`planes-para-estar-al-dia/04-plantillas-apu.md`](planes-para-estar-al-dia/04-plantillas-apu.md),
+Fuera de alcance (I-06 — `planes-para-estar-al-dia/04-plantillas-apu.md`,
 planes 04–07):
-`porcentajeIndirecto` override (P-23), **`/apus/{id}/descuento` (P-24) — WITHDRAWN 2026-09-01, ver Plan 015 ([`../../plans/015-retirar-descuento-apu.md`](../../plans/015-retirar-descuento-apu.md)); sólo sobreviven FORMA 1 (mutación de insumos PROYECTO, MO exenta) y FORMA 2 (edición atómica)**,
+`porcentajeIndirecto` override (P-23), **`/apus/{id}/descuento` (P-24) — WITHDRAWN 2026-09-01, ver Plan 015 (`../../plans/015-retirar-descuento-apu.md`); sólo sobreviven FORMA 1 (mutación de insumos PROYECTO, MO exenta) y FORMA 2 (edición atómica)**,
 plantillas (P-26 — con fallback N04 §B.4), plantilla de proyecto
 (P-46 — N04 §A8, NUEVA), `POST /apus/{id}/duplicar`, **módulo `recalculo`**,
 `/apus/{id}/calculo` (desglose P-27) **cerrado por Plan 03 2026-08-28** (orden
@@ -74,7 +76,7 @@ módulo presupuesto (I-07): aquí se persiste write-through **a nivel APU**
 > `apuAuxiliarId`, `apu_auxiliar_id`, `cdAuxiliar`, `CAMBIO_AUXILIAR` y
 > `ApuValidacionService` **no** forman parte del alcance; un supuesto
 > "auxiliar" se modela como otro APU/rubro independiente. Ver
-> [`estado-actual.md`](estado-actual.md) §2.1.
+> `estado-actual.md` §2.1.
 
 > **`POST /apus/{id}/duplicar` — en [`04-apu-avanzado.md`](04-apu-avanzado.md)
 > §2.3 (dossier §B.7 opción a).** Decisión 2026-08-12 + N04: copia cabecera +
@@ -339,7 +341,7 @@ Expected: nuevas suites verdes; baseline 63 tests (2 rojos GM-19/20 conocidos,
 - **P-25 auxiliares — OBSOLETO/SUPERSEDED** (N04 temporal): `esAuxiliar`,
   `apuAuxiliarId`, `apu_auxiliar_id`, `cdAuxiliar`, `CAMBIO_AUXILIAR`,
   `flag-auxiliar-bloqueado`, D-08 y `ApuValidacionService` no forman
-  parte del alcance. Ver [`estado-actual.md`](estado-actual.md) §2.1.
+  parte del alcance. Ver `estado-actual.md` §2.1.
 - %CI override + herencia proyecto→APU (P-23/D-05) — la infraestructura
   (columna + `ParametrosCalculo`) queda lista; el write-through **global**
   vía `RecalculoService` queda **DEFERRED** (no se crea el módulo). La
@@ -365,7 +367,7 @@ Expected: nuevas suites verdes; baseline 63 tests (2 rojos GM-19/20 conocidos,
   `precisionDinero=2` / `precisionPorcentaje=4` vía `app.display.*` y
   `GET /api/v1/config/display` (**DONE 2026-08-28, Plan 014 T3**). Ver
   [`plans/014`](../../plans/014-motor-precision-no-links.md)
-  y [`docs/modulos/planes-para-estar-al-dia/02`](planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)).
+  y `docs/modulos/planes-para-estar-al-dia/02`).
 - **módulo `recalculo`** (N04 dossier §B.6 — write-through de parámetros,
   edición atómica, descuento global) — **DEFERRED**: no se crea ningún
   módulo nuevo de primer nivel en esta etapa. El write-through local por

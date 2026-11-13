@@ -7,36 +7,6 @@ Read this before touching anything. Terse on purpose; every line pays rent.
 Quarkus backend for a thesis project — a SERCOP propuestas técnico-económicas
 platform. See [`README.md`](README.md) for the human overview.
 
-## Cronograma reference project (I-08 planning only)
-
-For the planning and clarification of I-08 and later cronograma work, use
-`../ingepresupuestos/` as a complementary functional reference. The upstream
-project is <https://github.com/ingelibre/ingepresupuestos>.
-
-This reference is **only an example of cronograma behavior and UX**. It is not
-a normative source and does not authorize copying its Python/PySide6/SQLite
-architecture, code, schema, naming, or complete feature set. This repository
-remains a Quarkus + PostgreSQL backend for the Ecuadorian SERCOP domain, with
-public UUIDv7, internal BIGINT PK/FK, and the canonical decisions in
-`../thesis-docs/`.
-
-Read together with:
-
-- `../thesis-docs/DOCUMENTOS/entrevistas/05/N05_entrevista-cronograma.md` —
-  current business clarifications.
-- `../ingepresupuestos/core/cronograma.py` — CPM, dependencies, lag,
-  non-consecutive segments, and auto-programming examples.
-- `../ingepresupuestos/views/cronograma_view.py` — Gantt, valued schedule,
-  S-curve, editing UX, and MSPDI XML export examples.
-
-Functional ideas to evaluate, not blindly replicate: non-consecutive activity
-periods, editable Gantt bars, a valued spreadsheet-like view, a separate S-curve
-view, incomplete distributions saved as drafts, automatic recalculation with
-visible discrepancy warnings, budget chapter grouping, and Microsoft Project
-interoperability through standard MSPDI XML rather than the proprietary `.mpp`
-binary. Any conflict between the interview, `thesis-docs/`, and this reference
-is a stop condition: document and resolve the decision before coding.
-
 ## The One Rule
 
 **All design decisions live in `../thesis-docs/`.** This repo *implements*
@@ -72,10 +42,10 @@ Do NOT invent English translations. The following terms are canonical:
 | `HM` / `herramienta menor` | minor tools row in EQUIPO section |
 | `base_insumos` | insumo catalog (CENTRAL or PROYECTO scope) |
 | `plantilla_apu` | APU template (SISTEMA or PERSONAL) |
-| `descuento` | **WITHDRAWN per APU** (Plan 015, 2026-09-01). Discount sobrevive únicamente como **FORMA 1** (mutación de las columnas base de los insumos elegibles copiados a la base PROYECTO del proyecto; **MO exenta**, reversible desde la base, regulada por `parametros_sistema.rango_descuento_min/max`) y **FORMA 2** (edición atómica de un insumo ya PROYECTO; sin seam nuevo). |
+| `descuento` | **Retirado por APU** (Plan 015). Sobrevive solo como **FORMA 1** (mutación de las columnas base de los insumos elegibles copiados a la base PROYECTO; **MO exenta**, reversible, regulada por `parametros_sistema.rango_descuento_min/max`) y **FORMA 2** (edición atómica de un insumo ya PROYECTO). |
 | `FORMA 1` / `FORMA 2` | mutually exclusive — FORMA 1 = mutación de la base PROYECTO (`InsumoCrudService.editar` sobre base PROYECTO) con MO exenta; FORMA 2 = edición atómica de un insumo ya PROYECTO. Nunca “monto absoluto”. |
 | `%CI` / `porcentaje_indirecto` | indirect-cost percentage |
-| `CD`, `CD_ajustado`, `CI`, `CT` | `CD` direct cost; `CI` indirect cost; `CT` total cost. `CD_ajustado` queda como sinónimo internal (`CD` cuando `descuento = 0`); **el campo `ApuCalculado.costoDirectoAjustado` se retira en Plan 015** (la aritmética del motor usa `CI = CD × %CI` y `CT = CD + CI`). Los JSON públicos de `ApuCalculoResumen` ya no exponen `cdAjustado` ni `operacionCdAjustado`. |
+| `CD`, `CD_ajustado`, `CI`, `CT` | `CD` costo directo; `CI = CD × %CI` indirecto; `CT = CD + CI` total. `CD_ajustado` es solo sinónimo interno de `CD` (el campo `costoDirectoAjustado` y `cdAjustado` de `ApuCalculoResumen` se retiraron en Plan 015). |
 
 Two roles only: `USUARIO`, `SUPER_ADMIN`. No third role. No middleware roles.
 
@@ -109,7 +79,7 @@ Two roles only: `USUARIO`, `SUPER_ADMIN`. No third role. No middleware roles.
 
 BigDecimal only. `double` and `float` are banned in `motor/`:
 ```bash
-grep -r 'double\|float' src/main/java/ec/uce/propuestas/motor/    # must return zero hits
+grep -r 'double\|float' core/src/main/java/ec/uce/propuestas/motor/    # must return zero hits
 ```
 
 ## Business rule reference (D-01 … D-13, from `design/03-procesos-detalle.md §J`)
@@ -129,7 +99,7 @@ Authoritative decisions. Do not restate. Look up when in doubt:
 
 ## Motor de cálculo — the highest-stakes code
 
-Lives in `src/main/java/ec/uce/propuestas/motor/`. Contract:
+Lives in `core/src/main/java/ec/uce/propuestas/motor/`. Contract:
 
 - **No framework.** No `@Inject`, no `@ApplicationScoped`, no Panache, no
   logging framework. Pure Java, `BigDecimal`, JDK only.
@@ -141,92 +111,43 @@ Lives in `src/main/java/ec/uce/propuestas/motor/`. Contract:
 - **Golden Masters** (`GM-01`…`GM-25`) are the acceptance test. Any GM
   failing → real bug. Do NOT add tolerance, do NOT adjust expected values.
 
-**Current motor status** (cierre parcial USER-DECIDED 2026-08-28 — Plan 014;
-[Plan 015 — DONE 2026-09-01](plans/015-retirar-descuento-apu.md)):
-el motor opera con la **precisión natural de `BigDecimal`**; el workbook
-IESS no aplica redondeo intermedio al APU (las 3 dp visibles son formato de
-display). La **única rounding del motor aplicada** es la frontera
-APU→Rubro en `internal/Consolidador.java` con la regla **workbook-consistent**:
-`precioUnitario = costoTotal.setScale(2, RoundingMode.DOWN)`;
-`precioTotal = cantidad × precioUnitario`, retenido a la escala de
-persistencia 6 (`NUMERIC(14,6)`) con `setScale(6, RoundingMode.HALF_UP)`;
-los totales de capítulo y `totalGeneral` se agregan desde esos `precioTotal`
-a escala 6; el display canónico a 2 dp ocurre solo en la capa de
-presentación/assertion. **No** se trunca cada `precioTotal` a 2 dp — la
-versión previa con `setScale(2, DOWN)` simétrico en PU y PT quedaba
-retirada por deltas sistemáticos `GM19 = -$9.37` y `GM20 cap1 = -$3.09` vs
-workbook IESS (ver STOP conditions de `plans/014`). Display global
-configurable vía `app.display.precision` (default 2) y
-`app.display.precision-porcentaje` (default 4); endpoint público
-`GET /api/v1/config/display` **IMPLEMENTADO** (Plan 014 T3, 2026-08-28 —
-`DisplayConfig` + `DisplayConfigResponse` + `DisplayConfigResource`,
-defaults 2/4 verificados por `DisplayConfigResourceTest` 1/1 +
-`DisplayConfigResourceOverrideTest` 1/1). Validación de entrada `@Digits`
-solo en los campos monetarios de DTO del catálogo cerrado del plan
-(`ApuDetallePatchRequest.precioOverride`, `InsumoCrearRequest.precioUnitario`,
-`InsumoEditarRequest.precioUnitario`; nunca en campos de entidad como
-`tarifaJornal` / `precioUnitarioTarifa`, ni en cantidades, rendimientos
-o porcentajes) — **IMPLEMENTADO** (Plan 014 T4, 2026-08-28, verificado
-por `DigitsValidationCatalogTest` 3/3). Plan 015 retiró el *seam* activo de
-descuento por APU: `motor.ParametrosCalculo.porcentajeDescuento` y
-`motor.ApuCalculado.costoDirectoAjustado` eliminados; aritmética del motor
-queda equivalente a `CI = CD × %CI`, `CT = CD + CI` (identidad con
-`descuento = 0`).
+**Current motor status** (Plan 014, cierre parcial USER-DECIDED 2026-08-28; Plan 015, 2026-09-01):
+el motor opera con la **precisión natural de `BigDecimal`** y la única rounding es la
+frontera APU→Rubro descrita en *Numeric precision* (el workbook IESS no redondea
+intermedios; las 3 dp visibles son formato). Plan 015 retiró el descuento por APU:
+`ParametrosCalculo.porcentajeDescuento` y `ApuCalculado.costoDirectoAjustado` ya no
+existen y la aritmética es `CI = CD × %CI`, `CT = CD + CI`. `@Digits` solo en los campos
+monetarios de DTO del catálogo cerrado (`ApuDetallePatchRequest.precioOverride`,
+`InsumoCrearRequest.precioUnitario`, `InsumoEditarRequest.precioUnitario`); nunca en
+campos de entidad, cantidades, rendimientos ni porcentajes.
 
-**Baseline post-implementación (2026-09-01 — Plan 015 DONE + Plan 020
-ACTIVATED; suite completa / Spotless / build siguen pendientes, no se
-reclaman)**
-`./gradlew test --tests 'ec.uce.propuestas.motor.*' --console=plain` →
-**45 tests** totales: **42 verdes** + **2 rojos** (GM-19 `-$6.95`, GM-20
-cap. 1 `-$0.84` — residuales aceptados) + **1 omitido** (GM-24 `@Disabled`
-por fixture upstream EMELNORTE). Desglose: `MotorApuTest` 21/21;
-`MotorConsolidacionTest` 2/4 (GM-21 verde con allowlist 11 ≤ 0.03; GM-19,
-GM-20 rojos); `MotorPropiedadesTest` 5/5
-(`costoIndirecto_aplica_sobre_CD_y_depende_de_pct_ci`);
-`ConsolidadorFronteraTest` 5/5; `SnapshotSinAuxiliaresTest` 6/6;
-`DescuentoRetiradoMotorTest` 4/4. **No** se reabre el motor para cerrar
-los residuales; workbook, golden expected values, tolerancias y fórmulas
-del motor quedan cerradas. Preferencia del usuario: este es **un example
-workbook único**; no se realizan auditorías exhaustivas per-rubro.
+**Baseline del motor:** **45 tests = 42 verdes + 2 rojos aceptados** (GM-19 `-$6.95`,
+GM-20 cap. 1 `-$0.84`; Plan 014, causa sin diagnosticar) **+ 1 omitido** (GM-24
+`@Disabled`, fixture EMELNORTE upstream). **No** se reabre el motor para cerrarlos;
+workbook, golden expected values, tolerancias y fórmulas quedan cerradas. Preferencia
+del usuario: un único example workbook, sin auditorías exhaustivas per-rubro.
 
-**Módulo `recalculo` (Plan 020, DONE 2026-09-01):** módulo profundo
-`ec.uce.propuestas.recalculo` activo con interfaz
-`recalcular(Alcance)`; `Alcance = Version | Apu | Insumo` (sealed
-interface). `Motor` invocado estáticamente (CDI nunca);
-`VersionSnapshotBuilder` permanece en `recalculo/internal` (`public` por
-límite de subpaquete Java, no es seam). `RecalculoServiceIT` 4/4 verdes
-(TDD focal con `@QuarkusTest` + Dev Services; `Motor` real, sin mocks).
-Pre-requisito = Plan 015 DONE.
+**Módulos construidos sobre el motor** (detalle por plan en el historial git y en
+`plans/README.md`; los conteos de tests se miden, no se citan aquí):
 
-**Plan 021 (DONE 2026-09-01) — Ciclo de vida del presupuesto (auto-create v1 vigente, listado, read model):** módulo `presupuesto` activo con auto-create de la fila `presupuesto(version=1, es_vigente=true)` orquestado desde `ProyectoService.crear` en la misma `@Transactional` (sin seam nuevo — gap detectado por la auditoría del plan, ejecutado en este mismo plan); `GET /proyectos/{id}/presupuestos` (lista de versiones, owner-scoped) servido por `ProyectoResource`; `GET /presupuestos/{id}` (read model **recursivo** del árbol `Presupuesto → Capitulo → Rubro`) servido por `PresupuestoResource` (split por cohesión); DTOs `PresupuestoVersionResponse` / `PresupuestoResponse` / `CapituloResponse` / `RubroResponse` con mappers estáticos; `alertas` (`PU_CERO`, etc.) **diferido a Plan 025** y por tanto **no** forma parte del shape inicial de `RubroResponse`; `ParametrosProyecto` y `BaseInsumos` permanecen lazy (fuera de scope del read model). **Evidencia (medida tras retoques fixture-only):** `PresupuestoResourceIT` **9/9 verde**, `ProyectoResourceIT` **8/8 verde** (TC-P06-01 verifica el auto-create), `RecalculoServiceIT` **4/4 verde** (sin regresión); `./gradlew spotlessCheck` **verde**, `./gradlew build -x test` **verde**, `git diff --check` **limpio**; suite completa re-ejecutada **346 totales = 343 pass + 2 aceptados (GM-19 `-$6.95`, GM-20 cap. 1 `-$0.84`) + 1 skipped (GM-24 `@Disabled`) + 0 errors**. DAG I-07 sigue desbloqueado.
+| Módulo / paquete (`ec.uce.propuestas.…`) | Planes | Invariantes vigentes |
+|---|---|---|
+| `recalculo` | 020 | Interfaz `recalcular(Alcance)` con `Alcance = Version \| Apu \| Insumo` (sealed). `Motor` se invoca **estáticamente, nunca por CDI**. `VersionSnapshotBuilder` queda en `recalculo/internal` (no es seam). Cada mutación de presupuesto cierra con `recalcular(new Alcance.Version(id))` tras `flush()`. |
+| `presupuesto` (`dto`, `resource`, `service`) | 021–025 | `ProyectoService.crear` auto-crea `presupuesto(version=1, es_vigente=true)` en la misma transacción. Capítulos: numeración jerárquica en backend, renumeración atómica en dos pasadas (aparcar con prefijo `~<id>` + `flush()`, luego asignar) por `UNIQUE (presupuesto_id, item)`. Rubros: D-09, cantidad > 0. `totalGeneral` sale de `presupuesto.total` (incluye CI y rounding de frontera). Versionado: deep copy transaccional con UUIDv7 frescos, lock pesimista de la fila `proyecto`, índice único parcial `ux_presupuesto_vigente`; la vigente no se elimina (409 `version-vigente-protegida`). Validación P-32 sin entidad JPA `Actividad`/`Cronograma` (SQL nativo acotado). |
+| `cronograma` | 026–031 | Configuración, actividades/segmentos, vistas y curva S; preflight P-37 antes de exportar. |
+| `usuario.audit` | 033, 038, 039 | `LogActividadService.emitir` es `@Transactional(MANDATORY)`; el evento D-13 se emite **solo tras éxito** y dentro de la transacción de la operación; catálogo cerrado `EventoLogActividad`; sin PII, BIGINT ni secretos en `detalle`. `proyecto.duplicado` sigue sin productor (P-09 no existe). |
+| `usuario.admin`, `plantilla.admin`, `proyecto.admin`, bases centrales | 034–037 | Todo bajo `@RolesAllowed("SUPER_ADMIN")`. Invitación: token 72 h (`TokenService`) y contraseña temporal descartada tras hashear; borrar usuario con proyectos → 409 `usuario-con-proyectos-impedido`. `GET/PUT /proyectos/parametros-sistema` cambia solo proyectos nuevos (`parametros_proyecto` se materializa al crear). |
+| `insumo`, `plantilla`, `apu` (búsqueda y bases) | 041–044 | Orden natural de `item` (no `ORDER BY item` de SQL); bases PERSONAL y plantillas de proyecto SISTEMA. |
 
-**Plan 022 (DONE 2026-09-01) — CRUD del árbol de capítulos (P-28):** recurso dedicado `ec.uce.propuestas.presupuesto.resource.CapituloResource` con `@Path("/presupuestos/{presupuestoId}/capitulos")` y los 4 verbos `POST / PUT /{capituloId} / PATCH /{capituloId}/mover / DELETE /{capituloId}` (todas las rutas llevan `presupuestoId` por contrato — split por cohesión frente a `PresupuestoResource`, que sólo sirve el read model de Plan 021). DTOs `CapituloCrearRequest` / `CapituloEditarRequest` con `@NotBlank @Size(max=255)` en `descripcion`; `CapituloMoverRequest` con `@NotNull @Min(1) orden` y rechazo explícito de `orden` fuera de `[1, hermanos+1]` vía `CapituloService.validarPosicion` → 400 `validacion`. Numeración jerárquica autogenerada en backend (`item = orden` raíz; `item = padre.item + "." + orden` sub); renumeración atómica en dos pasadas sobre **entidades gestionadas** (`CapituloService.renumerarArbol`): pasada 1 aparca cada item que cambia bajo el prefijo `~<id>` (espacio de nombres disjunto, ≤ 19 chars en `VARCHAR(20)`) + `flush()`; pasada 2 asigna los items definitivos — sin ese aparcado, permutar hermanos o cruzar padre violaría `UNIQUE (presupuesto_id, item)` a mitad del flush. Detección de ciclos self/descendiente con `CapituloRepository.esDescendienteOigual` (recorrido `findById` por la cadena de padres en memoria, STOP (A) del plan activado — `WITH RECURSIVE` descartado por profundidad ≤ 4 IESS). `DELETE` cascadea por FKs Postgres (`capitulo.parent_id` + `rubro.capitulo_id` `ON DELETE CASCADE`); los APUs sobreviven porque `rubro.apu_id → apu.id` es `ON DELETE RESTRICT` y al cascadear rubros el catálogo `apu` queda intacto (D-09 + V001 §3). Cada mutación termina con `RecalculoService.recalcular(new Alcance.Version(presupuestoId))` (siempre tras `flush()`) y devuelve el `PresupuestoResponse` completo y fresco. **Evidencia (medida):** `CapituloResourceIT` **30/30 verde** (TC_P22_01…30 — incluye 03/15/29/30 para permutación de hermanos, 16/26 para renumeración de subárbol de profundidad 3, 17/18 para ciclos self/descendiente, 21 para cascade + `apuSigueExistiendo(apuId) == 1L`, 27 para owner-scope 404); `PresupuestoResourceIT` **9/9 verde** (sin regresión); `RecalculoServiceIT` **4/4 verde** (sin regresión); `apu.*` **49/49 verde** (sin regresión); motor **45 = 42 verdes + 2 rojos aceptados (GM-19 `-$6.95`, GM-20 cap. 1 `-$0.84` — residuales aceptados por Plan 014, no se reabre el motor) + 1 skipped (GM-24 `@Disabled`)**; suite completa **376 totales = 373 pass + 2 aceptados (GM-19 + GM-20) + 1 skipped (GM-24) + 0 errors**; `./gradlew spotlessCheck` verde, `./gradlew build -x test` verde, `git diff --check` limpio. DAG I-07 sigue desbloqueado.
+Invariantes transversales: **owner-to-404** (RNF-05: un recurso ajeno responde 404, no 403);
+**UUIDv7 en la frontera REST** (malformado o no-v7 → 400 `validacion`; el BIGINT interno
+nunca sale en DTOs); errores canónicos `validacion` / `no-encontrado` / `conflicto`.
 
-**Plan 023 (DONE 2026-09-01) — Rubros, totales y resumen P-30:** `RubroResource` implementa crear, editar cantidad y eliminar con UUIDv7/owner-scope, D-09, cantidad > 0, items compactos y write-through por `Alcance.Version`; `ResumenComponentesResource` es read-only y usa `ApuCalculoService.calcular`: M/N/O/P son contribuciones directas, mientras `totalGeneral` proviene de `presupuesto.total` porque incluye CI y rounding de frontera; IVA referencial se aplica sobre ese total. Evidencia: rubros 19/19, resumen 12/12, capítulos 31/31, presupuesto 9/9, cálculo read-only 3/3; suite **411 = 408 verdes + GM-19/GM-20 aceptados + GM-24 omitido**, Spotless/build/diff verdes.
-
-**Plan 024 (DONE 2026-09-01) — Versionado de presupuesto (P-31):** módulo `presupuesto` completo con deep copy, vigente única, comparación y eliminación protegida. Toda la implementación vive bajo `ec.uce.propuestas.presupuesto.{dto,resource,service}`: `VersionadoService` (deep copy + marcar vigente + eliminar + comparación), `PresupuestoVersionResource` (crear), `PresupuestoVigenciaResource` (marcar vigente + eliminar), `ComparacionResource` (comparación), DTOs `PresupuestoVersionCrearRequest`, `ComparacionVersionesResponse`, `ComparacionItem`, `CapituloRaizComparacion`. Deep copy con una sola `@Transactional` que recorre el origen (BFS), reinserta con UUIDv7 públicos frescos y remapea FKs BIGINT internas (`presupuesto` → `capitulo` con `parent_id` → `rubro` → `apu` nuevo por rubro → `apu_seccion` (4) → `apu_detalle`); preserva referencias compartidas a `insumo` (no se copian) y la APU ET; cierra con `RecalculoService.recalcular(new Alcance.Version(nuevoId))` para que `presupuesto.total` / `capitulo.total` / `rubro.precio_total` coincidan bit-a-bit con el origen (TC-P31-01 tolerancia 0.00). Las filas `cronograma` / `actividad` aún no son entidades JPA (I-08/I-09) pero DM §3 / P-31 exige copiarlas, así que el deep copy las copia con **SQL nativo** dentro de `VersionadoService` (FK remapeada al nuevo `presupuesto_id` / `rubro_id`, misma transacción); sin entidades nuevas, sin migraciones, sin seam. La columna inert `apu.porcentaje_descuento` (Plan 015) no se mapea ni se copia; queda con default 0. Lock pesimista de fila `proyecto` (`PresupuestoRepository.lockProyectoRow`: `SELECT id FROM proyecto WHERE id = ? FOR UPDATE`) serializa `max(version)+1` y los toggles `es_vigente`; el índice único parcial `ux_presupuesto_vigente` (V001 §2.8) sigue garantizando «exactamente una vigente por proyecto». `owner-to-404` (RNF-05) y D-09 preservados en todos los recursos; UUIDv7 malformado / no-v7 → 400 `validacion`. Recursos REST: `POST /proyectos/{proyectoId}/presupuestos` (201), `POST /presupuestos/{id}/vigente` (200), `DELETE /presupuestos/{id}` (204 / 409 `version-vigente-protegida`), `GET /presupuestos/{id}/comparar?con=<UUIDv7>` (lado a lado con `porCapituloRaiz`, 400 si mismo id o distinto proyecto). **Evidencia (medida):** `VersionadoResourceIT` **14/14 verde** (success, error, independencia origen↔copia, cascade, UUIDv7, owner scope); tests de deep-copy **0.785 s** y **0.850 s** sobre fixture compacto representativo (sin benchmark específico del árbol IESS completo); `./gradlew test --tests 'ec.uce.propuestas.presupuesto.*' ...` → **85/85 verde**; regresiones APU y `recalculo` verdes; motor **45 = 42 verdes + 2 rojos aceptados (GM-19 `-$6.95`, GM-20 cap. 1 `-$0.84` — Plan 014, no se reabre el motor) + 1 skipped (GM-24 `@Disabled`)**; `./gradlew spotlessCheck` verde; `./gradlew build -x test` verde (31 deprecation warnings preexistentes, sin error de build); `./gradlew test` (suite completa) → **425 totales = 422 verdes + 2 rojos aceptados (GM-19 + GM-20) + 1 skipped (GM-24) + 0 errors**. `git diff --check` limpio y `graphify update .` finalizado correctamente. **No** se ejecutó commit unitario (instrucción explícita del orquestador). DAG I-07 sigue desbloqueado.
-
-**Plan 025 (DONE, 2026-09-01) — Validación de integridad P-32, Bruno y cierre del módulo I-07:** implementación efectiva del endpoint `GET /presupuestos/{presupuestoId}/validacion` (UUIDv7 validado en frontera con `UuidV7.parse`, owner-scope, errores canónicos 400 `validacion` / 404 `no-encontrado`, roles `USUARIO`/`SUPER_ADMIN`, sin `@Transactional` read-only). DTOs `ValidacionPresupuestoResponse` y `RubroRefResponse` (4 campos exactos: `id` UUIDv7, `item`, `codigo`, `descripcion` — sin fugas de `BIGINT` ni de `RubroResponse`). `ValidacionPresupuestoService.validar(UUID, Long)` computa tres listas independientes: `itemsPuCero` (filtro `precioUnitario = 0`), `itemsCantidadCero` (filtro `cantidad = 0`) y `itemsSinActividad` (rubros cuyo `id` NO esté en `PresupuestoRepository.findRubrosCubiertosPorCronograma(p.id)`, SQL nativo narrow con JOIN `cronograma`, mirror del deep copy Plan 024 — **sin entidad JPA `Actividad`/`Cronograma`, sin V009, sin seam nuevo**). Cada lista se ordena por `(item asc, publicId.toString())` y `exportable = itemsPuCero.isEmpty() && itemsCantidadCero.isEmpty() && itemsSinActividad.isEmpty()`. Regla locked: si el presupuesto no tiene cronograma, el conjunto de cubiertos es vacío y TODOS los rubros quedan en `itemsSinActividad` (TC-P32-04). `PresupuestoValidacionResourceIT` con **13 tests escritos primero** (TC-P32-01..13: defectos ortogonales, presupuesto vacío, versión válida, sin cronograma, defectos múltiples, orden determinista, forma `RubroRefResponse`, UUID malformado, UUIDv4 → 400, UUIDv7 inexistente → 404, caller ajeno → 404, aislamiento cross-presupuesto, read-only tras N invocaciones). Bruno `api/bruno/10-presupuesto/` autocontenido (23 requests: 5 helpers `TC-10-00a..00e` + 18 casos temáticos `TC-10-01..15` con P-28 desglosado en 4 sub-casos `TC-10-02a..02d`, P-29/P-30/P-31/P-32 + 3 negativos `TC-10-13..15` cubriendo UUIDv7/owner-scope) con `folder.bru` propio y `api/bruno/environments/dev.bru` extendido con vars runtime `p25*` (NO se crea `10-presupuesto/environments/`, Bruno carga el environment compartido). Bruno dinámico contra PostgreSQL 18 limpio + fast-jar: **23/23 requests, 83/83 tests asserts, 0 failures, 0 errors, 0 skips, 4.554 s CLI / 6.070 s wall, Bruno CLI 4.1.0**. El archivo raíz inválido `api/bruno/collection.bru` (no-op rechazado por el parser 4.1) fue removido antes de la corrida dinámica; el environment compartido `dev.bru` se mantiene libre de comentarios; los tests `assert` de los requests usan `bru.getVar(...)` mientras la interpolación de cuerpo conserva `{{...}}`. `api/bruno/README.md` actualizado con tabla de todas las colecciones y guía de ejecución de `10-presupuesto/`. `graphify query` preflight ejecutado; `graphify update .` final **DONE — 2.972 nodos / 9.064 aristas / 141 comunidades** (lo ejecuta el orquestador al cierre; sin `codegraph init` lifecycle, sin `uninit`/`install`/`uninstall`/`upgrade`). `docs/modulos/05-presupuesto/00-analisis-reevaluacion.md` con `NEEDS ADJUSTMENT` cerrado antes de implementar (sin `Actividad.java` JPA, regla `itemsSinActividad` poblada por defecto cuando no hay cronograma, 23 requests Bruno en lugar de ~6–8). **NO** se ejecuta commit unitario ni merge (instrucción explícita). **NO** se reabre motor / V001–V008 / `recalculo` / `apu` / `proyecto/`. **Evidencia medida (2026-09-01):** `PresupuestoValidacionResourceIT` 13/13; `./gradlew test --tests 'ec.uce.propuestas.presupuesto.*'` 98/98; APU 52/52; `recalculo` 4/4; motor 45 = 42 pass + 2 aceptados (GM-19 `-$6.95`, GM-20 cap. 1 `-$0.84`) + 1 skipped (GM-24 `@Disabled`) + 0 errors; suite completa **438 = 435 pass + 2 aceptados + 1 skipped + 0 errors**; `./gradlew spotlessCheck` PASS; `./gradlew build -x test` PASS; `git diff --check` limpio. Sin bloqueos correctivos identificados en Plans 019–024; las dos observaciones de auditoría no son defectos: `TRUNCATE ... CASCADE` cubre el reset de `cronograma`/`actividad` (no entidades JPA en este módulo) y D-09 (1:1 APU↔rubro por versión) implica que los códigos APU son únicos por presupuesto. Tras cierre Plan 025, la **siguiente tarea de planificación** es **Plan 026 (I-08 — cronograma CRUD)**, que aún **no** existe como archivo ejecutable y debe autorarse en su propia sesión.
-
-**Plan 032 (DONE, 2026-09-07) — Gate documental I-11 (acta e inventario admin):** sin código; firma del acta de reconciliación canónica del panel Super-Admin (`docs/modulos/panel-admin/00-acta-reconciliacion.md`) y publicación del inventario operativo (`docs/modulos/panel-admin/00-inventario-trabajo.md`). 21 decisiones locked (20 originales + adenda firmada D-21); 15 STOP con disposición (10 CLOSED + 4 DEFERRED a I-12 + 1 CLOSED con gate RED-first en 035); 26 eventos D-13 verbatim; matriz canónica `evento → detalle`; paridad P-38…P-42; 19 filas log V004 (4 legacy); 4 seeds `valor_referencia`. Drift de `07-api-contract.md §1/§9` corregido (registrado; aplicación pendiente del padre). Verificación: `git diff --name-only -- 'src/**'` y `'src/main/resources/db/migration/**'` ambos vacíos; acta firmada; 26 grep matches uno por evento literal; sin totales hardcodeados.
-
-**Plan 033 (DONE, 2026-09-08) — Fundación P-42 (Log de actividad — base):** paquete `ec.uce.propuestas.usuario.audit` (subpaquete del módulo `usuario`, sin seam nuevo de primer nivel); enum `EventoLogActividad` con **26 entradas verbatim** (sin los 4 legacy V004) y `detallesEsperados()` materializando la matriz del acta 032; `LogActividadDetalleValidator` (rechaza evento desconocido con `IllegalArgumentException`; clave de detalle no permitida con `IllegalStateException`; valor acotado fuera del conjunto cerrado con `IllegalStateException`); `LogActividadService.emitir(...)` con `@Transactional(TxType.MANDATORY)` (fuera de tx exterior lanza `jakarta.transaction.TransactionalException` estándar sin wrapper propio); entidad JPA `LogActividad` con `publicId` UUIDv7 (V010) + `entidadPublicId` UUIDv7 nullable (V010; sin FK, sin DEFAULT, sin UNIQUE — D-21; los logs sobreviven al borrado de la entidad afectada) + `entidadIdLegacy` BIGINT nullable (mapea la columna V001 `entidad_id`, **sin** exponerla en el DTO); `detalle` JSONB persistido como `String` vía `ObjectMapper`; `LogActividadRepository` con filtros `usuarioId`/`evento`/`desde`/`hasta` + paginación `count(*)` separado; `LogActividadResource` con `GET /admin/logs` (`@Path("/admin/logs")` + `@RolesAllowed("SUPER_ADMIN")`) con validación Bean de paginación y filtro `evento` regex `[a-z0-9._-]{1,60}`; `LogActividadResponse` (`id` UUIDv7, `usuarioId` UUIDv7 nullable, `usuarioNombre`, `evento`, `entidad` nullable, `entidadId` UUIDv7 nullable mapeado **solo** desde `entidadPublicId`, `detalle` Map, `fecha` Instant). **Migración aditiva única** `V010__log_actividad_identidad_publica.sql` añade **ambas** columnas (`public_id` con UNIQUE + trigger `trg_log_actividad_public_id_immutable` reusando `fn_assert_public_id_immutable()` V001 §5; `entidad_public_id` sin FK). **NO** se edita V001–V009. **Evidencia (medida, 2026-09-08):** `LogActividadServiceTest` + `LogActividadSinPiiTest` + `LogActividadIndicesTest` + `EventoLogActividadTest` + `LogActividadDetalleValidatorTest` focal **26/26 verde**; `LogActividadResourceIT` (TC-P42-01..02 con filtro `evento` charset/longitud, USUARIO 403, legacy V004 legible pero no admitido al enum) verde; regresión `ec.uce.propuestas.usuario.*` completa **51/51 verde** (incluye auth, perfil, registro, login, logout, reset, invitación); suite completa con `test-port=0` autoritativa: **673 tests** = **670 verdes** + **2 rojos aceptados** (GM-19 `-$6.95`, GM-20 cap. 1 `-$0.84` — Plan 014, no se reabre el motor) + **1 skipped** (GM-24 `@Disabled` por fixture EMELNORTE upstream) + **0 errors**. **`spotlessCheck` PASS**, **`build -x test` PASS**, **`git diff --check` limpio**. V010 sin FK sobre `entidad_public_id`. Sin commit unitario. DAG I-11 desbloqueado para 034–040.
-
-**Plan 034 (DONE, 2026-09-08) — Gestión de usuarios e invitaciones (P-38 / US-35 / TC-P38-01..03):** paquete `ec.uce.propuestas.usuario.admin` con `UsuarioAdminService` + `UsuarioAdminResource` (`@Path("/admin/usuarios")` + `@RolesAllowed("SUPER_ADMIN")` a nivel de clase). Implementa el contrato exacto del acta 032 D-04 (decisión 31 del plan): **32 bytes aleatorios** del `SecureRandom` canónico de la JVM → **Base64URL sin padding** (`Base64.getUrlEncoder().withoutPadding()`) como portador efímero → **hash bcrypt único** a través del `PasswordService` existente → **descarte inmediato** del `byte[]` (sobreescrito a `0`) y del `String` portador (fuera de alcance al retornar del método, GC). El algoritmo se ejecuta **únicamente** al crear usuarios invitados; **no** se regenera en login, logout, cambio de contraseña, ni en ningún otro flujo posterior. El token de invitación 72 h viaja por el `TokenService` existente (`SHA-256`, TTL `app.auth.invitacion-ttl: PT72H`, `TipoToken.INVITACION`); token y contraseña temporal son **dos secretos independientes**. **No** se introduce helper `RandomUtil`; el `SecureRandom` de la JVM es la única fuente aleatoria. Endpoints: `GET /admin/usuarios` (listado paginado con `q` ILIKE escapado y `activo` Boolean, orden `createdAt desc, id asc` estable), `GET /admin/usuarios/{id}`, `POST /admin/usuarios` (invitación 72 h sin contraseña temporal), `PUT /admin/usuarios/{id}` (edición sin `email` — decisión 6 del acta 032), `POST /admin/usuarios/{id}/desactivar` y `POST /admin/usuarios/{id}/reactivar` (con `@Consumes(MediaType.WILDCARD)` para aceptar body vacío), `DELETE /admin/usuarios/{id}`. **`DELETE` con proyectos propios** (FK RESTRICT V001 §3 `proyecto_usuario_id_fkey`) captura `org.hibernate.exception.ConstraintViolationException` / `PersistenceException` / `SQLException` con SQLSTATE `23503` y/o mensaje `violates foreign key constraint` / `fk_proyecto_usuario` y la mapea a **409 `usuario-con-proyectos-impedido`** (`esViolacionForeignKey(...)` recorre la cadena de causas). DTOs `UsuarioAdminResponse` (record canónico con `id` UUIDv7, `nombre`, `email`, `rol`, `activo`, `emailVerificado`, `fechaCreacion` Instant — sin `passwordHash`, sin `tokenHash`, sin `invitacionExpiraEn`), `UsuarioInvitarRequest` (`@NotBlank @Size(max=200) nombre`, `@NotBlank @Email @Size(max=320) email`, `@NotNull Rol rol`), `UsuarioAdminEditarRequest` (sin `email`). Errores canónicos: 400 `validacion` (email-invalido, rol-invalido, nombre-requerido, uuid-invalido, tamano-pagina-invalido, evento-largo, evento-formato-invalido), 404 `no-encontrado` (UUIDv7 sin fila), 409 `conflicto` (`email-ya-registrado`, `usuario-con-proyectos-impedido`), 403 `forbidden` (caller `USUARIO`). Emisión D-13 (decisión 32) a través de 033 dentro de la misma `@Transactional` exterior: `usuario.invitado` con `detalle.tokenExpiraEn` ISO-8601 (entidadId top-level = UUIDv7 del `Usuario` invitado); `usuario.desactivado`/`usuario.activado` con `detalle.origen=admin` (entidadId = UUIDv7 del usuario afectado). `UsuarioRepository` extendido con `findByPublicId(UUID)` (admin sin owner-scope), `listar(String, Boolean, int, int)` (ILIKE escapado con `!` como carácter de escape para evitar ambigüedad en el parser HQL/JPQL — HQL rechaza `escape '\\'` como escape literal de dos caracteres; orden estable secundario `id asc`), `contar(...)`. **Decisiones deferidas a I-12** (no se codifican): self-delete, last-active-SUPER_ADMIN, cambio de email admin, primer SUPER_ADMIN bootstrap — `STOP-034-SUPERFICIE-ABIERTA` cerrado. **Evidencia (medida, 2026-09-08):** `UsuarioAdminResourceIT` **18/18 verde** (TC-P38-01 invitación/aceptación/duplicado/validación; TC-P38-02 desactivar/login-403/reactivar/login-200 + uuid-inválido/inexistente; PUT edición sin email; TC-P38-03 DELETE con proyectos → 409 `usuario-con-proyectos-impedido` con test focal FK + DELETE sin proyectos → 204; listado paginado con `q` y `activo`; orden estable; `USUARIO` 403); `LogActividadEmisionUsuarioTest` **6/6 verde** (emisión `usuario.invitado` con `detalle.tokenExpiraEn` ISO-8601; emisión `usuario.desactivado`/`usuario.activado` con `detalle.origen=admin`; invariante de idempotencia; email duplicado NO emite evento; claves canónicas `detallesEsperados()`); `UsuarioAdminSinContrasenaTemporalTest` **1/1 verde** (`STOP-034-CONTRASENA-TEMPORAL` cerrado: 10 invitaciones, 0 matches regex `(?i).*(password|contrase|clave|temporal|randombytes|temp_pwd|tempassword).*` en DTOs ni en `RecordingEnviadorCorreo`, token Base64URL exacto de 43 chars). Regresión `ec.uce.propuestas.usuario.*` completa **verde, 0 failures/errors/skips** (incluye 033 audit, auth, perfil, registro, login, logout, reset, invitación). Suite completa autoritativa con `test-port=0`: **698 tests** = **695 verdes** + **2 rojos aceptados** (GM-19 `-$6.95`, GM-20 cap. 1 `-$0.84` — Plan 014, no se reabre el motor) + **1 skipped** (GM-24 `@Disabled`) + **0 errors**. **`spotlessCheck` PASS**, **`build -x test` PASS**, **`git diff --check` limpio**. Ninguna migración nueva; `motor/`, `recalculo/`, `auth/`, V001–V010 intactos. `grep -RInE 'temporalPassword|contrasenaTemporal|passwordTemporal|tempPassword' src/main/java/ec/uce/propuestas/`: **0 matches**. `grep -RInE 'RandomUtil' src/main/java/ec/uce/propuestas/usuario/admin/`: **0 matches**. `graphify update .` ejecutado. Sin commit unitario. DAG I-11 sigue desbloqueado; Plan 035 quedó ejecutado después de este cierre.
-
-**Plan 035 (DONE, 2026-09-08) — Bases centrales (P-39 / US-36 / TC-P39-01..03):** cierre estrecho de Plan 015bis con listado admin paginado en forma canónica `Page<T>`, validación `page`/`size`, conteo real de referencias `apu_detalle` para responder 409 `insumo-en-uso`, y emisión D-13 `admin.base_editada` en las ocho mutaciones exitosas; GET, `soloValidar=true` y rechazos no emiten. El fixture con referencia directa de `apu_detalle` a CENTRAL es cobertura defensiva de corrupción/datos heredados; el flujo normal A9 copia a PROYECTO. **Evidencia medida:** RED focal 41 tests = 18 failures + 0 errors/skips (9 auditoría y 9 recurso); GREEN focal fresco con `--rerun-tasks` **41/41** (`AdminBaseCentralResourceIT` 29 + `AdminBaseCentralLogAuditoriaIT` 12); regresión dirigida `insumo.*` fresca **74/74**, 0 failures/errors/skips; el primer `spotlessCheck` encontró únicamente cuatro archivos Java de Plan 035 sin normalizar, `spotlessApply` los corrigió y el check posterior pasó dentro de `build -x test`; `build -x test` **PASS**; suite completa fresca **715 = 712 pass + 2 failures aceptados (GM-19/GM-20) + 1 skipped (GM-24), 0 errors**; `git diff --check` limpio; sin cambios en migraciones, `motor/` ni `recalculo/`. `graphify update .` finalizado: **4.453 nodos / 13.555 aristas / 182 comunidades**. Sin commit. Plan 036 fue ejecutado posteriormente.
-
-**Plan 036 (DONE, 2026-09-08) — Plantillas APU de sistema (P-40 / US-37 / TC-P40-01):** paquete `ec.uce.propuestas.plantilla.admin` con `PlantillaApuAdminService` + `PlantillaApuAdminResource` (`@Path("/admin/plantillas-apu")`, `@RolesAllowed("SUPER_ADMIN")`) entrega listado paginado y CRUD SISTEMA. `POST` crea desde cualquier APU UUIDv7 existente mediante el lookup administrativo estrecho `ApuRepository.findByPublicId`, usado después del control de rol; el flujo público conserva owner-scope. PERSONAL y SISTEMA comparten `PlantillaApuService.serializarSnapshotDesdeApu(Apu)` → `SnapshotApuMapper` price-free, sin modificar el mapper; snapshots sin precios efectivos, IDs internos ni enlaces al APU origen. DTOs rechazan campos desconocidos/server-authored con 400; `descripcion_rubro TEXT` queda sin tope artificial. `admin.plantilla_editada` se emite solo en crear/editar/borrar exitosos con `operacion` y `tipo=SISTEMA`. **Evidencia:** RED focal 7/7 failures; GREEN admin **10/10**; regresión `plantilla.*` **85/85**; `spotlessCheck` y `build -x test` PASS; suite completa **725 = 722 pass + GM-19/GM-20 aceptados + GM-24 skipped, 0 errors**; diff limpio; sin migraciones ni cambios en `motor/`, `recalculo/` o `SnapshotApuMapper`; `graphify update .` finalizó con **4.529 nodos / 13.836 aristas / 185 comunidades**; sin commit. **Siguiente plan autorizado: 037**.
-
-**Plan 037 (DONE, 2026-09-08) — Parámetros del sistema y valores de referencia (P-41 / US-38 / TC-P41-01..02):** `GET/PUT /proyectos/parametros-sistema` conserva su ruta canónica y usa `ParametrosSistemaResponse` completo; la actualización bloquea pesimistamente el singleton y emite D-13 `admin.parametros_editados` solo ante cambios efectivos, con diff numérico estable. `ProyectoService.crear` materializa transaccionalmente los 12 defaults en `parametros_proyecto`, por lo que cambios globales solo alcanzan proyectos nuevos. `ec.uce.propuestas.proyecto.admin` entrega CRUD/upsert paginado `SUPER_ADMIN` de `/admin/valores-referencia`; acepta cualquier clave única con `fuente` no blank, conserva las 4 filas V004 y expone `actualizado`. Los valores son informativos y una prueba arquitectónica impide dependencias desde `motor/`. **Evidencia:** RED focal 7 tests con 6 fallos esperados; GREEN focal **7/7**; regresión `proyecto.*` **25/25**; suite completa **732 = 729 pass + 2 failures aceptados (GM-19/GM-20) + 1 skipped (GM-24), 0 errors**; Spotless/build/diff PASS; sin cambios en migraciones, `motor/` ni `recalculo/`. Sin commit. **Siguiente plan autorizado: 038**.
-
-**Plan 038 (DONE, 2026-09-08) — Instrumentación D-13 de identidad y catálogos:** los servicios transaccionales existentes de `auth`, `proyecto`, `insumo`, importación/copia de bases y `apu` emiten a través de `LogActividadService` (Plan 033) únicamente tras operaciones exitosas. Se cubren los 16 nombres únicos previstos más el camino adicional `usuario.activado` con `origen=invitacion`; `proyecto.duplicado` permanece explícitamente `no producer yet` porque el seam P-09 no existe. Importación CSV usa un seam interno sin auditoría por fila para producir solo `insumos.import_csv`; eventos de insumos se restringen a bases PROYECTO para no duplicar `admin.base_editada`; `apu.editado` cubre cabecera, `%CI` y ET, no filas de detalle. UUIDv7 se registran como identidad pública, sin BIGINT, PII ni secretos. **Evidencia medida:** focal `Plan038LogActividadIT` 6/6; regresión conjunta `usuario.*` + `proyecto.*` + `insumo.*` + `apu.*` 234/234; suite completa **738 = 735 verdes + 2 rojos aceptados** (GM-19/GM-20) + **1 omitido** (GM-24) + 0 errors; Spotless/build/diff PASS. Sin migraciones ni cambios en `motor/` o `recalculo/`; sin commit. Siguiente plan autorizado: 039.
-
-**Plan 040 (DONE técnico, 2026-09-09) — Integración y piloto SUS:** I-11 queda cerrado técnicamente; 25 eventos runtime cubiertos, `proyecto.duplicado` sigue `no producer yet`, Bruno 16/16 requests y 27/27 tests JS. El piloto SUS 1–2 queda pendiente por falta de participantes; no se fabrican resultados. Siguiente paso: planificar I-12 en sesión futura.
-
-**Plan 039 (DONE, 2026-09-08) — Instrumentación D-13 de presupuesto, cronograma y documento:** `VersionadoService` emite `presupuesto.version_creada` y `presupuesto.version_activada` dentro del lock pesimista, omitiendo reintentos idempotentes. `CronogramaService` y `VistasCronogramaService` emiten `cronograma.editado` con los seis valores cerrados (`configurar`, cuatro operaciones `programar.*`, `revisar`), sin emitir revisiones no-op. Las descargas XLSX/PDF/MSPDI y ET DOCX emiten `documento.exportado` solo después de materializar bytes; preflight, 409 y errores no emiten. Para satisfacer el emisor `MANDATORY` sin moverlo a los lanes de exportación, los métodos públicos de descarga abren la transacción exterior y `CronogramaDescargaService.generar(...)` conserva `REQUIRED`, uniéndose a la misma transacción: lock, writer, auditoría y commit permanecen en una única frontera TOCTOU. **Evidencia medida:** focales HTTP 96/96; `presupuesto.*` + `cronograma.*` + `documento.*` + `motor.*` 339 = 336 pass + GM-19/GM-20 aceptados + GM-24 skipped; suite completa 738 = 735 pass + baseline aceptado; Spotless/build/diff PASS. Sin migraciones ni cambios en `motor/`, `recalculo/` o `cronograma/export/**`; sin commit. Siguiente plan autorizado: 040.
-
-**Etapa 05 de microservicios (2026-11) — descargas legadas retiradas:** los GET de bytes `GET /documentos/{presupuesto|apus|cronograma|especificaciones-tecnicas}/{id}`, sus servicios de descarga (incluido `CronogramaDescargaService`), los *gateways* de render y los *writers* XLSX/PDF/MSPDI de Core ya no existen; Core no renderiza documentos ni depende de POI/OpenPDF. La única descarga es `POST /documentos/{documento}/{id}/exportaciones` (captura en Core → render y subida privada en Documentos → ticket de Core). `documento.exportado` lo emite `ExportReservationService.finalizeAudit`/`finalizeCronogramaAudit`; la frontera TOCTOU del cronograma es la captura consistente de la etapa 04. Lo descrito arriba para Plan 039 sobre los métodos de descarga es histórico. Ver [`plans/separar-en-microservicios/05-retiro-descargas-legadas.md`](plans/separar-en-microservicios/05-retiro-descargas-legadas.md).
+**Etapa 05 de microservicios (2026-11):** los GET de bytes de `/documentos/...`, los
+*gateways* de render y los *writers* XLSX/PDF/MSPDI de Core ya no existen (sin POI/OpenPDF
+en Core). La única descarga es `POST /documentos/{documento}/{id}/exportaciones` (captura
+en Core → render y subida privada en Documentos → ticket de Core); `documento.exportado`
+lo emite `ExportReservationService.finalizeAudit`/`finalizeCronogramaAudit`.
 
 **Regla de modificación del Motor (Plan 014, 2026-08-28):**
 - **`Motor.calcularApu()` y `internal/CalculadorFila.java`:** el guard "do
@@ -297,8 +218,8 @@ grep -ho 'tests="[0-9]*"\|failures="[0-9]*"\|errors="[0-9]*"\|skipped="[0-9]*"' 
 ## Repo conventions
 
 - **Package structure**: vertical slices per module (`usuario/`, `motor/`,
-  `common/`, and future `insumo/`, `apu/`, `presupuesto/`, `cronograma/`,
-  `documento/`). See `08-codebase-design.md §1`.
+  `common/`, `insumo/`, `apu/`, `presupuesto/`, `cronograma/`, `documento/`, ...)
+  under `core/src/main/java/ec/uce/propuestas/`. See `08-codebase-design.md §1`.
 - **Deep modules only get `Service` + `Repository`**: motor, recalculo,
   versionado, documento, importacion, invitacion-tokens, correo. Plain
   CRUD is `Resource → Panache` direct. Don't invent `UsuarioService` for
@@ -325,18 +246,17 @@ grep -ho 'tests="[0-9]*"\|failures="[0-9]*"\|errors="[0-9]*"\|skipped="[0-9]*"' 
 
 ## Working with plans
 
-`plans/` is the authoritative workflow log. When starting a task:
+`plans/` conserva solo lo vivo; leer `plans/README.md` primero (qué sobrevive, estado por
+ruta, pendientes, cómo añadir un plan).
 
-1. Read `plans/README.md` first — it tells you what's DONE, TODO, BLOCKED.
-2. If a plan applies, read that plan file in full.
-3. **Never edit source in a way the current plans don't authorize** —
-   either follow an existing plan or write a new one (`plans/007-*.md`,
-   `plans/008-*.md`, keep the numbering monotonic).
-4. When work finishes, update `plans/README.md` with the new status.
+1. Si un plan aplica, léelo completo. Los planes ejecutados se retiraron; su evidencia está
+   en el código, las pruebas y el historial git.
+2. **No edites código de una forma que los planes vigentes no autoricen**: sigue un plan
+   existente o escribe uno nuevo (`plans/045-*.md`, numeración monótona).
+3. Al terminar, actualiza `plans/README.md`; toca este archivo solo si cambia un invariante.
 
-Plans in this repo are executable by less-capable models. Keep them
-self-contained: paths, code excerpts, verification commands with expected
-outputs, escape hatches ("if X, STOP and report").
+Los planes deben ser ejecutables por un modelo menos capaz: rutas, extractos de código,
+comandos de verificación con salida esperada y salidas de escape («si X, STOP y reporta»).
 
 ## Traps this project has hit before (real war stories)
 
@@ -385,8 +305,5 @@ outputs, escape hatches ("if X, STOP and report").
 
 ## Contact points
 
-- **Emil** (etverkade@deltamontero.com) — this repo's primary author.
-- **Kevin** (kaandradec@uce.edu.ec) — coauthor; owns some upstream
-  `thesis-docs` decisions.
 - **Director:** Ing. Zoila de Lourdes Ruiz Chavez, PhD — final call on
   domain-semantic decisions like GM-19/20's rounding question.

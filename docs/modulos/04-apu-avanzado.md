@@ -1,19 +1,21 @@
 # Plan 04 — Módulo `apu-avanzado` (P-23…P-27, P-45, P-46 + decisiones N04) — I-06
 
-> **Retirado en etapa 05 (2026-11):** los GET de bytes `GET /documentos/{presupuesto|apus|cronograma|especificaciones-tecnicas}/{id}`, sus servicios de descarga y los *writers* XLSX/PDF/MSPDI de Core ya no existen; la descarga es `POST …/exportaciones` + ticket de Core. Este documento conserva el estado histórico; ver [etapa 05](../../plans/separar-en-microservicios/05-retiro-descargas-legadas.md).
+> **Nota (limpieza de documentación, 2026-11):** los documentos que este archivo cita por nombre (`docs/modulos/README.md`, `estado-actual.md`, `planes-para-estar-al-dia/`, `plans/015-…`, `docs/00-ESTADO-ACTUAL.md`) se retiraron; su contenido sigue en el historial git. Los hitos vigentes están en `CLAUDE.md` y `plans/README.md`.
+
+> **Retirado en etapa 05 (2026-11):** los GET de bytes `GET /documentos/{presupuesto|apus|cronograma|especificaciones-tecnicas}/{id}`, sus servicios de descarga y los *writers* XLSX/PDF/MSPDI de Core ya no existen; la descarga es `POST …/exportaciones` + ticket de Core. Este documento conserva el estado histórico; ver etapa 05.
 
 > **Estado actual (reconciliado 2026-08-28 tras entrevista N04 temporal):**
 > este documento **ya no describe trabajo activo**. Su contenido original
 > queda aquí **solo como historial de decisiones**; las instrucciones activas
-> están en [`docs/modulos/planes-para-estar-al-dia/`](planes-para-estar-al-dia/)
-> (planes 01–08) y en [`docs/modulos/estado-actual.md`](estado-actual.md) §4.
+> están en `docs/modulos/planes-para-estar-al-dia/`
+> (planes 01–08) y en `docs/modulos/estado-actual.md` §4.
 >
 > **Decisión no-links (N04 temporal):** NO existen enlaces entre APUs.
 > P-25, `es_auxiliar`, `apu_auxiliar_id`, `apuAuxiliarId`, `cdAuxiliar`,
 > `CAMBIO_AUXILIAR` y `ApuValidacionService` quedan **superados**. Un APU es
 > siempre un análisis ordinario independiente; un supuesto "auxiliar" se
 > modela como otro APU/rubro independiente. Detalle y rationale:
-> [`docs/modulos/estado-actual.md`](estado-actual.md) §2.1 y
+> `docs/modulos/estado-actual.md` §2.1 y
 > `../thesis-docs/DOCUMENTOS/entrevistas/04/temporal/Respuesta_Entrevista_N04_TERMPORAL.md`
 > §2.
 >
@@ -26,7 +28,7 @@
 > descuentos, write-through) requieren ese módulo, que queda fuera del
 > alcance actual.
 >
-> **Capacidades actuales** (cruzadas con [`estado-actual.md`](estado-actual.md)
+> **Capacidades actuales** (cruzadas con `estado-actual.md`
 > §4; sincronización Plan 08 — 2026-08-30):
 > %CI por APU (P-23) → DONE; **descuento legacy por APU (P-24) WITHDRAWN por Plan 015 (2026-09-01) — sólo sobreviven FORMA 1 (mutación de insumos PROYECTO, MO exenta, regulada por `rango_descuento_*`) y FORMA 2 (edición atómica de insumo); columna `apu.porcentaje_descuento` inert**; duplicar APU → DONE; ET
 > (Apache POI) → DONE; rangos configurables → DONE; bases PERSONALES +
@@ -48,42 +50,42 @@
 > **Bloque histórico (no aplicar):** secciones siguientes reproducen el
 > plan original N04 (18-08-2026, Ing. Carlosama) como rastro de auditoría.
 > Las instrucciones activas son las de
-> [`planes-para-estar-al-dia/`](planes-para-estar-al-dia/).
+> `planes-para-estar-al-dia/`.
 
 ## 0. Alcance histórico (N04 18-08-2026, antes del ajuste temporal)
 
 > **Bloque histórico — no aplicar.** Reproduce la tabla original del plan
 > N04 antes de la decisión no-links. Conservar solo como auditoría.
 > Para el alcance vigente, ver
-> [`planes-para-estar-al-dia/`](planes-para-estar-al-dia/).
+> `planes-para-estar-al-dia/`.
 
 **Procesos P-xx que entran en I-06 (N04 original):**
 
 | Proceso | Tema | Estado actual |
 |---|---|---|
 | P-23 | %CI override por rubro (heredando default) | **DONE** en `ApuCrudService` (Plan 03 contrato; propagación global = DEFERRED) |
-| P-24 | Descuento CD por rubro (campo legacy `APU.porcentaje_descuento`) | **WITHDRAWN — Plan 015 (2026-09-01)**. El seam activo (`PATCH /apus/{id}/porcentaje-descuento`, `Apu.porcentajeDescuento`, `motor.ParametrosCalculo.porcentajeDescuento`, `motor.ApuCalculado.costoDirectoAjustado`, etc.) se retira; sólo sobreviven **FORMA 1** (mutación de las columnas base de los insumos elegibles copiados a la base PROYECTO del proyecto; **MO exenta**, reversible, regulada por `parametros_sistema.rango_descuento_min/max`) y **FORMA 2** (edición atómica de un insumo ya PROYECTO; sin seam nuevo). **Nunca monto absoluto.** Columna BD `apu.porcentaje_descuento` queda como compatibility seam inert (sin V009; JPA la ignora). Historia detallada: [`../../plans/015-retirar-descuento-apu.md`](../../plans/015-retirar-descuento-apu.md) §Decisión de mayor autoridad. |
+| P-24 | Descuento CD por rubro (campo legacy `APU.porcentaje_descuento`) | **WITHDRAWN — Plan 015 (2026-09-01)**. El seam activo (`PATCH /apus/{id}/porcentaje-descuento`, `Apu.porcentajeDescuento`, `motor.ParametrosCalculo.porcentajeDescuento`, `motor.ApuCalculado.costoDirectoAjustado`, etc.) se retira; sólo sobreviven **FORMA 1** (mutación de las columnas base de los insumos elegibles copiados a la base PROYECTO del proyecto; **MO exenta**, reversible, regulada por `parametros_sistema.rango_descuento_min/max`) y **FORMA 2** (edición atómica de un insumo ya PROYECTO; sin seam nuevo). **Nunca monto absoluto.** Columna BD `apu.porcentaje_descuento` queda como compatibility seam inert (sin V009; JPA la ignora). Historia detallada: `../../plans/015-retirar-descuento-apu.md` §Decisión de mayor autoridad. |
 | P-25 | Rubro auxiliar (`es_auxiliar`, `apu_auxiliar_id`) — **validación sin anidamiento** | **OBSOLETO/SUPERSEDED** — N04 temporal elimina los enlaces entre APUs |
-| P-26 | Plantillas personales + carga con fallback | **MISSING** — Plan 04 ([planes-para-estar-al-dia/04](planes-para-estar-al-dia/04-plantillas-apu.md)) |
+| P-26 | Plantillas personales + carga con fallback | **MISSING** — Plan 04 (planes-para-estar-al-dia/04) |
 | P-27 | Desglose de cálculo (`ApuCalculoResponse`) | **PARTIAL** — Plan 03 |
 | P-45 | **NUEVO** — Especificaciones Técnicas por APU | **DONE** (Apache POI) |
-| P-46 | **NUEVO** — Plantilla de proyecto completo | **DONE 2026-08-29** — Plan 06 ([planes-para-estar-al-dia/06](planes-para-estar-al-dia/06-plantillas-proyecto.md)), verificación principal 83/83 verde |
+| P-46 | **NUEVO** — Plantilla de proyecto completo | **DONE 2026-08-29** — Plan 06 (planes-para-estar-al-dia/06), verificación principal 83/83 verde |
 | `POST /apus/{id}/duplicar` | Decisión dossier §B.7 (opción a) | **DONE** |
 | Módulo `recalculo` | Decisión dossier §B.6 (write-through al cambiar parámetros) | **DEFERRED** — no se crea módulo nuevo en esta etapa |
 | Rangos parametrizables | Decisión N04 §A6 | **DONE** |
-| `CALC_PRECISION` / `DISPLAY_PRECISION` | Decisión N04 §#7 | **WITHDRAWN 2026-08-28** — Plan 014 retira `CALC_PRECISION` del motor (precisión natural `BigDecimal`); display global `precisionDinero=2` / `precisionPorcentaje=4` vía `app.display.*` + `GET /api/v1/config/display`. **Corrección workbook-consistent 2026-08-28:** frontera APU→Rubro aplica `RoundingMode.DOWN` 2 dp **solo** a `precioUnitario`; `precioTotal = cantidad × PU_2dp` se retiene a la escala de persistencia 6 (`NUMERIC(14,6)`) con `HALF_UP` (sin truncar cada PT a 2 dp); capítulo y `totalGeneral` agregan esos `precioTotal` a escala 6. Plan 02 activo lo cubre ahora ([planes-para-estar-al-dia/02](planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)). |
+| `CALC_PRECISION` / `DISPLAY_PRECISION` | Decisión N04 §#7 | **WITHDRAWN 2026-08-28** — Plan 014 retira `CALC_PRECISION` del motor (precisión natural `BigDecimal`); display global `precisionDinero=2` / `precisionPorcentaje=4` vía `app.display.*` + `GET /api/v1/config/display`. **Corrección workbook-consistent 2026-08-28:** frontera APU→Rubro aplica `RoundingMode.DOWN` 2 dp **solo** a `precioUnitario`; `precioTotal = cantidad × PU_2dp` se retiene a la escala de persistencia 6 (`NUMERIC(14,6)`) con `HALF_UP` (sin truncar cada PT a 2 dp); capítulo y `totalGeneral` agregan esos `precioTotal` a escala 6. Plan 02 activo lo cubre ahora (planes-para-estar-al-dia/02). |
 | Base `PERSONAL` | Decisión N04 §A9 | **DONE** |
 | Reordenamiento filas/secciones | Decisión N04 §A3 | **PARTIAL** — Plan 03 |
 
 **Procesos que NO entran (quedan para iteraciones futuras):**
 
 - P-39 admin edición/eliminación de bases CENTRALES (admin Super-Admin) →
-  Plan 05 ([planes-para-estar-al-dia/05](planes-para-estar-al-dia/05-administracion-bases.md)).
+  Plan 05 (planes-para-estar-al-dia/05).
 - Reordenamiento con drag-and-drop visual (Gantt, presupuesto) → fuera del
   MVP.
 - Selección múltiple y operaciones bulk en APU → fuera del MVP.
 - **Cualquier plan 02–08** descrito en
-  [`planes-para-estar-al-dia/`](planes-para-estar-al-dia/) **no está
+  `planes-para-estar-al-dia/` **no está
   implementado**: este doc solo conserva su rastro histórico.
 
 ## 1. Arquitectura de empaquetado (N04 original — bloque histórico)
@@ -126,7 +128,7 @@ ec/uce/propuestas/
 
 > **Bloque histórico — no aplicar.** Se conserva para auditoría de las
 > decisiones N04 que quedaron superadas o ya integradas. Las instrucciones
-> activas viven en [`planes-para-estar-al-dia/`](planes-para-estar-al-dia/).
+> activas viven en `planes-para-estar-al-dia/`.
 
 ### 2.1 `ApuValidacionService` — OBSOLETO/SUPERSEDED
 
@@ -168,7 +170,7 @@ en esa frontera de resultado (sin truncar cada PT a 2 dp); capítulo y
 canónico a 2 dp `HALF_UP` ocurre solo en la capa de presentación/
 assertion.
 El estado actual del desglose es **PARTIAL** (ver
-[`estado-actual.md`](estado-actual.md) §4).
+`estado-actual.md` §4).
 
 ### 2.3 `ApuDuplicarService` (DONE — sección activa)
 
@@ -203,7 +205,7 @@ de markup — el backend trata el contenido como texto plano; el frontend
 puede serializar desde TipTap/React-Quill a texto plano antes del PUT).
 
 `descargarWord` delega al módulo `documento/EspecificacionesTecnicasService`
-(ver [`docs/modulos/estado-actual.md`](estado-actual.md) §4 fila P-45).
+(ver `docs/modulos/estado-actual.md` §4 fila P-45).
 El documento Word se genera con **Apache POI** (`poi-ooxml`, ya en
 dependencias); **no** se usa docx4j. La cabecera incluye:
 
@@ -225,7 +227,7 @@ proyecto mantiene su default).
 > `EDICION_ATOMICA_INSUMO`, `CAMBIO_PLANTILLA` y `CAMBIO_AUXILIAR`.
 > **Ese módulo queda DEFERRED** porque su introducción contradice el
 > alcance actual de no crear módulos nuevos de primer nivel
-> ([`estado-actual.md`](estado-actual.md) §1 y §7).
+> (`estado-actual.md` §1 y §7).
 >
 > **Lo que SÍ existe hoy (Plan 03 cerrado):** el write-through local por
 > APU lo realiza `apu.service.ApuCalculoService.recalcular(apu)`. Solo
@@ -252,7 +254,7 @@ proyecto mantiene su default).
 
 > **Bloque histórico — no reutilizar como contrato.** Se conserva la firma
 > prevista de N04 para auditoría. La implementación canónica vive en
-> [planes-para-estar-al-dia/06](planes-para-estar-al-dia/06-plantillas-proyecto.md)
+> planes-para-estar-al-dia/06
 > usando solo los paquetes existentes (`plantilla`, `proyecto`,
 > `presupuesto`, `apu`, `insumo`).
 
@@ -276,7 +278,7 @@ APUs incompletos marcados con advertencia.
 - `BaseInsumosService` con enum `TipoBase` y `PERSONAL` — **DONE**
   (ya implementado). CRUD de personales propias está cubierto por
   `BasesPersonalesService`; eliminar una base personal queda en
-  [planes-para-estar-al-dia/05](planes-para-estar-al-dia/05-administracion-bases.md).
+  planes-para-estar-al-dia/05.
 
 ### 2.9 `ParametrosProyectoService` (01-proyecto) — estado actual
 
@@ -291,7 +293,7 @@ APUs incompletos marcados con advertencia.
   `Long proyectoId` **no** se exponen por REST.
 - La migración de los paths a UUIDv7 (incluido
   `ParametrosProyectoResponse`) está diferida a
-  [planes-para-estar-al-dia/07](planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md).
+  planes-para-estar-al-dia/07.
 
 ## 3. Motor — cambio de precisión (N04 §#7) + frontera APU→Rubro (N04-bis)
 
@@ -301,7 +303,7 @@ APUs incompletos marcados con advertencia.
 > [`plans/014` es READY FOR IMPLEMENTATION](../../plans/014-motor-precision-no-links.md)),
 > pero el código del motor **no se ha modificado todavía**. La
 > implementación real corresponde a
-> [planes-para-estar-al-dia/02](planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)
+> planes-para-estar-al-dia/02
 > y exige el plan [`plans/014`](../../plans/014-motor-precision-no-links.md).
 > Post-Plan 014: el motor opera con la precisión natural de `BigDecimal`;
 > la única rounding del motor es la frontera APU→Rubro `DOWN` 2 dp; el
@@ -396,7 +398,7 @@ aritmético**. Cambios futuros requieren
 
 > Las rutas marcadas como **DONE** ya existen; las **MISSING/DEFERRED**
 > siguen en los planes 02–08 de
-> [`planes-para-estar-al-dia/`](planes-para-estar-al-dia/). **No** se
+> `planes-para-estar-al-dia/`. **No** se
 > exponen campos `es_auxiliar`, `apu_auxiliar_id`, `apuAuxiliarId`,
 > `cdAuxiliar` ni `CAMBIO_AUXILIAR` en ningún DTO público.
 
@@ -420,7 +422,7 @@ aritmético**. Cambios futuros requieren
   overridean los defaults del proyecto — N04-bis) — **DONE** (Apache POI).
 
 **PlantillaProyectoResource** (P-46) — **DONE**, Plan 06
-([planes-para-estar-al-dia/06](planes-para-estar-al-dia/06-plantillas-proyecto.md)):
+(planes-para-estar-al-dia/06):
 - `GET /plantillas-proyecto` — lista del usuario
 - `GET /plantillas-proyecto/{id}` — detalle propio
 - `POST /proyectos/{proyectoId}/guardar-plantilla` — guardar snapshot backend-authored
@@ -440,7 +442,7 @@ aritmético**. Cambios futuros requieren
 > **UUIDv7 en paths:** `proyectoId`, `presupuestoId`, `apuId` ya operan
 > como UUIDv7 público en path y JSON
 > (**DONE 2026-08-30 · VERIFICACIÓN DIRIGIDA COMPLETA**, Plan 07;
-> ver [planes-para-estar-al-dia/07](planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md)).
+> ver planes-para-estar-al-dia/07).
 > Las identidades internas BIGINT permanecen debajo de los resources
 > y de los services.
 
@@ -450,7 +452,7 @@ aritmético**. Cambios futuros requieren
 > previstos en el plan N04 original; varios están **obsoletos** (P-25) o
 > **diferidos** (`RecalculoService*`). El set de pruebas activas vive en
 > `plans/006`, en los planes 02–08 y en
-> [`estado-actual.md`](estado-actual.md) §4.
+> `estado-actual.md` §4.
 
 ## 6. Plantillas V004 — estado actual
 
@@ -494,13 +496,13 @@ sin hardcode de negocio):
 
 > **Bloque histórico — no aplicar.** Las rutas a `ec.uce.propuestas.recalculo`
 > **no existen** porque el módulo está DEFERRED. La verificación activa
-> figura en [`estado-actual.md`](estado-actual.md) §9 y en cada plan
-> 02–08 de [`planes-para-estar-al-dia/`](planes-para-estar-al-dia/).
+> figura en `estado-actual.md` §9 y en cada plan
+> 02–08 de `planes-para-estar-al-dia/`.
 
 ## 8. Fuera de alcance (TODO) — vigente
 
 - Edición/eliminación de bases CENTRALES por Super-Admin (P-39) →
-  [planes-para-estar-al-dia/05](planes-para-estar-al-dia/05-administracion-bases.md).
+  planes-para-estar-al-dia/05.
 - Gantt visual con drag de períodos → fuera del MVP.
 - Selección múltiple bulk en APU → fuera del MVP.
 - Plantillas SISTEMA de proyecto completo (sólo PERSONALES por ahora) →
@@ -520,10 +522,10 @@ sin hardcode de negocio):
 | HM primera + reordenable (A3) | DM §17 #9; procesos P-21 | **PARTIAL** — motor ordena por `orden`; PATCH de `orden` aún en Plan 03 |
 | Rangos parametrizables (A6) | DM §11; procesos P-11 | **DONE** — `ParametrosSistema` con columnas de rango + `ParametrosRangoDinamicoTest` |
 | Bases SIEMPRE copia + PERSONAL (A9) | DM §17 #16, §10; procesos P-17, P-39 | **DONE** — `ResolverInsumoProyectoService` + `BasesPersonalesService` |
-| Archivar central sin bloqueo (D-12) | DM §10; procesos P-39 | **MISSING** — Plan 05 ([planes-para-estar-al-dia/05](planes-para-estar-al-dia/05-administracion-bases.md)) |
-| Decimales: motor natural `BigDecimal`, display global 2/4, frontera APU→Rubro **workbook-consistent** (Plan 014 supersede #7; corrección 2026-08-28) | DM §0, §16, §17 #19 | **PARTIAL — CIERRE CON RESIDUO ACEPTADO (2026-08-28)** — Plan 02 ([planes-para-estar-al-dia/02](planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)) + Plan 014 ([plans/014](../../plans/014-motor-precision-no-links.md)). Regla workbook-consistent aplicada en `Consolidador`: `precioUnitario DOWN 2dp`; `precioTotal = cantidad × PU_2dp` retenido a escala 6 `HALF_UP`; capítulo y `totalGeneral` agregan esos `precioTotal` a escala 6. Display global `precisionDinero=2` / `precisionPorcentaje=4` vía `app.display.*` + `GET /api/v1/config/display` **DONE 2026-08-28** (T3 Plan 014). GM-19 (`-$6.95`) y GM-20 cap. 1 (`-$0.84`) con residual aceptado — **no** se reabre el motor. **No** reintroducir `setScale(2, DOWN)` por rubro total (causaba deltas sistemáticos `GM19 = -$9.37` y `GM20 cap1 = -$3.09` vs workbook IESS — STOP conditions de Plan 014). |
+| Archivar central sin bloqueo (D-12) | DM §10; procesos P-39 | **MISSING** — Plan 05 (planes-para-estar-al-dia/05) |
+| Decimales: motor natural `BigDecimal`, display global 2/4, frontera APU→Rubro **workbook-consistent** (Plan 014 supersede #7; corrección 2026-08-28) | DM §0, §16, §17 #19 | **PARTIAL — CIERRE CON RESIDUO ACEPTADO (2026-08-28)** — Plan 02 (planes-para-estar-al-dia/02) + Plan 014 ([plans/014](../../plans/014-motor-precision-no-links.md)). Regla workbook-consistent aplicada en `Consolidador`: `precioUnitario DOWN 2dp`; `precioTotal = cantidad × PU_2dp` retenido a escala 6 `HALF_UP`; capítulo y `totalGeneral` agregan esos `precioTotal` a escala 6. Display global `precisionDinero=2` / `precisionPorcentaje=4` vía `app.display.*` + `GET /api/v1/config/display` **DONE 2026-08-28** (T3 Plan 014). GM-19 (`-$6.95`) y GM-20 cap. 1 (`-$0.84`) con residual aceptado — **no** se reabre el motor. **No** reintroducir `setScale(2, DOWN)` por rubro total (causaba deltas sistemáticos `GM19 = -$9.37` y `GM20 cap1 = -$3.09` vs workbook IESS — STOP conditions de Plan 014). |
 | Especificaciones Técnicas (ET) | DM §17 #18; procesos P-45 | **DONE** — `EspecificacionesTecnicasService` con Apache POI |
-| Plantilla de proyecto (A8) | DM §3, §10; procesos P-46 | **DONE 2026-08-29** — Plan 06 ([planes-para-estar-al-dia/06](planes-para-estar-al-dia/06-plantillas-proyecto.md)); verificación principal 83/83 verde |
+| Plantilla de proyecto (A8) | DM §3, §10; procesos P-46 | **DONE 2026-08-29** — Plan 06 (planes-para-estar-al-dia/06); verificación principal 83/83 verde |
 
 ## 10. Riesgos y deudas — vigente
 

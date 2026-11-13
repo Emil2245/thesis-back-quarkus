@@ -21,6 +21,7 @@ de los titulares sembrados por V004).
 | [`09-i02-i06`](09-i02-i06/) | I-06 + Plan 005 | `apu`/`insumo`/`plantilla`/`documento`/`presupuesto` | activa | Plan 08 + búsqueda FTS, lote de plantillas y owner-scope (41 requests; `TC-09-07c` DOCX por GET retirado en la etapa 05) |
 | **`10-presupuesto`** | **I-07 + Plan 005** | **`presupuesto`** | **activa · verificada (Plan 025 + Plan 005: 27/27 requests, 91/91 tests)** | Esta carpeta: P-28/P-29/P-30/P-31/P-32 + APU manual completo |
 | [`11-cronograma`](11-cronograma/) | I-10 | `cronograma` | activa (Plan 031 — preflight P-37) | Esta carpeta: preflight + UUIDv7 + owner-to-404 (18 requests). Las descargas `TC-31-05/06/07` por GET de bytes se retiraron en la etapa 05; la descarga va por `POST …/exportaciones` + ticket y requiere Documentos + S3 |
+| [`12-admin`](12-admin/) | I-11 | panel Super-Admin | activa (Plan 040 — 16 requests) | Esta carpeta: P-38…P-42; ver la sección `12-admin/` más abajo. `TC-12-P42-01` exporta ET por `POST …/exportaciones` y requiere Documentos + S3 |
 
 > **Nota sobre los archivos legacy 01–05:** no se borran para conservar
 > auditoría; los planes I-06+I-07 (`06-proyecto/`, `07-insumo/`, `08-apu/`,
@@ -33,7 +34,7 @@ de los titulares sembrados por V004).
 
 1. Levantar el backend:
    ```bash
-   ./gradlew --console=plain quarkusDev
+   ./gradlew --console=plain :core:quarkusDev
    ```
    Esperar a que arranque (mensaje `Listening on: http://localhost:8080`).
 2. Abrir Bruno CLI apuntando a esta carpeta (`api/bruno/`) y seleccionar
@@ -182,8 +183,7 @@ compartido) y se capturan en runtime por los helpers:
   `itemsCantidadCero` **no** se cubre por API porque REST P-29
   prohíbe `cantidad ≤ 0` en creación. La cobertura del caso canónico
   `cantidad=0` vive en el IT `PresupuestoValidacionResourceIT` (que
-  siembra por SQL nativo). Esta separación se documenta en el doc
-  `docs/modulos/05-presupuesto/07-validacion-y-cierre.md`.
+  siembra por SQL nativo).
 - Los casos negativos (TC-10-13/14/15 y TC-10-18/19) usan UUIDs
   estáticos o capturados — no requieren BIGINT ni mutaciones ocultas.
 - TC-10-16/17 cubren el flujo manual completo del Plan 005: el helper
@@ -195,16 +195,12 @@ compartido) y se capturan en runtime por los helpers:
 
 ### Referencias
 
-- [`docs/modulos/05-presupuesto/07-validacion-y-cierre.md`](../../docs/modulos/05-presupuesto/07-validacion-y-cierre.md)
-  — Plan 025 canónico (estado DONE 2026-09-01; única línea pendiente
-      `graphify update .` final queda **DONE — 2.972 nodos / 9.064 aristas / 141 comunidades**).
-- [`docs/modulos/05-presupuesto/`](../../docs/modulos/05-presupuesto/)
-  — Índice del módulo.
 - [`plans/README.md`](../../plans/README.md) — estado por plan.
+
 ## `12-admin/` — Plan 040
 
 Colección autocontenida de 16 requests en seis grupos: helpers `TC-12-00a..00e`, P-38, P-39, P-40, P-41 y P-42. Ejecutar secuencialmente con `( cd api/bruno && bru run 12-admin/ --env dev )` contra PostgreSQL 18 limpio + fast-jar y Flyway aplicado. Medición 2026-09-09: 16/16 requests y 27/27 tests JS, 0 fallos/errores/skips; reporter assertions 0/0 porque usa `tests {}` JS. Desde la etapa 05 (2026-11) `TC-12-P42-01` produce `documento.exportado` con `POST /documentos/especificaciones-tecnicas/{id}/exportaciones` (Idempotency-Key UUIDv7) en lugar del GET de bytes retirado; necesita Core + Documentos + S3 (FLoCI local). Ese cambio no se ha ejecutado contra un stack vivo. Usa `auth: inherit` en `folder.bru` y el environment compartido `environments/dev.bru`, sin comentarios.
 
-Variables runtime: `p38UsuarioId`, `p39BaseId`, `p40ProyectoId`, `p40PresupuestoId`, `p40ApuId`, `p41ProyectoNuevoId` y `p41ProyectoViejoId`. Los helpers de login usan las variables seeded `u1*`/`u2*`; `adminEmail`, `adminPassword` y `admin_access_token` deben ser suministradas externamente. Los IDs `p38*`, `p39*` y `p42*` se asignan con `bru.setVar` durante la ejecución y no necesitan declararse previamente en `dev.bru`.
+Variables runtime: `p38UsuarioId`, `p39BaseId`, `p40ProyectoId`, `p40PresupuestoId`, `p40ApuId`, `p41ProyectoNuevoId` y `p41ProyectoViejoId`. Los helpers de login usan las variables seeded `u1*`/`u2*`; `adminEmail` y `adminPassword` ya traen el valor sembrado en `environments/dev.bru` (overridable con `--env-var`); `admin_access_token` se obtiene en `TC-12-00a`. Los IDs `p38*`, `p39*` y `p42*` se asignan con `bru.setVar` durante la ejecución y no necesitan declararse previamente en `dev.bru`.
 
-V004 no crea SUPER_ADMIN. Antes de ejecutar la colección, el operador debe promover o insertar una cuenta desechable mediante el procedimiento de desarrollo aprobado, usando la cuenta/hash sembrados existentes; no se agrega migración, seed de producción ni secreto nuevo. Si las variables admin están vacías, `TC-12-00a` falla explícitamente con 401 y las requests admin no deben considerarse ejecutadas. La colección no es idempotente: usar una BD desechable por corrida.
+V004 siembra la cuenta SUPER_ADMIN de desarrollo `admin@uce.edu.ec` (contraseña solo-dev documentada en `docs/04-SEED-ESCENARIOS.md`); `dev.bru` ya la usa por defecto. En un entorno sin ese seed, el operador debe promover o insertar una cuenta desechable mediante el procedimiento de desarrollo aprobado; no se agrega migración, seed de producción ni secreto nuevo. Si las variables admin están vacías, `TC-12-00a` falla explícitamente con 401 y las requests admin no deben considerarse ejecutadas. La colección no es idempotente: usar una BD desechable por corrida.

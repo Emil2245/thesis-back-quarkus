@@ -6,7 +6,9 @@ Backend:
 
 ```bash
 cd thesis-back-quarkus
-./gradlew --console=plain quarkusDev
+./gradlew --console=plain :core:quarkusDev
+# Para exportar documentos (POST exportaciones) levantar también, en otra terminal:
+./gradlew --console=plain :documentos:quarkusDev
 ```
 
 Credenciales seed (V004 directo, sin bootstrap manual): `admin@uce.edu.ec` / `admin` (SUPER_ADMIN), `john@uce.edu.ec` / `User123123`, `ana@gmail.com` / `User123123`. El `dev.bru` ya trae `adminEmail`/`adminPassword` por defecto; para override: `bru run ... --env dev --env-var adminEmail=admin@uce.edu.ec --env-var adminPassword=admin`.

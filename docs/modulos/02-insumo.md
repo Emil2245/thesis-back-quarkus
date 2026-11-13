@@ -1,5 +1,7 @@
 # Plan 02 — Módulo `insumo` (P-13…P-18)
 
+> **Nota (limpieza de documentación, 2026-11):** los documentos que este archivo cita por nombre (`docs/modulos/README.md`, `estado-actual.md`, `planes-para-estar-al-dia/`, `plans/015-…`, `docs/00-ESTADO-ACTUAL.md`) se retiraron; su contenido sigue en el historial git. Los hitos vigentes están en `CLAUDE.md` y `plans/README.md`.
+
 - Playbook auto-conductor. Implementa `docs/modulos/README.md`. No crea
   migraciones (tablas V001–V003 ya siembran `base_insumos` CENTRAL + 93 insumos).
 - Base: `ec.uce.propuestas.insumo`.
@@ -207,7 +209,7 @@ copia-al-usar / materialización llega en el siguiente bloque.
 - **NUEVO I-06 (N04 §A9):** gestión de bases `PERSONAL` del usuario
   (`GET/POST/DELETE /bases-personales`) — **DONE** (módulo
   `insumo` + Plan 05). Ver
-  [`planes-para-estar-al-dia/05-administracion-bases.md`](planes-para-estar-al-dia/05-administracion-bases.md)
+  `planes-para-estar-al-dia/05-administracion-bases.md`
   y `04-apu-avanzado.md` §2.8.
 - **NUEVO I-06 (N04 §D-12):** archivar central (oculta del catálogo) y
   borrar central (sin bloqueo de referencias) — **DONE** (Plan 05).

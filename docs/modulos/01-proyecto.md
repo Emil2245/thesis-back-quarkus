@@ -1,13 +1,15 @@
 # Plan 01 — Módulo `proyecto` (P-05…P-11)
 
+> **Nota (limpieza de documentación, 2026-11):** los documentos que este archivo cita por nombre (`docs/modulos/README.md`, `estado-actual.md`, `planes-para-estar-al-dia/`, `plans/015-…`, `docs/00-ESTADO-ACTUAL.md`) se retiraron; su contenido sigue en el historial git. Los hitos vigentes están en `CLAUDE.md` y `plans/README.md`.
+
 > Playbook auto-contenido. Sigue `docs/modulos/README.md`. No crea migraciones
 > SQL (tablas en V001). Alcance: `ec.uce.propuestas.proyecto`.
 >
 > **Estado de cierre (2026-08-30 — sincronización Plan 08):**
 > implementación cerrada de P-05…P-11. Los recursos `Proyecto`,
 > `Firmante` y `ParametrosProyecto` ya migran el path
-> `proyectoId`/`firmanteId` a UUIDv7 ([Plan 07 — DONE
-> 2026-08-30](./planes-para-estar-al-dia/07-uuidv7-fronteras-rest.md));
+> `proyectoId`/`firmanteId` a UUIDv7 (Plan 07 — DONE
+> 2026-08-30);
 > `ParametrosProyectoResponse.proyectoId` y la seam
 > `ParametrosProyectoCambio` ya están alineadas. El módulo
 > `proyecto` ya no expone `Long` en path ni JSON.
@@ -180,12 +182,12 @@ El propietario se resuelve con `@Inject UsuarioContext` o lectura de `JsonWebTok
   ratificada por N04 §A8 (se prefiere "cargar desde plantilla" — P-46).
 - **NUEVO I-06 — Cargar proyecto desde plantilla (P-46)** — **DONE
   2026-08-29 (Plan 06)**, ver
-  [`planes-para-estar-al-dia/06-plantillas-proyecto.md`](planes-para-estar-al-dia/06-plantillas-proyecto.md).
+  `planes-para-estar-al-dia/06-plantillas-proyecto.md`.
   Endpoint vigente:
   `POST /proyectos/desde-plantilla/{plantillaId}` con `UuidV7.parse` en
   el path (Plan 07). Verificación principal 83/83 verde.
 - Admin P-39 (CRUD bases CENTRALES) — **DONE 2026-08-29 (Plan 05)**,
   ver
-  [`planes-para-estar-al-dia/05-administracion-bases.md`](planes-para-estar-al-dia/05-administracion-bases.md).
+  `planes-para-estar-al-dia/05-administracion-bases.md`.
   Recurso `AdminBaseCentralResource` en `insumo/resource/` bajo
   `@RolesAllowed("SUPER_ADMIN")`.
