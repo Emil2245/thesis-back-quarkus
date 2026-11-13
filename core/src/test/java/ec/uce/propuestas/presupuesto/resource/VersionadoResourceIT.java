@@ -37,7 +37,7 @@ import org.junit.jupiter.api.Test;
  * (protegiendo la vigente) y comparar dos versiones.
  *
  * <p>Estos tests son <strong>RED</strong>: los endpoints P-31 aun no existen
- * en este modulo (ver {@code docs/modulos/05-presupuesto/06-versionado-comparacion.md}).
+ * en este modulo (ver P-31 en {@code thesis-docs}).
  * Las aserciones describen el contrato esperado; la implementacion
  * correspondiente ({@code VersionadoResource}, {@code ComparacionResource},
  * {@code VersionadoService}) se escribira en un plan posterior.

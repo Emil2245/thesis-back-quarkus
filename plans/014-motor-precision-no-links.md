@@ -43,7 +43,7 @@
   sub-céntimo de GM-19/GM-20 se atribuye a artefactos de redondeo manual
   del example workbook IESS; **no** se reabre el motor; workbook, golden
   expected values, tolerancias y fórmulas del motor quedan cerradas. Ver
-  [Plan 02](../docs/modulos/planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md)
+  Plan 02 (documento retirado; ver el historial git)
   §6 y [Plan 006](./006-motor-consolidacion-fix.md) §1.1 / Done criteria.
   **Re-scope de trabajo restante:**
   - **T2** — no-links estructural: quitar `esAuxiliar`/`cdAuxiliar`/
@@ -386,6 +386,9 @@ DISPLAY_PRECISION_PORCENTAJE=4
 > pública `Motor.calcularApu` / `Motor.consolidar`.
 
 ### Documentación (reconciliación activa)
+
+> Nota histórica: `planes-para-estar-al-dia/`, `docs/modulos/estado-actual.md` y
+> `docs/00-ESTADO-ACTUAL.md` ya no existen; las filas que los citan se conservan como registro.
 
 | Archivo | Cambio |
 |---|---|
@@ -739,7 +742,7 @@ del fixture upstream.
 - [~] **GM-19 / GM-20 — RESIDUAL ACEPTADO** (no se reabre el motor):
   GM-19 actual `395108.37` vs esperado `395115.32` (`-$6.95`);
   GM-20 cap. 1 actual `158907.21` vs esperado `158908.05` (`-$0.84`).
-  Referencia: [Plan 02 §6](../docs/modulos/planes-para-estar-al-dia/02-motor-precision-y-consolidacion.md) y
+  Referencia: Plan 02 §6 (documento retirado; ver el historial git) y
   [Plan 006 §1.1](./006-motor-consolidacion-fix.md).
 - [ ] `ApuSnapshot`/`ApuCalculado` sin `esAuxiliar`; `FilaSnapshot` sin
   `cdAuxiliar`; `ParametrosCalculo` sin `porcentajeIndirectoApu`;

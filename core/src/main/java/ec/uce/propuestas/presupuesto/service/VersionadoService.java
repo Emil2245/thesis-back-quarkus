@@ -75,7 +75,7 @@ import java.util.UUID;
  *   <li>Las FK {@code cronograma.presupuesto_id} y {@code actividad.rubro_id}
  *       se remapean con SQL nativo dentro de este mismo servicio (no se
  *       introducen entidades JPA {@code cronograma}/{@code actividad} — están
- *       diferidas a I-08, ver {@code docs/modulos/05-presupuesto/06-versionado-comparacion.md}
+ *       diferidas a I-08, ver P-31 en {@code thesis-docs}
  *       STOP (D)). El resto del deep copy pasa por el ORM estándar, igual que
  *       {@code ApuDuplicarService}.</li>
  *   <li>Se copia {@code especificacion_tecnica} del APU (P-31 contrato

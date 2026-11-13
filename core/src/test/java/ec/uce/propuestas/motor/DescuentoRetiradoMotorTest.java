@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
  *
  * <p>The descuento seam MUST NOT survive in the motor classes after Plan 015
  * is implemented. This is the {@code T1} motor half of
- * {@code plans/015-retirar-descuento-apu.md}.
+ * Plan 015 (retiro del descuento por APU; ver el glosario de {@code CLAUDE.md}).
  *
  * <p>Uses the Java Record component API ({@code Class.getRecordComponents()})
  * — the compile-time type-checked surface for record fields — instead of

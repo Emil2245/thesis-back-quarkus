@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
  *
  * <p>DTO contract surface: the public JSON contracts of {@code apu/} must not
  * expose the {@code porcentajeDescuento} seam after Plan 015 closes. This is
- * the {@code T2} contract half of {@code plans/015-retirar-descuento-apu.md}.
+ * the {@code T2} contract half of Plan 015 (retiro del descuento por APU; ver el glosario de {@code CLAUDE.md}).
  *
  * <p>Compiles against the {@code Class<Record>} signature (the type itself is
  * referenced, not specific fields), so the test stays compilable both before

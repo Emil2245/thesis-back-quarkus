@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
  *
  * <p>REST surface: the {@code PATCH /api/v1/apus/{apuId}/porcentaje-descuento}
  * endpoint MUST be removed after Plan 015 closes. This is the {@code T3} REST
- * half of {@code plans/015-retirar-descuento-apu.md}.
+ * half of Plan 015 (retiro del descuento por APU; ver el glosario de {@code CLAUDE.md}).
  *
  * <p>Two complementary checks — both compile against the {@link ApuResource}
  * class type (not specific method signatures), so the test stays compilable
