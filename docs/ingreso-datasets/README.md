@@ -7,25 +7,17 @@ con ensayo ROLLBACK PASS, apply 1/1372/937, replay 0/0/0 y dos verify exactos PA
 Totales locales: bases **6**, insumos **2140**, plantillas **950**. Baseline previo
 confirmado independientemente por MD5 en nueve tablas. Preservación SHA de 27
 reportada por worker, no reproducida independientemente. Inventario actual:
-27 tablas/245 columnas/Flyway 17; fingerprint DDL previo completo no reproducido.
+27 tablas/245 columnas/Flyway 17 (al momento de la carga; hoy V001–V026); fingerprint DDL previo completo no reproducido.
 Revisión final datos/recibos PASS; global PARCIAL por esos límites y runtime/API/
 concurrencia no probados.
 
-## Ruta y estado actual
+## Estado
 
-| Orden | Documento | Estado operativo | Dependencia |
-|---|---|---|---|
-| 00 | [Diagnóstico y decisiones](00-diagnostico-y-decisiones.md) | Referencia documental; no carga | Hallazgos remitidos por auditoría |
-| 01 | [Preflight y aprobaciones](01-preflight-y-aprobaciones.md) | Aprobaciones locales + baseline remitidos | Revisar 00 |
-| 02 | [Mapeo y preparación](02-mapeo-y-preparacion.md) | Release sellada y cargada | Aprobaciones de 01 |
-| 03 | [Ensayo de carga](03-ensayo-de-carga.md) | DB ROLLBACK PASS; runtime/concurrencia pendientes | Release sellada |
-| 04 | [Carga controlada](04-carga-controlada.md) | EJECUTADA; replay NOOP | Recibos enlazados en seguimiento |
-| 05 | [Verificación y cierre](05-verificacion-y-cierre.md) | PARCIAL: DB verificada; aplicación pendiente | Runtime/API pendiente |
-| 06 | [Futuros datasets](06-futuros-datasets.md) | NO EJECUTADO | Cierre de 05 + nueva autorización |
-| — | [Seguimiento humano](SEGUIMIENTO.md) | Evidencia local registrada | Actualizar cierre tras revisión |
-
-Leer en orden y registrar decisiones en SEGUIMIENTO. Un documento publicado no
-significa paso ejecutado. Una aprobación de precio no aprueba HM ni la carga.
+Los documentos por fase (00–06) se retiraron al cerrar la carga; su evidencia queda en los
+recibos JSON versionados, en [SEGUIMIENTO](SEGUIMIENTO.md) y en el historial git. Hoy: carga
+**ejecutada** (replay NOOP); verificación de datos PASS; validación funcional de la aplicación
+**pendiente**; futuros datasets **no ejecutados** (requieren nueva autorización). Una
+aprobación de precio no aprueba HM ni la carga.
 
 ## Alcance cerrado
 
@@ -62,12 +54,10 @@ No ejecución automática de migraciones al arrancar como paso de carga.
 
 ## Referencias y autorización
 
-- [Tarea DOC-01/DOC-02](../../odd/tasks/dataset-daule-data-only-plans.md).
 - [Guía del backend](../../CLAUDE.md) y [planes vigentes](../../plans/README.md).
 - [Dataset exportado](../../database/dataset_ingestion/sources/dataset_maestro_daule_v1/README.md).
-- [Índice del backend](../INDICE.md).
 
-La autorización posterior está registrada en [tarea LOAD](../../odd/tasks/dataset-daule-data-only-load.md).
+La autorización de la carga quedó registrada en el historial git (tarea LOAD, retirada).
 Depósito: `database/dataset_ingestion/releases/daule-v1/`; destino fijo Compose
 local `propuestas`. [Notas junto al dataset](../../database/dataset_ingestion/sources/dataset_maestro_daule_v1/NOTAS_INTEGRACION_BACKEND.md)
 separan hechos originales de adaptaciones aprobadas. Los cuatro recibos de
@@ -79,7 +69,6 @@ La fuente operativa actual está incluida en el backend; la carga histórica us�
 
 ## Siguiente paso
 
-Resultado independiente registrado en [05](05-verificacion-y-cierre.md): datos
-PASS, global PARCIAL. Autorizar separadamente validación funcional; runtime/API
+Resultado independiente: datos PASS, global PARCIAL. Autorizar separadamente validación funcional; runtime/API
 y concurrencia siguen no probados;
 licencia NO_VERIFICADA limita la autorización al uso local.

@@ -1,10 +1,7 @@
 # 04 — Seed de escenarios reales (`V004__seed_escenarios.sql`)
 
-- **Status:** ✅ DONE — implementado y verificado (2026-08-02).
-- **Blocks:** demos con datos realistas, pruebas manuales en Bruno, desarrollo
-  de los módulos APU/presupuesto/cronograma (I-05…I-09).
-- **Depends on:** `V001__baseline.sql` (21 tablas), `V002__seed.sql`
-  (unidades + parámetros sistema), `V003__seed_insumos.sql` (base central IESS).
+- **Estado:** implementado y verificado (2026-08-02); el seed vive en `V004__seed_escenarios.sql` y sus complementos `V014`–`V020`.
+- **Propósito:** demos con datos realistas, pruebas manuales en Bruno y desarrollo de los módulos APU/presupuesto/cronograma.
 - **Source of truth:** `thesis-docs/plan/quality/04-poblamiento-bd.md`,
   `thesis-docs/plan/architecture/06-database-schema.md`,
   fixtures del motor en `src/test/resources/motor/fixtures/`.
@@ -13,7 +10,7 @@
 
 ## Context
 
-El sistema tiene el esquema completo (21 tablas) pero la BD casi vacía: solo
+El esquema base (V001) tiene 21 tablas (hoy más, hasta V026) y la BD casi vacía: solo
 existen `unidad_catalogo`, `parametros_sistema` y una base central IESS con 93
 insumos (V002/V003). Los módulos de negocio (proyecto, insumo) ya tienen código
 vertical, pero no hay **datos de negocio realistas** para demos, desarrollo del
@@ -50,7 +47,6 @@ motor — cerrando el bucle entre motor (GM) y datos de BD.
 |---|---|
 | `src/main/resources/db/migration/V004__seed_escenarios.sql` | **Nuevo** — seed completo de 3 escenarios + soporte |
 | `docs/04-SEED-ESCENARIOS.md` | Este plan |
-| `docs/00-ESTADO-ACTUAL.md` | Actualizar estado de BD |
 
 ## Out of scope — no tocar
 

@@ -8,19 +8,21 @@ anteriores se conservan como evidencia histórica, no como inventario actual.
 Revisión independiente histórica: **PASS del conjunto de datos/recibos**; resultado
 global **PARCIAL** por runtime/API y concurrencia no probados y evidencia de
 preservación/DDL no reproducida por completo. Resultados remitidos por el padre;
-no se inventan fechas ni firmas. [Tarea LOAD](../../odd/tasks/dataset-daule-data-only-load.md).
+no se inventan fechas ni firmas.
 
 ## Estado por etapa
 
+Los documentos por etapa (00–06) se retiraron; esta tabla y los recibos son el registro vigente. El esquema actual llega a Flyway V026.
+
 | Etapa | Estado actual | Evidencia y puerta restante |
 |---|---|---|
-| [00](00-diagnostico-y-decisiones.md) | Diagnóstico histórico | Propuesta anterior supersedida por política aprobada |
-| [01](01-preflight-y-aprobaciones.md) | Preflight local ejecutado | Uso local autorizado, NO_VERIFICADA |
-| [02](02-mapeo-y-preparacion.md) | Release sellada y verificada | 1372/937, UUIDv7 y hashes exactos |
-| [03](03-ensayo-de-carga.md) | DB ROLLBACK PASS | Runtime/concurrencia no probados |
-| [04](04-carga-controlada.md) | Carga confirmada; replay NOOP | Recibos abajo |
-| [05](05-verificacion-y-cierre.md) | DB PASS; cierre global PARCIAL | Validación funcional de aplicación pendiente |
-| [06](06-futuros-datasets.md) | NO EJECUTADO | Nueva autorización y puertas propias |
+| 00 | Diagnóstico histórico | Propuesta anterior supersedida por política aprobada |
+| 01 | Preflight local ejecutado | Uso local autorizado, NO_VERIFICADA |
+| 02 | Release sellada y verificada | 1372/937, UUIDv7 y hashes exactos |
+| 03 | DB ROLLBACK PASS | Runtime/concurrencia no probados |
+| 04 | Carga confirmada; replay NOOP | Recibos abajo |
+| 05 | DB PASS; cierre global PARCIAL | Validación funcional de aplicación pendiente |
+| 06 | NO EJECUTADO | Nueva autorización y puertas propias |
 
 ## Preparación y decisiones aprobadas
 

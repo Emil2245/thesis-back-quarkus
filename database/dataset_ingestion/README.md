@@ -1,6 +1,6 @@
 # Daule V1: preparación durable y carga local controlada
 
-Operador **standalone Python stdlib**, sin API, cambios Java, migraciones ni dependencias. **COPY-02: reconstrucción limpia y carga local verificadas; adopción funcional de aplicación pendiente.** Flyway ejecutó las 17 migraciones/seeds reales; startup temporal en 8091 y `/q/health` HTTP 200. Apply insertó 1 CENTRAL/1372 insumos/937 plantillas; replay 0/0/0 y dos verify exactos PASS. Revisión independiente de esta reconstrucción pendiente; no se reclama PASS funcional integral. [Registro y recibos nuevos e históricos](../../docs/ingreso-datasets/SEGUIMIENTO.md).
+Operador **standalone Python stdlib**, sin API, cambios Java, migraciones ni dependencias. **COPY-02: reconstrucción limpia y carga local verificadas; adopción funcional de aplicación pendiente.** Flyway ejecutó las 17 migraciones/seeds reales de ese momento (hoy el esquema llega a V026); startup temporal en 8091 y `/q/health` HTTP 200. Apply insertó 1 CENTRAL/1372 insumos/937 plantillas; replay 0/0/0 y dos verify exactos PASS. Revisión independiente de esta reconstrucción pendiente; no se reclama PASS funcional integral. [Registro y recibos nuevos e históricos](../../docs/ingreso-datasets/SEGUIMIENTO.md).
 
 La fuente predeterminada es `sources/dataset_maestro_daule_v1`, incluida íntegramente
 junto al operador. No requiere `thesis-docs` ni otro repositorio hermano.

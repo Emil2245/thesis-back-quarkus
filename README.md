@@ -1,11 +1,9 @@
 # propuestas-api
 
-**Plan 03 en ejecución:** Gradle multiproyecto con `:core` (API y PostgreSQL/Flyway),
-`:documentos` (servicio independiente sin base) y `:documentos-contract`
-(biblioteca de proyecciones tipadas, no un tercer servicio). Los GET públicos
-siguen funcionando. La nueva ruta interna de subida privada es una pieza aislada:
-el POST público, el ticket de Core, la limpieza a 24 horas y el despliegue aún no
-están implementados ni verificados.
+Gradle multiproject with `:core` (API, PostgreSQL/Flyway, business rules),
+`:documentos` (independent service, no database: renders documents and stores them in a
+private S3 bucket) and `:documentos-contract` (typed projections, not a third service).
+Every download goes through `POST …/exportaciones` plus a one-use ticket from Core.
 
 Quarkus backend for the SERCOP propuestas técnico-económicas platform —
 a cloud-native web application that automates APU calculation, budget
@@ -71,7 +69,7 @@ the same commit set. Do not divergently re-decide things here.
 # Root tasks aggregate both applications; no tests in this command
 ./gradlew build -x test
 
-# Focused suites; legacy Core GETs stay in Core during migration
+# Focused suites
 ./gradlew :core:test -PexcludeKnownResiduals
 ./gradlew :documentos:test
 ./gradlew test -PexcludeKnownResiduals
@@ -101,7 +99,7 @@ Core's render gateways, `DocumentosHttpClient`, the Core XLSX/PDF/MSPDI writers
 and their POI/OpenPDF dependencies, and Documentos' synchronous internal render
 routes. Core no longer renders documents; every download goes through the
 private upload and one-use ticket below. See
-[`plans/separar-en-microservicios/05-retiro-descargas-legadas.md`](plans/separar-en-microservicios/05-retiro-descargas-legadas.md).
+[`plans/separar-en-microservicios/README.md`](plans/separar-en-microservicios/README.md).
 
 ## Internal private upload (stage 03)
 
@@ -196,21 +194,6 @@ The test creates a unique export key, deletes only that key, and confirms two
 subsequent HEAD requests return 404. It cannot establish IAM or deployed
 retention.
 
-To verify the five existing public GET formats against **both real applications**
-without using the repository's Compose volume, run:
-
-```bash
-STAGE02_REAL_DOCUMENTOS=true ./gradlew :documentos:quarkusBuild :core:test \
-  --tests 'ec.uce.propuestas.documento.RealDocumentosGetIT' :core:spotlessCheck
-```
-
-The opt-in test starts the packaged Documentos app on a loopback ephemeral port
-with a task-owned RSA service key and uses Core's isolated Testcontainers database
-and authenticated fixture. It checks budget/APU PDF and XLSX, technical DOCX,
-and the DOCX export audit; it stops the app and removes only its own temporary
-keys. Without `STAGE02_REAL_DOCUMENTOS=true`, the test is skipped. This does not
-validate TLS, browser download, S3, Pod Identity, native images or deployment.
-
 ## Correo
 
 Por defecto (`MAIL_MODE=log`) los correos no se envían: en dev/test el token se
@@ -232,8 +215,7 @@ The build uses **Spotless** (palantir-java-format) for Java style and
 ./gradlew spotlessCheck
 ```
 
-If `spotlessCheck` fails in CI, run `spotlessApply` and re-commit. Details and
-decisions in [docs/012-format-lint.md](docs/012-format-lint.md).
+If `spotlessCheck` fails in CI, run `spotlessApply` and re-commit.
 
 Endpoints in dev:
 - `/q/health` — liveness
@@ -286,7 +268,7 @@ core/build.gradle.kts             # Existing API, PostgreSQL, Flyway and domain
 core/src/main/java/ec/uce/propuestas/
 ├── common/        # RestApplication, ErrorPayload, GlobalExceptionMapper
 ├── usuario/       # Auth, JWT, audit and roles
-├── documento/     # Existing GET adapters (kept during transition)
+├── documento/     # Preflight, POST exportaciones and download ticket
 └── motor/         # Pure Java calculation engine
 core/src/main/resources/
 ├── application.yml
@@ -300,52 +282,12 @@ plans/                           # Implementation plans
 
 ---
 
-## Historical iteration snapshot (functional code cut `ac84c945`)
+## Status
 
-**Historical technical status** (backend `ac84c945`; not a test result of the current multiproject branch):
-
-- **I-01 … I-11 — DONE técnico.** Bootstrap, auth, motor, APU núcleo y
-  avanzado, presupuesto (P-28…P-32), cronograma (P-33…P-36),
-  exportación XLSX/PDF/MSPDI (P-37) y panel Super-Admin (P-38…P-42)
-  están implementados. El paquete de búsqueda de plantillas
-  (`plans/plans_busquedas_plantilla/001`–`005`) está DONE e integrado.
-- **I-12 — pendiente de planificación** (validación final, hardening,
-  SUS `n ≥ 5`).
-- **Piloto SUS 1–2 — pendiente** (requiere frontend y participantes
-  humanos; no se fabrican resultados).
-- **Bases PERSONAL — contrato funcional pendiente:** el backend permite gestionar
-  el contenedor y resolver insumos PERSONAL internamente, pero todavía no expone
-  el flujo completo para alimentarlo y ofrecerlo como origen del selector; el
-  frontend mantiene el Plan 058 bloqueado.
-- **Suite completa:** `763 = 760 pass + 2 fallos aceptados
-  (GM-19/GM-20, residuales workbook-rounding documentados en
-  Plan 014; no se reabre el motor) + 1 skipped (GM-24 `@Disabled`
-  por fixture upstream EMELNORTE) + 0 errors`.
-- **`./gradlew build -x test`** → **PASS**. `./gradlew build` falla
-  únicamente por los residuales aceptados GM-19/GM-20.
-
-| Plan | Iteration | Status |
-|---|---|---|
-| 001–018 (I-01 … I-06) | bootstrap, CI, schema, auth, motor, APU núcleo y avanzado, presupuesto inicial | **DONE** — ver detalle por plan en [`plans/README.md`](plans/README.md) |
-| 019–025 (I-07 presupuesto) | UUIDv7 presupuesto, recalculo write-through, ciclo presupuesto, capítulos, rubros, versionado, validación P-32 | **DONE (2026-09-01)** — Plan 025 cierra I-07 |
-| 026–031 (I-08/I-09/I-10 cronograma + export) | cronograma CRUD, vistas/curva S, exportación XLSX/PDF/MSPDI | **DONE (2026-09-07)** — Plan 031 verificado con preflight MSPDI XSD |
-| 032–040 (I-11 panel Super-Admin + piloto SUS) | gate documental, log_actividad (V010), usuarios, bases, plantillas SISTEMA, parámetros, instrumentación D-13, integración | **DONE técnico (2026-09-09)** — piloto SUS 1–2 pendiente |
-| `plans_busquedas_plantilla/001`–`005` | búsqueda FTS (V011), seed catálogo (V012), lote atómico, APU manual completo, integración Bruno | **DONE (2026-09-10/11)** — ver [`plans/plans_busquedas_plantilla/README.md`](plans/plans_busquedas_plantilla/README.md) |
-| I-12 — pendiente | validación final, hardening, SUS `n ≥ 5` | ⬜ **Pendiente de planificación** |
-
-> **Histórico (snapshot 2026-07-24, preservado para auditoría):**
-> en ese corte la suite reportaba 56 tests, los planes
-> 001–006 cubrían I-01/I-02 únicamente, y la exportación documental
-> estaba marcada como "for future document export". Ese estado ya fue
-> superado por los planes 007–040 y por el paquete de plantillas
-> 001–005; el detalle histórico vive en
-> [`plans/README.md`](plans/README.md) y
-> [`docs/00-ESTADO-ACTUAL.md`](docs/00-ESTADO-ACTUAL.md).
-
-**Estado detallado y notas post-ejecución**:
-[`plans/README.md`](plans/README.md) ·
-[`docs/00-ESTADO-ACTUAL.md`](docs/00-ESTADO-ACTUAL.md) ·
-[`docs/modulos/README.md`](docs/modulos/README.md).
+I-01 … I-11 are technically done (auth, motor, APU, presupuesto, cronograma, document
+export, Super-Admin panel); I-12 (final validation, hardening, SUS `n ≥ 5`) is not yet
+planned and SUS pilot 1–2 is pending. Per-route status and open items:
+[`plans/README.md`](plans/README.md).
 
 ---
 
