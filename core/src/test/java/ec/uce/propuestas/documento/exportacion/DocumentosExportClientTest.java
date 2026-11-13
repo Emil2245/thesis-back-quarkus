@@ -16,6 +16,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
@@ -128,6 +129,74 @@ class DocumentosExportClientTest {
                         Duration.ofSeconds(2)));
         new DocumentosExportClient(
                 URI.create("https://documentos.internal"), json, id -> "service-token", Duration.ofSeconds(2));
+    }
+
+    @Test
+    void acceptsHttpOnlyForExplicitlyListedInternalHosts() {
+        var allowed = Set.of("propuestas-documentos");
+        new DocumentosExportClient(
+                URI.create("http://propuestas-documentos:8081"),
+                json,
+                id -> "service-token",
+                Duration.ofSeconds(2),
+                allowed);
+        new DocumentosExportClient(
+                URI.create("http://PROPUESTAS-Documentos:8081"),
+                json,
+                id -> "service-token",
+                Duration.ofSeconds(2),
+                allowed);
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new DocumentosExportClient(
+                        URI.create("http://documentos.internal:8081"),
+                        json,
+                        id -> "service-token",
+                        Duration.ofSeconds(2),
+                        allowed));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new DocumentosExportClient(
+                        URI.create("http://propuestas-documentos.evil:8081"),
+                        json,
+                        id -> "service-token",
+                        Duration.ofSeconds(2),
+                        allowed));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new DocumentosExportClient(
+                        URI.create("http://user:pass@propuestas-documentos:8081"),
+                        json,
+                        id -> "service-token",
+                        Duration.ofSeconds(2),
+                        allowed));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new DocumentosExportClient(
+                        URI.create("ftp://propuestas-documentos:8081"),
+                        json,
+                        id -> "service-token",
+                        Duration.ofSeconds(2),
+                        allowed));
+    }
+
+    @Test
+    void emptyAllowedHttpHostsKeepsRejectingInternalHttpHosts() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new DocumentosExportClient(
+                        URI.create("http://propuestas-documentos:8081"),
+                        json,
+                        id -> "service-token",
+                        Duration.ofSeconds(2),
+                        Set.of()));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new DocumentosExportClient(
+                        URI.create("http://propuestas-documentos:8081"),
+                        json,
+                        id -> "service-token",
+                        Duration.ofSeconds(2)));
     }
 
     @Test

@@ -86,6 +86,14 @@ mp:
       issuer: ${JWT_ISSUER:https://propuestas-api.local}
 
 # App-level auth knobs (business rules from D-01, D-02, D-11)
+# Core -> Documentos (internal). Sin valor por defecto: `documentos.base-url`
+# (DOCUMENTOS_BASE_URL) exige https salvo loopback. `documentos.allowed-http-hosts`
+# (DOCUMENTOS_ALLOWED_HTTP_HOSTS, lista separada por comas, coincidencia exacta
+# sin comodines, vacia por defecto) permite http a hosts internos listados,
+# p. ej. DOCUMENTOS_ALLOWED_HTTP_HOSTS=propuestas-documentos en Kubernetes.
+# documentos:
+#   allowed-http-hosts: propuestas-documentos
+
 app:
   frontend:
     # Base para los enlaces de los correos (verificación, reset, invitación).

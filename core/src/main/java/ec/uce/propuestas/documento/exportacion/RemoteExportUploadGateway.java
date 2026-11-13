@@ -7,7 +7,9 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.net.URI;
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 /** Service-authenticated upload and HEAD reconciliation; no fallback to local rendering. */
@@ -21,6 +23,10 @@ public class RemoteExportUploadGateway {
 
     @ConfigProperty(name = "documentos.base-url")
     Optional<String> baseUrl;
+
+    /** Hosts reachable over plain http besides loopback (env {@code DOCUMENTOS_ALLOWED_HTTP_HOSTS}). */
+    @ConfigProperty(name = "documentos.allowed-http-hosts")
+    Optional<List<String>> allowedHttpHosts;
 
     @ConfigProperty(name = "documentos.timeout", defaultValue = "PT20S")
     Duration timeout;
@@ -36,6 +42,7 @@ public class RemoteExportUploadGateway {
     private DocumentosExportClient client() {
         String url = baseUrl.filter(s -> !s.isBlank())
                 .orElseThrow(() -> new IllegalStateException("Documentos base URL is not configured"));
-        return new DocumentosExportClient(URI.create(url), json, serviceJwt::issueToken, timeout);
+        Set<String> hosts = allowedHttpHosts.map(Set::copyOf).orElse(Set.of());
+        return new DocumentosExportClient(URI.create(url), json, serviceJwt::issueToken, timeout, hosts);
     }
 }

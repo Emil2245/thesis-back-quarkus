@@ -10,7 +10,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
 import java.time.Duration;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 
@@ -25,12 +27,27 @@ public final class DocumentosExportClient {
 
     public DocumentosExportClient(
             URI baseUri, ObjectMapper json, Function<UUID, String> serviceToken, Duration timeout) {
+        this(baseUri, json, serviceToken, timeout, Set.of());
+    }
+
+    /**
+     * @param allowedHttpHosts hosts (exact, case-insensitive, no wildcards) that may be reached over plain
+     *     {@code http} besides loopback; intended for in-cluster Services protected by NetworkPolicy.
+     */
+    public DocumentosExportClient(
+            URI baseUri,
+            ObjectMapper json,
+            Function<UUID, String> serviceToken,
+            Duration timeout,
+            Set<String> allowedHttpHosts) {
         Objects.requireNonNull(baseUri, "baseUri");
+        Objects.requireNonNull(allowedHttpHosts, "allowedHttpHosts");
         String host = baseUri.getHost();
         boolean secure = "https".equals(baseUri.getScheme());
-        boolean loopback = "http".equals(baseUri.getScheme())
-                && ("127.0.0.1".equals(host) || "localhost".equals(host) || "[::1]".equals(host) || "::1".equals(host));
-        if ((!secure && !loopback) || host == null || baseUri.getUserInfo() != null) {
+        boolean plainAllowed = "http".equals(baseUri.getScheme())
+                && host != null
+                && (isLoopback(host) || isListed(host, allowedHttpHosts));
+        if ((!secure && !plainAllowed) || host == null || baseUri.getUserInfo() != null) {
             throw new IllegalArgumentException("Invalid internal Documentos base URI");
         }
         this.endpoint = baseUri.resolve("/internal/v1/export");
@@ -40,6 +57,18 @@ public final class DocumentosExportClient {
         if (timeout.isZero() || timeout.isNegative()) throw new IllegalArgumentException("Invalid Documentos timeout");
         this.client =
                 HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build();
+    }
+
+    private static boolean isLoopback(String host) {
+        return "127.0.0.1".equals(host) || "localhost".equals(host) || "[::1]".equals(host) || "::1".equals(host);
+    }
+
+    private static boolean isListed(String host, Set<String> allowedHttpHosts) {
+        String normalized = host.toLowerCase(Locale.ROOT);
+        for (String allowed : allowedHttpHosts) {
+            if (allowed != null && normalized.equals(allowed.strip().toLowerCase(Locale.ROOT))) return true;
+        }
+        return false;
     }
 
     public StoredObjectV1 upload(ExportUploadV1 request) {
